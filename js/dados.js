@@ -1,0 +1,629 @@
+/**
+ * CATÁLOGO COMPLETO — LOJA SJ 3D (UMUARAMA - PR)
+ * ============================================================
+ * Estilo unificado em todo o site ("Monte o Seu Combo / Caixa"):
+ * - Filamentos (Escolha entre Bambu Lab e MaxPrint, pesos e cores com troca visual)
+ * - Impressoras 3D (A1 Mini, A1 Mini Combo, A1 Normal, A1 Combo, P2S e Snapmaker)
+ * - Peças de Reposição & Acessórios (Hotends, Placas PEI, Kits de Extrusora/AMS)
+ * - Manutenção & Assistência Técnica (Preventiva, Corretiva e Upgrades)
+ */
+
+window.SITE_DATA = {
+  loja: {
+    nome: "LOJA SJ 3D",
+    cnpj: "66.275.129/0001-10",
+    whatsapp: "5544991351318",
+    whatsappFormatado: "(44) 99135-1318",
+    endereco: "Av. Portugal, 6759 — Zona I-A, Umuarama - PR",
+    horario: "Seg a Sex: 09h às 17h | Sáb: 09h às 13h",
+    instagramUrl: "https://www.instagram.com/lojasj3d/",
+    facebookUrl: "https://www.facebook.com/lojasj3d",
+    googleMeuNegocioUrl: "https://share.google/0WwPhjFx69b3V9sU1"
+  },
+
+  // =========================================================================
+  // PALETAS OFICIAIS DO CATÁLOGO DE FILAMENTOS LOJA SJ (55 PÁGINAS)
+  // =========================================================================
+
+  // 1. BAMBU LAB (Páginas 43 a 49 do PDF — Carretel RFID R$ 99,90 | Refil RFID R$ 79,90)
+  coresBambuLab: [
+    { nome: "Laranja 1kg", cod: "137", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F04E23", filtroCss: "none", imgCatalogo: "assets/produtos/filamentos/img_237.jpg" },
+    { nome: "Preto 1kg", cod: "110", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", imgCatalogo: "assets/produtos/filamentos/img_220.jpg" },
+    { nome: "Branco 1kg", cod: "135", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_232.jpg" },
+    { nome: "Cinza 1kg", cod: "145", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", imgCatalogo: "assets/produtos/filamentos/img_240.jpg" },
+    { nome: "Azul Ciano 1kg", cod: "136", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#0284C7", filtroCss: "hue-rotate(175deg) saturate(1.1)", imgCatalogo: "assets/produtos/filamentos/img_235.jpg" },
+    { nome: "Verde 1kg", cod: "115", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", imgCatalogo: "assets/produtos/filamentos/img_227.jpg" },
+    { nome: "Amarelo Sol 1kg", cod: "113", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#FACC15", filtroCss: "hue-rotate(32deg) saturate(1.15) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_225.jpg" },
+    { nome: "Amarelo Girassol 1kg", cod: "116", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F59E0B", filtroCss: "hue-rotate(22deg) saturate(1.12)", imgCatalogo: "assets/produtos/filamentos/img_230.jpg" },
+    { nome: "Matte Bege 1kg (Fosco)", cod: "112", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#E5D3B3", filtroCss: "hue-rotate(25deg) saturate(0.45) brightness(1.12)", imgCatalogo: "assets/produtos/filamentos/img_222.jpg" },
+    { nome: "Marrom Coco 1kg", cod: "166", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#5C4033", filtroCss: "hue-rotate(-8deg) saturate(0.55) brightness(0.82)", imgCatalogo: "assets/produtos/filamentos/img_244.jpg" },
+    { nome: "Refil PLA Branco 1kg", cod: "146", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_232.jpg" },
+    { nome: "Refil PLA Cinza 1kg", cod: "147", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", imgCatalogo: "assets/produtos/filamentos/img_240.jpg" },
+    { nome: "Refil PLA Verde 1kg", cod: "151", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", imgCatalogo: "assets/produtos/filamentos/img_227.jpg" }
+  ],
+
+  // 2. PLA MASTERPRINT / MAXPRINT (Páginas 2 a 21 do PDF — 36 Cores Oficiais)
+  coresMaxPrint: [
+    { nome: "Preto 1kg", cod: "34", preco: "R$ 79,90", valor: 79.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "Branco 1kg", cod: "36", preco: "R$ 79,90", valor: 79.90, hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_82.jpg" },
+    { nome: "Laranja 1kg", cod: "95", preco: "R$ 79,90", valor: 79.90, hex: "#F04E23", filtroCss: "hue-rotate(115deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_128.jpg" },
+    { nome: "Laranja Nascer do Sol 1kg", cod: "94", preco: "R$ 79,90", valor: 79.90, hex: "#FB7185", filtroCss: "hue-rotate(105deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_125.jpg" },
+    { nome: "Vermelho 1kg", cod: "86", preco: "R$ 79,90", valor: 79.90, hex: "#DC2626", filtroCss: "hue-rotate(92deg) saturate(1.25)", imgCatalogo: "assets/produtos/filamentos/img_115.jpg" },
+    { nome: "Azul Escuro 1kg", cod: "87", preco: "R$ 79,90", valor: 79.90, hex: "#1D4ED8", filtroCss: "hue-rotate(-45deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_117.jpg" },
+    { nome: "Azul Ártico 1kg", cod: "81", preco: "R$ 79,90", valor: 79.90, hex: "#7DD3FC", filtroCss: "hue-rotate(-75deg) saturate(0.85) brightness(1.1)", imgCatalogo: "assets/produtos/filamentos/img_104.jpg" },
+    { nome: "Verde Bambu 1kg", cod: "91", preco: "R$ 79,90", valor: 79.90, hex: "#22C55E", filtroCss: "hue-rotate(-135deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_123.jpg" },
+    { nome: "Verde Claro 1kg", cod: "82", preco: "R$ 79,90", valor: 79.90, hex: "#86EFAC", filtroCss: "hue-rotate(-135deg) saturate(0.75) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_107.jpg" },
+    { nome: "Verde Escuro 1kg", cod: "121", preco: "R$ 79,90", valor: 79.90, hex: "#14532D", filtroCss: "hue-rotate(-135deg) saturate(0.9) brightness(0.8)", imgCatalogo: "assets/produtos/filamentos/img_140.jpg" },
+    { nome: "Fosco Verde 1kg", cod: "159", preco: "R$ 79,90", valor: 79.90, hex: "#16A34A", filtroCss: "hue-rotate(-135deg) saturate(1.05)", imgCatalogo: "assets/produtos/filamentos/img_123.jpg" },
+    { nome: "Fosco Verde Militar 1kg", cod: "158", preco: "R$ 79,90", valor: 79.90, hex: "#4D5D3B", filtroCss: "hue-rotate(-125deg) saturate(0.55) brightness(0.85)", imgCatalogo: "assets/produtos/filamentos/img_154.jpg" },
+    { nome: "Fosco Preto Carbono 1kg", cod: "157", preco: "R$ 79,90", valor: 79.90, hex: "#27272A", filtroCss: "grayscale(1) brightness(0.78)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "Cinza 1kg", cod: "37", preco: "R$ 79,90", valor: 79.90, hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "Cinza Fosco 1kg", cod: "66", preco: "R$ 79,90", valor: 79.90, hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "Cinza Gris 1kg", cod: "67", preco: "R$ 79,90", valor: 79.90, hex: "#6B7280", filtroCss: "grayscale(1) brightness(0.92)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "Prata Fosco 1kg", cod: "68", preco: "R$ 79,90", valor: 79.90, hex: "#9CA3AF", filtroCss: "grayscale(1) brightness(1.02)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "Matter Gray 1kg", cod: "89", preco: "R$ 79,90", valor: 79.90, hex: "#78716C", filtroCss: "grayscale(1) brightness(0.94)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "Lemon (Amarelo) 1kg", cod: "84", preco: "R$ 79,90", valor: 79.90, hex: "#FDE047", filtroCss: "hue-rotate(148deg) saturate(1.2) brightness(1.1)", imgCatalogo: "assets/produtos/filamentos/img_112.jpg" },
+    { nome: "Dourado 1kg", cod: "72", preco: "R$ 79,90", valor: 79.90, hex: "#CA8A04", filtroCss: "hue-rotate(135deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_96.jpg" },
+    { nome: "Deserto 1kg", cod: "85", preco: "R$ 79,90", valor: 79.90, hex: "#D97706", filtroCss: "hue-rotate(130deg) saturate(0.95)", imgCatalogo: "assets/produtos/filamentos/img_96.jpg" },
+    { nome: "Skin Cor de Pele 1kg", cod: "155", preco: "R$ 79,90", valor: 79.90, hex: "#E0AC8B", filtroCss: "hue-rotate(118deg) saturate(0.6) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_149.jpg" },
+    { nome: "Rosa 1kg", cod: "71", preco: "R$ 79,90", valor: 79.90, hex: "#F472B6", filtroCss: "hue-rotate(55deg) saturate(0.95) brightness(1.06)", imgCatalogo: "assets/produtos/filamentos/img_94.jpg" },
+    { nome: "Dragon Fruit 1kg", cod: "70", preco: "R$ 79,90", valor: 79.90, hex: "#DB2777", filtroCss: "hue-rotate(65deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_91.jpg" },
+    { nome: "Winsome Orchid 1kg", cod: "79", preco: "R$ 79,90", valor: 79.90, hex: "#C084FC", filtroCss: "saturate(0.75) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_99.jpg" },
+    { nome: "Roxo Claro 1kg", cod: "78", preco: "R$ 89,90", valor: 89.90, hex: "#A855F7", filtroCss: "none", imgCatalogo: "assets/produtos/filamentos/img_99.jpg" },
+    { nome: "Cobre 1kg", cod: "106", preco: "R$ 79,90", valor: 79.90, hex: "#B45309", filtroCss: "hue-rotate(112deg) saturate(0.95) brightness(0.92)", imgCatalogo: "assets/produtos/filamentos/img_133.jpg" },
+    { nome: "Marrom 1kg", cod: "108", preco: "R$ 79,90", valor: 79.90, hex: "#654321", filtroCss: "hue-rotate(110deg) saturate(0.65) brightness(0.8)", imgCatalogo: "assets/produtos/filamentos/img_138.jpg" },
+    { nome: "Marrom Madeira 1kg", cod: "63", preco: "R$ 79,90", valor: 79.90, hex: "#C19A6B", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_87.jpg" },
+    { nome: "Madeira 1kg", cod: "164", preco: "R$ 79,90", valor: 79.90, hex: "#C19A6B", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_87.jpg" },
+    { nome: "Mármore 1kg", cod: "124", preco: "R$ 79,90", valor: 79.90, hex: "#E5E7EB", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_143.jpg" },
+    { nome: "Ice Cream (Multicor Pastel) 1kg", cod: "103", preco: "R$ 59,90", valor: 59.90, hex: "#F472B6", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_130.jpg" },
+    { nome: "Rainbow 1kg", cod: "143", preco: "R$ 99,90", valor: 99.90, hex: "#EC4899", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_109.jpg" },
+    { nome: "Rainbow Florescente 1kg", cod: "83", preco: "R$ 99,90", valor: 99.90, hex: "#EC4899", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_109.jpg" },
+    { nome: "Fosco Rainbow Dreamy 1kg", cod: "153", preco: "R$ 99,90", valor: 99.90, hex: "#A78BFA", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_130.jpg" },
+    { nome: "Dreamy Crystal Preto/Vermelho 1kg", cod: "156", preco: "R$ 99,90", valor: 99.90, hex: "#991B1B", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_151.jpg" },
+    { nome: "Purple Glitter 1kg", cod: "80", preco: "R$ 99,90", valor: 99.90, hex: "#581C87", filtroCss: "brightness(0.85) contrast(1.1)", imgCatalogo: "assets/produtos/filamentos/img_102.jpg" },
+    { nome: "Verde Glitter 1kg", cod: "90", preco: "R$ 99,90", valor: 99.90, hex: "#15803D", filtroCss: "hue-rotate(-135deg) brightness(0.88)", imgCatalogo: "assets/produtos/filamentos/img_120.jpg" },
+    { nome: "Marrom Glitter 1kg", cod: "107", preco: "R$ 79,90", valor: 79.90, hex: "#5C4033", filtroCss: "hue-rotate(110deg) saturate(0.6) brightness(0.82)", imgCatalogo: "assets/produtos/filamentos/img_135.jpg" },
+    { nome: "Amarelo c/ Glitter 1kg", cod: "149", preco: "R$ 99,90", valor: 99.90, hex: "#EAB308", filtroCss: "hue-rotate(142deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_146.jpg" }
+  ],
+
+  // 3. PLA SILK MASTERPRINT / MAXPRINT (Páginas 22 a 32 do PDF — 21 Cores Oficiais)
+  coresPlaSilk: [
+    { nome: "Silk Dourado 1kg", cod: "69", preco: "R$ 89,90", valor: 89.90, hex: "#D4AF37", filtroCss: "hue-rotate(138deg) saturate(1.25) brightness(1.05)", imgCatalogo: "assets/produtos/filamentos/img_165.jpg" },
+    { nome: "Silk Prata 1kg", cod: "38", preco: "R$ 89,90", valor: 89.90, hex: "#C0C0C0", filtroCss: "grayscale(1) brightness(1.06) contrast(1.1)", imgCatalogo: "assets/produtos/filamentos/img_160.jpg" },
+    { nome: "Silk Preto 1kg", cod: "65", preco: "R$ 89,90", valor: 89.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.2)", imgCatalogo: "assets/produtos/filamentos/img_162.jpg" },
+    { nome: "Silk Branco 1kg", cod: "125", preco: "R$ 89,90", valor: 89.90, hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_82.jpg" },
+    { nome: "Silk Bronze 1kg", cod: "105", preco: "R$ 89,90", valor: 89.90, hex: "#8C6239", filtroCss: "hue-rotate(118deg) saturate(0.85) brightness(0.92)", imgCatalogo: "assets/produtos/filamentos/img_182.jpg" },
+    { nome: "Silk Azul 1kg", cod: "88", preco: "R$ 89,90", valor: 89.90, hex: "#1D4ED8", filtroCss: "hue-rotate(-45deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_175.jpg" },
+    { nome: "Silk Azul Azure 1kg", cod: "154", preco: "R$ 89,90", valor: 89.90, hex: "#2563EB", filtroCss: "hue-rotate(-45deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_175.jpg" },
+    { nome: "Silk Azul Tiffany 1kg", cod: "126", preco: "R$ 89,90", valor: 89.90, hex: "#14B8A6", filtroCss: "hue-rotate(-95deg) saturate(1.1)", imgCatalogo: "assets/produtos/filamentos/img_193.jpg" },
+    { nome: "Silk Verde 1kg", cod: "92", preco: "R$ 89,90", valor: 89.90, hex: "#15803D", filtroCss: "hue-rotate(-135deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_177.jpg" },
+    { nome: "Silk Vermelho 1kg", cod: "139", preco: "R$ 89,90", valor: 89.90, hex: "#DC2626", filtroCss: "hue-rotate(92deg) saturate(1.25)", imgCatalogo: "assets/produtos/filamentos/img_185.jpg" },
+    { nome: "Silk Vermelho Purpure 1kg", cod: "109", preco: "R$ 89,90", valor: 89.90, hex: "#B91C1C", filtroCss: "hue-rotate(88deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_185.jpg" },
+    { nome: "Silk Rosa 1kg", cod: "120", preco: "R$ 89,90", valor: 89.90, hex: "#EC4899", filtroCss: "hue-rotate(58deg) saturate(1.05)", imgCatalogo: "assets/produtos/filamentos/img_187.jpg" },
+    { nome: "Silk Fuchsia 1kg", cod: "134", preco: "R$ 89,90", valor: 89.90, hex: "#C026D3", filtroCss: "hue-rotate(42deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_195.jpg" },
+    { nome: "Silk Roxo 1kg", cod: "93", preco: "R$ 89,90", valor: 89.90, hex: "#7C3AED", filtroCss: "none", imgCatalogo: "assets/produtos/filamentos/img_180.jpg" },
+    { nome: "Silk Lavanda 1kg", cod: "76", preco: "R$ 89,90", valor: 89.90, hex: "#C4B5FD", filtroCss: "saturate(0.65) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_172.jpg" },
+    { nome: "Silk Preto/Laranja Dual 1kg", cod: "75", preco: "R$ 99,90", valor: 99.90, hex: "#F04E23", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_170.jpg" },
+    { nome: "Silk Azul/Vermelho Dual 1kg", cod: "74", preco: "R$ 99,90", valor: 99.90, hex: "#2563EB", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_167.jpg" },
+    { nome: "Silk Azul/Roxo Dual 1kg", cod: "141", preco: "R$ 99,90", valor: 99.90, hex: "#4F46E5", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_198.jpg" },
+    { nome: "Silk Azul/Preto/Roxo Tri 1kg", cod: "142", preco: "R$ 99,90", valor: 99.90, hex: "#312E81", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_201.jpg" },
+    { nome: "Silk Rainbow Happy 1kg", cod: "150", preco: "R$ 99,90", valor: 99.90, hex: "#F59E0B", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_203.jpg" },
+    { nome: "Silk Preto c/ Glitter 1kg", cod: "123", preco: "R$ 99,90", valor: 99.90, hex: "#27272A", filtroCss: "grayscale(1) brightness(0.78)", imgCatalogo: "assets/produtos/filamentos/img_190.jpg" }
+  ],
+
+  // 4. PETG MASTERPRINT / MAXPRINT (Páginas 33 a 42 do PDF — 19 Cores Oficiais)
+  coresPetg: [
+    { nome: "PETG Preto 1kg", cod: "40", preco: "R$ 59,90", valor: 59.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "PETG Branco 1kg", cod: "64", preco: "R$ 59,90", valor: 59.90, hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_82.jpg" },
+    { nome: "PETG Cinza 1kg", cod: "98", preco: "R$ 59,90", valor: 59.90, hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "PETG Prata 1kg", cod: "77", preco: "R$ 59,90", valor: 59.90, hex: "#9CA3AF", filtroCss: "grayscale(1) brightness(1.0)", imgCatalogo: "assets/produtos/filamentos/img_85.jpg" },
+    { nome: "PETG Laranja 1kg", cod: "99", preco: "R$ 59,90", valor: 59.90, hex: "#F04E23", filtroCss: "hue-rotate(115deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_128.jpg" },
+    { nome: "PETG Azul 1kg", cod: "100", preco: "R$ 59,90", valor: 59.90, hex: "#1D4ED8", filtroCss: "hue-rotate(-45deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_117.jpg" },
+    { nome: "PETG Amarelo 1kg", cod: "131", preco: "R$ 59,90", valor: 59.90, hex: "#EAB308", filtroCss: "hue-rotate(140deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_96.jpg" },
+    { nome: "PETG Dourado 1kg", cod: "73", preco: "R$ 59,90", valor: 59.90, hex: "#CA8A04", filtroCss: "hue-rotate(135deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_96.jpg" },
+    { nome: "PETG Rosa 1kg", cod: "132", preco: "R$ 59,90", valor: 59.90, hex: "#F472B6", filtroCss: "hue-rotate(55deg) saturate(0.95) brightness(1.06)", imgCatalogo: "assets/produtos/filamentos/img_94.jpg" },
+    { nome: "PETG Lavanda 1kg", cod: "133", preco: "R$ 59,90", valor: 59.90, hex: "#C084FC", filtroCss: "saturate(0.75) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_99.jpg" },
+    { nome: "PETG Skin 1kg", cod: "140", preco: "R$ 59,90", valor: 59.90, hex: "#E0AC8B", filtroCss: "hue-rotate(118deg) saturate(0.6) brightness(1.08)", imgCatalogo: "assets/produtos/filamentos/img_149.jpg" },
+    { nome: "PETG Marrom 1kg", cod: "102", preco: "R$ 59,90", valor: 59.90, hex: "#654321", filtroCss: "hue-rotate(110deg) saturate(0.65) brightness(0.8)", imgCatalogo: "assets/produtos/filamentos/img_138.jpg" },
+    { nome: "PETG Bronze 1kg", cod: "104", preco: "R$ 59,90", valor: 59.90, hex: "#8C6239", filtroCss: "hue-rotate(118deg) saturate(0.85) brightness(0.92)", imgCatalogo: "assets/produtos/filamentos/img_182.jpg" },
+    { nome: "PETG Madeira 1kg", cod: "101", preco: "R$ 59,90", valor: 59.90, hex: "#C19A6B", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/img_87.jpg" },
+    { nome: "PETG Fosco Preto 1kg", cod: "152", preco: "R$ 59,90", valor: 59.90, hex: "#27272A", filtroCss: "grayscale(1) brightness(0.78)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "PETG Verde Oliva 1kg", cod: "97", preco: "R$ 69,90", valor: 69.90, hex: "#4D5D3B", filtroCss: "hue-rotate(-125deg) saturate(0.55) brightness(0.85)", imgCatalogo: "assets/produtos/filamentos/img_154.jpg" },
+    { nome: "PETG Translúcido Branco 1kg", cod: "144", preco: "R$ 69,90", valor: 69.90, hex: "#E5E7EB", filtroCss: "grayscale(1) brightness(1.14)", imgCatalogo: "assets/produtos/filamentos/img_215.jpg" },
+    { nome: "PETG Branco PCV Outdoor 1kg", cod: "148", preco: "R$ 69,90", valor: 69.90, hex: "#F8FAFC", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_82.jpg" },
+    { nome: "PETG Carbono 1kg", cod: "39", preco: "R$ 119,90", valor: 119.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.72) contrast(1.2)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" }
+  ],
+
+  // 5. TPU FLEXÍVEL 95A (Páginas 51 a 53 do PDF — 5 Cores Oficiais)
+  coresTpu: [
+    { nome: "TPU Azul 1kg", cod: "122", preco: "R$ 89,90", valor: 89.90, hex: "#1D4ED8", filtroCss: "hue-rotate(-45deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_117.jpg" },
+    { nome: "TPU Preto 1kg", cod: "160", preco: "R$ 99,90", valor: 99.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "TPU Branco 1kg", cod: "161", preco: "R$ 99,90", valor: 99.90, hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", imgCatalogo: "assets/produtos/filamentos/img_82.jpg" },
+    { nome: "TPU Verde 1kg", cod: "162", preco: "R$ 99,90", valor: 99.90, hex: "#22C55E", filtroCss: "hue-rotate(-135deg) saturate(1.15)", imgCatalogo: "assets/produtos/filamentos/img_123.jpg" },
+    { nome: "TPU Laranja 1kg", cod: "163", preco: "R$ 99,90", valor: 99.90, hex: "#F04E23", filtroCss: "hue-rotate(115deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_128.jpg" }
+  ],
+
+  // 6. ABS & ESPECIAIS GLITTER (Páginas 50 e 54 do PDF)
+  coresAbsEspeciais: [
+    { nome: "ABS Preto 1kg", cod: "96", preco: "R$ 79,90", valor: 79.90, hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", imgCatalogo: "assets/produtos/filamentos/img_80.jpg" },
+    { nome: "Especial Cores com Glitter 1kg", cod: "55", preco: "R$ 109,90", valor: 109.90, hex: "#15803D", filtroCss: "hue-rotate(-135deg) brightness(0.88)", imgCatalogo: "assets/produtos/filamentos/img_120.jpg" },
+    { nome: "PLA Purple Glitter 1kg", cod: "80", preco: "R$ 99,90", valor: 99.90, hex: "#581C87", filtroCss: "brightness(0.85) contrast(1.1)", imgCatalogo: "assets/produtos/filamentos/img_102.jpg" },
+    { nome: "PLA Verde Glitter 1kg", cod: "90", preco: "R$ 99,90", valor: 99.90, hex: "#15803D", filtroCss: "hue-rotate(-135deg) brightness(0.88)", imgCatalogo: "assets/produtos/filamentos/img_120.jpg" },
+    { nome: "PLA Amarelo c/ Glitter 1kg", cod: "149", preco: "R$ 99,90", valor: 99.90, hex: "#EAB308", filtroCss: "hue-rotate(142deg) saturate(1.2)", imgCatalogo: "assets/produtos/filamentos/img_146.jpg" },
+    { nome: "PLA Marrom Glitter 1kg", cod: "107", preco: "R$ 79,90", valor: 79.90, hex: "#5C4033", filtroCss: "hue-rotate(110deg) saturate(0.6) brightness(0.82)", imgCatalogo: "assets/produtos/filamentos/img_135.jpg" }
+  ],
+
+  // =========================================================================
+  // CATÁLOGO COMPLETO UNIFICADO
+  // =========================================================================
+  catalogo: [
+    // -------------------- 1. FILAMENTOS (CATÁLOGO OFICIAL LOJA SJ — 55 PÁGINAS) --------------------
+    {
+      id: "fil-pla-bambulab",
+      categoria: "filamentos",
+      marca: "Bambu Lab",
+      permiteTrocarMarcaNoCard: true,
+      nome: "PLA Bambu Lab (Carretel & Refil RFID)",
+      subtitulo: "Chip RFID para leitura automática no AMS • Bico 190–230°C • 1.75mm",
+      precoVista: "R$ 99,90",
+      precoParcelado: "Refil RFID: R$ 79,90 • Carretel RFID: R$ 99,90",
+      imagem: "assets/produtos/pla-bambulab.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Apresentação",
+      select1Opcoes: ["1KG Carretel RFID", "1KG Refil RFID"],
+      usaCoresDinamicas: "bambu",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Bambu Lab Original (Com Chip RFID Integrado)",
+        "Material": "PLA Basic & PLA Matte High-Speed (1.75 mm ± 0.02 mm)",
+        "Temperatura do Bico": "190 °C a 230 °C",
+        "Temperatura da Mesa": "35 °C a 65 °C",
+        "Velocidade de Impressão": "Até 300 mm/s (Compatível com AMS e AMS Lite)",
+        "Opções no Catálogo Loja SJ": "Carretel 1kg (R$ 99,90) e Refil 1kg (R$ 79,90)"
+      }
+    },
+    {
+      id: "fil-pla-maxprint",
+      categoria: "filamentos",
+      marca: "MaxPrint",
+      permiteTrocarMarcaNoCard: true,
+      nome: "PLA Masterprint / MaxPrint — 40 Cores",
+      subtitulo: "Clássico, Fosco, Madeira, Mármore, Rainbow e Glitter • Bico 190–220°C",
+      precoVista: "R$ 79,90",
+      precoParcelado: "A partir de R$ 59,90 (Ice Cream) a R$ 99,90 (Rainbow/Glitter)",
+      imagem: "assets/produtos/pla-maxprint.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Peso / Linha",
+      select1Opcoes: ["1KG Carretel Padrão", "1KG Fosco / Especial"],
+      usaCoresDinamicas: "maxprint",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Masterprint / MaxPrint (Catálogo Oficial Loja SJ)",
+        "Material": "PLA 1.75 mm (Tolerância ± 0.02 mm)",
+        "Temperatura do Bico": "190 °C a 220 °C",
+        "Temperatura da Mesa": "Desligada a 60 °C (recomendado 50–60 °C)",
+        "Acabamentos Disponíveis": "Clássico, Fosco (Matte), Madeira, Mármore, Rainbow, Crystal e Glitter",
+        "Peso Líquido": "1 kg"
+      }
+    },
+    {
+      id: "fil-silk-maxprint",
+      categoria: "filamentos",
+      marca: "MaxPrint",
+      permiteTrocarMarcaNoCard: true,
+      nome: "PLA Silk Metalizado & Dual/Tri Color",
+      subtitulo: "Brilho sedoso metálico, Dual Color, Tri Color e Rainbow • 21 Cores",
+      precoVista: "R$ 89,90",
+      precoParcelado: "Silk Sólido: R$ 89,90 • Dual/Tri/Rainbow: R$ 99,90",
+      imagem: "assets/produtos/pla-maxprint.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Acabamento",
+      select1Opcoes: ["1KG Silk Brilhante", "1KG Silk Dual / Tri / Rainbow"],
+      usaCoresDinamicas: "plasilk",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Masterprint / MaxPrint",
+        "Material": "PLA Silk (Efeito Metálico de Alto Brilho)",
+        "Temperatura do Bico": "200 °C a 225 °C",
+        "Temperatura da Mesa": "50 °C a 60 °C",
+        "Cores Especiais": "Dourado, Prata, Bronze, Tiffany, Fuchsia, Dual (Preto/Laranja, Azul/Vermelho, Azul/Roxo), Tri Color e Rainbow Happy"
+      }
+    },
+    {
+      id: "fil-petg-maxprint",
+      categoria: "filamentos",
+      marca: "MaxPrint",
+      permiteTrocarMarcaNoCard: true,
+      nome: "PETG Alta Resistência — 19 Cores",
+      subtitulo: "Resistência mecânica, térmica e Outdoor • Bico 220–240°C • Mesa 70–90°C",
+      precoVista: "R$ 59,90",
+      precoParcelado: "Clássicos: R$ 59,90 • Oliva/Translúcido/Outdoor: R$ 69,90 • Carbono: R$ 119,90",
+      imagem: "assets/produtos/pla-maxprint.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Aplicação",
+      select1Opcoes: ["1KG PETG Técnico", "1KG PETG Outdoor / Carbono"],
+      usaCoresDinamicas: "petg",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Masterprint / MaxPrint",
+        "Material": "PETG 1.75 mm (Alta Resistência Mecânica e Térmica)",
+        "Temperatura do Bico": "220 °C a 240 °C",
+        "Temperatura da Mesa": "70 °C a 90 °C",
+        "Indicação": "Peças funcionais, suportes mecânicos, uso externo (PCV Outdoor) e PETG Carbono"
+      }
+    },
+    {
+      id: "fil-tpu-maxprint",
+      categoria: "filamentos",
+      marca: "MaxPrint",
+      permiteTrocarMarcaNoCard: false,
+      nome: "TPU Flexível Shore 95A — 1 kg",
+      subtitulo: "Elástico e ultra resistente a impactos • Bico 210–225°C • 5 Cores",
+      precoVista: "R$ 89,90",
+      precoParcelado: "Azul (CÓD. 122): R$ 89,90 • Preto/Branco/Verde/Laranja: R$ 99,90",
+      imagem: "assets/produtos/pla-maxprint.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Dureza / Peso",
+      select1Opcoes: ["1KG TPU Flexível 95A"],
+      usaCoresDinamicas: "tpu",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Masterprint / MaxPrint",
+        "Material": "TPU Flexível (Poliuretano Termoplástico)",
+        "Dureza Shore": "95A",
+        "Temperatura do Bico": "190 °C a 230 °C (recomendado 210–225 °C)",
+        "Temperatura da Mesa": "Desligada a 60 °C",
+        "Velocidade Recomendada": "20 a 40 mm/s (Ideal para gaxetas, capas, pneus e amortecedores)"
+      }
+    },
+    {
+      id: "fil-abs-especiais",
+      categoria: "filamentos",
+      marca: "MaxPrint",
+      permiteTrocarMarcaNoCard: false,
+      nome: "ABS Engenharia & Especiais Glitter",
+      subtitulo: "ABS Técnico para peças térmicas + Linha Especial com Glitter • 1.75mm",
+      precoVista: "R$ 79,90",
+      precoParcelado: "ABS Preto: R$ 79,90 • Especiais Glitter: R$ 79,90 a R$ 109,90",
+      imagem: "assets/produtos/pla-maxprint.jpg",
+      tipoFilamento: true,
+      kgPorUnidade: 1,
+      select1Label: "Material",
+      select1Opcoes: ["1KG ABS / Especial Glitter"],
+      usaCoresDinamicas: "absespeciais",
+      corInicialIndex: 0,
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Masterprint / MaxPrint",
+        "Materiais": "ABS Preto (CÓD. 96) e Linha Especial com Glitter (CÓD. 55, 80, 90, 107, 149)",
+        "Temperatura Bico ABS": "230 °C a 250 °C (Mesa 90 °C a 110 °C em impressora fechada como P2S)",
+        "Temperatura Bico Glitter": "200 °C a 225 °C (Recomendado bico >= 0.4 mm)"
+      }
+    },
+
+    // -------------------- 2. IMPRESSORAS 3D (CATÁLOGO OFICIAL LOJA SJ: BAMBU LAB & SNAPMAKER U1) --------------------
+    {
+      id: "imp-bambu-a1-mini",
+      categoria: "impressoras",
+      marca: "Bambu Lab",
+      grupoCatalogo: "COMECE A CRIAR",
+      tagDestaque: "ESCOLHA INTELIGENTE",
+      nome: "Bambu Lab A1 MINI",
+      subtitulo: "CUSTO-BENEFÍCIO • COMPACTA",
+      precoVista: "R$ 1.961,00",
+      precoVistaValor: 1961.00,
+      precoParcelado: "ou 10x de R$ 217,90",
+      imagem: "assets/produtos/impressora-a1_mini.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 1.961,00)",
+        "10x de R$ 217,90"
+      ],
+      select2Opcoes: [
+        "Somente Impressora A1 Mini",
+        "Incluir Filamento PLA a escolher",
+        "Participar Sorteio de Natal"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Bambu Lab A1 Mini",
+        "Categoria Loja SJ": "Comece a Criar • Custo-Benefício • Compacta",
+        "Condição à Vista": "R$ 1.961,00",
+        "Parcelamento": "10x de R$ 217,90",
+        "Volume de Impressão": "180 × 180 × 180 mm³",
+        "Velocidade e Calibração": "Até 500 mm/s • Nivelamento e Fluxo 100% Automáticos"
+      }
+    },
+    {
+      id: "imp-bambu-a1-mini-combo",
+      categoria: "impressoras",
+      marca: "Bambu Lab",
+      grupoCatalogo: "COMECE A CRIAR",
+      tagDestaque: "SUBA DE NÍVEL",
+      nome: "Bambu Lab A1 MINI COMBO",
+      subtitulo: "MULTICOR • MAIS CRIATIVIDADE",
+      precoVista: "R$ 3.199,00",
+      precoVistaValor: 3199.00,
+      precoParcelado: "ou 10x de R$ 359,90",
+      imagem: "assets/produtos/impressora-a1_mini_combo.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 3.199,00)",
+        "10x de R$ 359,90"
+      ],
+      select2Opcoes: [
+        "A1 Mini + AMS Lite (4 Cores)",
+        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Bambu Lab RFID"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Bambu Lab A1 Mini Combo (com AMS Lite)",
+        "Categoria Loja SJ": "Comece a Criar • Multicor • Mais Criatividade",
+        "Condição à Vista": "R$ 3.199,00",
+        "Parcelamento": "10x de R$ 359,90",
+        "Volume de Impressão": "180 × 180 × 180 mm³",
+        "Sistema Multicor": "AMS Lite para 4 cores incluso com leitor RFID"
+      }
+    },
+    {
+      id: "imp-bambu-a1-normal",
+      categoria: "impressoras",
+      marca: "Bambu Lab",
+      grupoCatalogo: "EVOLUA SUA PRODUÇÃO",
+      tagDestaque: "ESCOLHA INTELIGENTE",
+      nome: "Bambu Lab A1",
+      subtitulo: "MAIS ÁREA • MAIS PRODUTIVIDADE",
+      precoVista: "R$ 2.699,00",
+      precoVistaValor: 2699.00,
+      precoParcelado: "ou 10x de R$ 303,00",
+      imagem: "assets/produtos/impressora-a1.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 2.699,00)",
+        "10x de R$ 303,00"
+      ],
+      select2Opcoes: [
+        "Somente Impressora A1 (256³ mm)",
+        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Bambu Lab RFID"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Bambu Lab A1",
+        "Categoria Loja SJ": "Evolua sua Produção • Mais Área • Mais Produtividade",
+        "Condição à Vista": "R$ 2.699,00",
+        "Parcelamento": "10x de R$ 303,00",
+        "Volume de Impressão": "256 × 256 × 256 mm³",
+        "Mesa Aquecida": "Até 100 °C com Placa PEI Texturizada inclusa"
+      }
+    },
+    {
+      id: "imp-bambu-a1-combo",
+      categoria: "impressoras",
+      marca: "Bambu Lab",
+      grupoCatalogo: "EVOLUA SUA PRODUÇÃO",
+      tagDestaque: "SUBA DE NÍVEL",
+      nome: "Bambu Lab A1 COMBO",
+      subtitulo: "MULTICOR • FLUXO EFICIENTE",
+      precoVista: "R$ 4.049,00",
+      precoVistaValor: 4049.00,
+      precoParcelado: "ou 10x de R$ 449,90",
+      imagem: "assets/produtos/impressora-a1_combo.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 4.049,00)",
+        "10x de R$ 449,90"
+      ],
+      select2Opcoes: [
+        "A1 + AMS Lite (4 Cores)",
+        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Bambu Lab RFID"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Bambu Lab A1 Combo (com AMS Lite)",
+        "Categoria Loja SJ": "Evolua sua Produção • Multicor • Fluxo Eficiente",
+        "Condição à Vista": "R$ 4.049,00",
+        "Parcelamento": "10x de R$ 449,90",
+        "Volume de Impressão": "256 × 256 × 256 mm³",
+        "Sistema Multicor": "AMS Lite de 4 cores incluso"
+      }
+    },
+    {
+      id: "imp-bambu-p2s",
+      categoria: "impressoras",
+      marca: "Bambu Lab",
+      grupoCatalogo: "ALTA PERFORMANCE",
+      tagDestaque: "ESCOLHA INTELIGENTE",
+      nome: "Bambu Lab P2S COMBO",
+      subtitulo: "DESEMPENHO PREMIUM • FECHADA",
+      precoVista: "R$ 8.849,00",
+      precoVistaValor: 8849.00,
+      precoParcelado: "ou 10x de R$ 949,90",
+      imagem: "assets/produtos/impressora-p2s_combo.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 8.849,00)",
+        "10x de R$ 949,90"
+      ],
+      select2Opcoes: [
+        "P2S Combo (Fechada + AMS)",
+        "Incluir Filamentos PLA / PETG / ABS",
+        "Retirada / Envio Loja SJ Umuarama"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Bambu Lab P2S Combo",
+        "Categoria Loja SJ": "Alta Performance • Desempenho Premium • Fechada",
+        "Condição à Vista": "R$ 8.849,00",
+        "Parcelamento": "10x de R$ 949,90",
+        "Arquitetura": "CoreXY Fechada de Alta Velocidade com AMS incluso",
+        "Materiais": "PLA, PETG, ABS, ASA, Nylon, TPU e Compostos"
+      }
+    },
+    {
+      id: "imp-snapmaker",
+      categoria: "impressoras",
+      marca: "Snapmaker",
+      grupoCatalogo: "ALTA PERFORMANCE",
+      tagDestaque: "SUBA DE NÍVEL",
+      nome: "SNAPMAKER U1",
+      subtitulo: "MULTICOLOR AVANÇADO • 4 CABEÇOTES",
+      precoVista: "R$ 9.991,00",
+      precoVistaValor: 9991.00,
+      precoParcelado: "ou 10x de R$ 1.099,00",
+      imagem: "assets/produtos/impressora-snapmaker_u1.jpg",
+      select1Opcoes: [
+        "À Vista (R$ 9.991,00)",
+        "10x de R$ 1.099,00"
+      ],
+      select2Opcoes: [
+        "Snapmaker U1 (4 Cabeçotes)",
+        "Incluir Filamentos Multicores",
+        "Retirada / Envio Loja SJ Umuarama"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Modelo Oficial": "Snapmaker U1 — 4 Cabeçotes Independentes",
+        "Categoria Loja SJ": "Alta Performance • Multicolor Avançado • 4 Cabeçotes",
+        "Condição à Vista": "R$ 9.991,00",
+        "Parcelamento": "10x de R$ 1.099,00",
+        "Tecnologia Exclusiva": "Sistema de 4 cabeçotes independentes para impressão multicor real com alta velocidade e mínimo desperdício"
+      }
+    },
+
+    // -------------------- 3. PEÇAS & ACESSÓRIOS --------------------
+    {
+      id: "peca-hotend-a1",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Hotend Quick-Swap Aço Endurecido (A1 / A1 Mini)",
+      subtitulo: "Troca magnética em 1 clique sem fios • Suporta até 300 °C",
+      precoVista: "Consulte no Pedido",
+      imagem: "assets/produtos/peca-hotend.jpg",
+      select1Opcoes: ["A1 / Mini", "P2S"],
+      select2Opcoes: [
+        "0.4mm Aço Endurecido",
+        "0.2mm Alta Precisão (Inox)",
+        "0.6mm Alto Fluxo (Endurecido)",
+        "0.8mm Ultra Rápido (Endurecido)"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1, A1 Mini e linha P2S",
+        "Material": "Aço Endurecido (Hardened Steel) para filamentos abrasivos"
+      }
+    },
+    {
+      id: "peca-placa-pei",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa Flexível PEI Texturizada Dupla Face",
+      subtitulo: "Aderência perfeita sem cola e remoção fácil dobrando a chapa",
+      precoVista: "Consulte no Pedido",
+      imagem: "assets/produtos/peca-placa-pei.jpg",
+      select1Opcoes: ["PEI Gold", "PEI Black"],
+      select2Opcoes: [
+        "256×256mm (A1 Normal / P2S)",
+        "180×180mm (A1 Mini)",
+        "Chapa Efeito 3D Carbono"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Revestimento": "PEI Texturizado Dupla Face em Aço Mola Magnético",
+        "Compatibilidade": "PLA, PETG, ABS, TPU, ASA"
+      }
+    },
+    {
+      id: "peca-extrusora-ams",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Peças de Reposição: Extrusora, Cortador & PTFE",
+      subtitulo: "Componentes em estoque em Umuarama para manutenção imediata",
+      precoVista: "Consulte no Pedido",
+      imagem: "assets/produtos/peca-hotend.jpg",
+      select1Opcoes: ["Série A1", "Série P2S"],
+      select2Opcoes: [
+        "Kit Engrenagem Extrusora Aço",
+        "Kit Lâminas Cortador + Wiper",
+        "Capa de Silicone (Silicone Sock)",
+        "Kit Tubos PTFE para AMS Lite"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Pronta Entrega": "Loja SJ 3D — Av. Portugal, 6759, Umuarama - PR",
+        "Aplicação": "Reposição original e preventiva"
+      }
+    },
+
+    // -------------------- 4. MANUTENÇÃO & ASSISTÊNCIA TÉCNICA --------------------
+    {
+      id: "manut-revisao-preventiva",
+      categoria: "manutencao",
+      marca: "Oficina SJ 3D",
+      nome: "Revisão Preventiva & Calibração Completa 3D",
+      subtitulo: "Limpeza profunda de extrusora, lubrificação de guias e calibração",
+      precoVista: "Orçamento Rápido",
+      imagem: "assets/produtos/impressora-a1.jpg",
+      select1Opcoes: ["Umuarama", "Região PR"],
+      select2Opcoes: [
+        "Para Bambu Lab A1 Mini / Combo",
+        "Para Bambu Lab A1 Normal / Combo",
+        "Para Bambu Lab P2S",
+        "Para Snapmaker / Outra"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Incluso": "Higienização, lubrificação de eixos X/Y/Z, ajuste de correias e Input Shaper",
+        "Garantia": "Serviço com garantia técnica Loja SJ 3D Umuarama"
+      }
+    },
+    {
+      id: "manut-reparo-corretivo",
+      categoria: "manutencao",
+      marca: "Oficina SJ 3D",
+      nome: "Manutenção Corretiva, Desentupimento & Reparo AMS",
+      subtitulo: "Diagnóstico e conserto rápido na nossa bancada em Umuarama - PR",
+      precoVista: "Orçamento Rápido",
+      imagem: "assets/produtos/impressora-p2s_combo.jpg",
+      select1Opcoes: ["Urgente", "Agendado"],
+      select2Opcoes: [
+        "Desentupimento / Troca Hotend",
+        "Reparo de Alimentação AMS Lite / AMS",
+        "Correção de Falha de Camada / Eixos",
+        "Diagnóstico Completo na Bancada"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Local": "Av. Portugal, 6759 — Zona I-A, Umuarama - PR",
+        "Suporte": "Atendimento direto pelo WhatsApp (44) 99135-1318"
+      }
+    },
+    {
+      id: "manut-upgrade-instalacao",
+      categoria: "manutencao",
+      marca: "Oficina SJ 3D",
+      nome: "Instalação de Upgrades & Ajuste de Perfis de Filamento",
+      subtitulo: "Parametrização fina para filamentos MaxPrint e Bambu Lab",
+      precoVista: "Orçamento Rápido",
+      imagem: "assets/produtos/pla-bambulab.jpg",
+      select1Opcoes: ["Presencial", "Remoto/Loja"],
+      select2Opcoes: [
+        "Upgrade Kit Aço Endurecido",
+        "Calibração de Fluxo MaxPrint / Bambu",
+        "Configuração para Print Farm"
+      ],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Software": "Bambu Studio / OrcaSlicer",
+        "Objetivo": "Máxima velocidade com qualidade de superfície perfeita"
+      }
+    }
+  ]
+};

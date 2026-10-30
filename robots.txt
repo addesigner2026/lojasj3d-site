@@ -1,0 +1,6 @@
+User-agent: *
+Allow: /
+
+# Sitemap da Loja SJ 3D - Umuarama PR
+Sitemap: https://lojasj3d.com.br/sitemap.xml
+
