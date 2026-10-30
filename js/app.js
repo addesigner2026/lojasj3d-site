@@ -2246,33 +2246,3 @@
     });
   });
 })();
-const linhas = state.itensCaixa.map((i) => {
-  const precoStr =
-    i.precoUnitario > 0
-      ? ` — *${formatarMoedaBR(i.precoUnitario * i.qtd)}*`
-      : "";
-  return `• ${i.qtd}x *${i.nome}* (${i.detalhe1} | ${i.detalhe2})${precoStr}`;
-});
-
-const resumoPeso =
-  totalKgFil > 0 ? `\n*Total de Filamentos:* ${totalKgFil} kg` : "";
-const resumoValor =
-  valorTotalEstimado > 0
-    ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}`
-    : "";
-const resumoCuponsStr =
-  resumoCupons.totalCuponsCompra > 0
-    ? `\n*🎟️ Sorteio A1 Mini:* ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "cupom gerado" : "cupons gerados"
-    } (+3 grátis retirando no balcão!)`
-    : "";
-
-const msg = encodeURIComponent(
-  `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-  `${linhas.join("\n")}${resumoPeso}${resumoValor}${resumoCuponsStr}\n\n` +
-  `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
-);
-
-window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
-    });
-  });
-}) ();
