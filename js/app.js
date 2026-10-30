@@ -1517,71 +1517,159 @@
       : Number(item.precoVistaValor || 0);
     const precoTextoAtual = corAtiva?.preco || item.precoVista || "Sob consulta";
     const codAtual = corAtiva?.cod ? `CÓD. ${corAtiva.cod}` : "";
+    // 1. SELETORES DE MARCA E MATERIAL DE FILAMENTO (Organização Ultra-Clean)
+    let seletorLinhasFilamentoHtml = "";
+    let seletor1Html = "";
 
-    // Linhas de filamento disponíveis para alternar no estilo Anycubic ("Material / Tipo")
-    const todosFilamentos = window.SITE_DATA.catalogo.filter((i) => i.categoria === "filamentos");
-    const seletorLinhasFilamentoHtml = item.tipoFilamento
-      ? `
+    if (item.tipoFilamento) {
+      // Grupo A: Marca (Masterprint vs Bambu Lab)
+      const seletorMarcaHtml = `
         <div class="pdp-option-group">
           <div class="pdp-option-header">
-            <span>Linha / Material:</span>
-            <strong>${marcaAtual}</strong>
+            <span>Marca do Filamento:</span>
+            <strong>${isBambu ? "Bambu Lab (RFID Original)" : "Masterprint / MaxPrint"}</strong>
           </div>
-          <div class="pdp-pills-wrap">
-            ${todosFilamentos
-        .map((fil) => {
-          const labelCurto = fil.id.includes("bambulab")
-            ? "PLA Bambu Lab RFID"
-            : fil.id.includes("pla-maxprint")
-              ? "PLA MaxPrint (40 Cores)"
-              : fil.id.includes("silk")
-                ? "PLA Silk Metalizado"
-                : fil.id.includes("petg")
-                  ? "PETG Alta Resistência"
-                  : fil.id.includes("tpu")
-                    ? "TPU Flexível 95A"
-                    : "ABS & Especiais Glitter";
-          const ativo = fil.id === item.id;
-          return `<button type="button" class="pdp-pill-btn ${ativo ? "active" : ""}" data-pdp-switch-item="${fil.id}">${labelCurto}</button>`;
-        })
-        .join("")}
+          <div class="pdp-pills-wrap pdp-brand-switch-row">
+            <button type="button" class="pdp-pill-btn ${!isBambu ? "active" : ""}" data-pdp-switch-brand="MaxPrint" title="Filamentos Masterprint / MaxPrint">
+              <span>Masterprint / MaxPrint</span>
+            </button>
+            <button type="button" class="pdp-pill-btn ${isBambu ? "active" : ""}" data-pdp-switch-brand="Bambu Lab" title="Filamentos Bambu Lab com chip RFID">
+              <span class="brand-pill-badge">RFID</span>
+              <span>Bambu Lab</span>
+            </button>
           </div>
         </div>
-      `
-      : "";
+      `;
 
-    // Seletor 1 (Apresentação / Peso ou Condição de Pagamento)
-    const seletor1Html =
-      opcoesSelect1 && opcoesSelect1.length > 0
-        ? `
+      // Grupo B: Material / Tipo (Exibe apenas as opções da marca escolhida)
+      let seletorMaterialHtml = "";
+      if (!isBambu) {
+        seletorMaterialHtml = `
           <div class="pdp-option-group">
             <div class="pdp-option-header">
-              <span>${item.select1Label || (item.tipoFilamento ? "Apresentação / Bobina:" : "Condição:")}</span>
+              <span>Tipo / Material (MaxPrint):</span>
+              <strong>${
+                item.id === "fil-pla-maxprint"
+                  ? "PLA (40 Cores)"
+                  : item.id === "fil-silk-maxprint"
+                  ? "PLA Silk Metalizado (21 Cores)"
+                  : item.id === "fil-petg-maxprint"
+                  ? "PETG Alta Resistência (19 Cores)"
+                  : item.id === "fil-tpu-maxprint"
+                  ? "TPU Flexível 95A (5 Cores)"
+                  : "ABS & Especiais Glitter (6 Cores)"
+              }</strong>
+            </div>
+            <div class="pdp-pills-wrap pdp-material-switch-row">
+              <button type="button" class="pdp-pill-btn ${item.id === "fil-pla-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-pla-maxprint" title="Filamento PLA 1kg">
+                <span>PLA (40 Cores)</span>
+              </button>
+              <button type="button" class="pdp-pill-btn ${item.id === "fil-silk-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-silk-maxprint" title="Filamento PLA Silk Metalizado 1kg">
+                <span>PLA Silk (21 Cores)</span>
+              </button>
+              <button type="button" class="pdp-pill-btn ${item.id === "fil-petg-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-petg-maxprint" title="Filamento PETG 1kg">
+                <span>PETG (19 Cores)</span>
+              </button>
+              <button type="button" class="pdp-pill-btn ${item.id === "fil-tpu-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-tpu-maxprint" title="Filamento TPU Flexível 95A 1kg">
+                <span>TPU 95A (5 Cores)</span>
+              </button>
+              <button type="button" class="pdp-pill-btn ${item.id === "fil-abs-especiais" ? "active" : ""}" data-pdp-switch-item="fil-abs-especiais" title="Filamento ABS e Glitter 1kg">
+                <span>ABS & Glitter (6 Cores)</span>
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        seletorMaterialHtml = `
+          <div class="pdp-option-group">
+            <div class="pdp-option-header">
+              <span>Tipo / Linha (Bambu Lab):</span>
+              <strong>PLA Basic & Matte RFID (13 Cores)</strong>
+            </div>
+            <div class="pdp-pills-wrap pdp-material-switch-row">
+              <button type="button" class="pdp-pill-btn active" data-pdp-switch-item="fil-pla-bambulab" title="PLA Bambu Lab Original">
+                <span class="brand-pill-badge">RFID</span>
+                <span>PLA Bambu Lab (13 Opções)</span>
+              </button>
+            </div>
+          </div>
+        `;
+      }
+
+      seletorLinhasFilamentoHtml = seletorMarcaHtml + seletorMaterialHtml;
+
+      // Grupo C: Apresentação (Padrão 1KG para MaxPrint, Carretel/Refil para Bambu Lab)
+      if (!isBambu) {
+        seletor1Html = `
+          <div class="pdp-option-group">
+            <div class="pdp-option-header">
+              <span>Apresentação / Peso:</span>
+              <strong id="pdp-sel1-label">1KG Carretel Padrão (1.75 mm)</strong>
+            </div>
+            <div class="pdp-pills-wrap">
+              <button type="button" class="pdp-pill-btn active pdp-pill-static">
+                ✓ 1KG Carretel Padrão (1.75 mm)
+              </button>
+            </div>
+          </div>
+        `;
+      } else {
+        seletor1Html = `
+          <div class="pdp-option-group">
+            <div class="pdp-option-header">
+              <span>Apresentação RFID:</span>
               <strong id="pdp-sel1-label">${opcao1Ativa}</strong>
             </div>
             <div class="pdp-pills-wrap" id="pdp-sel1-pills">
-              ${opcoesSelect1
-          .map(
-            (op) => `
-                  <button type="button" class="pdp-pill-btn ${op === opcao1Ativa ? "active" : ""}" data-pdp-sel1="${op}">
-                    ${op}
-                  </button>
-                `
-          )
-          .join("")}
+              <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
+                1KG Carretel RFID (R$ 99,90)
+              </button>
+              <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Refil") ? "active" : ""}" data-pdp-sel1="1KG Refil RFID">
+                1KG Refil RFID (R$ 79,90)
+              </button>
             </div>
           </div>
-        `
-        : "";
+        `;
+      }
+    } else {
+      // Para produtos normais (impressoras, peças, etc.)
+      seletor1Html =
+        opcoesSelect1 && opcoesSelect1.length > 0
+          ? `
+            <div class="pdp-option-group">
+              <div class="pdp-option-header">
+                <span>${item.select1Label || "Condição:"}</span>
+                <strong id="pdp-sel1-label">${opcao1Ativa}</strong>
+              </div>
+              <div class="pdp-pills-wrap" id="pdp-sel1-pills">
+                ${opcoesSelect1
+            .map(
+              (op) => `
+                    <button type="button" class="pdp-pill-btn ${op === opcao1Ativa ? "active" : ""}" data-pdp-sel1="${op}">
+                      ${op}
+                    </button>
+                  `
+            )
+            .join("")}
+              </div>
+            </div>
+          `
+          : "";
+    }
 
-    // Seletor 2 (Paleta de Cores Circular Completa estilo Anycubic OU Opções do Produto)
+    // Seletor 2 (Paleta de Cores Circular com Nome Instantâneo no Hover OU Opções do Produto)
     const seletor2Html =
       item.tipoFilamento && listaCores
         ? `
           <div class="pdp-option-group">
-            <div class="pdp-option-header">
-              <span>Cor Selecionada (${listaCores.length} opções):</span>
-              <strong id="pdp-color-name-label">${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})</strong>
+            <div class="pdp-option-header pdp-color-option-header">
+              <div class="pdp-color-label-left">
+                <span>Cores ${item.nome.replace("Filamento ", "").replace(" — 1.75mm (1 kg)", "")} (${listaCores.length} opções):</span>
+              </div>
+              <div class="pdp-color-name-highlight" id="pdp-color-name-highlight">
+                <span class="pdp-color-dot-indicator" id="pdp-color-dot-indicator" style="background-color: ${corAtiva.hex};"></span>
+                <strong id="pdp-color-name-label">${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})</strong>
+              </div>
             </div>
 
             <div class="pdp-swatches-grid" id="pdp-swatches-grid" role="radiogroup" aria-label="Escolher cor do filamento">
@@ -1593,8 +1681,13 @@
                     class="pdp-swatch-circle ${idx === idxCorAtiva ? "active" : ""}"
                     style="background-color: ${cor.hex};"
                     data-pdp-color-idx="${idx}"
+                    data-tooltip="${cor.nome} • CÓD. ${cor.cod} (${cor.preco})"
+                    data-nome="${cor.nome}"
+                    data-cod="${cor.cod}"
+                    data-preco="${cor.preco}"
+                    data-hex="${cor.hex}"
                     title="${cor.nome} — CÓD. ${cor.cod} (${cor.preco})"
-                    aria-label="${cor.nome}"
+                    aria-label="${cor.nome} — CÓD. ${cor.cod}"
                   ></button>
                 `
           )
@@ -1910,6 +2003,11 @@
         colorLabelEl.textContent = `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
       }
 
+      const dotIndicatorEl = document.getElementById("pdp-color-dot-indicator");
+      if (dotIndicatorEl && corAtiva) {
+        dotIndicatorEl.style.backgroundColor = corAtiva.hex;
+      }
+
       const addBtnEl = document.getElementById("pdp-btn-add");
       if (addBtnEl) {
         addBtnEl.textContent =
@@ -1936,11 +2034,25 @@
     document.getElementById("pdp-see-all-btn")?.addEventListener("click", () => fecharPaginaProduto(false));
     document.getElementById("pdp-view-order-btn")?.addEventListener("click", () => fecharPaginaProduto(true));
 
-    // Alternar entre linhas de filamento direto na página do produto
+    // Alternar entre Marcas (Masterprint vs Bambu Lab) na PDP
+    pdpView.querySelectorAll("[data-pdp-switch-brand]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const marca = btn.dataset.pdpSwitchBrand;
+        if (marca === "Bambu Lab") {
+          abrirPaginaProduto("fil-pla-bambulab");
+        } else {
+          abrirPaginaProduto("fil-pla-maxprint");
+        }
+      });
+    });
+
+    // Alternar entre materiais/tipos de filamento na PDP
     pdpView.querySelectorAll("[data-pdp-switch-item]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const novoId = btn.dataset.pdpSwitchItem;
-        abrirPaginaProduto(novoId);
+        if (novoId && novoId !== item.id) {
+          abrirPaginaProduto(novoId);
+        }
       });
     });
 
@@ -1997,13 +2109,44 @@
       });
     });
 
-    // Clique nas bolinhas circulares de cor (estilo Anycubic)
+    // Interação com as bolinhas circulares de cor: Hover instantâneo e Clique
+    const colorLabelEl = document.getElementById("pdp-color-name-label");
+    const dotIndicatorEl = document.getElementById("pdp-color-dot-indicator");
+    const swatchesGrid = document.getElementById("pdp-swatches-grid");
+
     pdpView.querySelectorAll("[data-pdp-color-idx]").forEach((swatchBtn) => {
+      // Ao passar o mouse em cima da cor -> mostra o nome, CÓD. e preço na hora!
+      swatchBtn.addEventListener("mouseenter", () => {
+        const nome = swatchBtn.dataset.nome;
+        const cod = swatchBtn.dataset.cod;
+        const preco = swatchBtn.dataset.preco;
+        const hex = swatchBtn.dataset.hex;
+        if (colorLabelEl && nome) {
+          colorLabelEl.textContent = `${nome} — CÓD. ${cod} (${preco})`;
+        }
+        if (dotIndicatorEl && hex) {
+          dotIndicatorEl.style.backgroundColor = hex;
+        }
+      });
+
+      // Ao clicar -> seleciona a cor permanentemente
       swatchBtn.addEventListener("click", () => {
         idxCorAtiva = Number(swatchBtn.dataset.pdpColorIdx);
         corAtiva = listaCores[idxCorAtiva];
         sincronizarEstadoPDP();
       });
+    });
+
+    // Ao tirar o mouse da grade de cores -> restaura para a cor ativa selecionada
+    swatchesGrid?.addEventListener("mouseleave", () => {
+      if (corAtiva) {
+        if (colorLabelEl) {
+          colorLabelEl.textContent = `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
+        }
+        if (dotIndicatorEl) {
+          dotIndicatorEl.style.backgroundColor = corAtiva.hex;
+        }
+      }
     });
 
     // Mudança no dropdown de cor da PDP
