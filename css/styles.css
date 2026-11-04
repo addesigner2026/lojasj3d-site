@@ -3355,16 +3355,62 @@ select:focus-visible {
   margin-top: 10px;
 }
 
-/* Modais de Autenticação Google e Histórico */
+/* Modais de Autenticação Google e Histórico (Overlay Centralizado) */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 15, 18, 0.72);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  box-sizing: border-box;
+  overflow-y: auto;
+}
+
+.modal-close-btn {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid #e4e4e7;
+  background: #fafafa;
+  color: #3f3f46;
+  font-size: 1.35rem;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+
+.modal-close-btn:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #dc2626;
+}
+
 .google-auth-card {
   background: #ffffff;
   border-radius: 16px;
   width: 100%;
   max-width: 440px;
   padding: 32px 28px;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.22);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
   position: relative;
   box-sizing: border-box;
+  margin: auto;
 }
 
 .google-auth-logos {
@@ -3520,8 +3566,15 @@ select:focus-visible {
   max-height: 85vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 12px 40px rgba(0,0,0,0.25);
+  box-shadow: 0 20px 50px rgba(0,0,0,0.35);
   box-sizing: border-box;
+  position: relative;
+  margin: auto;
+}
+
+.quote-history-header .modal-close-btn {
+  position: static;
+  flex-shrink: 0;
 }
 
 .quote-history-header {

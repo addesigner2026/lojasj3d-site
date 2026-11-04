@@ -2309,8 +2309,17 @@
     if (!badgeEl) return;
 
     if (!state.usuarioGoogle) {
-      badgeEl.style.display = "none";
-      badgeEl.innerHTML = "";
+      badgeEl.style.display = "inline-flex";
+      badgeEl.style.cursor = "pointer";
+      badgeEl.innerHTML = `
+        <div class="header-auth-avatar" title="Entrar como Vendedor">🔑</div>
+        <span id="btn-header-open-login" style="font-weight:700; color:#E84520;">Login Vendedor</span>
+      `;
+      badgeEl.onclick = () => {
+        abrirModalAuthGoogle(() => {
+          abrirEmissorOrcamento();
+        });
+      };
     } else {
       const u = state.usuarioGoogle;
       const avatarHtml = u.foto
@@ -2318,11 +2327,23 @@
         : `<span style="font-weight:700;">${(u.nome || "V").charAt(0).toUpperCase()}</span>`;
 
       badgeEl.style.display = "inline-flex";
+      badgeEl.style.cursor = "default";
+      badgeEl.onclick = null;
       badgeEl.innerHTML = `
-        <div class="header-auth-avatar" title="${u.nome}">${avatarHtml}</div>
-        <span>${u.nome.split(" ")[0]} (${u.cargo || "Vendedor"})</span>
+        <div class="header-auth-avatar" title="${u.nome}" style="cursor:pointer;" id="btn-header-switch-user">${avatarHtml}</div>
+        <span style="cursor:pointer;" id="btn-header-user-name" title="Clique para gerenciar login ou cadastrar vendedor">${u.nome.split(" ")[0]} (${u.cargo || "Vendedor"})</span>
         <button type="button" class="header-auth-logout" id="btn-header-logout" title="Desconectar do perfil de vendedor">(Sair)</button>
       `;
+      document.getElementById("btn-header-switch-user")?.addEventListener("click", () => {
+        abrirModalAuthGoogle(() => {
+          if (state.emissorAberto) renderizarTelaOrcamento();
+        });
+      });
+      document.getElementById("btn-header-user-name")?.addEventListener("click", () => {
+        abrirModalAuthGoogle(() => {
+          if (state.emissorAberto) renderizarTelaOrcamento();
+        });
+      });
       document.getElementById("btn-header-logout")?.addEventListener("click", (e) => {
         e.stopPropagation();
         if (confirm(`Deseja desconectar a conta do vendedor ${u.nome}?`)) {
@@ -2562,6 +2583,7 @@
             <span>Operador:</span>
             <strong>${vendedorNome}</strong>
             <span style="font-size:0.75rem; color:#10b981; font-weight:700;">(Conectado)</span>
+            <button type="button" id="btn-quote-switch-user" style="background:#fff5f2; border:1px solid #E84520; color:#E84520; border-radius:6px; padding:2px 8px; font-size:0.74rem; font-weight:700; cursor:pointer; margin-left:6px;" title="Trocar vendedor ou cadastrar novo">👤 Trocar / Cadastrar</button>
           </div>
         </div>
 
@@ -2750,6 +2772,13 @@
     // Voltar
     document.getElementById("btn-quote-back")?.addEventListener("click", () => {
       fecharEmissorOrcamento();
+    });
+
+    // Trocar / Cadastrar Vendedor direto da barra do orçamento
+    document.getElementById("btn-quote-switch-user")?.addEventListener("click", () => {
+      abrirModalAuthGoogle(() => {
+        renderizarTelaOrcamento();
+      });
     });
 
     // Salvar proposta
@@ -3237,6 +3266,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Eventos de Autenticação Google & Operador
     document.getElementById("close-google-auth-btn")?.addEventListener("click", () => {
       fecharModalAuthGoogle();
+    });
+
+    document.getElementById("modal-google-auth")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "modal-google-auth") {
+        fecharModalAuthGoogle();
+      }
+    });
+
+    document.getElementById("modal-quote-history")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "modal-quote-history") {
+        fecharModalHistoricoOrcamentos();
+      }
     });
 
     document.getElementById("btn-google-direct-login")?.addEventListener("click", () => {
