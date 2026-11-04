@@ -2312,7 +2312,12 @@
       badgeEl.style.display = "inline-flex";
       badgeEl.style.cursor = "pointer";
       badgeEl.innerHTML = `
-        <div class="header-auth-avatar" title="Entrar como Vendedor">🔑</div>
+        <div class="header-auth-avatar" title="Entrar como Vendedor" aria-hidden="true">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+        </div>
         <span id="btn-header-open-login" style="font-weight:700; color:#E84520;">Login Vendedor</span>
       `;
       badgeEl.onclick = () => {
@@ -2353,6 +2358,47 @@
     }
   }
 
+  function renderizarChipsVendedoresRapidos() {
+    const container = document.getElementById("quick-saved-operators");
+    if (!container || !window.SJ_DB || !window.SJ_DB.auth) return;
+
+    const usuarios = window.SJ_DB.auth.listarUsuarios() || [];
+    if (usuarios.length === 0) {
+      container.innerHTML = "";
+      return;
+    }
+
+    container.innerHTML = usuarios.slice(0, 4).map((u, idx) => {
+      const inicial = (u.nome || "V").charAt(0).toUpperCase();
+      const primeiroNome = (u.nome || "Vendedor").split(" ")[0];
+      return `
+        <button type="button" class="quick-operator-chip" data-quick-user-idx="${idx}" title="Entrar rapidamente como ${u.nome} (${u.email})">
+          <span class="quick-operator-chip-avatar">${inicial}</span>
+          <span>${primeiroNome}</span>
+        </button>
+      `;
+    }).join("");
+
+    container.querySelectorAll("[data-quick-user-idx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const u = usuarios[Number(btn.dataset.quickUserIdx)];
+        if (!u) return;
+        const nameInput = document.getElementById("operator-name-input");
+        const emailInput = document.getElementById("operator-email-input");
+        if (nameInput) nameInput.value = u.nome;
+        if (emailInput) emailInput.value = u.email;
+        salvarLoginUsuario({
+          id: u.id,
+          nome: u.nome,
+          email: u.email,
+          cargo: u.cargo || "Vendedor",
+          foto: u.foto || null,
+          tipo: u.tipo || "operador"
+        });
+      });
+    });
+  }
+
   function abrirModalAuthGoogle(callbackApos = null) {
     state.callbackPosLoginGoogle = callbackApos;
     const modal = document.getElementById("modal-google-auth");
@@ -2360,6 +2406,8 @@
 
     const feedbackBox = document.getElementById("auth-feedback-box");
     if (feedbackBox) feedbackBox.style.display = "none";
+
+    renderizarChipsVendedoresRapidos();
 
     try {
       if (window.google && window.google.accounts && window.google.accounts.id) {
@@ -3316,7 +3364,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
         // Atualiza botões ativos
         document.querySelectorAll("[data-auth-tab]").forEach((b) => {
-          b.classList.toggle("active", b === tabBtn);
+          const ativo = b === tabBtn;
+          b.classList.toggle("active", ativo);
+          b.setAttribute("aria-selected", ativo ? "true" : "false");
         });
 
         // Mostra/esconde painéis
@@ -3335,6 +3385,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
+    // BOTÃO MOSTRAR / OCULTAR SENHA NOS CAMPOS DE LOGIN E CADASTRO
+    document.querySelectorAll("[data-toggle-pwd]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const inputId = btn.dataset.togglePwd;
+        const inputEl = document.getElementById(inputId);
+        if (!inputEl) return;
+        const ehPassword = inputEl.type === "password";
+        inputEl.type = ehPassword ? "text" : "password";
+        btn.style.color = ehPassword ? "#E84520" : "#8e8e98";
+      });
+    });
+
     // LOGIN POR E-MAIL & SENHA
     document.getElementById("form-email-auth")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -3349,7 +3411,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (window.SJ_DB && window.SJ_DB.auth) {
         const result = await window.SJ_DB.auth.loginEmail(email, senha);
         if (result.sucesso) {
-          mostrarFeedbackAuth("success", `✅ Bem-vindo(a), ${result.usuario.nome}!`);
+          mostrarFeedbackAuth("success", `Bem-vindo(a), ${result.usuario.nome}!`);
           salvarLoginUsuario(result.usuario);
         } else {
           mostrarFeedbackAuth("error", result.mensagem);
@@ -3381,10 +3443,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (window.SJ_DB && window.SJ_DB.auth) {
         const result = await window.SJ_DB.auth.registrar({ nome, email, senha, cargo });
         if (result.sucesso) {
-          mostrarFeedbackAuth("success", `✅ Vendedor "${result.usuario.nome}" cadastrado com sucesso!`);
+          mostrarFeedbackAuth("success", `Vendedor "${result.usuario.nome}" cadastrado com sucesso!`);
+          renderizarChipsVendedoresRapidos();
           setTimeout(() => {
             salvarLoginUsuario(result.usuario);
-          }, 1200);
+          }, 900);
         } else {
           mostrarFeedbackAuth("error", result.mensagem);
         }
@@ -3396,16 +3459,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // STATUS DE CONEXÃO COM O SERVIDOR (SJ_DB)
     (async () => {
       const statusEl = document.getElementById("auth-sync-status-txt");
+      const pillEl = document.getElementById("auth-sync-status-pill");
       if (!statusEl) return;
       if (window.SJ_DB && typeof window.SJ_DB.estaConectadoAoServidor === "function") {
-        // Espera um momento para o teste de conexão do SJ_DB completar
-        await new Promise((r) => setTimeout(r, 1500));
+        await new Promise((r) => setTimeout(r, 1200));
         if (window.SJ_DB.estaConectadoAoServidor()) {
-          statusEl.textContent = "✅ Conectado ao Servidor Local — Sincronização Ativa.";
-          statusEl.style.color = "#27ae60";
+          pillEl?.classList.remove("local-mode");
+          statusEl.textContent = "Conectado ao Servidor Local — Sincronização Ativa";
         } else {
-          statusEl.textContent = "🔒 Armazenamento Local (GitHub Pages) — Dados salvos no navegador.";
-          statusEl.style.color = "#e67e22";
+          pillEl?.classList.add("local-mode");
+          statusEl.textContent = "Modo Nuvem / Local — Dados Salvos no Navegador";
         }
       }
     })();
