@@ -2322,7 +2322,9 @@
       `;
       badgeEl.onclick = () => {
         abrirModalAuthGoogle(() => {
-          abrirEmissorOrcamento();
+          if (state.itensCaixa && state.itensCaixa.length > 0) {
+            importarCarrinhoParaOrcamento();
+          }
         });
       };
     } else {
@@ -2449,21 +2451,121 @@
     }
   };
 
+  // Estado temporário do Assistente de Orçamento (Wizard)
+  const wizardState = {
+    itens: [],
+    metodoPagamento: "pix", // "pix" | "dinheiro" | "debito" | "credito"
+    descontoPercentual: 0   // 0 | 5
+  };
+
+  function obterItensParaWizard(itensIniciais = null) {
+    if (Array.isArray(itensIniciais) && itensIniciais.length > 0) {
+      return itensIniciais;
+    }
+    if (state.itensCaixa && state.itensCaixa.length > 0) {
+      return state.itensCaixa.map((item, index) => {
+        let desc = item.nome;
+        if (item.detalhe1) desc += ` — ${item.detalhe1}`;
+        if (item.detalhe2) desc += ` (${item.detalhe2})`;
+        return {
+          id: "item-" + Date.now() + "-" + index,
+          descricao: desc,
+          qtd: Number(item.qtd || 1),
+          precoUnitario: Number(item.precoUnitario || 0)
+        };
+      });
+    }
+    if (state.itensOrcamento && state.itensOrcamento.length > 0) {
+      return state.itensOrcamento;
+    }
+    return [
+      {
+        id: "item-" + Date.now(),
+        descricao: "Filamento PLA Masterprint / MaxPrint 1.75mm (1kg)",
+        qtd: 1,
+        precoUnitario: 79.90
+      }
+    ];
+  }
+
+  function atualizarResumoFinanceiroWizard() {
+    const subtotal = (wizardState.itens || []).reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+    const valor5Porcento = Number((subtotal * 0.05).toFixed(2));
+    const descontoAplicado = wizardState.descontoPercentual === 5 ? valor5Porcento : 0;
+    const totalFinal = Math.max(0, subtotal - descontoAplicado);
+
+    const txt5 = document.getElementById("wiz-disc-5-amount-txt");
+    if (txt5) txt5.textContent = `- ${formatarMoedaBR(valor5Porcento)} no total`;
+
+    const elSub = document.getElementById("wiz-sum-subtotal");
+    const elDiscRow = document.getElementById("wiz-sum-discount-row");
+    const elDiscVal = document.getElementById("wiz-sum-discount");
+    const elTot = document.getElementById("wiz-sum-total");
+
+    if (elSub) elSub.textContent = formatarMoedaBR(subtotal);
+    if (elDiscRow) elDiscRow.style.display = wizardState.descontoPercentual === 5 ? "flex" : "none";
+    if (elDiscVal) elDiscVal.textContent = `- ${formatarMoedaBR(descontoAplicado)}`;
+    if (elTot) elTot.textContent = formatarMoedaBR(totalFinal);
+  }
+
+  function abrirAssistenteOrcamento(itensIniciais = null) {
+    wizardState.itens = obterItensParaWizard(itensIniciais);
+
+    const modal = document.getElementById("modal-quote-wizard");
+    if (!modal) {
+      abrirEmissorOrcamento(wizardState.itens);
+      return;
+    }
+
+    // Popula datalist de clientes salvos
+    const datalist = document.getElementById("wiz-clients-datalist");
+    if (datalist && window.SJ_DB && window.SJ_DB.clientes) {
+      const listaCli = window.SJ_DB.clientes.listar() || [];
+      datalist.innerHTML = listaCli
+        .map((c) => `<option value="${c.nome}">${c.cnpjCpf ? ` (${c.cnpjCpf})` : ""}</option>`)
+        .join("");
+    }
+
+    // Se já houver metadados de cliente em edição, mantém preenchido
+    const cliAtual = (state.orcamentoMetadados && state.orcamentoMetadados.cliente) || {};
+    const inpName = document.getElementById("wiz-client-name");
+    const inpPhone = document.getElementById("wiz-client-phone");
+    const inpCpf = document.getElementById("wiz-client-cpf");
+    if (inpName && cliAtual.nome) inpName.value = cliAtual.nome;
+    if (inpPhone && cliAtual.cepTelefone) inpPhone.value = cliAtual.cepTelefone;
+    if (inpCpf && cliAtual.cnpjCpf) inpCpf.value = cliAtual.cnpjCpf;
+
+    // Resumo de quantidade de itens no subtítulo
+    const qtdTotalUnidades = wizardState.itens.reduce((acc, i) => acc + (Number(i.qtd) || 1), 0);
+    const summaryEl = document.getElementById("wizard-items-summary-txt");
+    if (summaryEl) {
+      summaryEl.innerHTML = `<strong>${wizardState.itens.length} ${wizardState.itens.length === 1 ? "item selecionado" : "itens selecionados"} (${qtdTotalUnidades} un.)</strong> — Configure o cliente, desconto à vista e pagamento para gerar o timbrado.`;
+    }
+
+    atualizarResumoFinanceiroWizard();
+    modal.style.display = "flex";
+    setTimeout(() => inpName?.focus(), 80);
+  }
+
+  function fecharAssistenteOrcamento() {
+    const modal = document.getElementById("modal-quote-wizard");
+    if (modal) modal.style.display = "none";
+  }
+
   function abrirEmissorOuPedirLogin(itensIniciais = null) {
     if (!state.usuarioGoogle) {
       abrirModalAuthGoogle(() => {
-        abrirEmissorOrcamento(itensIniciais);
+        abrirAssistenteOrcamento(itensIniciais);
       });
       return;
     }
-    abrirEmissorOrcamento(itensIniciais);
+    abrirAssistenteOrcamento(itensIniciais);
   }
 
   function importarCarrinhoParaOrcamento() {
-    if (!state.itensCaixa || state.itensCaixa.length === 0) {
-      alert("Seu carrinho está vazio! Adicione itens do catálogo ou você poderá incluir itens avulsos diretamente na proposta.");
-    }
-
     const itensConvertidos = (state.itensCaixa || []).map((item, index) => {
       let desc = item.nome;
       if (item.detalhe1) desc += ` — ${item.detalhe1}`;
@@ -2636,6 +2738,9 @@
         </div>
 
         <div class="quote-topbar-right">
+          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-reopen-wizard" title="Alterar dados do cliente, forma de pagamento ou desconto de 5%">
+            <span>⚙️ Cliente / Pagamento / 5%</span>
+          </button>
           <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-history">
             <span>📋 Histórico</span>
           </button>
@@ -2770,6 +2875,7 @@
               <div class="quote-totals-sub-item">
                 <label for="quote-input-desconto">Desconto (R$):</label>
                 <input type="number" step="0.01" min="0" class="quote-totals-num-input" id="quote-input-desconto" value="${desconto.toFixed(2)}" />
+                <button type="button" id="btn-quote-quick-5pct" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:2px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;" title="Aplicar ou remover 5% de desconto à vista">5% OFF</button>
               </div>
             </div>
             <div class="quote-grand-total-row">
@@ -2827,6 +2933,11 @@
       abrirModalAuthGoogle(() => {
         renderizarTelaOrcamento();
       });
+    });
+
+    // Reabrir Assistente Rápido (Cliente / Pagamento / 5% Desconto)
+    document.getElementById("btn-quote-reopen-wizard")?.addEventListener("click", () => {
+      abrirAssistenteOrcamento(state.itensOrcamento);
     });
 
     // Salvar proposta
@@ -2972,6 +3083,24 @@
 
     document.getElementById("quote-input-desconto")?.addEventListener("input", (e) => {
       state.orcamentoMetadados.desconto = parseFloat(e.target.value) || 0;
+      recalcularTotaisOrcamentoAoVivo();
+    });
+
+    // Botão rápido 5% OFF direto na folha timbrada
+    document.getElementById("btn-quote-quick-5pct")?.addEventListener("click", () => {
+      const subtotal = state.itensOrcamento.reduce(
+        (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+        0
+      );
+      const val5 = Number((subtotal * 0.05).toFixed(2));
+      const inpDesc = document.getElementById("quote-input-desconto");
+      if (Math.abs((Number(state.orcamentoMetadados.desconto) || 0) - val5) < 0.05 && val5 > 0) {
+        state.orcamentoMetadados.desconto = 0;
+        if (inpDesc) inpDesc.value = "0.00";
+      } else {
+        state.orcamentoMetadados.desconto = val5;
+        if (inpDesc) inpDesc.value = val5.toFixed(2);
+      }
       recalcularTotaisOrcamentoAoVivo();
     });
 
@@ -3476,6 +3605,150 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Eventos do Histórico de Orçamentos
     document.getElementById("close-quote-history-btn")?.addEventListener("click", () => {
       fecharModalHistoricoOrcamentos();
+    });
+
+    // =====================================================================
+    // EVENTOS DO ASSISTENTE RÁPIDO DE ORÇAMENTO (CLIENTE, 5% E PAGAMENTO)
+    // =====================================================================
+    document.getElementById("close-quote-wizard-btn")?.addEventListener("click", () => {
+      fecharAssistenteOrcamento();
+    });
+
+    document.getElementById("modal-quote-wizard")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "modal-quote-wizard") {
+        fecharAssistenteOrcamento();
+      }
+    });
+
+    document.getElementById("btn-wizard-open-history")?.addEventListener("click", () => {
+      fecharAssistenteOrcamento();
+      abrirModalHistoricoOrcamentos();
+    });
+
+    // Autocompletar cliente no Assistente ao digitar/escolher o nome
+    document.getElementById("wiz-client-name")?.addEventListener("input", (e) => {
+      const val = (e.target.value || "").trim().toLowerCase();
+      if (!val || !window.SJ_DB || !window.SJ_DB.clientes) return;
+      const match = (window.SJ_DB.clientes.listar() || []).find(
+        (c) => (c.nome || "").toLowerCase() === val
+      );
+      if (match) {
+        const phoneEl = document.getElementById("wiz-client-phone");
+        const cpfEl = document.getElementById("wiz-client-cpf");
+        if (phoneEl && match.cepTelefone) phoneEl.value = match.cepTelefone;
+        if (cpfEl && match.cnpjCpf) cpfEl.value = match.cnpjCpf;
+      }
+    });
+
+    // Seleção de Forma de Pagamento (PIX | Dinheiro | Débito | Crédito)
+    document.querySelectorAll("[data-pay-method]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const method = btn.dataset.payMethod;
+        wizardState.metodoPagamento = method;
+
+        document.querySelectorAll("[data-pay-method]").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+
+        const wrapCred = document.getElementById("wiz-credit-installments-wrap");
+        if (wrapCred) {
+          wrapCred.style.display = method === "credito" ? "flex" : "none";
+        }
+      });
+    });
+
+    // Seleção de Desconto à Vista (0% ou 5% OFF)
+    document.querySelectorAll("[data-wiz-discount]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pct = Number(btn.dataset.wizDiscount) || 0;
+        wizardState.descontoPercentual = pct;
+
+        document.querySelectorAll("[data-wiz-discount]").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+
+        atualizarResumoFinanceiroWizard();
+      });
+    });
+
+    // Submissão do Assistente -> Gera o Orçamento Timbrado Completo
+    document.getElementById("form-quote-wizard")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+
+      const nomeCliente = document.getElementById("wiz-client-name")?.value.trim() || "Cliente Balcão";
+      const telefoneCliente = document.getElementById("wiz-client-phone")?.value.trim() || "";
+      const cpfCliente = document.getElementById("wiz-client-cpf")?.value.trim() || "";
+
+      // Procura dados adicionais se o cliente já existir no banco
+      let clienteExistente = null;
+      if (window.SJ_DB && window.SJ_DB.clientes) {
+        clienteExistente = (window.SJ_DB.clientes.listar() || []).find(
+          (c) => (c.nome || "").toLowerCase() === nomeCliente.toLowerCase()
+        );
+      }
+
+      const subtotal = (wizardState.itens || []).reduce(
+        (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+        0
+      );
+      const descontoReais = wizardState.descontoPercentual === 5
+        ? Number((subtotal * 0.05).toFixed(2))
+        : 0;
+
+      // Monta texto da Forma de Pagamento
+      const mapPagamento = {
+        pix: "PIX à Vista (Chave CNPJ: 66.275.129/0001-10)",
+        dinheiro: "Dinheiro à Vista",
+        debito: "Cartão de Débito",
+        credito: document.getElementById("wiz-credit-installments")?.value || "Cartão de Crédito"
+      };
+      let textoPagamento = mapPagamento[wizardState.metodoPagamento] || mapPagamento.pix;
+      if (wizardState.descontoPercentual === 5) {
+        textoPagamento += " — Com 5% de Desconto à Vista aplicado";
+      }
+
+      const numeroOrcamento = (state.orcamentoMetadados && state.orcamentoMetadados.numero)
+        ? state.orcamentoMetadados.numero
+        : gerarNumeroOrcamento();
+
+      const novosMetadados = {
+        numero: numeroOrcamento,
+        data: obterDataHojeFormatada(),
+        status: "pendente",
+        validade: "15 dias",
+        frete: 0,
+        desconto: descontoReais,
+        formaPagamento: textoPagamento,
+        prazoEntrega: "Pronta Entrega / Imediato",
+        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        cliente: {
+          nome: nomeCliente,
+          cnpjCpf: cpfCliente,
+          endereco: (clienteExistente && clienteExistente.endereco) || "",
+          bairroCidadeUf: (clienteExistente && clienteExistente.bairroCidadeUf) || "Umuarama / PR",
+          cepTelefone: telefoneCliente,
+          email: (clienteExistente && clienteExistente.email) || ""
+        }
+      };
+
+      fecharAssistenteOrcamento();
+
+      abrirEmissorOrcamento({
+        itens: wizardState.itens,
+        metadados: novosMetadados
+      });
+
+      // Salva automaticamente no histórico e cadastra o cliente no banco
+      if (window.SJ_DB && window.SJ_DB.orcamentos) {
+        try {
+          window.SJ_DB.orcamentos.salvar({
+            vendedor: state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Loja SJ)",
+            status: "pendente",
+            metadados: state.orcamentoMetadados,
+            itens: state.itensOrcamento
+          });
+        } catch (_) {}
+      }
     });
 
     // Botão "Orçamento" no Topo
