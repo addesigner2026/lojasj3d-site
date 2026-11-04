@@ -3585,6 +3585,200 @@ select:focus-visible {
   gap: 8px;
 }
 
+/* Abas de Autenticação (Google, E-mail, Cadastro) */
+.auth-tabs-bar {
+  display: flex;
+  border-bottom: 1px solid var(--border-card);
+  margin-bottom: 20px;
+  gap: 4px;
+}
+
+.auth-tab-btn {
+  flex: 1;
+  background: none;
+  border: none;
+  padding: 10px 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+}
+
+.auth-tab-btn:hover {
+  color: var(--text-black);
+}
+
+.auth-tab-btn.active {
+  color: var(--sj-orange);
+  border-bottom-color: var(--sj-orange);
+}
+
+.auth-feedback-box {
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  margin-bottom: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+}
+
+.auth-feedback-box.error {
+  background: #fef2f2;
+  color: #b91c1c;
+  border: 1px solid #fecaca;
+}
+
+.auth-feedback-box.success {
+  background: #f0fdf4;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+/* Barra de Filtros e Busca de Histórico */
+.quote-history-filter-bar {
+  padding: 12px 24px;
+  border-bottom: 1px solid var(--border-card);
+  background: #fafafa;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.history-status-pills {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.history-pill {
+  background: #ffffff;
+  border: 1px solid var(--border-card);
+  border-radius: 20px;
+  padding: 5px 12px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.history-pill:hover {
+  border-color: #a1a1aa;
+  color: var(--text-black);
+}
+
+.history-pill.active {
+  background: var(--text-black);
+  border-color: var(--text-black);
+  color: #ffffff;
+}
+
+.history-search-input {
+  width: 100%;
+  height: 38px;
+  border: 1.5px solid var(--border-card);
+  border-radius: 8px;
+  padding: 0 12px;
+  font-size: 0.84rem;
+  background: #ffffff;
+  color: var(--text-black);
+}
+
+.history-search-input:focus {
+  border-color: var(--sj-orange);
+  outline: none;
+}
+
+/* Badges de Status Comercial dos Orçamentos */
+.quote-status-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.quote-status-tag.status-pendente {
+  background: #fef3c7;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.quote-status-tag.status-aprovado {
+  background: #dcfce7;
+  color: #15803d;
+  border: 1px solid #bbf7d0;
+}
+
+.quote-status-tag.status-faturado {
+  background: #dbeafe;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+}
+
+.quote-status-tag.status-cancelado {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #e5e7eb;
+}
+
+/* Rodapé do Histórico & Ações de Banco de Dados */
+.quote-history-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 24px;
+  border-top: 1px solid var(--border-card);
+  background: #fafafa;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.btn-db-backup {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: #ffffff;
+  border: 1px solid var(--border-card);
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--text-black);
+  transition: all 0.15s ease;
+}
+
+.btn-db-backup:hover {
+  background: #f4f4f5;
+  border-color: #71717a;
+}
+
+/* Seletor de Status dentro do Orçamento */
+.quote-status-selector-wrap {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  font-weight: 700;
+}
+
+.quote-status-select {
+  border: 1px solid #d4d4d8;
+  border-radius: 6px;
+  padding: 3px 8px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  background: #ffffff;
+  color: var(--text-black);
+  cursor: pointer;
+}
+
 /* ==========================================================================
    REGRAS DE IMPRESSÃO PROFISSIONAL A4 (@media print)
    ========================================================================== */

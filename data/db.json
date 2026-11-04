@@ -1,0 +1,32 @@
+{
+  "versao": "1.0.0",
+  "atualizadoEm": "2026-11-04T17:30:00.000Z",
+  "usuarios": [
+    {
+      "id": "usr-admin-1",
+      "nome": "Thiago Novais",
+      "email": "contato@gruposj.com.br",
+      "senhaHash": "123456",
+      "cargo": "Administrador",
+      "tipo": "operador",
+      "foto": null,
+      "ativo": true,
+      "criadoEm": "2026-11-04T17:00:00.000Z",
+      "ultimoLogin": "2026-11-04T17:00:00.000Z"
+    }
+  ],
+  "clientes": [
+    {
+      "id": "cli-1",
+      "nome": "Cliente Balcão - Loja SJ 3D",
+      "cnpjCpf": "66.275.129/0001-10",
+      "endereco": "Avenida Portugal, 6759",
+      "bairroCidadeUf": "Zona 1A - Umuarama/PR",
+      "cepTelefone": "(44) 99135-1318",
+      "email": "contato@gruposj.com.br",
+      "criadoEm": "2026-11-04T17:00:00.000Z"
+    }
+  ],
+  "orcamentos": []
+}
+

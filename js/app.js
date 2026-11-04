@@ -24,7 +24,9 @@
     itensOrcamento: [],
     orcamentoMetadados: null,
     callbackPosLoginGoogle: null,
-    emissorAberto: false
+    emissorAberto: false,
+    historicoFiltroStatus: "todos",
+    historicoBusca: ""
   };
 
   const secoesDefinicao = [
@@ -2223,30 +2225,58 @@
   }
 
   // =========================================================================
-  // 9. SISTEMA DE ORÇAMENTO TIMBRADO OFICIAL GRUPO SJ & LOGIN GOOGLE
+  // 9. SISTEMA DE ORÇAMENTO TIMBRADO OFICIAL GRUPO SJ & LOGIN GOOGLE / DADOS
   // =========================================================================
 
   const STORAGE_KEY_GOOGLE_USER = "sj_google_user_v1";
   const STORAGE_KEY_ORCAMENTOS = "lojasj3d_orcamentos_salvos_v1";
 
-  // Carrega operador / vendedor salvo localmente
+  // Carrega operador / vendedor salvo localmente ou via Banco de Dados
   function carregarUsuarioGoogle() {
-    try {
-      const raw = window.localStorage && window.localStorage.getItem(STORAGE_KEY_GOOGLE_USER);
-      if (raw) {
-        state.usuarioGoogle = JSON.parse(raw);
-      }
-    } catch (_) {}
+    if (window.SJ_DB && window.SJ_DB.auth) {
+      state.usuarioGoogle = window.SJ_DB.auth.getUsuarioAtual();
+      window.SJ_DB.auth.onAuthStateChanged((u) => {
+        state.usuarioGoogle = u;
+        atualizarBadgeUsuarioHeader();
+      });
+    } else {
+      try {
+        const raw = window.localStorage && window.localStorage.getItem(STORAGE_KEY_GOOGLE_USER);
+        if (raw) {
+          state.usuarioGoogle = JSON.parse(raw);
+        }
+      } catch (_) {}
+    }
     atualizarBadgeUsuarioHeader();
   }
 
-  function salvarLoginUsuario(usuario, executarCallback = true) {
+  function mostrarFeedbackAuth(tipo, mensagem) {
+    const box = document.getElementById("auth-feedback-box");
+    if (!box) return;
+    box.className = `auth-feedback-box ${tipo}`;
+    box.textContent = mensagem;
+    box.style.display = "block";
+    if (tipo === "error") {
+      setTimeout(() => {
+        if (box) box.style.display = "none";
+      }, 5000);
+    }
+  }
+
+  async function salvarLoginUsuario(usuario, executarCallback = true) {
     state.usuarioGoogle = usuario;
-    try {
-      if (window.localStorage) {
-        window.localStorage.setItem(STORAGE_KEY_GOOGLE_USER, JSON.stringify(usuario));
+    if (window.SJ_DB && window.SJ_DB.auth) {
+      if (usuario.tipo === "google") {
+        await window.SJ_DB.auth.loginGoogle(usuario);
       }
-    } catch (_) {}
+    } else {
+      try {
+        if (window.localStorage) {
+          window.localStorage.setItem(STORAGE_KEY_GOOGLE_USER, JSON.stringify(usuario));
+        }
+      } catch (_) {}
+    }
+
     atualizarBadgeUsuarioHeader();
     fecharModalAuthGoogle();
 
@@ -2259,11 +2289,15 @@
 
   function fazerLogoutGoogle() {
     state.usuarioGoogle = null;
-    try {
-      if (window.localStorage) {
-        window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
-      }
-    } catch (_) {}
+    if (window.SJ_DB && window.SJ_DB.auth) {
+      window.SJ_DB.auth.logout();
+    } else {
+      try {
+        if (window.localStorage) {
+          window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
+        }
+      } catch (_) {}
+    }
     atualizarBadgeUsuarioHeader();
     if (state.emissorAberto) {
       fecharEmissorOrcamento();
@@ -2286,7 +2320,7 @@
       badgeEl.style.display = "inline-flex";
       badgeEl.innerHTML = `
         <div class="header-auth-avatar" title="${u.nome}">${avatarHtml}</div>
-        <span>${u.nome.split(" ")[0]} (Vendedor)</span>
+        <span>${u.nome.split(" ")[0]} (${u.cargo || "Vendedor"})</span>
         <button type="button" class="header-auth-logout" id="btn-header-logout" title="Desconectar do perfil de vendedor">(Sair)</button>
       `;
       document.getElementById("btn-header-logout")?.addEventListener("click", (e) => {
@@ -2302,6 +2336,9 @@
     state.callbackPosLoginGoogle = callbackApos;
     const modal = document.getElementById("modal-google-auth");
     if (modal) modal.style.display = "flex";
+
+    const feedbackBox = document.getElementById("auth-feedback-box");
+    if (feedbackBox) feedbackBox.style.display = "none";
 
     try {
       if (window.google && window.google.accounts && window.google.accounts.id) {
@@ -2568,6 +2605,15 @@
             </div>
             <div class="quote-meta-inputs">
               <div class="quote-meta-field">
+                <span>Status:</span>
+                <select class="quote-status-select" id="quote-status-select" title="Status da proposta comercial">
+                  <option value="pendente" ${(meta.status || 'pendente') === 'pendente' ? 'selected' : ''}>⏳ Pendente / Em Aberto</option>
+                  <option value="aprovado" ${meta.status === 'aprovado' ? 'selected' : ''}>✅ Aprovado pelo Cliente</option>
+                  <option value="faturado" ${meta.status === 'faturado' ? 'selected' : ''}>📦 Faturado / Entregue</option>
+                  <option value="cancelado" ${meta.status === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
+                </select>
+              </div>
+              <div class="quote-meta-field">
                 <span>Número:</span>
                 <input type="text" class="quote-meta-input" id="quote-meta-number" value="${meta.numero}" />
               </div>
@@ -2596,9 +2642,15 @@
 
             <!-- CLIENTE -->
             <div class="quote-party-col">
-              <div class="quote-party-title">CLIENTE</div>
+              <div class="quote-party-title" style="display:flex; justify-content:space-between; align-items:center;">
+                <span>CLIENTE</span>
+                <span style="font-size:0.72rem; color:var(--text-muted); font-weight:normal; text-transform:none;">(Sugestão do Banco de Dados)</span>
+              </div>
               <div class="quote-client-form">
-                <input type="text" class="quote-client-input client-name-input" id="client-name" placeholder="Nome / Razão Social do Cliente" value="${cliente.nome || ''}" />
+                <input type="text" class="quote-client-input client-name-input" id="client-name" list="clients-datalist" placeholder="Nome / Razão Social do Cliente" value="${cliente.nome || ''}" autocomplete="off" />
+                <datalist id="clients-datalist">
+                  ${(window.SJ_DB ? window.SJ_DB.clientes.listar() : []).map(c => `<option value="${c.nome}">${c.cnpjCpf ? ` (${c.cnpjCpf})` : ''}</option>`).join("")}
+                </datalist>
                 <input type="text" class="quote-client-input" id="client-cnpj-cpf" placeholder="CNPJ / CPF" value="${cliente.cnpjCpf || ''}" />
                 <input type="text" class="quote-client-input" id="client-address" placeholder="Endereço (Rua, Número, Complemento)" value="${cliente.endereco || ''}" />
                 <input type="text" class="quote-client-input" id="client-bairro-city" placeholder="Bairro - Cidade/UF" value="${cliente.bairroCidadeUf || 'Umuarama / PR'}" />
@@ -2754,9 +2806,59 @@
       state.orcamentoMetadados.data = e.target.value;
     });
 
-    // Inputs do Cliente
-    const camposCliente = [
-      { id: "client-name", key: "nome" },
+    document.getElementById("quote-status-select")?.addEventListener("change", (e) => {
+      state.orcamentoMetadados.status = e.target.value;
+      if (window.SJ_DB && state.orcamentoMetadados.numero) {
+        window.SJ_DB.orcamentos.atualizarStatus(state.orcamentoMetadados.numero, e.target.value);
+      }
+    });
+
+    // Inputs do Cliente & Autocompletar Inteligente do Banco de Dados
+    const inputClientName = document.getElementById("client-name");
+    if (inputClientName) {
+      inputClientName.addEventListener("input", (e) => {
+        const val = e.target.value.trim();
+        if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
+        state.orcamentoMetadados.cliente.nome = val;
+
+        // Se houver correspondência exata ou seleção no datalist, preenche os outros campos
+        if (window.SJ_DB && val.length >= 2) {
+          const clientesSalvos = window.SJ_DB.clientes.listar();
+          const match = clientesSalvos.find(
+            (c) => c.nome.toLowerCase() === val.toLowerCase()
+          );
+          if (match) {
+            if (match.cnpjCpf) {
+              const el = document.getElementById("client-cnpj-cpf");
+              if (el) el.value = match.cnpjCpf;
+              state.orcamentoMetadados.cliente.cnpjCpf = match.cnpjCpf;
+            }
+            if (match.endereco) {
+              const el = document.getElementById("client-address");
+              if (el) el.value = match.endereco;
+              state.orcamentoMetadados.cliente.endereco = match.endereco;
+            }
+            if (match.bairroCidadeUf) {
+              const el = document.getElementById("client-bairro-city");
+              if (el) el.value = match.bairroCidadeUf;
+              state.orcamentoMetadados.cliente.bairroCidadeUf = match.bairroCidadeUf;
+            }
+            if (match.cepTelefone) {
+              const el = document.getElementById("client-cep-phone");
+              if (el) el.value = match.cepTelefone;
+              state.orcamentoMetadados.cliente.cepTelefone = match.cepTelefone;
+            }
+            if (match.email) {
+              const el = document.getElementById("client-email");
+              if (el) el.value = match.email;
+              state.orcamentoMetadados.cliente.email = match.email;
+            }
+          }
+        }
+      });
+    }
+
+    const outrosCamposCliente = [
       { id: "client-cnpj-cpf", key: "cnpjCpf" },
       { id: "client-address", key: "endereco" },
       { id: "client-bairro-city", key: "bairroCidadeUf" },
@@ -2764,7 +2866,7 @@
       { id: "client-email", key: "email" }
     ];
 
-    camposCliente.forEach(({ id, key }) => {
+    outrosCamposCliente.forEach(({ id, key }) => {
       document.getElementById(id)?.addEventListener("input", (e) => {
         if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
         state.orcamentoMetadados.cliente[key] = e.target.value;
@@ -2857,6 +2959,7 @@
       dataHoraSalvo: new Date().toISOString(),
       vendedor: state.usuarioGoogle ? state.usuarioGoogle.nome : "Operador",
       clienteNome: clienteNome,
+      status: meta.status || "pendente",
       total: total,
       itensQtd: state.itensOrcamento.length,
       metadados: JSON.parse(JSON.stringify(meta)),
@@ -2864,89 +2967,190 @@
     };
 
     try {
-      const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
-      let lista = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(lista)) lista = [];
-
-      const idx = lista.findIndex((p) => p.id === proposta.id);
-      if (idx >= 0) {
-        lista[idx] = proposta;
+      if (window.SJ_DB && window.SJ_DB.orcamentos) {
+        window.SJ_DB.orcamentos.salvar(proposta);
       } else {
-        lista.unshift(proposta);
+        const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
+        let lista = raw ? JSON.parse(raw) : [];
+        if (!Array.isArray(lista)) lista = [];
+        const idx = lista.findIndex((p) => p.id === proposta.id);
+        if (idx >= 0) lista[idx] = proposta;
+        else lista.unshift(proposta);
+        localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
       }
-      if (lista.length > 50) lista = lista.slice(0, 50);
-
-      localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
-      alert(`Orçamento ${meta.numero} salvo com sucesso no histórico da Loja SJ 3D!`);
+      alert(`Orçamento ${meta.numero} salvo com sucesso no banco de dados da Loja SJ 3D!`);
     } catch (_) {
-      alert("Erro ao salvar proposta no armazenamento local.");
+      alert("Erro ao salvar proposta no banco de dados.");
     }
+  }
+
+  function renderizarListaHistorico() {
+    const listEl = document.getElementById("quote-history-list");
+    if (!listEl) return;
+
+    let lista = [];
+    if (window.SJ_DB && window.SJ_DB.orcamentos) {
+      lista = window.SJ_DB.orcamentos.listar({
+        status: state.historicoFiltroStatus,
+        busca: state.historicoBusca
+      });
+    } else {
+      try {
+        const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
+        lista = raw ? JSON.parse(raw) : [];
+      } catch (_) {}
+    }
+
+    if (!Array.isArray(lista) || lista.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 36px 16px; color: var(--text-muted);">
+          <p style="font-size: 0.95rem; margin-bottom: 6px;">Nenhum orçamento encontrado com os filtros atuais.</p>
+          <small>Ao preencher uma proposta, clique em "Salvar Proposta" para gravá-la no banco de dados.</small>
+        </div>
+      `;
+      return;
+    }
+
+    const statusLabels = {
+      pendente: "Pendente",
+      aprovado: "Aprovado",
+      faturado: "Faturado",
+      cancelado: "Cancelado"
+    };
+
+    listEl.innerHTML = lista.map((p, idx) => {
+      const statusAtivo = p.status || "pendente";
+
+      return `
+        <div class="quote-history-item" data-history-idx="${idx}">
+          <div style="display:flex; flex-direction:column; gap:4px;">
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              <strong style="color:var(--text-black); font-size:0.95rem;">${p.id}</strong>
+              <span class="quote-status-tag status-${statusAtivo}">
+                ${statusLabels[statusAtivo] || statusAtivo}
+              </span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">${p.metadados?.data || ''}</span>
+              <span style="font-size:0.75rem; color:var(--text-muted);">• Vendedor: <strong>${p.vendedor}</strong></span>
+            </div>
+            <div style="font-size:0.83rem; color:#4b5563;">
+              <strong>Cliente:</strong> ${p.clienteNome || "Não informado"} • <strong>${p.itensQtd} itens</strong>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+            <strong style="font-size:1.05rem; color:#E84520;">${formatarMoedaBR(p.total)}</strong>
+            
+            <select class="history-item-status-sel" data-status-id="${p.id}" style="font-size:0.75rem; font-weight:700; border:1px solid #d4d4d8; border-radius:4px; padding:3px 6px; background:#fff;">
+              <option value="pendente" ${statusAtivo === 'pendente' ? 'selected' : ''}>Pendente</option>
+              <option value="aprovado" ${statusAtivo === 'aprovado' ? 'selected' : ''}>Aprovado</option>
+              <option value="faturado" ${statusAtivo === 'faturado' ? 'selected' : ''}>Faturado</option>
+              <option value="cancelado" ${statusAtivo === 'cancelado' ? 'selected' : ''}>Cancelado</option>
+            </select>
+
+            <button type="button" class="btn-history-load" data-load-id="${p.id}" style="background:#18181b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+              Abrir
+            </button>
+            <button type="button" class="btn-history-del" data-del-id="${p.id}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px;" title="Excluir">
+              &times;
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.querySelectorAll("[data-status-id]").forEach((sel) => {
+      sel.addEventListener("change", (e) => {
+        const id = sel.dataset.statusId;
+        const novoStatus = e.target.value;
+        if (window.SJ_DB && window.SJ_DB.orcamentos) {
+          window.SJ_DB.orcamentos.atualizarStatus(id, novoStatus);
+        }
+        renderizarListaHistorico();
+      });
+    });
+
+    listEl.querySelectorAll("[data-load-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.loadId;
+        const p = (window.SJ_DB && window.SJ_DB.orcamentos) ? window.SJ_DB.orcamentos.obter(id) : lista.find((x) => x.id === id);
+        if (p) {
+          fecharModalHistoricoOrcamentos();
+          abrirEmissorOrcamento(p);
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-del-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.delId;
+        if (confirm(`Excluir o orçamento ${id} do banco de dados?`)) {
+          if (window.SJ_DB && window.SJ_DB.orcamentos) {
+            window.SJ_DB.orcamentos.excluir(id);
+          }
+          renderizarListaHistorico();
+        }
+      });
+    });
   }
 
   function abrirModalHistoricoOrcamentos() {
     const modal = document.getElementById("modal-quote-history");
-    const listEl = document.getElementById("quote-history-list");
-    if (!modal || !listEl) return;
+    if (!modal) return;
 
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
-      const lista = raw ? JSON.parse(raw) : [];
-      if (!Array.isArray(lista) || lista.length === 0) {
-        listEl.innerHTML = `
-          <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
-            <p style="font-size: 0.95rem; margin-bottom: 8px;">Nenhum orçamento salvo no histórico ainda.</p>
-            <small>Ao preencher uma proposta, clique em "Salvar Proposta" para registrá-la aqui.</small>
-          </div>
-        `;
-      } else {
-        listEl.innerHTML = lista.map((p, idx) => `
-          <div class="quote-history-item" data-history-idx="${idx}">
-            <div style="display:flex; flex-direction:column; gap:3px;">
-              <div style="display:flex; align-items:center; gap:8px;">
-                <strong style="color:var(--text-black); font-size:0.92rem;">${p.id}</strong>
-                <span style="font-size:0.75rem; background:#fee2e2; color:#E84520; font-weight:700; padding:2px 6px; border-radius:4px;">${p.metadados?.data || ''}</span>
-                <span style="font-size:0.75rem; color:var(--text-muted);">Vendedor: ${p.vendedor}</span>
-              </div>
-              <div style="font-size:0.83rem; color:#4b5563;">
-                <strong>Cliente:</strong> ${p.clienteNome || "Não informado"} • <strong>${p.itensQtd} itens</strong>
-              </div>
-            </div>
-            <div style="display:flex; align-items:center; gap:12px;">
-              <strong style="font-size:1.05rem; color:#E84520;">${formatarMoedaBR(p.total)}</strong>
-              <button type="button" class="btn-history-load" data-load-idx="${idx}" style="background:#18181b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;">
-                Abrir
-              </button>
-              <button type="button" class="btn-history-del" data-del-idx="${idx}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px;" title="Excluir">
-                &times;
-              </button>
-            </div>
-          </div>
-        `).join("");
+    renderizarListaHistorico();
 
-        listEl.querySelectorAll("[data-load-idx]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const idx = Number(btn.dataset.loadIdx);
-            const p = lista[idx];
-            if (p) {
-              fecharModalHistoricoOrcamentos();
-              abrirEmissorOrcamento(p);
-            }
-          });
+    // Filtros de status (Todos, Pendentes, Aprovados, Faturados, Cancelados)
+    document.querySelectorAll("[data-status-filter]").forEach((pill) => {
+      pill.onclick = () => {
+        state.historicoFiltroStatus = pill.dataset.statusFilter;
+        document.querySelectorAll("[data-status-filter]").forEach((p) => {
+          p.classList.toggle("active", p === pill);
         });
+        renderizarListaHistorico();
+      };
+    });
 
-        listEl.querySelectorAll("[data-del-idx]").forEach((btn) => {
-          btn.addEventListener("click", () => {
-            const idx = Number(btn.dataset.delIdx);
-            if (confirm(`Excluir o orçamento ${lista[idx]?.id}?`)) {
-              lista.splice(idx, 1);
-              localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
-              abrirModalHistoricoOrcamentos();
+    // Busca rápida no histórico
+    const searchInp = document.getElementById("history-search-input");
+    if (searchInp) {
+      searchInp.value = state.historicoBusca;
+      searchInp.oninput = (e) => {
+        state.historicoBusca = e.target.value;
+        renderizarListaHistorico();
+      };
+    }
+
+    // Backup: Exportar arquivo .json
+    const btnExp = document.getElementById("btn-backup-export");
+    if (btnExp) {
+      btnExp.onclick = () => {
+        if (window.SJ_DB && window.SJ_DB.backup) {
+          window.SJ_DB.backup.baixarBackupArquivo();
+        } else {
+          alert("Backup indisponível no momento.");
+        }
+      };
+    }
+
+    // Backup: Importar arquivo .json
+    const fileInp = document.getElementById("input-backup-import");
+    if (fileInp) {
+      fileInp.onchange = (e) => {
+        const file = e.target.files && e.target.files[0];
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+          if (window.SJ_DB && window.SJ_DB.backup) {
+            const res = window.SJ_DB.backup.importarJson(ev.target.result);
+            if (res.sucesso) {
+              alert(`Banco de dados restaurado com sucesso!\n• ${res.totalOrcamentos} orçamentos\n• ${res.totalClientes} clientes\n• ${res.totalUsuarios} usuários`);
+              renderizarListaHistorico();
+            } else {
+              alert("Erro na importação: " + res.mensagem);
             }
-          });
-        });
-      }
-    } catch (_) {
-      listEl.innerHTML = `<p style="color:red;">Erro ao ler histórico.</p>`;
+          }
+        };
+        reader.readAsText(file);
+      };
     }
 
     modal.style.display = "flex";
@@ -3061,6 +3265,109 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         tipo: "operador"
       });
     });
+
+    // =====================================================================
+    // SISTEMA DE ABAS DE AUTENTICAÇÃO (Google | E-mail & Senha | Cadastrar)
+    // =====================================================================
+    document.querySelectorAll("[data-auth-tab]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        const tabId = tabBtn.dataset.authTab; // "google" | "email" | "register"
+
+        // Atualiza botões ativos
+        document.querySelectorAll("[data-auth-tab]").forEach((b) => {
+          b.classList.toggle("active", b === tabBtn);
+        });
+
+        // Mostra/esconde painéis
+        const panes = ["pane-auth-google", "pane-auth-email", "pane-auth-register"];
+        const paneMap = { google: "pane-auth-google", email: "pane-auth-email", register: "pane-auth-register" };
+        panes.forEach((paneId) => {
+          const el = document.getElementById(paneId);
+          if (el) {
+            el.style.display = (paneId === paneMap[tabId]) ? "block" : "none";
+          }
+        });
+
+        // Limpa feedback ao trocar de aba
+        const fb = document.getElementById("auth-feedback-box");
+        if (fb) fb.style.display = "none";
+      });
+    });
+
+    // LOGIN POR E-MAIL & SENHA
+    document.getElementById("form-email-auth")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = document.getElementById("email-login-input")?.value.trim();
+      const senha = document.getElementById("senha-login-input")?.value.trim();
+
+      if (!email || !senha) {
+        mostrarFeedbackAuth("error", "Informe o e-mail e a senha de acesso.");
+        return;
+      }
+
+      if (window.SJ_DB && window.SJ_DB.auth) {
+        const result = await window.SJ_DB.auth.loginEmail(email, senha);
+        if (result.sucesso) {
+          mostrarFeedbackAuth("success", `✅ Bem-vindo(a), ${result.usuario.nome}!`);
+          salvarLoginUsuario(result.usuario);
+        } else {
+          mostrarFeedbackAuth("error", result.mensagem);
+        }
+      } else {
+        // Fallback sem SJ_DB — login direto como operador
+        salvarLoginUsuario({
+          nome: email.split("@")[0] || "Vendedor",
+          email: email,
+          foto: null,
+          tipo: "operador"
+        });
+      }
+    });
+
+    // CADASTRAR NOVO VENDEDOR
+    document.getElementById("form-register-auth")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("reg-name-input")?.value.trim();
+      const email = document.getElementById("reg-email-input")?.value.trim();
+      const senha = document.getElementById("reg-senha-input")?.value.trim();
+      const cargo = document.getElementById("reg-cargo-input")?.value.trim() || "Vendedor";
+
+      if (!nome || !email || !senha) {
+        mostrarFeedbackAuth("error", "Preencha todos os campos obrigatórios.");
+        return;
+      }
+
+      if (window.SJ_DB && window.SJ_DB.auth) {
+        const result = await window.SJ_DB.auth.registrar({ nome, email, senha, cargo });
+        if (result.sucesso) {
+          mostrarFeedbackAuth("success", `✅ Vendedor "${result.usuario.nome}" cadastrado com sucesso!`);
+          setTimeout(() => {
+            salvarLoginUsuario(result.usuario);
+          }, 1200);
+        } else {
+          mostrarFeedbackAuth("error", result.mensagem);
+        }
+      } else {
+        mostrarFeedbackAuth("error", "Sistema de dados indisponível. Recarregue a página.");
+      }
+    });
+
+    // STATUS DE CONEXÃO COM O SERVIDOR (SJ_DB)
+    (async () => {
+      const statusEl = document.getElementById("auth-sync-status-txt");
+      if (!statusEl) return;
+      if (window.SJ_DB && typeof window.SJ_DB.estaConectadoAoServidor === "function") {
+        // Espera um momento para o teste de conexão do SJ_DB completar
+        await new Promise((r) => setTimeout(r, 1500));
+        if (window.SJ_DB.estaConectadoAoServidor()) {
+          statusEl.textContent = "✅ Conectado ao Servidor Local — Sincronização Ativa.";
+          statusEl.style.color = "#27ae60";
+        } else {
+          statusEl.textContent = "🔒 Armazenamento Local (GitHub Pages) — Dados salvos no navegador.";
+          statusEl.style.color = "#e67e22";
+        }
+      }
+    })();
 
     // Eventos do Histórico de Orçamentos
     document.getElementById("close-quote-history-btn")?.addEventListener("click", () => {
