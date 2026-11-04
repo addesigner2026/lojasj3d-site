@@ -3052,51 +3052,93 @@ select:focus-visible {
   color: #171717;
 }
 
-/* Barra de Identificação do Orçamento (Número e Data) */
+/* Barra de Identificação do Orçamento (Título, Número e Data) */
 .quote-meta-row {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-  padding: 8px 12px;
-  background: #fafafa;
-  border: 1px solid #d9d9d9;
-  border-radius: 6px;
-  margin-bottom: 16px;
-  font-size: 0.85rem;
+  gap: 16px;
+  padding: 11px 16px;
+  background: linear-gradient(90deg, #fff8f6 0%, #fafafa 45%, #f8f8fa 100%);
+  border: 1px solid #e2e2e7;
+  border-left: 4px solid #E84520;
+  border-radius: 8px;
+  margin-bottom: 18px;
+  box-sizing: border-box;
+}
+
+.quote-meta-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.quote-meta-accent-bar {
+  display: none;
 }
 
 .quote-meta-row strong {
-  font-size: 1rem;
-  color: #171717;
+  font-size: 0.96rem;
+  font-weight: 800;
+  color: #141417;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
 }
 
 .quote-meta-inputs {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 12px;
+  flex-shrink: 0;
+}
+
+.quote-meta-sep {
+  width: 1px;
+  height: 18px;
+  background: #d4d4d8;
 }
 
 .quote-meta-field {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  background: #ffffff;
+  border: 1px solid #e4e4e7;
+  border-radius: 6px;
+  padding: 4px 10px;
+}
+
+.quote-meta-label {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #71717a;
+  white-space: nowrap;
 }
 
 .quote-meta-input {
   border: 1px solid transparent;
   border-radius: 4px;
-  padding: 2px 6px;
-  font-weight: 700;
+  padding: 1px 4px;
+  font-weight: 800;
   font-size: 0.85rem;
   color: #171717;
   background: transparent;
+  text-align: center;
+}
+
+.quote-meta-input.input-num {
+  width: 118px;
+  color: #E84520;
+}
+
+.quote-meta-input.input-date {
+  width: 92px;
 }
 
 .quote-meta-input:hover,
 .quote-meta-input:focus {
   border-color: #E84520;
-  background: #ffffff;
+  background: #fff8f6;
   outline: none;
 }
 

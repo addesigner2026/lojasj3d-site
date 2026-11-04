@@ -2773,28 +2773,21 @@
             <img src="${loja.timbradoCabecalhoImg}" alt="Grupo SJ - Loja SJ 3D - Maximper - Blindamix - Vumora" />
           </div>
 
-          <!-- IDENTIFICAÇÃO DO ORÇAMENTO -->
+          <!-- IDENTIFICAÇÃO DO ORÇAMENTO (LIMPA E ORGANIZADA) -->
           <div class="quote-meta-row">
-            <div>
+            <div class="quote-meta-title-wrap">
+              <span class="quote-meta-accent-bar" aria-hidden="true"></span>
               <strong>ORÇAMENTO / PROPOSTA COMERCIAL</strong>
             </div>
             <div class="quote-meta-inputs">
               <div class="quote-meta-field">
-                <span>Status:</span>
-                <select class="quote-status-select" id="quote-status-select" title="Status da proposta comercial">
-                  <option value="pendente" ${(meta.status || 'pendente') === 'pendente' ? 'selected' : ''}>⏳ Pendente / Em Aberto</option>
-                  <option value="aprovado" ${meta.status === 'aprovado' ? 'selected' : ''}>✅ Aprovado pelo Cliente</option>
-                  <option value="faturado" ${meta.status === 'faturado' ? 'selected' : ''}>📦 Faturado / Entregue</option>
-                  <option value="cancelado" ${meta.status === 'cancelado' ? 'selected' : ''}>❌ Cancelado</option>
-                </select>
+                <span class="quote-meta-label">Nº Orçamento:</span>
+                <input type="text" class="quote-meta-input input-num" id="quote-meta-number" value="${meta.numero}" />
               </div>
+              <span class="quote-meta-sep" aria-hidden="true"></span>
               <div class="quote-meta-field">
-                <span>Número:</span>
-                <input type="text" class="quote-meta-input" id="quote-meta-number" value="${meta.numero}" />
-              </div>
-              <div class="quote-meta-field">
-                <span>Data:</span>
-                <input type="text" class="quote-meta-input" id="quote-meta-date" value="${meta.data}" />
+                <span class="quote-meta-label">Data:</span>
+                <input type="text" class="quote-meta-input input-date" id="quote-meta-date" value="${meta.data}" />
               </div>
             </div>
           </div>
