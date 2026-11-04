@@ -11,14 +11,24 @@
 window.SITE_DATA = {
   loja: {
     nome: "LOJA SJ 3D",
+    razaoSocial: "SJ NOVAIS E CIA LTDA",
     cnpj: "66.275.129/0001-10",
+    inscricaoEstadual: "91222907-67",
     whatsapp: "5544991351318",
     whatsappFormatado: "(44) 99135-1318",
-    endereco: "Av. Portugal, 6759 — Zona I-A, Umuarama - PR",
+    endereco: "Avenida Portugal, nº 6759 — Zona 1A, Umuarama - PR",
+    logradouroNumero: "Avenida Portugal, nº 6759",
+    bairro: "Zona 1A",
+    cidadeUf: "Umuarama/PR",
+    cep: "87.501-000",
+    email: "contato@gruposj.com.br",
     horario: "Seg a Sex: 09h às 17h | Sáb: 09h às 13h",
     instagramUrl: "https://www.instagram.com/lojasj3d/",
     facebookUrl: "https://www.facebook.com/lojasj3d",
-    googleMeuNegocioUrl: "https://share.google/0WwPhjFx69b3V9sU1"
+    googleMeuNegocioUrl: "https://share.google/0WwPhjFx69b3V9sU1",
+    grupoMarcas: ["LOJA SJ 3D", "MAXIMPER", "BLINDAMIX", "VUMORA"],
+    timbradoCabecalhoImg: "assets/orcamento/timbrado_cabecalho.png",
+    timbradoRodapeImg: "assets/orcamento/timbrado_rodape.png"
   },
 
   // =========================================================================

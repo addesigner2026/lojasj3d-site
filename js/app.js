@@ -18,7 +18,13 @@
     itensCaixa: [],
     heroSlideAtivo: 0,
     heroTimer: null,
-    abaImpressoraHome: "todas"
+    abaImpressoraHome: "todas",
+    // Sistema de Orçamento Timbrado Oficial Grupo SJ & Login Google
+    usuarioGoogle: null,
+    itensOrcamento: [],
+    orcamentoMetadados: null,
+    callbackPosLoginGoogle: null,
+    emissorAberto: false
   };
 
   const secoesDefinicao = [
@@ -1353,9 +1359,13 @@
     const homeView = document.getElementById("home-landing-view");
     const pdpView = document.getElementById("product-detail-view");
     const gridView = document.getElementById("catalog-grid-view");
+    const quoteView = document.getElementById("quote-studio-view");
 
     if (pdpView) pdpView.style.display = "none";
     state.produtoDetalheAtivo = null;
+
+    if (quoteView) quoteView.style.display = "none";
+    state.emissorAberto = false;
 
     if (state.categoriaMenu === "home" && state.busca.trim() === "") {
       if (homeView) homeView.style.display = "block";
@@ -2212,17 +2222,866 @@
     }
   }
 
+  // =========================================================================
+  // 9. SISTEMA DE ORÇAMENTO TIMBRADO OFICIAL GRUPO SJ & LOGIN GOOGLE
+  // =========================================================================
+
+  const STORAGE_KEY_GOOGLE_USER = "sj_google_user_v1";
+  const STORAGE_KEY_ORCAMENTOS = "lojasj3d_orcamentos_salvos_v1";
+
+  // Carrega operador / vendedor salvo localmente
+  function carregarUsuarioGoogle() {
+    try {
+      const raw = window.localStorage && window.localStorage.getItem(STORAGE_KEY_GOOGLE_USER);
+      if (raw) {
+        state.usuarioGoogle = JSON.parse(raw);
+      }
+    } catch (_) {}
+    atualizarBadgeUsuarioHeader();
+  }
+
+  function salvarLoginUsuario(usuario, executarCallback = true) {
+    state.usuarioGoogle = usuario;
+    try {
+      if (window.localStorage) {
+        window.localStorage.setItem(STORAGE_KEY_GOOGLE_USER, JSON.stringify(usuario));
+      }
+    } catch (_) {}
+    atualizarBadgeUsuarioHeader();
+    fecharModalAuthGoogle();
+
+    if (executarCallback && typeof state.callbackPosLoginGoogle === "function") {
+      const cb = state.callbackPosLoginGoogle;
+      state.callbackPosLoginGoogle = null;
+      cb();
+    }
+  }
+
+  function fazerLogoutGoogle() {
+    state.usuarioGoogle = null;
+    try {
+      if (window.localStorage) {
+        window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
+      }
+    } catch (_) {}
+    atualizarBadgeUsuarioHeader();
+    if (state.emissorAberto) {
+      fecharEmissorOrcamento();
+    }
+  }
+
+  function atualizarBadgeUsuarioHeader() {
+    const badgeEl = document.getElementById("header-auth-badge");
+    if (!badgeEl) return;
+
+    if (!state.usuarioGoogle) {
+      badgeEl.style.display = "none";
+      badgeEl.innerHTML = "";
+    } else {
+      const u = state.usuarioGoogle;
+      const avatarHtml = u.foto
+        ? `<img src="${u.foto}" alt="${u.nome}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`
+        : `<span style="font-weight:700;">${(u.nome || "V").charAt(0).toUpperCase()}</span>`;
+
+      badgeEl.style.display = "inline-flex";
+      badgeEl.innerHTML = `
+        <div class="header-auth-avatar" title="${u.nome}">${avatarHtml}</div>
+        <span>${u.nome.split(" ")[0]} (Vendedor)</span>
+        <button type="button" class="header-auth-logout" id="btn-header-logout" title="Desconectar do perfil de vendedor">(Sair)</button>
+      `;
+      document.getElementById("btn-header-logout")?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (confirm(`Deseja desconectar a conta do vendedor ${u.nome}?`)) {
+          fazerLogoutGoogle();
+        }
+      });
+    }
+  }
+
+  function abrirModalAuthGoogle(callbackApos = null) {
+    state.callbackPosLoginGoogle = callbackApos;
+    const modal = document.getElementById("modal-google-auth");
+    if (modal) modal.style.display = "flex";
+
+    try {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        window.google.accounts.id.renderButton(
+          document.getElementById("google-gis-btn-container"),
+          { theme: "outline", size: "large", text: "continue_with", width: 280, shape: "rectangular" }
+        );
+      }
+    } catch (_) {}
+  }
+
+  function fecharModalAuthGoogle() {
+    const modal = document.getElementById("modal-google-auth");
+    if (modal) modal.style.display = "none";
+  }
+
+  // Hook global chamado pelo Google Identity Services
+  window.onGoogleSignInSuccess = function(response) {
+    try {
+      const base64Url = response.credential.split('.')[1];
+      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
+        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+      }).join(''));
+      const payload = JSON.parse(jsonPayload);
+      salvarLoginUsuario({
+        nome: payload.name || "Vendedor Google",
+        email: payload.email || "vendedor@lojasj.com.br",
+        foto: payload.picture || null,
+        tipo: "google"
+      });
+    } catch (_) {
+      salvarLoginUsuario({
+        nome: "Thiago Novais (Loja SJ)",
+        email: "contato@gruposj.com.br",
+        foto: null,
+        tipo: "operador"
+      });
+    }
+  };
+
+  function abrirEmissorOuPedirLogin(itensIniciais = null) {
+    if (!state.usuarioGoogle) {
+      abrirModalAuthGoogle(() => {
+        abrirEmissorOrcamento(itensIniciais);
+      });
+      return;
+    }
+    abrirEmissorOrcamento(itensIniciais);
+  }
+
+  function importarCarrinhoParaOrcamento() {
+    if (!state.itensCaixa || state.itensCaixa.length === 0) {
+      alert("Seu carrinho está vazio! Adicione itens do catálogo ou você poderá incluir itens avulsos diretamente na proposta.");
+    }
+
+    const itensConvertidos = (state.itensCaixa || []).map((item, index) => {
+      let desc = item.nome;
+      if (item.detalhe1) desc += ` — ${item.detalhe1}`;
+      if (item.detalhe2) desc += ` (${item.detalhe2})`;
+      return {
+        id: "item-" + Date.now() + "-" + index,
+        descricao: desc,
+        qtd: Number(item.qtd || 1),
+        precoUnitario: Number(item.precoUnitario || 0)
+      };
+    });
+
+    abrirEmissorOuPedirLogin(itensConvertidos);
+  }
+
+  function gerarNumeroOrcamento() {
+    const ano = new Date().getFullYear();
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    return `SJ-${ano}-${rand}`;
+  }
+
+  function obterDataHojeFormatada() {
+    const hoje = new Date();
+    const d = String(hoje.getDate()).padStart(2, "0");
+    const m = String(hoje.getMonth() + 1).padStart(2, "0");
+    const y = hoje.getFullYear();
+    return `${d}/${m}/${y}`;
+  }
+
+  function fecharEmissorOrcamento() {
+    const quoteView = document.getElementById("quote-studio-view");
+    if (quoteView) quoteView.style.display = "none";
+    state.emissorAberto = false;
+    atualizarVisaoPrincipal();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  function abrirEmissorOrcamento(dadosIniciais = null) {
+    const homeView = document.getElementById("home-landing-view");
+    const pdpView = document.getElementById("product-detail-view");
+    const gridView = document.getElementById("catalog-grid-view");
+    const quoteView = document.getElementById("quote-studio-view");
+    const mobileCart = document.getElementById("mobile-floating-cart");
+
+    if (homeView) homeView.style.display = "none";
+    if (pdpView) pdpView.style.display = "none";
+    if (gridView) gridView.style.display = "none";
+    if (mobileCart) mobileCart.style.display = "none";
+
+    state.emissorAberto = true;
+
+    if (Array.isArray(dadosIniciais)) {
+      state.itensOrcamento = dadosIniciais;
+      state.orcamentoMetadados = {
+        numero: gerarNumeroOrcamento(),
+        data: obterDataHojeFormatada(),
+        validade: "15 dias",
+        frete: 0,
+        desconto: 0,
+        formaPagamento: "PIX à Vista (Chave CNPJ) ou Cartão até 12x",
+        prazoEntrega: "Pronta Entrega / Imediato",
+        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        cliente: {
+          nome: "",
+          cnpjCpf: "",
+          endereco: "",
+          bairroCidadeUf: "Umuarama / PR",
+          cepTelefone: "",
+          email: ""
+        }
+      };
+    } else if (dadosIniciais && typeof dadosIniciais === "object" && dadosIniciais.itens) {
+      state.itensOrcamento = dadosIniciais.itens;
+      state.orcamentoMetadados = { ...dadosIniciais.metadados };
+    } else if (!state.orcamentoMetadados) {
+      state.orcamentoMetadados = {
+        numero: gerarNumeroOrcamento(),
+        data: obterDataHojeFormatada(),
+        validade: "15 dias",
+        frete: 0,
+        desconto: 0,
+        formaPagamento: "PIX à Vista (Chave CNPJ) ou Cartão até 12x",
+        prazoEntrega: "Pronta Entrega / Imediato",
+        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        cliente: {
+          nome: "",
+          cnpjCpf: "",
+          endereco: "",
+          bairroCidadeUf: "Umuarama / PR",
+          cepTelefone: "",
+          email: ""
+        }
+      };
+      if (state.itensOrcamento.length === 0) {
+        state.itensOrcamento = [
+          {
+            id: "item-" + Date.now(),
+            descricao: "Filamento PLA Masterprint / MaxPrint 1.75mm (1kg)",
+            qtd: 1,
+            precoUnitario: 79.90
+          }
+        ];
+      }
+    }
+
+    if (quoteView) {
+      quoteView.style.display = "block";
+      renderizarTelaOrcamento();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+  }
+
+  function renderizarTelaOrcamento() {
+    const quoteView = document.getElementById("quote-studio-view");
+    if (!quoteView) return;
+
+    const { loja } = window.SITE_DATA;
+    const meta = state.orcamentoMetadados;
+    const cliente = meta.cliente || {};
+    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Loja SJ)";
+
+    const subtotal = state.itensOrcamento.reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+    const frete = Number(meta.frete) || 0;
+    const desconto = Number(meta.desconto) || 0;
+    const totalGeral = Math.max(0, subtotal + frete - desconto);
+
+    const linhasTabelaHtml = state.itensOrcamento.map((item, idx) => {
+      const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
+      return `
+        <tr data-row-idx="${idx}">
+          <td class="col-center" style="font-weight:700;">${idx + 1}</td>
+          <td>
+            <input type="text" class="quote-item-desc-input" data-field="descricao" data-idx="${idx}" value="${item.descricao || ''}" placeholder="Nome ou especificação do produto" />
+          </td>
+          <td class="col-center">
+            <input type="number" min="1" step="1" class="quote-item-num-input" data-field="qtd" data-idx="${idx}" value="${item.qtd || 1}" />
+          </td>
+          <td class="col-right">
+            <input type="number" min="0" step="0.01" class="quote-item-val-input" data-field="precoUnitario" data-idx="${idx}" value="${Number(item.precoUnitario || 0).toFixed(2)}" />
+          </td>
+          <td class="col-right" id="quote-row-total-${idx}">
+            ${formatarMoedaBR(totLinha)}
+          </td>
+          <td class="col-center col-actions">
+            <button type="button" class="quote-row-del-btn" data-del-row="${idx}" title="Remover item">&times;</button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    quoteView.innerHTML = `
+      <!-- BARRA DE CONTROLE SUPERIOR (NÃO IMPRESSA) -->
+      <div class="quote-studio-topbar">
+        <div class="quote-topbar-left">
+          <button type="button" class="quote-btn-back" id="btn-quote-back">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M19 12H5M12 19l-7-7 7-7"/>
+            </svg>
+            <span>Voltar ao Catálogo</span>
+          </button>
+          <div class="quote-operator-tag">
+            <span>Operador:</span>
+            <strong>${vendedorNome}</strong>
+            <span style="font-size:0.75rem; color:#10b981; font-weight:700;">(Conectado)</span>
+          </div>
+        </div>
+
+        <div class="quote-topbar-right">
+          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-history">
+            <span>📋 Histórico</span>
+          </button>
+          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-save">
+            <span>💾 Salvar Proposta</span>
+          </button>
+          <button type="button" class="quote-btn-action btn-whatsapp" id="btn-quote-whatsapp">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.697.075-2.222-.553-1.823-.751-2.999-2.596-3.089-2.717-.089-.12-1.325-1.761-1.325-3.359 0-1.597.834-2.384 1.13-2.697.296-.312.646-.39 1.15-.39.146 0 .274.007.388.013.312.015.468.036.674.529.259.619.887 2.164.965 2.323.078.158.13.344.026.551-.104.207-.156.335-.312.516-.156.182-.328.406-.468.545-.156.155-.318.324-.136.636.182.312.81 1.332 1.737 2.158 1.194 1.064 2.203 1.393 2.515 1.549.312.156.494.13.676-.078.182-.208.78-1.012.988-1.359.208-.347.416-.289.697-.182.281.107 1.789.843 2.096.997.307.154.512.231.587.36.075.129.075.748-.069 1.153z"/>
+            </svg>
+            <span>Enviar no WhatsApp</span>
+          </button>
+          <button type="button" class="quote-btn-action btn-print" id="btn-quote-print">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <polyline points="6 9 6 2 18 2 18 9"/>
+              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
+              <rect x="6" y="14" width="12" height="8"/>
+            </svg>
+            <span>Imprimir / Salvar PDF</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- CONTAINER DO PAPEL TIMBRADO (FORMATO A4) -->
+      <div class="quote-paper-container">
+        <div class="quote-paper" id="quote-printable-sheet">
+
+          <!-- CABEÇALHO TIMBRADO OFICIAL DO GRUPO SJ -->
+          <div class="quote-banner-header">
+            <img src="${loja.timbradoCabecalhoImg}" alt="Grupo SJ - Loja SJ 3D - Maximper - Blindamix - Vumora" />
+          </div>
+
+          <!-- IDENTIFICAÇÃO DO ORÇAMENTO -->
+          <div class="quote-meta-row">
+            <div>
+              <strong>ORÇAMENTO / PROPOSTA COMERCIAL</strong>
+            </div>
+            <div class="quote-meta-inputs">
+              <div class="quote-meta-field">
+                <span>Número:</span>
+                <input type="text" class="quote-meta-input" id="quote-meta-number" value="${meta.numero}" />
+              </div>
+              <div class="quote-meta-field">
+                <span>Data:</span>
+                <input type="text" class="quote-meta-input" id="quote-meta-date" value="${meta.data}" />
+              </div>
+            </div>
+          </div>
+
+          <!-- GRID DUPLO: FORNECEDOR X CLIENTE (CONFORME WORD OFICIAL) -->
+          <div class="quote-parties-grid">
+            <!-- FORNECEDOR -->
+            <div class="quote-party-col">
+              <div class="quote-party-title">FORNECEDOR</div>
+              <div class="quote-company-name">${loja.razaoSocial}</div>
+              <div class="quote-party-info-line"><strong>CNPJ:</strong> ${loja.cnpj}</div>
+              <div class="quote-party-info-line"><strong>Inscrição Estadual:</strong> ${loja.inscricaoEstadual}</div>
+              <div class="quote-party-info-line"><strong>Endereço:</strong> ${loja.logradouroNumero}</div>
+              <div class="quote-party-info-line"><strong>Bairro - Cidade/UF:</strong> ${loja.bairro} - ${loja.cidadeUf}</div>
+              <div class="quote-party-info-line"><strong>Telefone:</strong> ${loja.whatsappFormatado}</div>
+              <div class="quote-party-info-line" style="color:#E84520; margin-top:4px;">
+                <strong>Vendedor:</strong> ${vendedorNome}
+              </div>
+            </div>
+
+            <!-- CLIENTE -->
+            <div class="quote-party-col">
+              <div class="quote-party-title">CLIENTE</div>
+              <div class="quote-client-form">
+                <input type="text" class="quote-client-input client-name-input" id="client-name" placeholder="Nome / Razão Social do Cliente" value="${cliente.nome || ''}" />
+                <input type="text" class="quote-client-input" id="client-cnpj-cpf" placeholder="CNPJ / CPF" value="${cliente.cnpjCpf || ''}" />
+                <input type="text" class="quote-client-input" id="client-address" placeholder="Endereço (Rua, Número, Complemento)" value="${cliente.endereco || ''}" />
+                <input type="text" class="quote-client-input" id="client-bairro-city" placeholder="Bairro - Cidade/UF" value="${cliente.bairroCidadeUf || 'Umuarama / PR'}" />
+                <input type="text" class="quote-client-input" id="client-cep-phone" placeholder="CEP | Telefone / WhatsApp" value="${cliente.cepTelefone || ''}" />
+                <input type="email" class="quote-client-input" id="client-email" placeholder="E-mail" value="${cliente.email || ''}" />
+              </div>
+            </div>
+          </div>
+
+          <!-- TABELA DE ITENS (CABEÇALHO LARANJA OFICIAL #E84520) -->
+          <div class="quote-table-wrapper">
+            <table class="quote-items-table">
+              <thead>
+                <tr>
+                  <th class="col-center" style="width: 50px;">Item</th>
+                  <th>Descrição do produto / serviço</th>
+                  <th class="col-center" style="width: 70px;">Qtd.</th>
+                  <th class="col-right" style="width: 130px;">Valor unitário R$</th>
+                  <th class="col-right" style="width: 130px;">Valor total R$</th>
+                  <th class="col-center col-actions" style="width: 45px;"></th>
+                </tr>
+              </thead>
+              <tbody id="quote-items-tbody">
+                ${linhasTabelaHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- BOTÃO ADICIONAR ITEM AVULSO -->
+          <div class="quote-add-item-bar">
+            <button type="button" class="btn-add-quote-item" id="btn-quote-add-item">
+              <span>+ Adicionar Item / Produto Avulso</span>
+            </button>
+          </div>
+
+          <!-- TOTAIS FINANCEIROS -->
+          <div class="quote-totals-wrap">
+            <div class="quote-totals-sub-row">
+              <div class="quote-totals-sub-item">
+                <span>Subtotal:</span>
+                <strong id="quote-val-subtotal">${formatarMoedaBR(subtotal)}</strong>
+              </div>
+              <div class="quote-totals-sub-item">
+                <label for="quote-input-frete">Frete (R$):</label>
+                <input type="number" step="0.01" min="0" class="quote-totals-num-input" id="quote-input-frete" value="${frete.toFixed(2)}" />
+              </div>
+              <div class="quote-totals-sub-item">
+                <label for="quote-input-desconto">Desconto (R$):</label>
+                <input type="number" step="0.01" min="0" class="quote-totals-num-input" id="quote-input-desconto" value="${desconto.toFixed(2)}" />
+              </div>
+            </div>
+            <div class="quote-grand-total-row">
+              <span>TOTAL DO ORÇAMENTO:</span>
+              <span class="quote-grand-total-val" id="quote-val-grand-total">${formatarMoedaBR(totalGeral)}</span>
+            </div>
+          </div>
+
+          <!-- CONDIÇÕES COMERCIAIS & PRAZOS -->
+          <div class="quote-conditions-box">
+            <div class="quote-condition-line">
+              <span class="quote-condition-label">Pagamento:</span>
+              <input type="text" class="quote-condition-input" id="quote-cond-pagamento" value="${meta.formaPagamento}" />
+            </div>
+            <div class="quote-condition-line">
+              <span class="quote-condition-label">Prazo de entrega:</span>
+              <input type="text" class="quote-condition-input" id="quote-cond-prazo" value="${meta.prazoEntrega}" style="max-width: 250px;" />
+              <span class="quote-condition-label" style="min-width: 80px; margin-left: 12px;">Validade:</span>
+              <input type="text" class="quote-condition-input" id="quote-cond-validade" value="${meta.validade}" style="max-width: 150px;" />
+            </div>
+            <div class="quote-condition-line" style="align-items: flex-start;">
+              <span class="quote-condition-label">Observações:</span>
+              <textarea class="quote-condition-input" id="quote-cond-obs" rows="2" style="resize: vertical;">${meta.observacoes}</textarea>
+            </div>
+          </div>
+
+          <!-- FAIXA TEXTUAL DE MARCAS DO GRUPO SJ -->
+          <div class="quote-footer-brand-strip">
+            LOJA SJ 3D &nbsp;&nbsp;/&nbsp;&nbsp; MAXIMPER &nbsp;&nbsp;/&nbsp;&nbsp; BLINDAMIX &nbsp;&nbsp;/&nbsp;&nbsp; VUMORA
+          </div>
+
+          <!-- BANNER TIMBRADO INFERIOR OFICIAL DO GRUPO SJ -->
+          <div class="quote-banner-footer">
+            <img src="${loja.timbradoRodapeImg}" alt="Grupo SJ" />
+          </div>
+
+        </div>
+      </div>
+    `;
+
+    vincularEventosTelaOrcamento();
+  }
+
+  function vincularEventosTelaOrcamento() {
+    const quoteView = document.getElementById("quote-studio-view");
+    if (!quoteView) return;
+
+    // Voltar
+    document.getElementById("btn-quote-back")?.addEventListener("click", () => {
+      fecharEmissorOrcamento();
+    });
+
+    // Salvar proposta
+    document.getElementById("btn-quote-save")?.addEventListener("click", () => {
+      salvarOrcamentoNoHistorico();
+    });
+
+    // Histórico
+    document.getElementById("btn-quote-history")?.addEventListener("click", () => {
+      abrirModalHistoricoOrcamentos();
+    });
+
+    // WhatsApp
+    document.getElementById("btn-quote-whatsapp")?.addEventListener("click", () => {
+      enviarOrcamentoWhatsApp();
+    });
+
+    // Imprimir / PDF
+    document.getElementById("btn-quote-print")?.addEventListener("click", () => {
+      window.print();
+    });
+
+    // Adicionar item
+    document.getElementById("btn-quote-add-item")?.addEventListener("click", () => {
+      state.itensOrcamento.push({
+        id: "item-" + Date.now(),
+        descricao: "",
+        qtd: 1,
+        precoUnitario: 0
+      });
+      renderizarTelaOrcamento();
+      const lastInput = quoteView.querySelector(`input[data-idx="${state.itensOrcamento.length - 1}"][data-field="descricao"]`);
+      lastInput?.focus();
+    });
+
+    // Deleção de linha
+    quoteView.querySelectorAll("[data-del-row]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.delRow);
+        state.itensOrcamento.splice(idx, 1);
+        if (state.itensOrcamento.length === 0) {
+          state.itensOrcamento.push({ id: "item-" + Date.now(), descricao: "", qtd: 1, precoUnitario: 0 });
+        }
+        renderizarTelaOrcamento();
+      });
+    });
+
+    // Input de metadados do orçamento
+    document.getElementById("quote-meta-number")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.numero = e.target.value;
+    });
+
+    document.getElementById("quote-meta-date")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.data = e.target.value;
+    });
+
+    // Inputs do Cliente
+    const camposCliente = [
+      { id: "client-name", key: "nome" },
+      { id: "client-cnpj-cpf", key: "cnpjCpf" },
+      { id: "client-address", key: "endereco" },
+      { id: "client-bairro-city", key: "bairroCidadeUf" },
+      { id: "client-cep-phone", key: "cepTelefone" },
+      { id: "client-email", key: "email" }
+    ];
+
+    camposCliente.forEach(({ id, key }) => {
+      document.getElementById(id)?.addEventListener("input", (e) => {
+        if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
+        state.orcamentoMetadados.cliente[key] = e.target.value;
+      });
+    });
+
+    // Condições comerciais
+    document.getElementById("quote-cond-pagamento")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.formaPagamento = e.target.value;
+    });
+    document.getElementById("quote-cond-prazo")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.prazoEntrega = e.target.value;
+    });
+    document.getElementById("quote-cond-validade")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.validade = e.target.value;
+    });
+    document.getElementById("quote-cond-obs")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.observacoes = e.target.value;
+    });
+
+    // Frete e Desconto
+    document.getElementById("quote-input-frete")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.frete = parseFloat(e.target.value) || 0;
+      recalcularTotaisOrcamentoAoVivo();
+    });
+
+    document.getElementById("quote-input-desconto")?.addEventListener("input", (e) => {
+      state.orcamentoMetadados.desconto = parseFloat(e.target.value) || 0;
+      recalcularTotaisOrcamentoAoVivo();
+    });
+
+    // Edição de itens da tabela (live sync sem perder o foco)
+    quoteView.querySelectorAll(".quote-item-desc-input, .quote-item-num-input, .quote-item-val-input").forEach((inp) => {
+      inp.addEventListener("input", (e) => {
+        const idx = Number(e.target.dataset.idx);
+        const field = e.target.dataset.field;
+        const val = e.target.value;
+
+        if (state.itensOrcamento[idx]) {
+          if (field === "descricao") {
+            state.itensOrcamento[idx].descricao = val;
+          } else if (field === "qtd") {
+            state.itensOrcamento[idx].qtd = parseFloat(val) || 0;
+          } else if (field === "precoUnitario") {
+            state.itensOrcamento[idx].precoUnitario = parseFloat(val) || 0;
+          }
+
+          // Atualiza o total da linha
+          const rowTotEl = document.getElementById(`quote-row-total-${idx}`);
+          if (rowTotEl) {
+            const tot = (Number(state.itensOrcamento[idx].qtd) || 0) * (Number(state.itensOrcamento[idx].precoUnitario) || 0);
+            rowTotEl.textContent = formatarMoedaBR(tot);
+          }
+
+          recalcularTotaisOrcamentoAoVivo();
+        }
+      });
+    });
+  }
+
+  function recalcularTotaisOrcamentoAoVivo() {
+    const subtotal = state.itensOrcamento.reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+    const frete = Number(state.orcamentoMetadados.frete) || 0;
+    const desconto = Number(state.orcamentoMetadados.desconto) || 0;
+    const totalGeral = Math.max(0, subtotal + frete - desconto);
+
+    const subtotalEl = document.getElementById("quote-val-subtotal");
+    const grandTotalEl = document.getElementById("quote-val-grand-total");
+
+    if (subtotalEl) subtotalEl.textContent = formatarMoedaBR(subtotal);
+    if (grandTotalEl) grandTotalEl.textContent = formatarMoedaBR(totalGeral);
+  }
+
+  function salvarOrcamentoNoHistorico() {
+    const meta = state.orcamentoMetadados;
+    const clienteNome = (meta.cliente && meta.cliente.nome) ? meta.cliente.nome.trim() : "Cliente Balcão";
+    const subtotal = state.itensOrcamento.reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+    const frete = Number(meta.frete) || 0;
+    const desconto = Number(meta.desconto) || 0;
+    const total = Math.max(0, subtotal + frete - desconto);
+
+    const proposta = {
+      id: meta.numero,
+      dataHoraSalvo: new Date().toISOString(),
+      vendedor: state.usuarioGoogle ? state.usuarioGoogle.nome : "Operador",
+      clienteNome: clienteNome,
+      total: total,
+      itensQtd: state.itensOrcamento.length,
+      metadados: JSON.parse(JSON.stringify(meta)),
+      itens: JSON.parse(JSON.stringify(state.itensOrcamento))
+    };
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
+      let lista = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(lista)) lista = [];
+
+      const idx = lista.findIndex((p) => p.id === proposta.id);
+      if (idx >= 0) {
+        lista[idx] = proposta;
+      } else {
+        lista.unshift(proposta);
+      }
+      if (lista.length > 50) lista = lista.slice(0, 50);
+
+      localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
+      alert(`Orçamento ${meta.numero} salvo com sucesso no histórico da Loja SJ 3D!`);
+    } catch (_) {
+      alert("Erro ao salvar proposta no armazenamento local.");
+    }
+  }
+
+  function abrirModalHistoricoOrcamentos() {
+    const modal = document.getElementById("modal-quote-history");
+    const listEl = document.getElementById("quote-history-list");
+    if (!modal || !listEl) return;
+
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
+      const lista = raw ? JSON.parse(raw) : [];
+      if (!Array.isArray(lista) || lista.length === 0) {
+        listEl.innerHTML = `
+          <div style="text-align: center; padding: 32px 16px; color: var(--text-muted);">
+            <p style="font-size: 0.95rem; margin-bottom: 8px;">Nenhum orçamento salvo no histórico ainda.</p>
+            <small>Ao preencher uma proposta, clique em "Salvar Proposta" para registrá-la aqui.</small>
+          </div>
+        `;
+      } else {
+        listEl.innerHTML = lista.map((p, idx) => `
+          <div class="quote-history-item" data-history-idx="${idx}">
+            <div style="display:flex; flex-direction:column; gap:3px;">
+              <div style="display:flex; align-items:center; gap:8px;">
+                <strong style="color:var(--text-black); font-size:0.92rem;">${p.id}</strong>
+                <span style="font-size:0.75rem; background:#fee2e2; color:#E84520; font-weight:700; padding:2px 6px; border-radius:4px;">${p.metadados?.data || ''}</span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">Vendedor: ${p.vendedor}</span>
+              </div>
+              <div style="font-size:0.83rem; color:#4b5563;">
+                <strong>Cliente:</strong> ${p.clienteNome || "Não informado"} • <strong>${p.itensQtd} itens</strong>
+              </div>
+            </div>
+            <div style="display:flex; align-items:center; gap:12px;">
+              <strong style="font-size:1.05rem; color:#E84520;">${formatarMoedaBR(p.total)}</strong>
+              <button type="button" class="btn-history-load" data-load-idx="${idx}" style="background:#18181b; color:#fff; border:none; padding:6px 12px; border-radius:6px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                Abrir
+              </button>
+              <button type="button" class="btn-history-del" data-del-idx="${idx}" style="background:none; border:none; color:#ef4444; font-size:1.1rem; cursor:pointer; padding:4px;" title="Excluir">
+                &times;
+              </button>
+            </div>
+          </div>
+        `).join("");
+
+        listEl.querySelectorAll("[data-load-idx]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.dataset.loadIdx);
+            const p = lista[idx];
+            if (p) {
+              fecharModalHistoricoOrcamentos();
+              abrirEmissorOrcamento(p);
+            }
+          });
+        });
+
+        listEl.querySelectorAll("[data-del-idx]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const idx = Number(btn.dataset.delIdx);
+            if (confirm(`Excluir o orçamento ${lista[idx]?.id}?`)) {
+              lista.splice(idx, 1);
+              localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
+              abrirModalHistoricoOrcamentos();
+            }
+          });
+        });
+      }
+    } catch (_) {
+      listEl.innerHTML = `<p style="color:red;">Erro ao ler histórico.</p>`;
+    }
+
+    modal.style.display = "flex";
+  }
+
+  function fecharModalHistoricoOrcamentos() {
+    const modal = document.getElementById("modal-quote-history");
+    if (modal) modal.style.display = "none";
+  }
+
+  function enviarOrcamentoWhatsApp() {
+    const meta = state.orcamentoMetadados;
+    const cliente = meta.cliente || {};
+    const { loja } = window.SITE_DATA;
+    const vendedor = state.usuarioGoogle ? state.usuarioGoogle.nome : "Loja SJ 3D";
+
+    const subtotal = state.itensOrcamento.reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+    const frete = Number(meta.frete) || 0;
+    const desconto = Number(meta.desconto) || 0;
+    const total = Math.max(0, subtotal + frete - desconto);
+
+    const linhasItens = state.itensOrcamento.map((it, i) => {
+      const totItem = (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0);
+      return `${i + 1}. *${it.descricao}*\n   ${it.qtd} un x ${formatarMoedaBR(it.precoUnitario)} = *${formatarMoedaBR(totItem)}*`;
+    }).join("\n");
+
+    const freteStr = frete > 0 ? `\n*Frete:* ${formatarMoedaBR(frete)}` : "";
+    const descontoStr = desconto > 0 ? `\n*Desconto:* -${formatarMoedaBR(desconto)}` : "";
+    const clienteCpfStr = cliente.cnpjCpf ? `\n*CPF/CNPJ:* ${cliente.cnpjCpf}` : "";
+    const clienteCidadeStr = cliente.bairroCidadeUf ? `\n*Cidade/UF:* ${cliente.bairroCidadeUf}` : "";
+    const obsStr = meta.observacoes ? `\n\n*Observações:* ${meta.observacoes}` : "";
+
+    const msg =
+`📄 *PROPOSTA COMERCIAL / ORÇAMENTO*
+*Empresa:* ${loja.razaoSocial} — CNPJ: ${loja.cnpj}
+*Endereço:* ${loja.logradouroNumero} — ${loja.cidadeUf}
+*Telefone:* ${loja.whatsappFormatado}
+
+*Orçamento:* ${meta.numero} | *Data:* ${meta.data}
+*Vendedor Responsável:* ${vendedor}
+
+━━━━━━━━━━━━━━━━━━━━━
+*DADOS DO CLIENTE:*
+*Nome:* ${cliente.nome || "A/C Cliente"}${clienteCpfStr}${clienteCidadeStr}
+
+━━━━━━━━━━━━━━━━━━━━━
+*ITENS DO ORÇAMENTO:*
+${linhasItens}
+
+━━━━━━━━━━━━━━━━━━━━━
+*Subtotal:* ${formatarMoedaBR(subtotal)}${freteStr}${descontoStr}
+*TOTAL DO ORÇAMENTO:* ${formatarMoedaBR(total)}
+
+*Condições de Pagamento:* ${meta.formaPagamento}
+*Prazo de Entrega:* ${meta.prazoEntrega}
+*Validade da Proposta:* ${meta.validade}${obsStr}
+
+Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechamento do pedido.`;
+
+    let telDestino = loja.whatsapp;
+    if (cliente.cepTelefone) {
+      const limpo = cliente.cepTelefone.replace(/\D/g, "");
+      if (limpo.length >= 10) {
+        telDestino = limpo.startsWith("55") ? limpo : ("55" + limpo);
+      }
+    }
+
+    const url = `https://wa.me/${telDestino}?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  }
+
   // Inicialização Geral
   document.addEventListener("DOMContentLoaded", () => {
     carregarPedidoSalvo();
+    carregarUsuarioGoogle();
     renderizarCapaHome();
     renderizarCatalogoCompleto();
     atualizarCaixaLateral();
     atualizarVisaoPrincipal();
 
-    // Leitura do hash inicial na URL para deep-linking (ex: #produto-fil-pla-bambulab ou #cat-impressoras)
+    // Eventos de Autenticação Google & Operador
+    document.getElementById("close-google-auth-btn")?.addEventListener("click", () => {
+      fecharModalAuthGoogle();
+    });
+
+    document.getElementById("btn-google-direct-login")?.addEventListener("click", () => {
+      if (window.google && window.google.accounts && window.google.accounts.id) {
+        try {
+          window.google.accounts.id.prompt();
+          return;
+        } catch (_) {}
+      }
+      salvarLoginUsuario({
+        nome: "Thiago Novais (Google Workspace)",
+        email: "contato@gruposj.com.br",
+        foto: null,
+        tipo: "google"
+      });
+    });
+
+    document.getElementById("form-operator-auth")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("operator-name-input")?.value.trim() || "Thiago Novais (Loja SJ)";
+      const email = document.getElementById("operator-email-input")?.value.trim() || "contato@gruposj.com.br";
+      salvarLoginUsuario({
+        nome,
+        email,
+        foto: null,
+        tipo: "operador"
+      });
+    });
+
+    // Eventos do Histórico de Orçamentos
+    document.getElementById("close-quote-history-btn")?.addEventListener("click", () => {
+      fecharModalHistoricoOrcamentos();
+    });
+
+    // Botão "Orçamento" no Topo
+    document.getElementById("header-btn-quote")?.addEventListener("click", () => {
+      abrirEmissorOuPedirLogin();
+    });
+
+    // Botão "Gerar Orçamento Timbrado" na Caixa Lateral ("aproveitando a forma do carrinho")
+    document.getElementById("btn-cart-to-quote")?.addEventListener("click", () => {
+      importarCarrinhoParaOrcamento();
+    });
+
+    // Leitura do hash inicial na URL para deep-linking (ex: #orcamento, #produto-fil-pla-bambulab ou #cat-impressoras)
     const initialHash = window.location.hash || "";
-    if (initialHash.startsWith("#produto-")) {
+    if (initialHash === "#orcamento") {
+      abrirEmissorOuPedirLogin();
+    } else if (initialHash.startsWith("#produto-")) {
       const id = initialHash.replace("#produto-", "");
       abrirPaginaProduto(id, null, false);
     } else if (initialHash.startsWith("#cat-")) {
@@ -2232,6 +3091,16 @@
 
     // Suporte ao botão "Voltar" do navegador / celular
     window.addEventListener("popstate", (e) => {
+      const hash = window.location.hash || "";
+      if (hash === "#orcamento") {
+        abrirEmissorOuPedirLogin();
+        return;
+      }
+      if (state.emissorAberto) {
+        fecharEmissorOrcamento();
+        return;
+      }
+
       const stateObj = e.state;
       if (stateObj && stateObj.view === "pdp" && stateObj.itemId) {
         abrirPaginaProduto(stateObj.itemId, null, false);
@@ -2239,7 +3108,6 @@
         fecharPaginaProduto(false, false);
         navegarParaCategoria(stateObj.cat, false);
       } else {
-        const hash = window.location.hash || "";
         if (hash.startsWith("#produto-")) {
           const id = hash.replace("#produto-", "");
           abrirPaginaProduto(id, null, false);
