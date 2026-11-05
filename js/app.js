@@ -163,6 +163,138 @@
     });
   }
 
+  // Retorna a configuração atualizada do Banner Promocional (editável via /admin)
+  function obterConfigBannerPromocao() {
+    const padrao = {
+      ativo: true,
+      exibirBannerSecaoImpressoras: true,
+      exibirCuponsCarrinho: true,
+      estilo: "sorteio",
+      badge: "A MAIOR BLACK FRIDAY DA LOJA SJ",
+      dataSorteio: "SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO",
+      tituloKicker: "GRANDE PRÊMIO DE NATAL LOJA SJ 3D",
+      tituloPrincipal: "SORTEIO <em>A1 MINI</em>",
+      subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS",
+      precoDestaque: "Ganhe até 10 cupons na compra da sua Impressora 3D!",
+      imagemFundo: "assets/produtos/banner-sorteio-natal-wide.jpg",
+      btn1Texto: "Garantir Meus Cupons no WhatsApp →",
+      btn1Url:
+        "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!",
+      btn2Texto: "Seguir @lojasj3d",
+      btn2Url: "https://www.instagram.com/lojasj3d/",
+      regrasCards: [
+        {
+          tag: "1️⃣ 3 CUPONS GRÁTIS",
+          titulo: "Retirada Presencial (Por CPF)",
+          texto:
+            'Siga <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!'
+        },
+        {
+          tag: "2️⃣ FILAMENTOS E PEÇAS",
+          titulo: "1 Cupom a cada R$ 60",
+          texto:
+            "Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra)."
+        },
+        {
+          tag: "🏆 IMPRESSORA 3D",
+          titulo: "10 Cupons Imediatos",
+          texto:
+            "Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!"
+        }
+      ]
+    };
+    const salvo = (window.SITE_DATA && window.SITE_DATA.bannerPromocao) || {};
+    return {
+      ...padrao,
+      ...salvo,
+      regrasCards:
+        Array.isArray(salvo.regrasCards) && salvo.regrasCards.length > 0
+          ? salvo.regrasCards
+          : padrao.regrasCards
+    };
+  }
+
+  function gerarEstiloBgBannerPromocao(imagemFundo) {
+    if (!imagemFundo) return "";
+    const urlEscapada = String(imagemFundo).replace(/"/g, '\\"');
+    return `background: linear-gradient(90deg, rgba(10, 8, 8, 0.78) 0%, rgba(10, 8, 8, 0.54) 46%, rgba(10, 8, 8, 0.12) 70%, rgba(10, 8, 8, 0) 100%), url("${urlEscapada}") center / cover no-repeat;`;
+  }
+
+  function gerarBannerPromocionalSecaoHtml() {
+    const b = obterConfigBannerPromocao();
+    if (!b.exibirBannerSecaoImpressoras) return "";
+
+    const styleInline = gerarEstiloBgBannerPromocao(b.imagemFundo);
+    const usarCards = b.estilo !== "promocao" && Array.isArray(b.regrasCards) && b.regrasCards.length > 0;
+
+    return `
+      <div class="natal-raffle-banner full-bleed-raffle-banner" style="${styleInline}">
+        <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar este banner promocional">
+          ✏️ Editar Banner de Promoção
+        </button>
+        <div class="natal-raffle-info-col">
+          <div class="natal-raffle-badges">
+            ${b.badge ? `<span class="raffle-pill-orange">${b.badge}</span>` : ""}
+            ${b.dataSorteio ? `<span class="raffle-pill-date">📅 ${b.dataSorteio}</span>` : ""}
+          </div>
+          <div class="raffle-hero-heading-block">
+            ${b.tituloKicker ? `<span class="raffle-kicker-line">${b.tituloKicker}</span>` : ""}
+            <h3 class="raffle-big-model">${b.tituloPrincipal || "PROMOÇÃO LOJA SJ"}</h3>
+            ${b.subtituloPremio ? `<span class="raffle-sub-prize">${b.subtituloPremio}</span>` : ""}
+          </div>
+          ${usarCards
+        ? `
+              <div class="hero-rules-grid-3">
+                ${b.regrasCards
+          .map(
+            (rc) => `
+                    <div class="hero-rule-card">
+                      <span class="rule-card-tag">${rc.tag || ""}</span>
+                      <strong>${rc.titulo || ""}</strong>
+                      <p>${rc.texto || ""}</p>
+                    </div>
+                  `
+          )
+          .join("")}
+              </div>
+            `
+        : b.precoDestaque
+          ? `<div class="hero-slide-price-pill" style="margin-bottom:16px;">${b.precoDestaque}</div>`
+          : ""
+      }
+          <div class="natal-raffle-actions">
+            ${b.btn1Texto
+        ? `
+                <a
+                  href="${b.btn1Url || "https://wa.me/5544991351318"}"
+                  target="_blank"
+                  rel="noopener"
+                  class="btn-raffle-whatsapp"
+                >
+                  ${b.btn1Texto}
+                </a>
+              `
+        : ""
+      }
+            ${b.btn2Texto
+        ? `
+                <a
+                  href="${b.btn2Url || "https://www.instagram.com/lojasj3d/"}"
+                  target="_blank"
+                  rel="noopener"
+                  class="hero-btn-secondary"
+                >
+                  ${b.btn2Texto}
+                </a>
+              `
+        : ""
+      }
+          </div>
+        </div>
+      </div>
+    `;
+  }
+
   // 2. Renderiza um Card Ultra-Clean na Grade Principal (Estilo Referência Anycubic)
   function gerarCardHTML(item) {
     const marcaAtual = state.marcaNoCardOverride[item.id] || item.marca;
@@ -175,29 +307,38 @@
     let opcoesSelect1 = item.select1Opcoes || ["Padrão"];
 
     if (item.tipoFilamento) {
-      imagemBase = isBambu
-        ? "assets/produtos/pla-bambulab.jpg"
-        : "assets/produtos/pla-maxprint.jpg";
-      imagemCard = imagemBase;
+      if (!item.imagemCustomizada) {
+        imagemBase = isBambu
+          ? "assets/produtos/pla-bambulab.jpg"
+          : "assets/produtos/pla-maxprint.jpg";
+        imagemCard = imagemBase;
+      }
       listaCores = obterPaletaPorChave(item.usaCoresDinamicas, isBambu);
 
       // Rótulos curtos para o primeiro select não cortar o texto ("1KG" / "Refil")
-      opcoesSelect1 = isBambu ? ["1KG", "Refil"] : ["1KG"];
+      opcoesSelect1 =
+        Array.isArray(item.select1Opcoes) && item.select1Opcoes.length > 0 && item.opcoesCustomizadas
+          ? item.select1Opcoes
+          : isBambu
+            ? ["1KG", "Refil"]
+            : ["1KG"];
 
-      if (item.id === "fil-pla-bambulab") {
-        tituloCard = "PLA Bambu Lab";
-      } else if (item.id === "fil-pla-maxprint") {
-        tituloCard = "PLA Masterprint / MaxPrint";
-      } else if (item.id.includes("silk")) {
-        tituloCard = "PLA Silk Masterprint / MaxPrint";
-      } else if (item.id.includes("petg")) {
-        tituloCard = "PETG Masterprint / MaxPrint";
-      } else if (item.id.includes("tpu")) {
-        tituloCard = "TPU Flexível Masterprint / MaxPrint";
-      } else if (item.id.includes("abs")) {
-        tituloCard = "ABS & Especiais Masterprint";
+      if (!item.nomeCustomizado) {
+        if (item.id === "fil-pla-bambulab") {
+          tituloCard = "PLA Bambu Lab";
+        } else if (item.id === "fil-pla-maxprint") {
+          tituloCard = "PLA Masterprint / MaxPrint";
+        } else if (item.id.includes("silk")) {
+          tituloCard = "PLA Silk Masterprint / MaxPrint";
+        } else if (item.id.includes("petg")) {
+          tituloCard = "PETG Masterprint / MaxPrint";
+        } else if (item.id.includes("tpu")) {
+          tituloCard = "TPU Flexível Masterprint / MaxPrint";
+        } else if (item.id.includes("abs")) {
+          tituloCard = "ABS & Especiais Masterprint";
+        }
       }
-    } else if (item.categoria === "impressoras") {
+    } else if (item.categoria === "impressoras" && !item.opcoesCustomizadas) {
       opcoesSelect1 = ["À Vista", "10x"];
     }
 
@@ -214,7 +355,10 @@
         item.corInicialIndex && listaCores[item.corInicialIndex] ? item.corInicialIndex : 0;
       corInicialObj = listaCores[idxInicial];
       filtroInicial = corInicialObj?.filtroCss || "none";
-      if (corInicialObj?.usaFotoCatalogoDireta && corInicialObj?.imgCatalogo) {
+      if (item.imagemCustomizada) {
+        imagemCard = item.imagem;
+        filtroInicial = "none";
+      } else if (corInicialObj?.usaFotoCatalogoDireta && corInicialObj?.imgCatalogo) {
         imagemCard = corInicialObj.imgCatalogo;
         filtroInicial = "none";
       }
@@ -226,7 +370,7 @@
             }" data-preco="${cor.preco || ""}" data-valor="${cor.valor || 0}" data-filtro="${cor.filtroCss
             }" data-img-catalogo="${cor.imgCatalogo || ""}" data-foto-direta="${cor.usaFotoCatalogoDireta ? "1" : "0"
             }" data-img-base="${imagemBase}" ${idx === idxInicial ? "selected" : ""
-            }>${nomeLimpo} (${cor.hex.toUpperCase()})</option>`;
+            }>${nomeLimpo} (${(cor.hex || "#111111").toUpperCase()})</option>`;
         })
         .join("");
     } else {
@@ -252,6 +396,10 @@
 
     return `
       <article class="combo-filament-card" data-item-id="${item.id}">
+        <button type="button" class="admin-quick-edit-btn" data-admin-edit-prod="${item.id}" title="Editar foto, preço e descrição deste produto">
+          ✏️ Editar
+        </button>
+
         <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver todas as cores e detalhes">
           <img
             src="${imagemCard}"
@@ -331,58 +479,7 @@
         if (itensSecao.length === 0) return "";
 
         const sorteioBannerHtml =
-          sec.id === "impressoras"
-            ? `
-              <div class="natal-raffle-banner full-bleed-raffle-banner">
-                <div class="natal-raffle-info-col">
-                  <div class="natal-raffle-badges">
-                    <span class="raffle-pill-orange">A MAIOR BLACK FRIDAY DA LOJA SJ</span>
-                    <span class="raffle-pill-date">📅 SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO</span>
-                  </div>
-                  <div class="raffle-hero-heading-block">
-                    <span class="raffle-kicker-line">GRANDE PRÊMIO DE NATAL LOJA SJ 3D</span>
-                    <h3 class="raffle-big-model">SORTEIO <em>A1 MINI</em></h3>
-                    <span class="raffle-sub-prize">+ KIT COM 4 KG DE FILAMENTOS</span>
-                  </div>
-                  <div class="hero-rules-grid-3">
-                    <div class="hero-rule-card">
-                      <span class="rule-card-tag">1️⃣ 3 CUPONS GRÁTIS</span>
-                      <strong>Retirada Presencial (Por CPF)</strong>
-                      <p>Siga <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!</p>
-                    </div>
-                    <div class="hero-rule-card">
-                      <span class="rule-card-tag">2️⃣ FILAMENTOS E PEÇAS</span>
-                      <strong>1 Cupom a cada R$ 60</strong>
-                      <p>Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra).</p>
-                    </div>
-                    <div class="hero-rule-card">
-                      <span class="rule-card-tag">🏆 IMPRESSORA 3D</span>
-                      <strong>10 Cupons Imediatos</strong>
-                      <p>Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!</p>
-                    </div>
-                  </div>
-                  <div class="natal-raffle-actions">
-                    <a
-                      href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20a%20campanha%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!"
-                      target="_blank"
-                      rel="noopener"
-                      class="btn-raffle-whatsapp"
-                    >
-                      Garantir Meus Cupons no WhatsApp →
-                    </a>
-                    <a
-                      href="https://www.instagram.com/lojasj3d/"
-                      target="_blank"
-                      rel="noopener"
-                      class="hero-btn-secondary"
-                    >
-                      Seguir @lojasj3d
-                    </a>
-                  </div>
-                </div>
-              </div>
-            `
-            : "";
+          sec.id === "impressoras" ? gerarBannerPromocionalSecaoHtml() : "";
 
         return `
           <section class="category-section-block" id="sec-${sec.id}">
@@ -528,6 +625,23 @@
         });
       });
     });
+
+    // Atalho rápido Admin: Editar Produto direto pelo botão no card
+    container.querySelectorAll("[data-admin-edit-prod]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const prodId = btn.dataset.adminEditProd;
+        abrirPainelAdminCms("produtos", prodId);
+      });
+    });
+
+    // Atalho rápido Admin: Editar Banner de Promoção direto pelo banner
+    container.querySelectorAll("[data-admin-edit-banner]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        abrirPainelAdminCms("banner");
+      });
+    });
   }
 
   // 5. Adiciona qualquer item do catálogo (Filamento, Impressora, Peça ou Manutenção) na Caixa Lateral
@@ -661,31 +775,37 @@
     }
 
     if (trackerEl) {
-      if (totalItens === 0) {
-        trackerEl.innerHTML = `
-          <div class="coupon-tracker-card empty">
-            <strong>🎟️ Sorteio A1 Mini (20/12)</strong>
-            <span>1 cupom a cada R$ 60 em filamentos/peças ou 10 cupons na compra de uma impressora 3D!</span>
-          </div>
-        `;
+      const cfgBanner = obterConfigBannerPromocao();
+      if (!cfgBanner.exibirCuponsCarrinho) {
+        trackerEl.style.display = "none";
       } else {
-        const faltaStr =
-          resumoCupons.faltaParaProximo > 0
-            ? `Faltam <strong>${formatarMoedaBR(resumoCupons.faltaParaProximo)}</strong> em filamentos/peças para ganhar <strong>+1 cupom</strong>!`
-            : `Limite máximo de cupons por compra atingido!`;
-        trackerEl.innerHTML = `
-          <div class="coupon-tracker-card active">
-            <div class="coupon-tracker-top">
-              <strong>🎟️ ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "Cupom no Pedido" : "Cupons no Pedido"
-          }</strong>
-              <span class="coupon-bonus-tag">+3 grátis no balcão</span>
+        trackerEl.style.display = "block";
+        if (totalItens === 0) {
+          trackerEl.innerHTML = `
+            <div class="coupon-tracker-card empty">
+              <strong>🎟️ ${cfgBanner.tituloPrincipal ? cfgBanner.tituloPrincipal.replace(/<[^>]*>/g, "") : "Sorteio A1 Mini"}</strong>
+              <span>1 cupom a cada R$ 60 em filamentos/peças ou 10 cupons na compra de uma impressora 3D!</span>
             </div>
-            <div class="coupon-progress-bar">
-              <div class="coupon-progress-fill" style="width: ${resumoCupons.progressoPct}%;"></div>
+          `;
+        } else {
+          const faltaStr =
+            resumoCupons.faltaParaProximo > 0
+              ? `Faltam <strong>${formatarMoedaBR(resumoCupons.faltaParaProximo)}</strong> em filamentos/peças para ganhar <strong>+1 cupom</strong>!`
+              : `Limite máximo de cupons por compra atingido!`;
+          trackerEl.innerHTML = `
+            <div class="coupon-tracker-card active">
+              <div class="coupon-tracker-top">
+                <strong>🎟️ ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "Cupom no Pedido" : "Cupons no Pedido"
+            }</strong>
+                <span class="coupon-bonus-tag">+3 grátis no balcão</span>
+              </div>
+              <div class="coupon-progress-bar">
+                <div class="coupon-progress-fill" style="width: ${resumoCupons.progressoPct}%;"></div>
+              </div>
+              <p class="coupon-tracker-hint">${faltaStr}</p>
             </div>
-            <p class="coupon-tracker-hint">${faltaStr}</p>
-          </div>
-        `;
+          `;
+        }
       }
     }
 
@@ -773,40 +893,24 @@
     const homeEl = document.getElementById("home-landing-view");
     if (!homeEl) return;
 
-    const slidesHero = [
-      {
-        fullBleedRaffle: true,
-        badge: "A MAIOR BLACK FRIDAY DA LOJA SJ",
-        dataSorteio: "SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO",
-        tituloRaffleKicker: "GRANDE PRÊMIO DE NATAL LOJA SJ 3D",
-        tituloRaffleMain: "SORTEIO <em>A1 MINI</em>",
-        tituloRaffleSub: "+ KIT COM 4 KG DE FILAMENTOS",
-        regrasCards: [
-          {
-            tag: "1️⃣ 3 CUPONS GRÁTIS",
-            titulo: "Retirada Presencial (Por CPF)",
-            texto:
-              'Siga <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!'
-          },
-          {
-            tag: "2️⃣ FILAMENTOS E PEÇAS",
-            titulo: "1 Cupom a cada R$ 60",
-            texto:
-              "Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra)."
-          },
-          {
-            tag: "🏆 IMPRESSORA 3D",
-            titulo: "10 Cupons Imediatos",
-            texto:
-              "Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!"
-          }
-        ],
-        btn1Texto: "Garantir Meus Cupons no WhatsApp →",
-        btn1Whatsapp:
-          "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!",
-        btn2Texto: "Seguir @lojasj3d",
-        btn2Url: "https://www.instagram.com/lojasj3d/"
-      },
+    const cfgBan = obterConfigBannerPromocao();
+    const slidePromocional = {
+      fullBleedRaffle: true,
+      styleBg: gerarEstiloBgBannerPromocao(cfgBan.imagemFundo),
+      badge: cfgBan.badge,
+      dataSorteio: cfgBan.dataSorteio,
+      tituloRaffleKicker: cfgBan.tituloKicker,
+      tituloRaffleMain: cfgBan.tituloPrincipal,
+      tituloRaffleSub: cfgBan.subtituloPremio,
+      precoDestaque: cfgBan.precoDestaque,
+      regrasCards: cfgBan.estilo !== "promocao" ? cfgBan.regrasCards : null,
+      btn1Texto: cfgBan.btn1Texto,
+      btn1Whatsapp: cfgBan.btn1Url,
+      btn2Texto: cfgBan.btn2Texto,
+      btn2Url: cfgBan.btn2Url
+    };
+
+    const slidesFixos = [
       {
         badge: "ALTA PERFORMANCE • 4 CABEÇOTES & COREXY FECHADA",
         titulo: "Snapmaker U1 & Bambu Lab P2S Combo",
@@ -853,6 +957,11 @@
         img2Label: "PLA & Silk Masterprint"
       }
     ];
+
+    const slidesHero = cfgBan.ativo ? [slidePromocional, ...slidesFixos] : slidesFixos;
+    if (state.heroSlideAtivo >= slidesHero.length) {
+      state.heroSlideAtivo = 0;
+    }
 
     // Filamentos mais bonitos e diferenciados do catálogo de 55 páginas
     const filamentosDestaqueVisual = [
@@ -940,11 +1049,14 @@
     homeEl.innerHTML = `
       <!-- 1. HERO CAROUSEL DE DESTAQUES (PASSA PARA O LADO) -->
       <div class="hero-slider-container" id="hero-slider-container">
+        <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar Banner de Promoções da Capa">
+          ✏️ Editar Banner de Promoção
+        </button>
         <div class="hero-slides-track" id="hero-slides-track">
           ${slidesHero
         .map(
           (s, idx) => `
-              <div class="hero-slide-item ${s.fullBleedRaffle ? "full-bleed-raffle" : ""} ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}">
+              <div class="hero-slide-item ${s.fullBleedRaffle ? "full-bleed-raffle" : ""} ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}" style="${s.styleBg || ""}">
                 <div class="hero-slide-content">
                   <div class="hero-badges-row">
                     <span class="hero-slide-badge">${s.badge}</span>
@@ -1193,56 +1305,17 @@
         </div>
       </div>
 
-      <!-- 6. BANNER SORTEIO DE NATAL NO FECHAMENTO DA CAPA -->
-      <div class="natal-raffle-banner full-bleed-raffle-banner">
-        <div class="natal-raffle-info-col">
-          <div class="natal-raffle-badges">
-            <span class="raffle-pill-orange">A MAIOR BLACK FRIDAY DA LOJA SJ</span>
-            <span class="raffle-pill-date">📅 SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO</span>
-          </div>
-          <div class="raffle-hero-heading-block">
-            <span class="raffle-kicker-line">GRANDE PRÊMIO DE NATAL LOJA SJ 3D</span>
-            <h3 class="raffle-big-model">SORTEIO <em>A1 MINI</em></h3>
-            <span class="raffle-sub-prize">+ KIT COM 4 KG DE FILAMENTOS</span>
-          </div>
-          <div class="hero-rules-grid-3">
-            <div class="hero-rule-card">
-              <span class="rule-card-tag">1️⃣ 3 CUPONS GRÁTIS</span>
-              <strong>Retirada Presencial (Por CPF)</strong>
-              <p>Siga <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!</p>
-            </div>
-            <div class="hero-rule-card">
-              <span class="rule-card-tag">2️⃣ FILAMENTOS E PEÇAS</span>
-              <strong>1 Cupom a cada R$ 60</strong>
-              <p>Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra).</p>
-            </div>
-            <div class="hero-rule-card">
-              <span class="rule-card-tag">🏆 IMPRESSORA 3D</span>
-              <strong>10 Cupons Imediatos</strong>
-              <p>Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!</p>
-            </div>
-          </div>
-          <div class="natal-raffle-actions">
-            <a
-              href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20a%20campanha%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!"
-              target="_blank"
-              rel="noopener"
-              class="btn-raffle-whatsapp"
-            >
-              Garantir Meus Cupons no WhatsApp →
-            </a>
-            <a
-              href="https://www.instagram.com/lojasj3d/"
-              target="_blank"
-              rel="noopener"
-              class="hero-btn-secondary"
-            >
-              Seguir @lojasj3d
-            </a>
-          </div>
-        </div>
-      </div>
+      <!-- 6. BANNER DE PROMOÇÕES NO FECHAMENTO DA CAPA -->
+      ${gerarBannerPromocionalSecaoHtml()}
     `;
+
+    // Botão Admin Rápido nos banners da Home
+    homeEl.querySelectorAll("[data-admin-edit-banner]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        abrirPainelAdminCms("banner");
+      });
+    });
 
     // Lógica de troca de slide do Hero Carousel
     function irParaSlideHero(novoIdx) {
@@ -1804,9 +1877,14 @@
           <strong class="pdp-bc-current">${tituloPagina}</strong>
         </nav>
 
-        <button type="button" class="pdp-back-btn" id="pdp-back-btn">
-          ← Voltar ao Catálogo
-        </button>
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button type="button" class="admin-quick-edit-btn pdp-admin-edit-btn" id="pdp-admin-edit-btn" title="Editar fotos, preços e descrições deste produto">
+            ✏️ Editar Este Produto
+          </button>
+          <button type="button" class="pdp-back-btn" id="pdp-back-btn">
+            ← Voltar ao Catálogo
+          </button>
+        </div>
       </div>
 
       <!-- Grade Principal de 2 Colunas (Galeria Esquerda + Configurador Direita) -->
@@ -2217,6 +2295,11 @@
       window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
     });
 
+    // Atalho rápido Admin na página de detalhes do produto
+    document.getElementById("pdp-admin-edit-btn")?.addEventListener("click", () => {
+      abrirPainelAdminCms("produtos", item.id);
+    });
+
     // Vincula também os cards da seção "Outras opções" no rodapé da PDP
     const relatedContainer = pdpView.querySelector(".pdp-related-section");
     if (relatedContainer) {
@@ -2309,6 +2392,8 @@
     const cartQuoteBtn = document.getElementById("btn-cart-to-quote");
     const nameEl = document.getElementById("admin-topbar-user-name");
     const roleEl = document.getElementById("admin-topbar-user-role");
+
+    document.body.classList.toggle("is-admin-logged-in", Boolean(state.usuarioGoogle));
 
     if (!state.usuarioGoogle) {
       // Usuário NÃO autenticado -> Site 100% público e limpo (sem barra nem botão de orçamento)
@@ -3409,6 +3494,464 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     window.open(url, "_blank");
   }
 
+  // =========================================================================
+  // 10. PAINEL ADMINISTRATIVO DE GESTÃO DO SITE (CMS: PRODUTOS, FOTOS, PREÇOS & BANNER)
+  // =========================================================================
+
+  const cmsState = {
+    abaAtiva: "produtos",
+    categoriaFiltro: "todos",
+    busca: "",
+    produtoEditandoId: null,
+    coresTempEditando: [],
+    chavePaletaEditando: null
+  };
+
+  function mapearChavePaletaSiteData(usaCoresDinamicas) {
+    const mapa = {
+      bambu: "coresBambuLab",
+      maxprint: "coresMaxPrint",
+      plasilk: "coresPlaSilk",
+      petg: "coresPetg",
+      tpu: "coresTpu",
+      absespeciais: "coresAbsEspeciais"
+    };
+    return mapa[usaCoresDinamicas] || null;
+  }
+
+  function extrairNumeroDePrecoBR(textoPreco) {
+    if (!textoPreco) return 0;
+    const str = String(textoPreco).trim();
+    const limpo = str.replace(/[^\d.,]/g, "");
+    if (!limpo) return 0;
+    if (limpo.includes(",")) {
+      return Number(limpo.replace(/\./g, "").replace(",", ".")) || 0;
+    }
+    return Number(limpo) || 0;
+  }
+
+  function formatarTextoPrecoPadrao(valorStrOuNum) {
+    const str = String(valorStrOuNum || "").trim();
+    if (!str) return "";
+    if (str.toUpperCase().startsWith("R$")) return str;
+    const num = extrairNumeroDePrecoBR(str);
+    if (num > 0) {
+      return "R$ " + num.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    }
+    return str;
+  }
+
+  // Comprime imagem enviada pelo computador/celular via HTML5 Canvas para salvar rápido no banco
+  function comprimirImagemUpload(file, maxWidth = 900, quality = 0.84) {
+    return new Promise((resolve, reject) => {
+      if (!file) {
+        reject(new Error("Nenhum arquivo selecionado"));
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (ev) => {
+        const img = new Image();
+        img.onload = () => {
+          let w = img.width;
+          let h = img.height;
+          if (w > maxWidth) {
+            h = Math.round((h * maxWidth) / w);
+            w = maxWidth;
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          ctx.fillStyle = "#FFFFFF";
+          ctx.fillRect(0, 0, w, h);
+          ctx.drawImage(img, 0, 0, w, h);
+          const dataUrl = canvas.toDataURL("image/jpeg", quality);
+          resolve(dataUrl);
+        };
+        img.onerror = () => resolve(ev.target.result);
+        img.src = ev.target.result;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function atualizarSiteAposEdicaoCms() {
+    renderizarCapaHome();
+    renderizarCatalogoCompleto();
+    atualizarCaixaLateral();
+    if (state.produtoDetalheAtivo) {
+      abrirPaginaProduto(state.produtoDetalheAtivo, null, false);
+    }
+  }
+
+  function selecionarAbaCms(aba) {
+    cmsState.abaAtiva = aba;
+    document.querySelectorAll("[data-cms-tab]").forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset.cmsTab === aba);
+    });
+    const mapPanes = {
+      produtos: "cms-pane-produtos",
+      banner: "cms-pane-banner",
+      exportar: "cms-pane-exportar"
+    };
+    Object.entries(mapPanes).forEach(([key, id]) => {
+      const el = document.getElementById(id);
+      if (el) el.classList.toggle("active", key === aba);
+    });
+  }
+
+  function abrirPainelAdminCms(abaInicial = "produtos", produtoIdParaEditar = null) {
+    if (!state.usuarioGoogle) {
+      abrirModalAuthGoogle(() => {
+        abrirPainelAdminCms(abaInicial, produtoIdParaEditar);
+      }, "email");
+      return;
+    }
+
+    const modal = document.getElementById("modal-admin-cms");
+    if (!modal) return;
+    modal.style.display = "flex";
+
+    selecionarAbaCms(abaInicial || "produtos");
+    renderizarListaProdutosCms();
+    preencherFormularioBannerCms();
+
+    if (produtoIdParaEditar) {
+      abrirEditorProdutoCms(produtoIdParaEditar);
+    } else {
+      voltarParaListaProdutosCms();
+    }
+  }
+
+  function fecharPainelAdminCms() {
+    const modal = document.getElementById("modal-admin-cms");
+    if (modal) modal.style.display = "none";
+  }
+
+  function voltarParaListaProdutosCms() {
+    const listView = document.getElementById("cms-products-list-view");
+    const editorView = document.getElementById("cms-product-editor-view");
+    if (listView) listView.style.display = "block";
+    if (editorView) editorView.style.display = "none";
+    cmsState.produtoEditandoId = null;
+    renderizarListaProdutosCms();
+  }
+
+  function renderizarListaProdutosCms() {
+    const grid = document.getElementById("cms-products-grid");
+    if (!grid || !window.SITE_DATA) return;
+
+    const catalogo = window.SITE_DATA.catalogo || [];
+    const termo = (cmsState.busca || "").toLowerCase().trim();
+
+    const filtrados = catalogo.filter((item) => {
+      if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+        return false;
+      }
+      if (termo) {
+        const texto = `${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
+        if (!texto.includes(termo)) return false;
+      }
+      return true;
+    });
+
+    const nomesCat = {
+      filamentos: "Filamentos",
+      impressoras: "Impressoras 3D",
+      pecas: "Peças & Acessórios",
+      manutencao: "Serviços & Manutenção"
+    };
+
+    if (filtrados.length === 0) {
+      grid.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-muted); grid-column:1/-1;">Nenhum produto encontrado para este filtro.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtrados
+      .map((p) => {
+        const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+        const qtdCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])
+          ? window.SITE_DATA[chavePaleta].length
+          : 0;
+
+        return `
+          <div class="cms-product-item-card">
+            <div class="cms-prod-card-thumb">
+              <img src="${p.imagem || "assets/produtos/impressora-a1_mini.jpg"}" alt="${p.nome}" loading="lazy" />
+              <span class="cms-prod-cat-tag">${nomesCat[p.categoria] || p.categoria}</span>
+            </div>
+            <div class="cms-prod-card-body">
+              <strong>${p.nome}</strong>
+              <p>${p.subtitulo || ""}</p>
+              <div class="cms-prod-card-meta">
+                <span class="cms-prod-price-badge">${p.precoVista || "Sob consulta"}</span>
+                ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">🎨 ${qtdCores} cores</span>` : ""}
+              </div>
+            </div>
+            <div class="cms-prod-card-actions">
+              <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${p.id}">
+                ✏️ Editar Produto / Preço / Foto
+              </button>
+              <button type="button" class="btn-cms-del-item" data-cms-del-id="${p.id}" title="Excluir produto">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    grid.querySelectorAll("[data-cms-edit-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        abrirEditorProdutoCms(btn.dataset.cmsEditId);
+      });
+    });
+
+    grid.querySelectorAll("[data-cms-del-id]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.cmsDelId;
+        const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
+        if (!prod) return;
+        if (confirm(`Tem certeza que deseja excluir o produto "${prod.nome}" do catálogo?`)) {
+          if (window.SJ_DB && window.SJ_DB.catalogo) {
+            await window.SJ_DB.catalogo.excluirProduto(id);
+          } else {
+            window.SITE_DATA.catalogo = window.SITE_DATA.catalogo.filter((i) => i.id !== id);
+          }
+          renderizarListaProdutosCms();
+          atualizarSiteAposEdicaoCms();
+        }
+      });
+    });
+  }
+
+  function renderizarLinhasFichaTecnicaCms(fichaObj = {}) {
+    const container = document.getElementById("cms-specs-list");
+    if (!container) return;
+    const entries = Object.entries(fichaObj);
+    if (entries.length === 0) {
+      entries.push(["Garantia", "Garantia Oficial Loja SJ 3D Umuarama"]);
+    }
+
+    container.innerHTML = entries
+      .map(
+        ([chave, valor], idx) => `
+          <div class="cms-spec-row" data-spec-idx="${idx}">
+            <input type="text" class="cms-spec-key" placeholder="Característica (ex: Volume de Impressão)" value="${String(chave).replace(/"/g, "&quot;")}" />
+            <input type="text" class="cms-spec-val" placeholder="Descrição / Valor (ex: 256 × 256 × 256 mm³)" value="${String(valor).replace(/"/g, "&quot;")}" />
+            <button type="button" class="btn-cms-remove-row" data-remove-spec="${idx}" title="Remover linha">&times;</button>
+          </div>
+        `
+      )
+      .join("");
+
+    container.querySelectorAll("[data-remove-spec]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        btn.closest(".cms-spec-row")?.remove();
+      });
+    });
+  }
+
+  function renderizarListaCoresFilamentoCms() {
+    const container = document.getElementById("cms-filament-colors-list");
+    if (!container) return;
+
+    if (!cmsState.coresTempEditando || cmsState.coresTempEditando.length === 0) {
+      container.innerHTML = `<div style="padding:14px; color:var(--text-muted); font-size:0.82rem;">Nenhuma cor cadastrada nesta paleta.</div>`;
+      return;
+    }
+
+    container.innerHTML = cmsState.coresTempEditando
+      .map(
+        (c, idx) => `
+          <div class="cms-color-edit-row" data-color-row-idx="${idx}">
+            <input type="color" class="cms-color-hex-picker" data-c-field="hex" data-c-idx="${idx}" value="${(c.hex && c.hex.startsWith("#") && c.hex.length === 7) ? c.hex : "#F04E23"}" title="Escolher tom da cor" />
+            <div class="cms-color-thumb-mini">
+              <img src="${c.imgCatalogo || "assets/produtos/pla-maxprint.jpg"}" alt="${c.nome}" id="cms-c-thumb-${idx}" />
+            </div>
+            <input type="text" class="cms-c-input-name" data-c-field="nome" data-c-idx="${idx}" value="${String(c.nome || "").replace(/"/g, "&quot;")}" placeholder="Nome da Cor (ex: Preto 1kg)" />
+            <input type="text" class="cms-c-input-cod" data-c-field="cod" data-c-idx="${idx}" value="${String(c.cod || "").replace(/"/g, "&quot;")}" placeholder="CÓD." title="Código no Catálogo" />
+            <input type="text" class="cms-c-input-price" data-c-field="preco" data-c-idx="${idx}" value="${String(c.preco || "R$ 79,90").replace(/"/g, "&quot;")}" placeholder="Preço (R$)" />
+            <input type="text" class="cms-c-input-img" data-c-field="imgCatalogo" data-c-idx="${idx}" value="${String(c.imgCatalogo || "").replace(/"/g, "&quot;")}" placeholder="URL/Caminho da Foto" />
+            <label class="btn-cms-color-upload" title="Enviar nova foto para esta cor">
+              📷 Foto
+              <input type="file" accept="image/*" data-c-upload-idx="${idx}" style="display:none;" />
+            </label>
+            <button type="button" class="btn-cms-remove-row" data-c-del-idx="${idx}" title="Remover esta cor">&times;</button>
+          </div>
+        `
+      )
+      .join("");
+
+    // Sincroniza alterações nos inputs de cada cor
+    container.querySelectorAll("[data-c-field]").forEach((inp) => {
+      inp.addEventListener("input", (e) => {
+        const idx = Number(inp.dataset.cIdx);
+        const field = inp.dataset.cField;
+        if (!cmsState.coresTempEditando[idx]) return;
+        cmsState.coresTempEditando[idx][field] = e.target.value;
+        if (field === "preco") {
+          const valNum = extrairNumeroDePrecoBR(e.target.value);
+          if (valNum > 0) cmsState.coresTempEditando[idx].valor = valNum;
+        }
+        if (field === "imgCatalogo") {
+          cmsState.coresTempEditando[idx].usaFotoCatalogoDireta = true;
+          const thumb = document.getElementById(`cms-c-thumb-${idx}`);
+          if (thumb && e.target.value) thumb.src = e.target.value;
+        }
+      });
+    });
+
+    // Upload de foto para uma cor específica
+    container.querySelectorAll("[data-c-upload-idx]").forEach((fileInp) => {
+      fileInp.addEventListener("change", async (e) => {
+        const idx = Number(fileInp.dataset.cUploadIdx);
+        const file = e.target.files && e.target.files[0];
+        if (!file || !cmsState.coresTempEditando[idx]) return;
+        try {
+          const dataUrl = await comprimirImagemUpload(file, 750, 0.82);
+          cmsState.coresTempEditando[idx].imgCatalogo = dataUrl;
+          cmsState.coresTempEditando[idx].usaFotoCatalogoDireta = true;
+          renderizarListaCoresFilamentoCms();
+        } catch (_) {}
+      });
+    });
+
+    // Excluir uma cor específica
+    container.querySelectorAll("[data-c-del-idx]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.cDelIdx);
+        cmsState.coresTempEditando.splice(idx, 1);
+        renderizarListaCoresFilamentoCms();
+      });
+    });
+  }
+
+  function abrirEditorProdutoCms(produtoId = null) {
+    const listView = document.getElementById("cms-products-list-view");
+    const editorView = document.getElementById("cms-product-editor-view");
+    if (listView) listView.style.display = "none";
+    if (editorView) editorView.style.display = "block";
+
+    const existente = produtoId
+      ? (window.SITE_DATA.catalogo || []).find((p) => p.id === produtoId)
+      : null;
+
+    cmsState.produtoEditandoId = existente ? existente.id : null;
+
+    const badgeEl = document.getElementById("cms-editor-mode-badge");
+    if (badgeEl) {
+      badgeEl.textContent = existente ? `Editando: ${existente.nome}` : "Cadastrando Novo Produto";
+    }
+
+    const item = existente || {
+      id: "prod-" + Date.now(),
+      categoria: cmsState.categoriaFiltro !== "todos" ? cmsState.categoriaFiltro : "impressoras",
+      marca: "Loja SJ 3D",
+      nome: "",
+      subtitulo: "",
+      precoVista: "R$ 99,90",
+      precoVistaValor: 99.90,
+      precoParcelado: "",
+      tagDestaque: "",
+      imagem: "assets/produtos/impressora-a1_mini.jpg",
+      select1Opcoes: ["À Vista", "Parcelado"],
+      select2Opcoes: ["Padrão"],
+      botaoTexto: "Adicionar ao Pedido",
+      fichaTecnica: {
+        "Marca": "Loja SJ 3D",
+        "Disponibilidade": "Pronta Entrega em Umuarama - PR"
+      }
+    };
+
+    document.getElementById("cms-prod-id").value = item.id;
+    document.getElementById("cms-prod-nome").value = item.nome || "";
+    document.getElementById("cms-prod-categoria").value = item.categoria || "impressoras";
+    document.getElementById("cms-prod-subtitulo").value = item.subtitulo || "";
+    document.getElementById("cms-prod-preco-vista").value = item.precoVista || "";
+    document.getElementById("cms-prod-preco-valor").value =
+      item.precoVistaValor !== undefined ? item.precoVistaValor : extrairNumeroDePrecoBR(item.precoVista);
+    document.getElementById("cms-prod-marca").value = item.marca || "";
+    document.getElementById("cms-prod-preco-parcelado").value = item.precoParcelado || "";
+    document.getElementById("cms-prod-tag").value = item.tagDestaque || "";
+    document.getElementById("cms-prod-imagem").value = item.imagem || "";
+
+    const previewImg = document.getElementById("cms-prod-img-preview");
+    if (previewImg) {
+      previewImg.src = item.imagem || "assets/produtos/impressora-a1_mini.jpg";
+    }
+
+    document.getElementById("cms-prod-select1").value = Array.isArray(item.select1Opcoes)
+      ? item.select1Opcoes.join(", ")
+      : "";
+    document.getElementById("cms-prod-select2").value = Array.isArray(item.select2Opcoes)
+      ? item.select2Opcoes.join(", ")
+      : "";
+
+    renderizarLinhasFichaTecnicaCms(item.fichaTecnica || {});
+
+    // Se for um produto de filamento com paleta de cores, carrega o editor de cores
+    const colorsBlock = document.getElementById("cms-filament-colors-block");
+    const select2Wrap = document.getElementById("cms-prod-select2-wrap");
+    const chavePaleta = item.tipoFilamento ? mapearChavePaletaSiteData(item.usaCoresDinamicas) : null;
+
+    if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
+      cmsState.chavePaletaEditando = chavePaleta;
+      cmsState.coresTempEditando = JSON.parse(JSON.stringify(window.SITE_DATA[chavePaleta]));
+      if (colorsBlock) colorsBlock.style.display = "block";
+      if (select2Wrap) select2Wrap.style.display = "none";
+      renderizarListaCoresFilamentoCms();
+    } else {
+      cmsState.chavePaletaEditando = null;
+      cmsState.coresTempEditando = [];
+      if (colorsBlock) colorsBlock.style.display = "none";
+      if (select2Wrap) select2Wrap.style.display = "flex";
+    }
+  }
+
+  function preencherFormularioBannerCms() {
+    const b = obterConfigBannerPromocao();
+    const setVal = (id, val) => {
+      const el = document.getElementById(id);
+      if (el) el.value = val !== undefined && val !== null ? val : "";
+    };
+    const setCheck = (id, bool) => {
+      const el = document.getElementById(id);
+      if (el) el.checked = Boolean(bool);
+    };
+
+    setCheck("cms-ban-ativo", b.ativo !== false);
+    setCheck("cms-ban-secao-imp", b.exibirBannerSecaoImpressoras !== false);
+    setCheck("cms-ban-cupons-carrinho", b.exibirCuponsCarrinho !== false);
+    setVal("cms-ban-estilo", b.estilo || "sorteio");
+    setVal("cms-ban-imagem", b.imagemFundo || "assets/produtos/banner-sorteio-natal-wide.jpg");
+
+    const preview = document.getElementById("cms-ban-img-preview");
+    if (preview) {
+      preview.src = b.imagemFundo || "assets/produtos/banner-sorteio-natal-wide.jpg";
+    }
+
+    setVal("cms-ban-badge", b.badge);
+    setVal("cms-ban-data", b.dataSorteio);
+    setVal("cms-ban-kicker", b.tituloKicker);
+    setVal("cms-ban-titulo", b.tituloPrincipal);
+    setVal("cms-ban-subtitulo", b.subtituloPremio);
+    setVal("cms-ban-preco-destaque", b.precoDestaque);
+    setVal("cms-ban-btn1-txt", b.btn1Texto);
+    setVal("cms-ban-btn1-url", b.btn1Url);
+    setVal("cms-ban-btn2-txt", b.btn2Texto);
+    setVal("cms-ban-btn2-url", b.btn2Url);
+
+    const cards = Array.isArray(b.regrasCards) ? b.regrasCards : [];
+    [0, 1, 2].forEach((i) => {
+      const c = cards[i] || { tag: "", titulo: "", texto: "" };
+      setVal(`cms-rule${i + 1}-tag`, c.tag);
+      setVal(`cms-rule${i + 1}-title`, c.titulo);
+      setVal(`cms-rule${i + 1}-text`, c.texto);
+    });
+  }
+
   // Inicialização Geral
   document.addEventListener("DOMContentLoaded", () => {
     carregarPedidoSalvo();
@@ -3730,6 +4273,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
 
     // Botões da Barra Exclusiva do Vendedor Autenticado (#admin-vendor-topbar)
+    document.getElementById("admin-bar-btn-cms")?.addEventListener("click", () => {
+      abrirPainelAdminCms("produtos");
+    });
+
     document.getElementById("header-btn-quote")?.addEventListener("click", () => {
       abrirEmissorOuPedirLogin();
     });
@@ -3748,16 +4295,339 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const nome = state.usuarioGoogle ? state.usuarioGoogle.nome : "vendedor";
       if (confirm(`Deseja encerrar a sessão de ${nome} e voltar ao site público?`)) {
         fazerLogoutGoogle();
+        fecharPainelAdminCms();
         if (window.location.hash === "#admin" || window.location.hash === "#orcamento") {
           history.replaceState(null, "", window.location.pathname);
         }
       }
     });
 
+    // =====================================================================
+    // EVENTOS DO PAINEL DE GESTÃO DO SITE (/ADMIN CMS: PRODUTOS & BANNER)
+    // =====================================================================
+    window.addEventListener("sj-catalogo-sincronizado", () => {
+      atualizarSiteAposEdicaoCms();
+    });
+
+    document.getElementById("close-admin-cms-btn")?.addEventListener("click", () => {
+      fecharPainelAdminCms();
+    });
+
+    document.getElementById("modal-admin-cms")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "modal-admin-cms") {
+        fecharPainelAdminCms();
+      }
+    });
+
+    document.querySelectorAll("[data-cms-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        selecionarAbaCms(btn.dataset.cmsTab);
+      });
+    });
+
+    // Filtros de categoria e busca dentro do CMS
+    document.querySelectorAll("[data-cms-cat]").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        cmsState.categoriaFiltro = pill.dataset.cmsCat;
+        document.querySelectorAll("[data-cms-cat]").forEach((b) => {
+          b.classList.toggle("active", b === pill);
+        });
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.getElementById("cms-product-search")?.addEventListener("input", (e) => {
+      cmsState.busca = e.target.value || "";
+      renderizarListaProdutosCms();
+    });
+
+    document.getElementById("btn-cms-new-product")?.addEventListener("click", () => {
+      abrirEditorProdutoCms(null);
+    });
+
+    document.getElementById("btn-cms-back-to-list")?.addEventListener("click", () => {
+      voltarParaListaProdutosCms();
+    });
+
+    document.getElementById("btn-cms-cancel-product")?.addEventListener("click", () => {
+      voltarParaListaProdutosCms();
+    });
+
+    // Sincronizar preço texto -> valor numérico automaticamente no editor de produto
+    document.getElementById("cms-prod-preco-vista")?.addEventListener("input", (e) => {
+      const num = extrairNumeroDePrecoBR(e.target.value);
+      const valInput = document.getElementById("cms-prod-preco-valor");
+      if (valInput && num > 0) {
+        valInput.value = num.toFixed(2);
+      }
+    });
+
+    // Upload de foto principal do produto
+    document.getElementById("input-cms-prod-file")?.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await comprimirImagemUpload(file, 900, 0.85);
+        const inpUrl = document.getElementById("cms-prod-imagem");
+        const prev = document.getElementById("cms-prod-img-preview");
+        if (inpUrl) inpUrl.value = dataUrl;
+        if (prev) prev.src = dataUrl;
+      } catch (_) {}
+    });
+
+    document.getElementById("cms-prod-imagem")?.addEventListener("input", (e) => {
+      const prev = document.getElementById("cms-prod-img-preview");
+      if (prev && e.target.value.trim()) {
+        prev.src = e.target.value.trim();
+      }
+    });
+
+    // Adicionar nova linha na Ficha Técnica do Produto
+    document.getElementById("btn-cms-add-spec")?.addEventListener("click", () => {
+      const container = document.getElementById("cms-specs-list");
+      if (!container) return;
+      const idx = container.querySelectorAll(".cms-spec-row").length;
+      const row = document.createElement("div");
+      row.className = "cms-spec-row";
+      row.innerHTML = `
+        <input type="text" class="cms-spec-key" placeholder="Característica (ex: Garantia)" />
+        <input type="text" class="cms-spec-val" placeholder="Descrição / Valor" />
+        <button type="button" class="btn-cms-remove-row" title="Remover linha">&times;</button>
+      `;
+      row.querySelector(".btn-cms-remove-row")?.addEventListener("click", () => row.remove());
+      container.appendChild(row);
+    });
+
+    // Aplicar Preço em Massa para todas as cores da linha de filamento
+    document.getElementById("btn-cms-apply-bulk-price")?.addEventListener("click", () => {
+      const raw = document.getElementById("cms-bulk-color-price")?.value.trim();
+      if (!raw) {
+        alert("Digite o novo preço (ex: R$ 84,90) para aplicar nas cores desta linha.");
+        return;
+      }
+      const precoFormatado = formatarTextoPrecoPadrao(raw);
+      const valorNumerico = extrairNumeroDePrecoBR(precoFormatado);
+      cmsState.coresTempEditando.forEach((cor) => {
+        cor.preco = precoFormatado;
+        if (valorNumerico > 0) cor.valor = valorNumerico;
+      });
+      renderizarListaCoresFilamentoCms();
+      const precoVistaInput = document.getElementById("cms-prod-preco-vista");
+      const precoValorInput = document.getElementById("cms-prod-preco-valor");
+      if (precoVistaInput) precoVistaInput.value = precoFormatado;
+      if (precoValorInput && valorNumerico > 0) precoValorInput.value = valorNumerico.toFixed(2);
+    });
+
+    // Adicionar nova cor na linha de filamento
+    document.getElementById("btn-cms-add-color")?.addEventListener("click", () => {
+      cmsState.coresTempEditando.push({
+        nome: "Nova Cor 1kg",
+        cod: String(Math.floor(200 + Math.random() * 700)),
+        preco: document.getElementById("cms-prod-preco-vista")?.value || "R$ 79,90",
+        valor: Number(document.getElementById("cms-prod-preco-valor")?.value) || 79.9,
+        hex: "#F04E23",
+        filtroCss: "none",
+        usaFotoCatalogoDireta: true,
+        imgCatalogo: document.getElementById("cms-prod-imagem")?.value || "assets/produtos/pla-maxprint.jpg"
+      });
+      renderizarListaCoresFilamentoCms();
+    });
+
+    // Salvar Produto Editado ou Novo
+    document.getElementById("form-cms-product")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const id = document.getElementById("cms-prod-id")?.value.trim() || ("prod-" + Date.now());
+      const existente = (window.SITE_DATA.catalogo || []).find((p) => p.id === id) || {};
+
+      const nome = document.getElementById("cms-prod-nome")?.value.trim() || "Produto Loja SJ";
+      const categoria = document.getElementById("cms-prod-categoria")?.value || "impressoras";
+      const subtitulo = document.getElementById("cms-prod-subtitulo")?.value.trim() || "";
+      const precoVista = formatarTextoPrecoPadrao(document.getElementById("cms-prod-preco-vista")?.value.trim() || "");
+      const precoValorRaw = Number(document.getElementById("cms-prod-preco-valor")?.value);
+      const precoVistaValor = !isNaN(precoValorRaw) && precoValorRaw > 0
+        ? precoValorRaw
+        : extrairNumeroDePrecoBR(precoVista);
+      const marca = document.getElementById("cms-prod-marca")?.value.trim() || "Loja SJ 3D";
+      const precoParcelado = document.getElementById("cms-prod-preco-parcelado")?.value.trim() || "";
+      const tagDestaque = document.getElementById("cms-prod-tag")?.value.trim() || "";
+      const imagem = document.getElementById("cms-prod-imagem")?.value.trim() || "assets/produtos/impressora-a1_mini.jpg";
+
+      const sel1Raw = document.getElementById("cms-prod-select1")?.value || "";
+      const sel2Raw = document.getElementById("cms-prod-select2")?.value || "";
+      const select1Opcoes = sel1Raw.split(",").map((s) => s.trim()).filter(Boolean);
+      const select2Opcoes = sel2Raw.split(",").map((s) => s.trim()).filter(Boolean);
+
+      // Coleta Ficha Técnica
+      const fichaTecnica = {};
+      document.querySelectorAll("#cms-specs-list .cms-spec-row").forEach((row) => {
+        const k = row.querySelector(".cms-spec-key")?.value.trim();
+        const v = row.querySelector(".cms-spec-val")?.value.trim();
+        if (k && v) fichaTecnica[k] = v;
+      });
+
+      const produtoAtualizado = {
+        ...existente,
+        id,
+        nome,
+        nomeCustomizado: true,
+        categoria,
+        marca,
+        subtitulo,
+        precoVista,
+        precoVistaValor,
+        precoParcelado,
+        tagDestaque,
+        imagem,
+        imagemCustomizada: imagem !== existente.imagem ? true : Boolean(existente.imagemCustomizada),
+        opcoesCustomizadas: true,
+        select1Opcoes: select1Opcoes.length > 0 ? select1Opcoes : (existente.select1Opcoes || ["Padrão"]),
+        select2Opcoes: select2Opcoes.length > 0 ? select2Opcoes : (existente.select2Opcoes || ["Padrão"]),
+        fichaTecnica
+      };
+
+      // Se estava editando uma paleta de cores de filamento, salva também a paleta
+      if (cmsState.chavePaletaEditando && Array.isArray(cmsState.coresTempEditando)) {
+        window.SITE_DATA[cmsState.chavePaletaEditando] = JSON.parse(JSON.stringify(cmsState.coresTempEditando));
+        if (window.SJ_DB && window.SJ_DB.catalogo) {
+          await window.SJ_DB.catalogo.salvarPaletaCores(
+            cmsState.chavePaletaEditando,
+            window.SITE_DATA[cmsState.chavePaletaEditando]
+          );
+        }
+      }
+
+      if (window.SJ_DB && window.SJ_DB.catalogo) {
+        await window.SJ_DB.catalogo.salvarProduto(produtoAtualizado);
+      } else {
+        const idx = window.SITE_DATA.catalogo.findIndex((p) => p.id === id);
+        if (idx >= 0) window.SITE_DATA.catalogo[idx] = produtoAtualizado;
+        else window.SITE_DATA.catalogo.push(produtoAtualizado);
+      }
+
+      atualizarSiteAposEdicaoCms();
+      voltarParaListaProdutosCms();
+      alert(`✅ Produto "${nome}" atualizado com sucesso no catálogo!`);
+    });
+
+    // Upload de imagem de fundo para o Banner de Promoções
+    document.getElementById("input-cms-ban-file")?.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const dataUrl = await comprimirImagemUpload(file, 1500, 0.84);
+        const inp = document.getElementById("cms-ban-imagem");
+        const prev = document.getElementById("cms-ban-img-preview");
+        if (inp) inp.value = dataUrl;
+        if (prev) prev.src = dataUrl;
+      } catch (_) {}
+    });
+
+    document.getElementById("cms-ban-imagem")?.addEventListener("input", (e) => {
+      const prev = document.getElementById("cms-ban-img-preview");
+      if (prev && e.target.value.trim()) {
+        prev.src = e.target.value.trim();
+      }
+    });
+
+    document.getElementById("btn-cms-ban-default-img")?.addEventListener("click", () => {
+      const padraoUrl = "assets/produtos/banner-sorteio-natal-wide.jpg";
+      const inp = document.getElementById("cms-ban-imagem");
+      const prev = document.getElementById("cms-ban-img-preview");
+      if (inp) inp.value = padraoUrl;
+      if (prev) prev.src = padraoUrl;
+    });
+
+    // Salvar Banner de Promoções da Capa
+    document.getElementById("form-cms-banner")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const getVal = (id) => document.getElementById(id)?.value.trim() || "";
+      const getCheck = (id) => Boolean(document.getElementById(id)?.checked);
+
+      const novoBanner = {
+        ativo: getCheck("cms-ban-ativo"),
+        exibirBannerSecaoImpressoras: getCheck("cms-ban-secao-imp"),
+        exibirCuponsCarrinho: getCheck("cms-ban-cupons-carrinho"),
+        estilo: getVal("cms-ban-estilo") || "sorteio",
+        imagemFundo: getVal("cms-ban-imagem") || "assets/produtos/banner-sorteio-natal-wide.jpg",
+        badge: getVal("cms-ban-badge"),
+        dataSorteio: getVal("cms-ban-data"),
+        tituloKicker: getVal("cms-ban-kicker"),
+        tituloPrincipal: getVal("cms-ban-titulo"),
+        subtituloPremio: getVal("cms-ban-subtitulo"),
+        precoDestaque: getVal("cms-ban-preco-destaque"),
+        btn1Texto: getVal("cms-ban-btn1-txt"),
+        btn1Url: getVal("cms-ban-btn1-url"),
+        btn2Texto: getVal("cms-ban-btn2-txt"),
+        btn2Url: getVal("cms-ban-btn2-url"),
+        regrasCards: [
+          {
+            tag: getVal("cms-rule1-tag"),
+            titulo: getVal("cms-rule1-title"),
+            texto: getVal("cms-rule1-text")
+          },
+          {
+            tag: getVal("cms-rule2-tag"),
+            titulo: getVal("cms-rule2-title"),
+            texto: getVal("cms-rule2-text")
+          },
+          {
+            tag: getVal("cms-rule3-tag"),
+            titulo: getVal("cms-rule3-title"),
+            texto: getVal("cms-rule3-text")
+          }
+        ]
+      };
+
+      if (window.SJ_DB && window.SJ_DB.catalogo) {
+        await window.SJ_DB.catalogo.salvarBanner(novoBanner);
+      } else {
+        window.SITE_DATA.bannerPromocao = novoBanner;
+      }
+
+      state.heroSlideAtivo = 0;
+      atualizarSiteAposEdicaoCms();
+      alert("✅ Banner de Promoções atualizado com sucesso!");
+    });
+
+    // Botões de Exportação e Restauração na Aba 3 do CMS
+    document.getElementById("btn-cms-download-dados")?.addEventListener("click", () => {
+      if (window.SJ_DB && window.SJ_DB.catalogo) {
+        window.SJ_DB.catalogo.baixarArquivoDadosJs();
+      }
+    });
+
+    document.getElementById("btn-cms-export-json")?.addEventListener("click", () => {
+      if (window.SJ_DB && window.SJ_DB.backup) {
+        window.SJ_DB.backup.baixarBackupArquivo();
+      }
+    });
+
+    document.getElementById("btn-cms-reset-factory")?.addEventListener("click", async () => {
+      if (
+        confirm(
+          "Deseja restaurar todos os produtos, fotos, preços e o banner para o padrão original de fábrica?"
+        )
+      ) {
+        if (window.SJ_DB && window.SJ_DB.catalogo) {
+          await window.SJ_DB.catalogo.restaurarPadraoFabrica();
+        }
+        renderizarListaProdutosCms();
+        preencherFormularioBannerCms();
+        atualizarSiteAposEdicaoCms();
+        alert("🔄 Catálogo e Banner restaurados para o padrão original de fábrica!");
+      }
+    });
+
     // Link de Acesso Restrito (/admin) no Rodapé
     document.getElementById("footer-admin-link")?.addEventListener("click", (e) => {
       e.preventDefault();
-      abrirModalAuthGoogle(null, "email");
+      if (state.usuarioGoogle) {
+        abrirPainelAdminCms("produtos");
+      } else {
+        abrirModalAuthGoogle(() => {
+          abrirPainelAdminCms("produtos");
+        }, "email");
+      }
     });
 
     // Botão "Fazer Orçamento Timbrado" na Caixa Lateral
@@ -3765,7 +4635,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       importarCarrinhoParaOrcamento();
     });
 
-    // Verifica se acessou via /admin, ?admin ou #admin para abrir Login & Senha
+    // Verifica se acessou via /admin, ?admin ou #admin para abrir Login & Senha ou Painel Admin
     function verificarRotaAdminOuHash() {
       const path = (window.location.pathname || "").toLowerCase();
       const search = (window.location.search || "").toLowerCase();
@@ -3779,7 +4649,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         hash === "#login";
 
       if (ehRotaAdmin) {
-        abrirModalAuthGoogle(null, "email");
+        if (state.usuarioGoogle) {
+          abrirPainelAdminCms("produtos");
+        } else {
+          abrirModalAuthGoogle(() => {
+            abrirPainelAdminCms("produtos");
+          }, "email");
+        }
         return true;
       }
       return false;

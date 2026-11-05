@@ -27,8 +27,15 @@
     USUARIOS_TABELA: "sj_db_usuarios_v1",
     CLIENTES_TABELA: "sj_db_clientes_v1",
     ORCAMENTOS_TABELA: "sj_db_orcamentos_v1",
-    CONFIG_TABELA: "sj_db_config_v1"
+    CONFIG_TABELA: "sj_db_config_v1",
+    CATALOGO_CUSTOM: "sj_db_catalogo_custom_v1"
   };
+
+  // Snapshot original do SITE_DATA para permitir restaurar padrão de fábrica
+  const SITE_DATA_FACTORY =
+    typeof window !== "undefined" && window.SITE_DATA
+      ? JSON.parse(JSON.stringify(window.SITE_DATA))
+      : null;
 
   // Usuário padrão inicial caso a base local esteja vazia
   const USUARIO_PADRAO = {
@@ -549,7 +556,180 @@
   };
 
   // =========================================================================
-  // 4. MÓDULO DE BACKUP & EXPORTAÇÃO
+  // 4. MÓDULO DE GESTÃO DO CATÁLOGO, PRODUTOS E BANNER (CMS ADMIN)
+  // =========================================================================
+
+  const CHAVES_PALETAS = [
+    "coresBambuLab",
+    "coresMaxPrint",
+    "coresPlaSilk",
+    "coresPetg",
+    "coresTpu",
+    "coresAbsEspeciais"
+  ];
+
+  const catalogo = {
+    // Obtém customizações salvas localmente
+    obterCustomizacoes: function () {
+      return lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, null);
+    },
+
+    // Aplica customizações salvas sobre window.SITE_DATA
+    aplicarCustomizacoes: function (customObj) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+      const custom = customObj || catalogo.obterCustomizacoes();
+      if (!custom || typeof custom !== "object") return false;
+
+      if (custom.bannerPromocao && typeof custom.bannerPromocao === "object") {
+        window.SITE_DATA.bannerPromocao = {
+          ...(window.SITE_DATA.bannerPromocao || {}),
+          ...JSON.parse(JSON.stringify(custom.bannerPromocao))
+        };
+      }
+
+      if (Array.isArray(custom.catalogo) && custom.catalogo.length > 0) {
+        window.SITE_DATA.catalogo = JSON.parse(JSON.stringify(custom.catalogo));
+      }
+
+      CHAVES_PALETAS.forEach((chave) => {
+        if (Array.isArray(custom[chave]) && custom[chave].length > 0) {
+          window.SITE_DATA[chave] = JSON.parse(JSON.stringify(custom[chave]));
+        }
+      });
+
+      return true;
+    },
+
+    // Persiste o estado atual do window.SITE_DATA no localStorage e no servidor local
+    persistirEstadoAtual: async function () {
+      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+
+      const payload = {
+        atualizadoEm: new Date().toISOString(),
+        bannerPromocao: window.SITE_DATA.bannerPromocao || {},
+        catalogo: window.SITE_DATA.catalogo || []
+      };
+
+      CHAVES_PALETAS.forEach((chave) => {
+        if (Array.isArray(window.SITE_DATA[chave])) {
+          payload[chave] = window.SITE_DATA[chave];
+        }
+      });
+
+      gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, payload);
+
+      await chamarApiOuLocal(
+        "/api/catalogo",
+        {
+          method: "POST",
+          body: JSON.stringify(payload)
+        },
+        () => payload
+      );
+
+      return true;
+    },
+
+    // Salva alterações no Banner Principal de Promoção
+    salvarBanner: async function (novoBanner) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return null;
+      window.SITE_DATA.bannerPromocao = {
+        ...(window.SITE_DATA.bannerPromocao || {}),
+        ...novoBanner
+      };
+      await catalogo.persistirEstadoAtual();
+      return window.SITE_DATA.bannerPromocao;
+    },
+
+    // Salva ou adiciona um produto no catálogo
+    salvarProduto: async function (dadosProduto) {
+      if (typeof window === "undefined" || !window.SITE_DATA || !dadosProduto) return null;
+      const lista = window.SITE_DATA.catalogo || [];
+      const id = (dadosProduto.id || ("prod-" + Date.now())).trim();
+      dadosProduto.id = id;
+
+      const idx = lista.findIndex((p) => p.id === id);
+      if (idx >= 0) {
+        lista[idx] = { ...lista[idx], ...dadosProduto };
+      } else {
+        lista.push(dadosProduto);
+      }
+
+      window.SITE_DATA.catalogo = lista;
+      await catalogo.persistirEstadoAtual();
+      return dadosProduto;
+    },
+
+    // Exclui um produto do catálogo
+    excluirProduto: async function (idProduto) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+      const antes = (window.SITE_DATA.catalogo || []).length;
+      window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).filter((p) => p.id !== idProduto);
+      const excluiu = window.SITE_DATA.catalogo.length < antes;
+      if (excluiu) {
+        await catalogo.persistirEstadoAtual();
+      }
+      return excluiu;
+    },
+
+    // Salva alterações na paleta de cores de uma linha de filamento
+    salvarPaletaCores: async function (chavePaleta, novaListaCores) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+      if (!CHAVES_PALETAS.includes(chavePaleta) || !Array.isArray(novaListaCores)) return false;
+      window.SITE_DATA[chavePaleta] = novaListaCores;
+      await catalogo.persistirEstadoAtual();
+      return true;
+    },
+
+    // Restaura todo o catálogo e banner para o padrão original de fábrica
+    restaurarPadraoFabrica: async function () {
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(STORAGE_KEYS.CATALOGO_CUSTOM);
+      }
+      if (SITE_DATA_FACTORY && typeof window !== "undefined") {
+        window.SITE_DATA = JSON.parse(JSON.stringify(SITE_DATA_FACTORY));
+      }
+      await chamarApiOuLocal(
+        "/api/catalogo",
+        {
+          method: "DELETE"
+        },
+        () => true
+      );
+      return true;
+    },
+
+    // Gera o conteúdo completo do arquivo js/dados.js pronto para download ou gravação
+    gerarConteudoDadosJs: function () {
+      const dados = (typeof window !== "undefined" && window.SITE_DATA) ? window.SITE_DATA : {};
+      return (
+        "/**\n" +
+        " * CATÁLOGO COMPLETO — LOJA SJ 3D (UMUARAMA - PR)\n" +
+        " * Arquivo atualizado pelo Painel Administrativo (/admin) em " + new Date().toLocaleString("pt-BR") + "\n" +
+        " */\n\n" +
+        "window.SITE_DATA = " +
+        JSON.stringify(dados, null, 2) +
+        ";\n"
+      );
+    },
+
+    // Baixa o arquivo dados.js atualizado no computador do Administrador
+    baixarArquivoDadosJs: function () {
+      const codigo = catalogo.gerarConteudoDadosJs();
+      const blob = new Blob([codigo], { type: "application/javascript;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = "dados.js";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+  };
+
+  // =========================================================================
+  // 5. MÓDULO DE BACKUP & EXPORTAÇÃO
   // =========================================================================
 
   const backup = {
@@ -561,7 +741,8 @@
         loja: window.SITE_DATA ? window.SITE_DATA.loja : {},
         usuarios: auth.listarUsuarios(),
         clientes: clientes.listar(),
-        orcamentos: orcamentos.listar()
+        orcamentos: orcamentos.listar(),
+        catalogoCustom: catalogo.obterCustomizacoes()
       };
       return JSON.stringify(dump, null, 2);
     },
@@ -601,6 +782,11 @@
           gravarLocal(STORAGE_KEYS.ORCAMENTOS_TABELA, dados.orcamentos);
         }
 
+        if (dados.catalogoCustom && typeof dados.catalogoCustom === "object") {
+          gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, dados.catalogoCustom);
+          catalogo.aplicarCustomizacoes(dados.catalogoCustom);
+        }
+
         return {
           sucesso: true,
           totalUsuarios: (dados.usuarios || []).length,
@@ -615,14 +801,29 @@
 
   // Auto-inicialização
   inicializarTabelas();
-  testarConexaoServidor();
+  catalogo.aplicarCustomizacoes();
+  testarConexaoServidor().then((conectado) => {
+    if (conectado && typeof window !== "undefined" && window.fetch) {
+      fetch("/api/catalogo")
+        .then((r) => (r.ok ? r.json() : null))
+        .then((remoto) => {
+          if (remoto && remoto.catalogo && Array.isArray(remoto.catalogo)) {
+            gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, remoto);
+            catalogo.aplicarCustomizacoes(remoto);
+            window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
+          }
+        })
+        .catch(() => {});
+    }
+  });
 
   return {
     auth,
     clientes,
     orcamentos,
+    catalogo,
     backup,
-    versao: "1.0.0",
+    versao: "1.1.0",
     estaConectadoAoServidor: () => state.conectadoComServidor
   };
 });

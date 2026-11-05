@@ -84,6 +84,14 @@
       </div>
 
       <div class="admin-topbar-actions">
+        <button type="button" class="admin-bar-btn btn-cms-manage" id="admin-bar-btn-cms" title="Alterar fotos, preços, descrições dos produtos e banner de promoções">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 20h9"></path>
+            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+          </svg>
+          <span>Gerenciar Site & Produtos</span>
+        </button>
+
         <button type="button" class="admin-bar-btn btn-primary-quote" id="header-btn-quote" title="Gerar Orçamento Timbrado com os itens selecionados">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
@@ -849,6 +857,422 @@
             <input type="file" id="input-backup-import" accept=".json" style="display:none;" />
           </label>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       PAINEL ADMINISTRATIVO DE GESTÃO DO SITE (CMS: PRODUTOS, PREÇOS, FOTOS & BANNER)
+       ==================================================================== -->
+  <div class="modal-overlay" id="modal-admin-cms" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-cms-title">
+    <div class="admin-cms-card">
+      <!-- Cabeçalho do Painel Admin -->
+      <div class="admin-cms-header">
+        <div class="admin-cms-header-left">
+          <span class="auth-portal-badge" style="margin-bottom:4px;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 20h9"></path>
+              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            </svg>
+            <span>PAINEL DE GESTÃO LOJA SJ 3D (/ADMIN)</span>
+          </span>
+          <h3 id="admin-cms-title">Gerenciar Produtos, Preços, Fotos & Banner de Promoções</h3>
+        </div>
+        <button type="button" class="modal-close-btn" id="close-admin-cms-btn" aria-label="Fechar painel de gestão">&times;</button>
+      </div>
+
+      <!-- Abas Principais do CMS -->
+      <div class="admin-cms-tabs" role="tablist">
+        <button type="button" class="admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
+          📦 Produtos, Preços, Fotos & Descrições
+        </button>
+        <button type="button" class="admin-cms-tab-btn" data-cms-tab="banner" role="tab">
+          🎨 Banner de Promoções (Capa / Sorteio)
+        </button>
+        <button type="button" class="admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
+          💾 Salvar Arquivo & Restaurar
+        </button>
+      </div>
+
+      <!-- CORPO ROLÁVEL DO PAINEL -->
+      <div class="admin-cms-body">
+
+        <!-- ==============================================================
+             ABA 1: PRODUTOS, PREÇOS, FOTOS, DESCRIÇÕES E CORES DE FILAMENTO
+             ============================================================== -->
+        <div class="admin-cms-pane active" id="cms-pane-produtos">
+
+          <!-- SUB-VIEW 1A: LISTA DE PRODUTOS DO CATÁLOGO -->
+          <div id="cms-products-list-view">
+            <div class="cms-toolbar-row">
+              <div class="cms-cat-pills" id="cms-cat-filter-pills">
+                <button type="button" class="cms-cat-pill active" data-cms-cat="todos">Todos</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">Filamentos</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">Impressoras 3D</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="pecas">Peças & Acessórios</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">Serviços & Manutenção</button>
+              </div>
+
+              <div class="cms-toolbar-right">
+                <input type="text" id="cms-product-search" class="cms-search-input" placeholder="🔍 Buscar produto por nome ou marca..." />
+                <button type="button" class="btn-cms-primary" id="btn-cms-new-product">
+                  + Novo Produto
+                </button>
+              </div>
+            </div>
+
+            <div class="cms-products-grid" id="cms-products-grid"></div>
+          </div>
+
+          <!-- SUB-VIEW 1B: EDITOR COMPLETO DE UM PRODUTO (FOTO, PREÇO, DESCRIÇÃO, CORES) -->
+          <div id="cms-product-editor-view" style="display: none;">
+            <div class="cms-editor-top-bar">
+              <button type="button" class="btn-cms-back" id="btn-cms-back-to-list">
+                ← Voltar para a Lista de Produtos
+              </button>
+              <span class="cms-editor-badge" id="cms-editor-mode-badge">Editando Produto</span>
+            </div>
+
+            <form id="form-cms-product" class="cms-editor-form">
+              <input type="hidden" id="cms-prod-id" />
+
+              <div class="cms-editor-2col-top">
+                <!-- Coluna Foto Principal com Upload Instantâneo -->
+                <div class="cms-photo-upload-box">
+                  <label class="cms-section-label">📷 Foto Principal do Produto</label>
+                  <div class="cms-photo-preview-frame">
+                    <img id="cms-prod-img-preview" src="assets/produtos/impressora-a1_mini.jpg" alt="Prévia do Produto" />
+                  </div>
+                  <label class="btn-cms-upload-photo">
+                    📤 Enviar Foto do Computador / Celular
+                    <input type="file" id="input-cms-prod-file" accept="image/*" style="display: none;" />
+                  </label>
+                  <div class="cms-field" style="margin-top:8px;">
+                    <label for="cms-prod-imagem">Ou Caminho / URL da Imagem:</label>
+                    <input type="text" id="cms-prod-imagem" placeholder="Ex: assets/produtos/impressora-a1.jpg" required />
+                  </div>
+                </div>
+
+                <!-- Coluna Dados Gerais e Preços -->
+                <div class="cms-main-fields-col">
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-nome">Título / Nome do Produto *</label>
+                      <input type="text" id="cms-prod-nome" placeholder="Ex: Bambu Lab A1 MINI" required />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-categoria">Categoria no Site *</label>
+                      <select id="cms-prod-categoria">
+                        <option value="filamentos">Filamentos</option>
+                        <option value="impressoras">Impressoras 3D</option>
+                        <option value="pecas">Peças & Acessórios</option>
+                        <option value="manutencao">Serviços & Manutenção</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="cms-field">
+                    <label for="cms-prod-subtitulo">Subtítulo / Descrição Resumida (aparece no card e na página do produto) *</label>
+                    <input type="text" id="cms-prod-subtitulo" placeholder="Ex: CUSTO-BENEFÍCIO • COMPACTA • Calibração 100% Automática" required />
+                  </div>
+
+                  <div class="cms-field-row-3">
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-vista">Preço Principal Exibido *</label>
+                      <input type="text" id="cms-prod-preco-vista" placeholder="Ex: R$ 1.961,00 ou R$ 79,90" required />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-valor">Valor Numérico (R$ p/ Cálculo)</label>
+                      <input type="number" step="0.01" id="cms-prod-preco-valor" placeholder="Ex: 1961.00" />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-marca">Marca / Fabricante</label>
+                      <input type="text" id="cms-prod-marca" placeholder="Ex: Bambu Lab, MaxPrint..." />
+                    </div>
+                  </div>
+
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-parcelado">Texto de Parcelamento ou Detalhe de Preço</label>
+                      <input type="text" id="cms-prod-preco-parcelado" placeholder="Ex: ou 10x de R$ 217,90" />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-tag">Selo de Destaque (Opcional)</label>
+                      <input type="text" id="cms-prod-tag" placeholder="Ex: ESCOLHA INTELIGENTE / SUBA DE NÍVEL" />
+                    </div>
+                  </div>
+
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-select1">Opções do 1º Seletor do Card (separadas por vírgula)</label>
+                      <input type="text" id="cms-prod-select1" placeholder="Ex: À Vista (R$ 1.961,00), 10x de R$ 217,90" />
+                    </div>
+                    <div class="cms-field" id="cms-prod-select2-wrap">
+                      <label for="cms-prod-select2">Opções do 2º Seletor do Card (separadas por vírgula)</label>
+                      <input type="text" id="cms-prod-select2" placeholder="Ex: Somente Impressora, Incluir Filamento" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- FICHA TÉCNICA E DESCRIÇÕES DETALHADAS -->
+              <div class="cms-block-card">
+                <div class="cms-block-header">
+                  <div>
+                    <h4>📋 Ficha Técnica & Descrições Detalhadas do Produto</h4>
+                    <p>Adicione, edite ou remova linhas de especificações e descrições exibidas na página do produto.</p>
+                  </div>
+                  <button type="button" class="btn-cms-secondary" id="btn-cms-add-spec">
+                    + Adicionar Linha na Ficha Técnica
+                  </button>
+                </div>
+                <div id="cms-specs-list" class="cms-specs-list"></div>
+              </div>
+
+              <!-- SEÇÃO EXCLUSIVA PARA FILAMENTOS: TABELA DE CORES, PREÇOS E FOTOS DE CADA COR -->
+              <div class="cms-block-card" id="cms-filament-colors-block" style="display: none;">
+                <div class="cms-block-header">
+                  <div>
+                    <h4>🎨 Cores, Preços e Fotos desta Linha de Filamento</h4>
+                    <p>Altere o preço, nome, código ou foto de qualquer cor individualmente, ou aplique um novo preço para todas as cores de uma vez.</p>
+                  </div>
+                  <div class="cms-bulk-price-bar">
+                    <input type="text" id="cms-bulk-color-price" placeholder="Ex: R$ 84,90" class="cms-bulk-input" />
+                    <button type="button" class="btn-cms-secondary" id="btn-cms-apply-bulk-price">
+                      ⚡ Aplicar Preço em Todas as Cores
+                    </button>
+                    <button type="button" class="btn-cms-primary" id="btn-cms-add-color">
+                      + Nova Cor
+                    </button>
+                  </div>
+                </div>
+                <div id="cms-filament-colors-list" class="cms-filament-colors-list"></div>
+              </div>
+
+              <div class="cms-editor-footer-actions">
+                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-product">Cancelar</button>
+                <button type="submit" class="btn-cms-save">
+                  💾 Salvar Alterações do Produto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ==============================================================
+             ABA 2: BANNER DE PROMOÇÕES DA CAPA (SORTEIO DE NATAL / NOVAS PROMOÇÕES)
+             ============================================================== -->
+        <div class="admin-cms-pane" id="cms-pane-banner">
+          <form id="form-cms-banner" class="cms-editor-form">
+
+            <div class="cms-block-card">
+              <div class="cms-block-header">
+                <div>
+                  <h4>⚙️ Exibição e Estilo do Banner de Promoções</h4>
+                  <p>Hoje o banner exibe o <strong>Sorteio de Natal (A1 Mini + 4kg de Filamentos)</strong>. Você pode trocar a imagem de fundo, textos, regras ou mudar para uma nova promoção quando quiser.</p>
+                </div>
+              </div>
+
+              <div class="cms-toggles-grid">
+                <label class="cms-toggle-item">
+                  <input type="checkbox" id="cms-ban-ativo" checked />
+                  <span><strong>Exibir Banner Promocional na Capa (1º Slide)</strong></span>
+                </label>
+                <label class="cms-toggle-item">
+                  <input type="checkbox" id="cms-ban-secao-imp" checked />
+                  <span><strong>Exibir Banner na Seção de Impressoras 3D</strong></span>
+                </label>
+                <label class="cms-toggle-item">
+                  <input type="checkbox" id="cms-ban-cupons-carrinho" checked />
+                  <span><strong>Ativar Contador de Cupons de Sorteio no Pedido Lateral</strong></span>
+                </label>
+              </div>
+
+              <div class="cms-field" style="margin-top:14px;">
+                <label for="cms-ban-estilo">Formato Visual do Banner</label>
+                <select id="cms-ban-estilo">
+                  <option value="sorteio">Modo Campanha / Sorteio (Com 3 Cards de Regras / Destaques + Imagem de Fundo)</option>
+                  <option value="promocao">Modo Promoção / Oferta Direta (Título Grande + Preço em Destaque sem Cards de Regras)</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- IMAGEM DE FUNDO DO BANNER -->
+            <div class="cms-block-card">
+              <div class="cms-block-header">
+                <div>
+                  <h4>🖼️ Imagem / Arte de Fundo do Banner</h4>
+                  <p>Envie uma nova arte horizontal do seu computador/celular ou informe o endereço da imagem.</p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <label class="btn-cms-upload-photo" style="margin:0; width:auto;">
+                    📤 Enviar Nova Arte do Banner
+                    <input type="file" id="input-cms-ban-file" accept="image/*" style="display: none;" />
+                  </label>
+                  <button type="button" class="btn-cms-secondary" id="btn-cms-ban-default-img">
+                    🔄 Usar Arte Sorteio Natal Padrão
+                  </button>
+                </div>
+              </div>
+
+              <div class="cms-banner-preview-box">
+                <img id="cms-ban-img-preview" src="assets/produtos/banner-sorteio-natal-wide.jpg" alt="Prévia do Banner Promocional" />
+              </div>
+
+              <div class="cms-field" style="margin-top:10px;">
+                <label for="cms-ban-imagem">Caminho ou URL da Imagem de Fundo:</label>
+                <input type="text" id="cms-ban-imagem" placeholder="assets/produtos/banner-sorteio-natal-wide.jpg" />
+              </div>
+            </div>
+
+            <!-- TEXTOS E TÍTULOS DO BANNER -->
+            <div class="cms-block-card">
+              <h4>✍️ Títulos, Selos e Botões do Banner</h4>
+              <div class="cms-field-row-2" style="margin-top:12px;">
+                <div class="cms-field">
+                  <label for="cms-ban-badge">Selo Laranja Principal (Badge)</label>
+                  <input type="text" id="cms-ban-badge" placeholder="Ex: A MAIOR BLACK FRIDAY DA LOJA SJ" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-data">Selo de Data / Validade (ao lado do selo laranja)</label>
+                  <input type="text" id="cms-ban-data" placeholder="Ex: SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO" />
+                </div>
+              </div>
+
+              <div class="cms-field-row-3">
+                <div class="cms-field">
+                  <label for="cms-ban-kicker">Subtítulo Superior Dourado</label>
+                  <input type="text" id="cms-ban-kicker" placeholder="Ex: GRANDE PRÊMIO DE NATAL LOJA SJ 3D" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-titulo">Título Principal (use &lt;em&gt;...&lt;/em&gt; p/ laranja)</label>
+                  <input type="text" id="cms-ban-titulo" placeholder="Ex: SORTEIO <em>A1 MINI</em>" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-subtitulo">Complemento / Subtítulo de Destaque</label>
+                  <input type="text" id="cms-ban-subtitulo" placeholder="Ex: + KIT COM 4 KG DE FILAMENTOS" />
+                </div>
+              </div>
+
+              <div class="cms-field" id="cms-ban-preco-destaque-wrap">
+                <label for="cms-ban-preco-destaque">Frase de Preço / Oferta (exibida quando estiver no Modo Promoção Direta)</label>
+                <input type="text" id="cms-ban-preco-destaque" placeholder="Ex: Impressoras em até 10x ou 5% OFF no PIX!" />
+              </div>
+
+              <div class="cms-field-row-2">
+                <div class="cms-field">
+                  <label for="cms-ban-btn1-txt">Texto do Botão Principal (Laranja)</label>
+                  <input type="text" id="cms-ban-btn1-txt" placeholder="Ex: Garantir Meus Cupons no WhatsApp →" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-btn1-url">Link / WhatsApp do Botão Principal</label>
+                  <input type="text" id="cms-ban-btn1-url" placeholder="https://wa.me/5544991351318?text=..." />
+                </div>
+              </div>
+
+              <div class="cms-field-row-2">
+                <div class="cms-field">
+                  <label for="cms-ban-btn2-txt">Texto do 2º Botão (Secundário)</label>
+                  <input type="text" id="cms-ban-btn2-txt" placeholder="Ex: Seguir @lojasj3d" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-btn2-url">Link do 2º Botão</label>
+                  <input type="text" id="cms-ban-btn2-url" placeholder="https://www.instagram.com/lojasj3d/" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 3 CARDS DE REGRAS / DESTAQUES DA CAMPANHA -->
+            <div class="cms-block-card" id="cms-ban-rules-card">
+              <h4>🏆 3 Cards de Regras ou Destaques no Banner</h4>
+              <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Personalize os 3 quadros informativos que aparecem dentro do banner promocional.</p>
+
+              <div class="cms-rules-3grid">
+                <div class="cms-rule-edit-box">
+                  <strong>Card 1</strong>
+                  <div class="cms-field">
+                    <label>Etiqueta Superior (Tag)</label>
+                    <input type="text" id="cms-rule1-tag" placeholder="Ex: 1️⃣ 3 CUPONS GRÁTIS" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Título do Card</label>
+                    <input type="text" id="cms-rule1-title" placeholder="Ex: Retirada Presencial (Por CPF)" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Texto Explicativo</label>
+                    <textarea id="cms-rule1-text" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="cms-rule-edit-box">
+                  <strong>Card 2</strong>
+                  <div class="cms-field">
+                    <label>Etiqueta Superior (Tag)</label>
+                    <input type="text" id="cms-rule2-tag" placeholder="Ex: 2️⃣ FILAMENTOS E PEÇAS" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Título do Card</label>
+                    <input type="text" id="cms-rule2-title" placeholder="Ex: 1 Cupom a cada R$ 60" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Texto Explicativo</label>
+                    <textarea id="cms-rule2-text" rows="2"></textarea>
+                  </div>
+                </div>
+
+                <div class="cms-rule-edit-box">
+                  <strong>Card 3</strong>
+                  <div class="cms-field">
+                    <label>Etiqueta Superior (Tag)</label>
+                    <input type="text" id="cms-rule3-tag" placeholder="Ex: 🏆 IMPRESSORA 3D" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Título do Card</label>
+                    <input type="text" id="cms-rule3-title" placeholder="Ex: 10 Cupons Imediatos" />
+                  </div>
+                  <div class="cms-field">
+                    <label>Texto Explicativo</label>
+                    <textarea id="cms-rule3-text" rows="2"></textarea>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="cms-editor-footer-actions">
+              <button type="submit" class="btn-cms-save">
+                💾 Salvar & Publicar Banner de Promoções
+              </button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ==============================================================
+             ABA 3: EXPORTAR DADOS.JS & RESTAURAR PADRÃO DE FÁBRICA
+             ============================================================== -->
+        <div class="admin-cms-pane" id="cms-pane-exportar">
+          <div class="cms-block-card">
+            <h4>💾 Como funcionam as alterações feitas no Painel Admin?</h4>
+            <p style="font-size:0.86rem; color:var(--text-body); line-height:1.55; margin-top:6px;">
+              Todas as alterações que você faz em <strong>Produtos, Fotos, Preços, Descrições e Banner de Promoções</strong> são salvas <strong>automaticamente e na mesma hora</strong> no navegador e no servidor local (<code>data/db.json</code>).
+            </p>
+            <p style="font-size:0.86rem; color:var(--text-body); line-height:1.55; margin-top:8px;">
+              Se você quiser atualizar permanentemente o arquivo de código-fonte <code>js/dados.js</code> para enviar ao GitHub Pages, basta clicar no botão abaixo para baixar o arquivo <code>dados.js</code> já pronto com todas as suas edições!
+            </p>
+
+            <div class="cms-export-actions-grid" style="margin-top:18px;">
+              <button type="button" class="btn-cms-save" id="btn-cms-download-dados">
+                📥 Baixar Arquivo dados.js Atualizado
+              </button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-export-json">
+                📦 Baixar Backup Completo (.json)
+              </button>
+              <button type="button" class="btn-cms-danger" id="btn-cms-reset-factory">
+                🔄 Restaurar Catálogo e Banner Originais de Fábrica
+              </button>
+            </div>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>

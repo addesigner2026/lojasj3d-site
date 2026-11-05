@@ -384,7 +384,34 @@ const server = http.createServer(async (req, res) => {
       }
     }
 
-    // 8. Backup Completo: Exportar (GET) ou Importar (POST)
+    // 8. Catálogo & Banner Promocional (CMS Admin): GET, POST ou DELETE
+    if (pathname === "/api/catalogo") {
+      if (req.method === "GET") {
+        responderJson(res, 200, db.catalogoCustom || {});
+        return;
+      }
+
+      if (req.method === "POST") {
+        const body = await lerCorpoRequisicao(req);
+        db.catalogoCustom = {
+          ...(db.catalogoCustom || {}),
+          ...body,
+          atualizadoEm: new Date().toISOString()
+        };
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, catalogoCustom: db.catalogoCustom });
+        return;
+      }
+
+      if (req.method === "DELETE") {
+        delete db.catalogoCustom;
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: "Catálogo restaurado para o padrão de fábrica." });
+        return;
+      }
+    }
+
+    // 9. Backup Completo: Exportar (GET) ou Importar (POST)
     if (pathname === "/api/db/export" && req.method === "GET") {
       responderJson(res, 200, db);
       return;
