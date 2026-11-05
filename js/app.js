@@ -317,15 +317,130 @@
     return `background: linear-gradient(90deg, rgba(10, 8, 8, 0.74) 0%, rgba(10, 8, 8, 0.52) 45%, rgba(10, 8, 8, 0.08) 68%, rgba(10, 8, 8, 0) 100%), url('${urlSegura}') center / cover no-repeat;`;
   }
 
+  function gerarResumoCurtoSorteio(b) {
+    if (b.estilo === "promocao" && b.precoDestaque) {
+      return b.precoDestaque;
+    }
+    return "🎟️ 10 cupons na compra de Impressora 3D • 1 cupom a cada R$ 60 • +3 cupons grátis na loja física";
+  }
+
+  function abrirModalRegrasSorteio() {
+    const modal = document.getElementById("modal-raffle-rules");
+    const badgesEl = document.getElementById("raffle-modal-badges");
+    const bodyEl = document.getElementById("raffle-modal-dynamic-body");
+    if (!modal || !bodyEl) return;
+
+    const b = obterConfigBannerPromocao();
+    if (badgesEl) {
+      badgesEl.innerHTML = `
+        ${b.badge ? `<span class="raffle-pill-orange">${b.badge}</span>` : ""}
+        ${b.dataSorteio ? `<span class="raffle-pill-date">📅 ${b.dataSorteio}</span>` : ""}
+      `;
+    }
+
+    const cards = Array.isArray(b.regrasCards) && b.regrasCards.length > 0 ? b.regrasCards : [];
+
+    bodyEl.innerHTML = `
+      <div class="raffle-modal-hero-summary">
+        ${b.tituloKicker ? `<span class="raffle-modal-kicker">${b.tituloKicker}</span>` : ""}
+        <h2 id="raffle-modal-title" class="raffle-modal-main-title">${b.tituloPrincipal || "SORTEIO A1 MINI"}</h2>
+        ${b.subtituloPremio ? `<p class="raffle-modal-subtitle">${b.subtituloPremio}</p>` : ""}
+      </div>
+
+      ${
+        cards.length > 0
+          ? `
+        <div class="raffle-modal-section-label">COMO GANHAR CUPONS PARA CONCORRER:</div>
+        <div class="raffle-modal-rules-grid">
+          ${cards
+            .map(
+              (rc, i) => `
+              <div class="raffle-modal-rule-card">
+                <div class="raffle-modal-rule-top">
+                  <span class="raffle-modal-step-num">${i + 1}</span>
+                  <span class="raffle-modal-rule-tag">${rc.tag || ""}</span>
+                </div>
+                <strong>${rc.titulo || ""}</strong>
+                <p>${rc.texto || ""}</p>
+              </div>
+            `
+            )
+            .join("")}
+        </div>
+      `
+          : b.precoDestaque
+          ? `<div class="raffle-modal-price-highlight">${b.precoDestaque}</div>`
+          : ""
+      }
+
+      <div class="raffle-modal-store-box">
+        <div class="raffle-modal-store-info">
+          <span class="raffle-modal-store-badge">📍 LOJA FÍSICA & BALCÃO DE RETIRADA EM UMUARAMA - PR</span>
+          <strong>Av. Portugal, 6759 — Zona I-A • Umuarama / PR</strong>
+          <p>Passe em nossa loja física, conheça as impressoras Bambu Lab e Snapmaker ao vivo, veja o mostruário com +80 cores de filamentos e retire seus <strong>+3 cupons grátis</strong> (1 retirada por CPF seguindo <strong>@lojasj3d</strong>).</p>
+        </div>
+        <div class="raffle-modal-store-links">
+          <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="raffle-modal-map-link">
+            📍 Ver no Google Maps →
+          </a>
+          <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-modal-insta-btn">
+            📸 Seguir @lojasj3d
+          </a>
+        </div>
+      </div>
+
+      <div class="raffle-modal-footer-actions">
+        ${
+          b.btn1Texto
+            ? `
+          <a href="${b.btn1Url || "https://wa.me/5544991351318"}" target="_blank" rel="noopener" class="btn-raffle-whatsapp">
+            ${b.btn1Texto}
+          </a>
+        `
+            : ""
+        }
+        <button type="button" class="raffle-modal-btn-done" id="btn-raffle-modal-entendi">
+          Fechar
+        </button>
+      </div>
+    `;
+
+    bodyEl.querySelector("#btn-raffle-modal-entendi")?.addEventListener("click", fecharModalRegrasSorteio);
+
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalRegrasSorteio() {
+    const modal = document.getElementById("modal-raffle-rules");
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("btn-close-raffle-modal")?.addEventListener("click", fecharModalRegrasSorteio);
+  document.getElementById("modal-raffle-rules")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-raffle-rules") fecharModalRegrasSorteio();
+  });
+  document.addEventListener("click", (e) => {
+    const btnSaibaMais = e.target.closest("[data-open-raffle-modal]");
+    if (btnSaibaMais) {
+      e.preventDefault();
+      abrirModalRegrasSorteio();
+    }
+  });
+
   function gerarBannerPromocionalSecaoHtml() {
     const b = obterConfigBannerPromocao();
     if (!b.exibirBannerSecaoImpressoras) return "";
 
     const styleInline = gerarEstiloBgBannerPromocao(b.imagemFundo);
-    const usarCards = b.estilo !== "promocao" && Array.isArray(b.regrasCards) && b.regrasCards.length > 0;
+    const resumoCurto = gerarResumoCurtoSorteio(b);
 
     return `
-      <div class="natal-raffle-banner full-bleed-raffle-banner" style="${styleInline}">
+      <div class="natal-raffle-banner full-bleed-raffle-banner clean-raffle-banner" style="${styleInline}">
         <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar este banner promocional">
           ✏️ Editar Banner de Promoção
         </button>
@@ -339,26 +454,11 @@
             <h3 class="raffle-big-model">${b.tituloPrincipal || "PROMOÇÃO LOJA SJ"}</h3>
             ${b.subtituloPremio ? `<span class="raffle-sub-prize">${b.subtituloPremio}</span>` : ""}
           </div>
-          ${usarCards
-        ? `
-              <div class="hero-rules-grid-3">
-                ${b.regrasCards
-          .map(
-            (rc) => `
-                    <div class="hero-rule-card">
-                      <span class="rule-card-tag">${rc.tag || ""}</span>
-                      <strong>${rc.titulo || ""}</strong>
-                      <p>${rc.texto || ""}</p>
-                    </div>
-                  `
-          )
-          .join("")}
-              </div>
-            `
-        : b.precoDestaque
-          ? `<div class="hero-slide-price-pill" style="margin-bottom:16px;">${b.precoDestaque}</div>`
-          : ""
-      }
+
+          <div class="raffle-clean-summary-pill">
+            <span>${resumoCurto}</span>
+          </div>
+
           <div class="natal-raffle-actions">
             ${b.btn1Texto
         ? `
@@ -373,21 +473,20 @@
               `
         : ""
       }
-            ${b.btn2Texto
-        ? `
-                <a
-                  href="${b.btn2Url || "https://www.instagram.com/lojasj3d/"}"
-                  target="_blank"
-                  rel="noopener"
-                  class="hero-btn-secondary"
-                >
-                  ${b.btn2Texto}
-                </a>
-              `
-        : ""
-      }
+            <button
+              type="button"
+              class="btn-raffle-saiba-mais"
+              data-open-raffle-modal="1"
+            >
+              ✨ Saiba Mais / Como Participar
+            </button>
+          </div>
+
+          <div class="raffle-clean-store-footnote">
+            📍 Loja Física em Umuarama - PR: Av. Portugal, 6759 — Zona I-A • <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">@lojasj3d</a>
           </div>
         </div>
+        <div class="hero-raffle-art-spacer" aria-hidden="true"></div>
       </div>
     `;
   }
@@ -1055,11 +1154,10 @@
       tituloRaffleMain: cfgBan.tituloPrincipal,
       tituloRaffleSub: cfgBan.subtituloPremio,
       precoDestaque: cfgBan.precoDestaque,
-      regrasCards: cfgBan.estilo !== "promocao" ? cfgBan.regrasCards : null,
+      resumoCurtoSorteio: gerarResumoCurtoSorteio(cfgBan),
       btn1Texto: cfgBan.btn1Texto,
       btn1Whatsapp: cfgBan.btn1Url,
-      btn2Texto: cfgBan.btn2Texto,
-      btn2Url: cfgBan.btn2Url
+      abrirModalRegras: true
     };
 
     const slidesFixos = [
@@ -1230,20 +1328,10 @@
                         <p class="hero-slide-desc">${s.subtitulo}</p>
                       `
             }
-                  ${s.regrasCards
+                  ${s.resumoCurtoSorteio
               ? `
-                        <div class="hero-rules-grid-3">
-                          ${s.regrasCards
-                .map(
-                  (rc) => `
-                              <div class="hero-rule-card">
-                                <span class="rule-card-tag">${rc.tag}</span>
-                                <strong>${rc.titulo}</strong>
-                                <p>${rc.texto}</p>
-                              </div>
-                            `
-                )
-                .join("")}
+                        <div class="raffle-clean-summary-pill">
+                          <span>${s.resumoCurtoSorteio}</span>
                         </div>
                       `
               : `<div class="hero-slide-price-pill">${s.precoDestaque}</div>`
@@ -1255,13 +1343,23 @@
                 ? `<button type="button" class="hero-btn-primary" data-home-open-item="${s.btn1Item}">${s.btn1Texto}</button>`
                 : `<button type="button" class="hero-btn-primary" data-home-go-cat="${s.btn1Cat}">${s.btn1Texto}</button>`
             }
-                    ${s.btn2Url
-              ? `<a href="${s.btn2Url}" target="_blank" rel="noopener" class="hero-btn-secondary">${s.btn2Texto}</a>`
-              : s.btn2Item
-                ? `<button type="button" class="hero-btn-secondary" data-home-open-item="${s.btn2Item}">${s.btn2Texto}</button>`
-                : `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
+                    ${s.abrirModalRegras
+              ? `<button type="button" class="btn-raffle-saiba-mais" data-open-raffle-modal="1">✨ Saiba Mais / Como Participar</button>`
+              : s.btn2Url
+                ? `<a href="${s.btn2Url}" target="_blank" rel="noopener" class="hero-btn-secondary">${s.btn2Texto}</a>`
+                : s.btn2Item
+                  ? `<button type="button" class="hero-btn-secondary" data-home-open-item="${s.btn2Item}">${s.btn2Texto}</button>`
+                  : `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
             }
                   </div>
+                  ${s.fullBleedRaffle
+              ? `
+                        <div class="raffle-clean-store-footnote">
+                          📍 Loja Física em Umuarama - PR: Av. Portugal, 6759 — Zona I-A • <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">@lojasj3d</a>
+                        </div>
+                      `
+              : ""
+            }
                 </div>
 
                 ${s.fullBleedRaffle
@@ -1457,53 +1555,7 @@
         </div>
       </div>
 
-      <!-- 6. LOJA FÍSICA, BALCÃO DE RETIRADA & ASSISTÊNCIA TÉCNICA EM UMUARAMA - PR -->
-      <div class="home-storefront-section">
-        <div class="storefront-info-col">
-          <span class="storefront-badge">📍 LOJA FÍSICA & OFICINA 3D • GRUPO SJ</span>
-          <h2>Visite Nossa Loja em Umuarama e Retire <em>+3 Cupons Grátis</em> no Balcão!</h2>
-          <p class="storefront-lead">
-            Veja de perto as impressoras Bambu Lab e Snapmaker funcionando, escolha suas cores de filamento no mostruário real e conte com nossa assistência técnica especializada em Umuarama e Região.
-          </p>
-
-          <div class="storefront-details-grid">
-            <div class="storefront-detail-box">
-              <strong>📍 Endereço em Umuarama - PR</strong>
-              <span>Av. Portugal, 6759 — Zona I-A<br/>CEP 87501-000 • Umuarama / Paraná</span>
-            </div>
-            <div class="storefront-detail-box">
-              <strong>🕒 Horário & Atendimento</strong>
-              <span>Seg a Sex: 08h às 18h • Sáb: 08h às 12h<br/>WhatsApp: (44) 99135-1318</span>
-            </div>
-          </div>
-
-          <div class="storefront-actions">
-            <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="btn-storefront-maps">
-              📍 Traçar Rota no Google Maps →
-            </a>
-            <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Gostaria%20de%20visitar%20a%20loja%20na%20Av.%20Portugal%2C%206759%20em%20Umuarama!" target="_blank" rel="noopener" class="btn-storefront-wa">
-              💬 Falar com Especialista no WhatsApp
-            </a>
-          </div>
-        </div>
-
-        <div class="storefront-highlights-col">
-          <div class="storefront-highlight-card">
-            <strong>🎟️ +3 Cupons Grátis (Retirada Presencial por CPF)</strong>
-            <p>Siga <strong>@lojasj3d</strong> no Instagram e passe em nossa loja na Av. Portugal, 6759 para retirar 3 cupons grátis na urna do Sorteio A1 Mini!</p>
-          </div>
-          <div class="storefront-highlight-card">
-            <strong>🎨 Mostruário Físico com +80 Cores Reais</strong>
-            <p>Compare pessoalmente os acabamentos PLA Silk Dual/Tri Color, Rainbow, Mármore, Madeira, PETG Carbono e Bambu Lab RFID.</p>
-          </div>
-          <div class="storefront-highlight-card">
-            <strong>🛠️ Bancada Técnica & Peças Originais a Pronta Entrega</strong>
-            <p>Hotends Quick-Swap, Placas PEI Dupla Face, revisão preventiva, desentupimento e reparo de AMS na hora.</p>
-          </div>
-        </div>
-      </div>
-
-      <!-- 7. BANNER DE PROMOÇÕES NO FECHAMENTO DA CAPA -->
+      <!-- 6. BANNER ÚNICO E CLEAN DO SORTEIO / PROMOÇÃO NO FECHAMENTO DA CAPA -->
       ${gerarBannerPromocionalSecaoHtml()}
     `;
 

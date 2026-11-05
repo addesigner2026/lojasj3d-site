@@ -5910,7 +5910,356 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 @media print {
   .floating-whatsapp-fab,
   .cart-drawer-overlay,
-  .sj-toast-container {
+  .sj-toast-container,
+  .raffle-modal-overlay {
     display: none !important;
+  }
+}
+
+/* ==========================================================================
+   BANNER DO SORTEIO ULTRA-CLEAN + MODAL "SAIBA MAIS / REGRAS"
+   ========================================================================== */
+.clean-raffle-banner {
+  min-height: 360px;
+  padding: 36px 46px;
+}
+
+.raffle-clean-summary-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: rgba(15, 15, 18, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  border-left: 3.5px solid var(--sj-orange);
+  color: #f4f4f5;
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.4;
+  margin-bottom: 18px;
+  backdrop-filter: blur(8px);
+  max-width: 580px;
+}
+
+.btn-raffle-saiba-mais {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 12px 20px;
+  background: rgba(255, 255, 255, 0.14);
+  border: 1.5px solid rgba(255, 255, 255, 0.42);
+  color: #ffffff;
+  font-size: 0.86rem;
+  font-weight: 800;
+  border-radius: 6px;
+  cursor: pointer;
+  backdrop-filter: blur(6px);
+  transition: all 0.18s ease;
+}
+
+.btn-raffle-saiba-mais:hover {
+  background: #ffffff;
+  color: #111114;
+  border-color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.raffle-clean-store-footnote {
+  margin-top: 14px;
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.78);
+}
+
+.raffle-clean-store-footnote a {
+  color: #fde68a;
+  font-weight: 800;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* Modal de Regras e Como Participar do Sorteio */
+.raffle-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1250;
+  background: rgba(9, 9, 12, 0.72);
+  backdrop-filter: blur(5px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.22s ease, visibility 0.22s ease;
+}
+
+.raffle-modal-overlay.open {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.raffle-modal-card {
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  overflow-y: auto;
+  background: #141418;
+  color: #ffffff;
+  border: 1px solid rgba(240, 78, 35, 0.4);
+  border-radius: 14px;
+  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.55);
+  transform: translateY(10px) scale(0.98);
+  transition: transform 0.22s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.raffle-modal-overlay.open .raffle-modal-card {
+  transform: translateY(0) scale(1);
+}
+
+.raffle-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 18px 24px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  background: #19191f;
+}
+
+.raffle-modal-header-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.raffle-modal-close-btn {
+  width: 34px;
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  background: rgba(255, 255, 255, 0.06);
+  color: #ffffff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.raffle-modal-close-btn:hover {
+  background: var(--sj-orange);
+  border-color: var(--sj-orange);
+}
+
+.raffle-modal-body {
+  padding: 24px;
+}
+
+.raffle-modal-hero-summary {
+  margin-bottom: 20px;
+}
+
+.raffle-modal-kicker {
+  display: block;
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #fde68a;
+  margin-bottom: 4px;
+}
+
+.raffle-modal-main-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  color: #ffffff;
+  line-height: 1.15;
+  margin-bottom: 4px;
+}
+
+.raffle-modal-subtitle {
+  display: inline-block;
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: var(--sj-orange);
+  margin: 0;
+}
+
+.raffle-modal-section-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+  margin-bottom: 10px;
+}
+
+.raffle-modal-rules-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.raffle-modal-rule-card {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-top: 3px solid var(--sj-orange);
+  border-radius: 10px;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.raffle-modal-rule-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+}
+
+.raffle-modal-step-num {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--sj-orange);
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.raffle-modal-rule-tag {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #fde68a;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.raffle-modal-rule-card strong {
+  font-size: 0.92rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.raffle-modal-rule-card p {
+  font-size: 0.79rem;
+  color: #d4d4d8;
+  line-height: 1.42;
+  margin: 0;
+}
+
+.raffle-modal-store-box {
+  background: rgba(240, 78, 35, 0.09);
+  border: 1px solid rgba(240, 78, 35, 0.35);
+  border-radius: 10px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 20px;
+}
+
+.raffle-modal-store-badge {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: var(--sj-orange);
+  letter-spacing: 0.05em;
+  margin-bottom: 3px;
+}
+
+.raffle-modal-store-info strong {
+  display: block;
+  font-size: 0.9rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+.raffle-modal-store-info p {
+  font-size: 0.78rem;
+  color: #d4d4d8;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.raffle-modal-store-links {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.raffle-modal-map-link,
+.raffle-modal-insta-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 13px;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 800;
+  white-space: nowrap;
+  text-decoration: none;
+}
+
+.raffle-modal-map-link {
+  background: #ffffff;
+  color: #111114;
+}
+
+.raffle-modal-insta-btn {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.24);
+  color: #ffffff;
+}
+
+.raffle-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.raffle-modal-btn-done {
+  padding: 11px 20px;
+  border-radius: 6px;
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: transparent;
+  color: #d4d4d8;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.raffle-modal-btn-done:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: #ffffff;
+}
+
+@media (max-width: 760px) {
+  .raffle-modal-rules-grid {
+    grid-template-columns: 1fr;
+  }
+  .raffle-modal-store-box {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .raffle-modal-store-links {
+    flex-direction: row;
+    flex-wrap: wrap;
   }
 }
