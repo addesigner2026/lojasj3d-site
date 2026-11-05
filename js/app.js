@@ -246,16 +246,10 @@
       valorTotalEstimado > 0
         ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}${temSobConsulta ? " (+ itens sob consulta)" : ""}`
         : "";
-    const resumoCuponsStr =
-      resumoCupons.totalCuponsCompra > 0
-        ? `\n*🎟️ Sorteio A1 Mini:* ${resumoCupons.totalCuponsCompra} ${
-            resumoCupons.totalCuponsCompra === 1 ? "cupom gerado" : "cupons gerados"
-          } (+3 grátis retirando no balcão!)`
-        : "";
 
     const msg = encodeURIComponent(
       `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-        `${linhas.join("\n")}${resumoPeso}${resumoValor}${resumoCuponsStr}\n\n` +
+        `${linhas.join("\n")}${resumoPeso}${resumoValor}\n\n` +
         `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
     );
 
@@ -1817,45 +1811,11 @@
     if (pillEl) pillEl.innerHTML = textoPill;
     if (drawerPillEl) drawerPillEl.innerHTML = textoPill;
 
-    const cfgBanner = obterConfigBannerPromocao();
-    let trackerHtml = "";
-    if (cfgBanner.exibirCuponsCarrinho) {
-      if (totalItens === 0) {
-        trackerHtml = `
-          <div class="coupon-tracker-card empty">
-            <strong>🎟️ ${cfgBanner.tituloPrincipal ? cfgBanner.tituloPrincipal.replace(/<[^>]*>/g, "") : "Sorteio A1 Mini"}</strong>
-            <span>1 cupom a cada R$ 60 em filamentos/peças ou 10 cupons na compra de uma impressora 3D!</span>
-          </div>
-        `;
-      } else {
-        const faltaStr =
-          resumoCupons.faltaParaProximo > 0
-            ? `Faltam <strong>${formatarMoedaBR(resumoCupons.faltaParaProximo)}</strong> em filamentos/peças para ganhar <strong>+1 cupom</strong>!`
-            : `Limite máximo de cupons por compra atingido!`;
-        trackerHtml = `
-          <div class="coupon-tracker-card active">
-            <div class="coupon-tracker-top">
-              <strong>🎟️ ${resumoCupons.totalCuponsCompra} ${
-          resumoCupons.totalCuponsCompra === 1 ? "Cupom no Pedido" : "Cupons no Pedido"
-        }</strong>
-              <span class="coupon-bonus-tag">+3 grátis no balcão</span>
-            </div>
-            <div class="coupon-progress-bar">
-              <div class="coupon-progress-fill" style="width: ${resumoCupons.progressoPct}%;"></div>
-            </div>
-            <p class="coupon-tracker-hint">${faltaStr}</p>
-          </div>
-        `;
-      }
-    }
-
+    // Cupons do sorteio são definidos diretamente na loja ao fechar o pedido
     [trackerEl, drawerTrackerEl].forEach((el) => {
-      if (!el) return;
-      if (!cfgBanner.exibirCuponsCarrinho) {
+      if (el) {
         el.style.display = "none";
-      } else {
-        el.style.display = "block";
-        el.innerHTML = trackerHtml;
+        el.innerHTML = "";
       }
     });
 
@@ -1887,15 +1847,9 @@
           ? "flex"
           : "";
 
-      const cupomTxt =
-        resumoCupons.totalCuponsCompra > 0
-          ? ` • 🎟️ ${resumoCupons.totalCuponsCompra} ${
-              resumoCupons.totalCuponsCompra === 1 ? "cupom" : "cupons"
-            }`
-          : "";
       mobileCount.textContent = `${totalItens} ${
         totalItens === 1 ? "item" : "itens"
-      }${cupomTxt}`;
+      }`;
       mobileTotal.textContent =
         valorTotalEstimado > 0
           ? formatarMoedaBR(valorTotalEstimado)
@@ -2557,16 +2511,10 @@
       return;
     }
     box.style.display = "flex";
-    const resumoCupons = calcularCuponsSorteio();
-    const cupomTxt =
-      resumoCupons.totalCuponsCompra > 0
-        ? ` • 🎟️ <strong>${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "cupom" : "cupons"
-        } p/ Sorteio A1 Mini</strong>`
-        : "";
     const infoEl = document.getElementById("pdp-order-bar-text");
     if (infoEl) {
       infoEl.innerHTML = `<strong>✓ ${totalItens} ${totalItens === 1 ? "item no Seu Pedido" : "itens no Seu Pedido"
-        }</strong>${valorTotal > 0 ? ` • Total: <strong>${formatarMoedaBR(valorTotal)}</strong>` : ""}${cupomTxt}`;
+        }</strong>${valorTotal > 0 ? ` • Total: <strong>${formatarMoedaBR(valorTotal)}</strong>` : ""}`;
     }
   }
 
