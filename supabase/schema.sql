@@ -169,11 +169,13 @@ grant select on public.configuracoes_site, public.produtos, public.filamento_cor
 grant all on public.perfis_usuarios, public.configuracoes_site, public.produtos, public.filamento_cores, public.clientes, public.orcamentos to authenticated;
 
 -- Políticas: CONFIGURAÇÕES DO SITE
+drop policy if exists "Público pode ler configurações do site" on public.configuracoes_site;
 create policy "Público pode ler configurações do site"
   on public.configuracoes_site for select
   to anon, authenticated
   using (true);
 
+drop policy if exists "Vendedores autenticados podem alterar configurações do site" on public.configuracoes_site;
 create policy "Vendedores autenticados podem alterar configurações do site"
   on public.configuracoes_site for all
   to authenticated
@@ -181,38 +183,45 @@ create policy "Vendedores autenticados podem alterar configurações do site"
   with check (true);
 
 -- Políticas: PRODUTOS (Público lê produtos ativos, Vendedor gerencia tudo)
+drop policy if exists "Público pode ver produtos ativos" on public.produtos;
 create policy "Público pode ver produtos ativos"
   on public.produtos for select
   to anon, authenticated
   using (ativo = true);
 
+drop policy if exists "Vendedores autenticados podem ver todos os produtos" on public.produtos;
 create policy "Vendedores autenticados podem ver todos os produtos"
   on public.produtos for select
   to authenticated
   using (true);
 
+drop policy if exists "Vendedores autenticados podem inserir produtos" on public.produtos;
 create policy "Vendedores autenticados podem inserir produtos"
   on public.produtos for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Vendedores autenticados podem atualizar produtos" on public.produtos;
 create policy "Vendedores autenticados podem atualizar produtos"
   on public.produtos for update
   to authenticated
   using (true)
   with check (true);
 
+drop policy if exists "Vendedores autenticados podem deletar produtos" on public.produtos;
 create policy "Vendedores autenticados podem deletar produtos"
   on public.produtos for delete
   to authenticated
   using (true);
 
 -- Políticas: CORES DE FILAMENTOS
+drop policy if exists "Público pode ver cores ativas de filamentos" on public.filamento_cores;
 create policy "Público pode ver cores ativas de filamentos"
   on public.filamento_cores for select
   to anon, authenticated
   using (ativo = true);
 
+drop policy if exists "Vendedores autenticados podem gerenciar cores" on public.filamento_cores;
 create policy "Vendedores autenticados podem gerenciar cores"
   on public.filamento_cores for all
   to authenticated
@@ -220,11 +229,13 @@ create policy "Vendedores autenticados podem gerenciar cores"
   with check (true);
 
 -- Políticas: PERFIS DE USUÁRIOS
+drop policy if exists "Usuários autenticados podem ler perfis" on public.perfis_usuarios;
 create policy "Usuários autenticados podem ler perfis"
   on public.perfis_usuarios for select
   to authenticated
   using (true);
 
+drop policy if exists "Usuário autenticado pode atualizar seu próprio perfil" on public.perfis_usuarios;
 create policy "Usuário autenticado pode atualizar seu próprio perfil"
   on public.perfis_usuarios for update
   to authenticated
@@ -232,44 +243,52 @@ create policy "Usuário autenticado pode atualizar seu próprio perfil"
   with check ((select auth.uid()) = id);
 
 -- Políticas: CLIENTES (PROTEGIDO — Somente Vendedores Autenticados)
+drop policy if exists "Apenas vendedores autenticados podem ler clientes" on public.clientes;
 create policy "Apenas vendedores autenticados podem ler clientes"
   on public.clientes for select
   to authenticated
   using (true);
 
+drop policy if exists "Apenas vendedores autenticados podem inserir clientes" on public.clientes;
 create policy "Apenas vendedores autenticados podem inserir clientes"
   on public.clientes for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Apenas vendedores autenticados podem atualizar clientes" on public.clientes;
 create policy "Apenas vendedores autenticados podem atualizar clientes"
   on public.clientes for update
   to authenticated
   using (true)
   with check (true);
 
+drop policy if exists "Apenas vendedores autenticados podem excluir clientes" on public.clientes;
 create policy "Apenas vendedores autenticados podem excluir clientes"
   on public.clientes for delete
   to authenticated
   using (true);
 
 -- Políticas: ORÇAMENTOS (PROTEGIDO — Somente Vendedores Autenticados)
+drop policy if exists "Apenas vendedores autenticados podem ler orçamentos" on public.orcamentos;
 create policy "Apenas vendedores autenticados podem ler orçamentos"
   on public.orcamentos for select
   to authenticated
   using (true);
 
+drop policy if exists "Apenas vendedores autenticados podem criar orçamentos" on public.orcamentos;
 create policy "Apenas vendedores autenticados podem criar orçamentos"
   on public.orcamentos for insert
   to authenticated
   with check (true);
 
+drop policy if exists "Apenas vendedores autenticados podem atualizar orçamentos" on public.orcamentos;
 create policy "Apenas vendedores autenticados podem atualizar orçamentos"
   on public.orcamentos for update
   to authenticated
   using (true)
   with check (true);
 
+drop policy if exists "Apenas vendedores autenticados podem excluir orçamentos" on public.orcamentos;
 create policy "Apenas vendedores autenticados podem excluir orçamentos"
   on public.orcamentos for delete
   to authenticated
@@ -282,22 +301,26 @@ insert into storage.buckets (id, name, public)
 values ('produtos-midia', 'produtos-midia', true)
 on conflict (id) do nothing;
 
+drop policy if exists "Visualização pública de imagens no bucket produtos-midia" on storage.objects;
 create policy "Visualização pública de imagens no bucket produtos-midia"
   on storage.objects for select
   to anon, authenticated
   using (bucket_id = 'produtos-midia');
 
+drop policy if exists "Upload de imagens por vendedores autenticados" on storage.objects;
 create policy "Upload de imagens por vendedores autenticados"
   on storage.objects for insert
   to authenticated
   with check (bucket_id = 'produtos-midia');
 
+drop policy if exists "Atualização de imagens por vendedores autenticados" on storage.objects;
 create policy "Atualização de imagens por vendedores autenticados"
   on storage.objects for update
   to authenticated
   using (bucket_id = 'produtos-midia')
   with check (bucket_id = 'produtos-midia');
 
+drop policy if exists "Exclusão de imagens por vendedores autenticados" on storage.objects;
 create policy "Exclusão de imagens por vendedores autenticados"
   on storage.objects for delete
   to authenticated
