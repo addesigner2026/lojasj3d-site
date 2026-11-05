@@ -163,6 +163,100 @@
     });
   }
 
+  // Sistema de Notificações Visuais (Toasts UI/UX Pro Max)
+  function mostrarToast(mensagem, tipo = "success", opcoes = {}) {
+    const container = document.getElementById("sj-toast-container");
+    if (!container) return;
+
+    const toast = document.createElement("div");
+    toast.className = `sj-toast toast-${tipo}`;
+
+    const spanTxt = document.createElement("span");
+    spanTxt.innerHTML = mensagem;
+    toast.appendChild(spanTxt);
+
+    if (opcoes.acaoTexto && typeof opcoes.onClick === "function") {
+      const btn = document.createElement("button");
+      btn.type = "button";
+      btn.className = "sj-toast-action-btn";
+      btn.textContent = opcoes.acaoTexto;
+      btn.addEventListener("click", () => {
+        toast.remove();
+        opcoes.onClick();
+      });
+      toast.appendChild(btn);
+    }
+
+    container.appendChild(toast);
+
+    const duracao = opcoes.duracao || 3600;
+    setTimeout(() => {
+      if (toast && toast.parentNode) {
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(-8px)";
+        toast.style.transition = "all 0.2s ease";
+        setTimeout(() => toast.remove(), 220);
+      }
+    }, duracao);
+  }
+
+  function abrirGavetaPedido() {
+    const overlay = document.getElementById("cart-drawer-overlay");
+    if (!overlay) return;
+    atualizarCaixaLateral();
+    overlay.style.display = "flex";
+  }
+
+  function fecharGavetaPedido() {
+    const overlay = document.getElementById("cart-drawer-overlay");
+    if (overlay) overlay.style.display = "none";
+  }
+
+  function enviarPedidoParaWhatsApp() {
+    const { whatsapp } = window.SITE_DATA.loja;
+    if (state.itensCaixa.length === 0) {
+      mostrarToast("Adicione pelo menos 1 item ao seu pedido antes de enviar!", "warning");
+      return;
+    }
+
+    const totalKgFil = calcularTotalKgFilamentos();
+    const valorTotalEstimado = state.itensCaixa.reduce(
+      (acc, item) => acc + Number(item.precoUnitario || 0) * item.qtd,
+      0
+    );
+    const temSobConsulta = state.itensCaixa.some((i) => Number(i.precoUnitario || 0) === 0);
+    const resumoCupons = calcularCuponsSorteio();
+
+    const linhas = state.itensCaixa.map((i) => {
+      const precoStr =
+        i.precoUnitario > 0
+          ? ` — *${formatarMoedaBR(i.precoUnitario * i.qtd)}*`
+          : ` — *(Valor sob consulta)*`;
+      return `• ${i.qtd}x *${i.nome}* (${i.detalhe1} | ${i.detalhe2})${precoStr}`;
+    });
+
+    const resumoPeso =
+      totalKgFil > 0 ? `\n*Total de Filamentos:* ${totalKgFil} kg` : "";
+    const resumoValor =
+      valorTotalEstimado > 0
+        ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}${temSobConsulta ? " (+ itens sob consulta)" : ""}`
+        : "";
+    const resumoCuponsStr =
+      resumoCupons.totalCuponsCompra > 0
+        ? `\n*🎟️ Sorteio A1 Mini:* ${resumoCupons.totalCuponsCompra} ${
+            resumoCupons.totalCuponsCompra === 1 ? "cupom gerado" : "cupons gerados"
+          } (+3 grátis retirando no balcão!)`
+        : "";
+
+    const msg = encodeURIComponent(
+      `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
+        `${linhas.join("\n")}${resumoPeso}${resumoValor}${resumoCuponsStr}\n\n` +
+        `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
+    );
+
+    window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
+  }
+
   // Retorna a configuração atualizada do Banner Promocional (editável via /admin)
   function obterConfigBannerPromocao() {
     const padrao = {
@@ -743,9 +837,14 @@
 
     atualizarCaixaLateral();
     atualizarMiniResumoNaPaginaProduto();
+
+    mostrarToast(`✓ <strong>${nomeExibicao}</strong> adicionado ao pedido!`, "success", {
+      acaoTexto: "Ver Pedido →",
+      onClick: () => abrirGavetaPedido()
+    });
   }
 
-  // 6. Atualiza a coluna direita ("Seu Pedido Loja SJ"), rastreador de cupons e barra flutuante mobile
+  // 6. Atualiza a coluna direita ("Seu Pedido Loja SJ"), a Gaveta Deslizante, o rastreador de cupons e a barra flutuante
   function atualizarCaixaLateral() {
     salvarPedidoNoStorage();
 
@@ -759,11 +858,21 @@
     const mobileCount = document.getElementById("mobile-cart-count");
     const mobileTotal = document.getElementById("mobile-cart-total");
 
+    // Elementos equivalentes na Gaveta Deslizante (Cart Drawer)
+    const drawerPillEl = document.getElementById("drawer-added-count-pill");
+    const drawerListEl = document.getElementById("drawer-items-list");
+    const drawerTotalEl = document.getElementById("drawer-box-total");
+    const drawerTrackerEl = document.getElementById("drawer-raffle-coupons-tracker");
+    const drawerClearBtn = document.getElementById("drawer-btn-clear-box");
+
     const totalItens = calcularTotalItensGeral();
     const totalKgFil = calcularTotalKgFilamentos();
     const valorTotalEstimado = state.itensCaixa.reduce(
       (acc, item) => acc + Number(item.precoUnitario || 0) * item.qtd,
       0
+    );
+    const temItensSobConsulta = state.itensCaixa.some(
+      (item) => Number(item.precoUnitario || 0) === 0
     );
     const resumoCupons = calcularCuponsSorteio();
 
@@ -772,93 +881,126 @@
     if (clearBtn) {
       clearBtn.style.display = totalItens > 0 ? "inline-flex" : "none";
     }
-
-    if (pillEl) {
-      pillEl.innerHTML = `<span>✓ ${totalItens} ${totalItens === 1 ? "Item selecionado" : "Itens selecionados"}</span>`;
+    if (drawerClearBtn) {
+      drawerClearBtn.style.display = totalItens > 0 ? "inline-flex" : "none";
     }
 
-    if (trackerEl) {
-      const cfgBanner = obterConfigBannerPromocao();
+    const textoPill = `<span>✓ ${totalItens} ${totalItens === 1 ? "Item selecionado" : "Itens selecionados"}</span>`;
+    if (pillEl) pillEl.innerHTML = textoPill;
+    if (drawerPillEl) drawerPillEl.innerHTML = textoPill;
+
+    const cfgBanner = obterConfigBannerPromocao();
+    let trackerHtml = "";
+    if (cfgBanner.exibirCuponsCarrinho) {
+      if (totalItens === 0) {
+        trackerHtml = `
+          <div class="coupon-tracker-card empty">
+            <strong>🎟️ ${cfgBanner.tituloPrincipal ? cfgBanner.tituloPrincipal.replace(/<[^>]*>/g, "") : "Sorteio A1 Mini"}</strong>
+            <span>1 cupom a cada R$ 60 em filamentos/peças ou 10 cupons na compra de uma impressora 3D!</span>
+          </div>
+        `;
+      } else {
+        const faltaStr =
+          resumoCupons.faltaParaProximo > 0
+            ? `Faltam <strong>${formatarMoedaBR(resumoCupons.faltaParaProximo)}</strong> em filamentos/peças para ganhar <strong>+1 cupom</strong>!`
+            : `Limite máximo de cupons por compra atingido!`;
+        trackerHtml = `
+          <div class="coupon-tracker-card active">
+            <div class="coupon-tracker-top">
+              <strong>🎟️ ${resumoCupons.totalCuponsCompra} ${
+          resumoCupons.totalCuponsCompra === 1 ? "Cupom no Pedido" : "Cupons no Pedido"
+        }</strong>
+              <span class="coupon-bonus-tag">+3 grátis no balcão</span>
+            </div>
+            <div class="coupon-progress-bar">
+              <div class="coupon-progress-fill" style="width: ${resumoCupons.progressoPct}%;"></div>
+            </div>
+            <p class="coupon-tracker-hint">${faltaStr}</p>
+          </div>
+        `;
+      }
+    }
+
+    [trackerEl, drawerTrackerEl].forEach((el) => {
+      if (!el) return;
       if (!cfgBanner.exibirCuponsCarrinho) {
-        trackerEl.style.display = "none";
+        el.style.display = "none";
       } else {
-        trackerEl.style.display = "block";
-        if (totalItens === 0) {
-          trackerEl.innerHTML = `
-            <div class="coupon-tracker-card empty">
-              <strong>🎟️ ${cfgBanner.tituloPrincipal ? cfgBanner.tituloPrincipal.replace(/<[^>]*>/g, "") : "Sorteio A1 Mini"}</strong>
-              <span>1 cupom a cada R$ 60 em filamentos/peças ou 10 cupons na compra de uma impressora 3D!</span>
-            </div>
-          `;
-        } else {
-          const faltaStr =
-            resumoCupons.faltaParaProximo > 0
-              ? `Faltam <strong>${formatarMoedaBR(resumoCupons.faltaParaProximo)}</strong> em filamentos/peças para ganhar <strong>+1 cupom</strong>!`
-              : `Limite máximo de cupons por compra atingido!`;
-          trackerEl.innerHTML = `
-            <div class="coupon-tracker-card active">
-              <div class="coupon-tracker-top">
-                <strong>🎟️ ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "Cupom no Pedido" : "Cupons no Pedido"
-            }</strong>
-                <span class="coupon-bonus-tag">+3 grátis no balcão</span>
-              </div>
-              <div class="coupon-progress-bar">
-                <div class="coupon-progress-fill" style="width: ${resumoCupons.progressoPct}%;"></div>
-              </div>
-              <p class="coupon-tracker-hint">${faltaStr}</p>
-            </div>
-          `;
-        }
+        el.style.display = "block";
+        el.innerHTML = trackerHtml;
       }
+    });
+
+    let textoTotalCaixa = "";
+    if (valorTotalEstimado > 0) {
+      textoTotalCaixa = `Total Estimado: ${formatarMoedaBR(valorTotalEstimado)}${
+        totalKgFil > 0 ? ` (${totalKgFil} kg)` : ""
+      }${temItensSobConsulta ? " + sob consulta" : ""}`;
+    } else if (totalItens > 0 && temItensSobConsulta) {
+      textoTotalCaixa = `Total: ${totalItens} ${totalItens === 1 ? "item" : "itens"} (Valor sob consulta)`;
+    } else {
+      textoTotalCaixa = `Total: R$ 0,00`;
     }
 
-    if (totalEl) {
-      if (valorTotalEstimado > 0) {
-        totalEl.textContent = `Total Estimado: ${formatarMoedaBR(valorTotalEstimado)}${totalKgFil > 0 ? ` (${totalKgFil} kg)` : ""
-          }`;
-      } else {
-        totalEl.textContent = `Total: ${totalItens} ${totalItens === 1 ? "item" : "itens"}`;
-      }
-    }
+    if (totalEl) totalEl.textContent = textoTotalCaixa;
+    if (drawerTotalEl) drawerTotalEl.textContent = textoTotalCaixa;
 
     if (mobileBar && mobileCount && mobileTotal) {
-      mobileBar.classList.toggle("visible", totalItens > 0);
+      const estaEmTelaSemColunaLateral =
+        (state.categoriaMenu === "home" && state.busca.trim() === "") ||
+        Boolean(state.produtoDetalheAtivo);
+      mobileBar.classList.toggle("visible", totalItens > 0 && !state.emissorAberto);
+      mobileBar.classList.toggle(
+        "visible-any-screen",
+        totalItens > 0 && estaEmTelaSemColunaLateral && !state.emissorAberto
+      );
+      mobileBar.style.display =
+        totalItens > 0 && (estaEmTelaSemColunaLateral || window.innerWidth <= 1120) && !state.emissorAberto
+          ? "flex"
+          : "";
+
       const cupomTxt =
         resumoCupons.totalCuponsCompra > 0
-          ? ` • 🎟️ ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "cupom" : "cupons"
-          }`
+          ? ` • 🎟️ ${resumoCupons.totalCuponsCompra} ${
+              resumoCupons.totalCuponsCompra === 1 ? "cupom" : "cupons"
+            }`
           : "";
-      mobileCount.textContent = `${totalItens} ${totalItens === 1 ? "item" : "itens"
-        }${cupomTxt}`;
-      mobileTotal.textContent = valorTotalEstimado > 0 ? formatarMoedaBR(valorTotalEstimado) : "";
+      mobileCount.textContent = `${totalItens} ${
+        totalItens === 1 ? "item" : "itens"
+      }${cupomTxt}`;
+      mobileTotal.textContent =
+        valorTotalEstimado > 0
+          ? formatarMoedaBR(valorTotalEstimado)
+          : temItensSobConsulta
+            ? "Sob consulta"
+            : "";
     }
 
-    if (!listEl) return;
+    const htmlVazio = `
+      <div style="font-size:0.8rem; color:var(--text-muted); padding:24px 0; text-align:center;">
+        Selecione seus filamentos Bambu Lab ou Masterprint/MaxPrint, impressoras ou peças e clique em <strong>Adicionar ao Pedido</strong>.
+      </div>
+    `;
 
-    if (state.itensCaixa.length === 0) {
-      listEl.innerHTML = `
-        <div style="font-size:0.8rem; color:var(--text-muted); padding:24px 0; text-align:center;">
-          Selecione seus filamentos Bambu Lab ou Masterprint/MaxPrint, impressoras ou peças ao lado e clique em <strong>Adicionar ao Pedido</strong>.
-        </div>
-      `;
-      return;
-    }
-
-    listEl.innerHTML = state.itensCaixa
-      .map(
-        (item, idx) => `
+    const htmlItens =
+      state.itensCaixa.length === 0
+        ? htmlVazio
+        : state.itensCaixa
+            .map(
+              (item, idx) => `
         <div class="box-item-row">
           <div class="box-item-left">
             <span class="box-color-dot" style="background:${item.corHex};"></span>
             <div>
               <strong style="display:block;">${item.nome}</strong>
               <span style="color:var(--text-muted); display:block;">${item.detalhe2}</span>
-              ${item.precoUnitario > 0
-            ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem;">${formatarMoedaBR(
-              item.precoUnitario * item.qtd
-            )} (${item.qtd}x ${item.precoTexto})</span>`
-            : `<span style="color:var(--text-muted); font-size:0.73rem;">${item.detalhe1}</span>`
-          }
+              ${
+                item.precoUnitario > 0
+                  ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem;">${formatarMoedaBR(
+                      item.precoUnitario * item.qtd
+                    )} (${item.qtd}x ${item.precoTexto})</span>`
+                  : `<span class="cart-consult-badge">Sob consulta • ${item.detalhe1}</span>`
+              }
             </div>
           </div>
           <div class="box-item-controls">
@@ -868,25 +1010,32 @@
           </div>
         </div>
       `
-      )
-      .join("");
+            )
+            .join("");
 
-    listEl.querySelectorAll("[data-dec]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const i = Number(btn.dataset.dec);
-        state.itensCaixa[i].qtd -= 1;
-        if (state.itensCaixa[i].qtd <= 0) state.itensCaixa.splice(i, 1);
-        atualizarCaixaLateral();
-        atualizarMiniResumoNaPaginaProduto();
+    [listEl, drawerListEl].forEach((container) => {
+      if (!container) return;
+      container.innerHTML = htmlItens;
+
+      container.querySelectorAll("[data-dec]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const i = Number(btn.dataset.dec);
+          if (!state.itensCaixa[i]) return;
+          state.itensCaixa[i].qtd -= 1;
+          if (state.itensCaixa[i].qtd <= 0) state.itensCaixa.splice(i, 1);
+          atualizarCaixaLateral();
+          atualizarMiniResumoNaPaginaProduto();
+        });
       });
-    });
 
-    listEl.querySelectorAll("[data-inc]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const i = Number(btn.dataset.inc);
-        state.itensCaixa[i].qtd += 1;
-        atualizarCaixaLateral();
-        atualizarMiniResumoNaPaginaProduto();
+      container.querySelectorAll("[data-inc]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const i = Number(btn.dataset.inc);
+          if (!state.itensCaixa[i]) return;
+          state.itensCaixa[i].qtd += 1;
+          atualizarCaixaLateral();
+          atualizarMiniResumoNaPaginaProduto();
+        });
       });
     });
   }
@@ -1308,7 +1457,53 @@
         </div>
       </div>
 
-      <!-- 6. BANNER DE PROMOÇÕES NO FECHAMENTO DA CAPA -->
+      <!-- 6. LOJA FÍSICA, BALCÃO DE RETIRADA & ASSISTÊNCIA TÉCNICA EM UMUARAMA - PR -->
+      <div class="home-storefront-section">
+        <div class="storefront-info-col">
+          <span class="storefront-badge">📍 LOJA FÍSICA & OFICINA 3D • GRUPO SJ</span>
+          <h2>Visite Nossa Loja em Umuarama e Retire <em>+3 Cupons Grátis</em> no Balcão!</h2>
+          <p class="storefront-lead">
+            Veja de perto as impressoras Bambu Lab e Snapmaker funcionando, escolha suas cores de filamento no mostruário real e conte com nossa assistência técnica especializada em Umuarama e Região.
+          </p>
+
+          <div class="storefront-details-grid">
+            <div class="storefront-detail-box">
+              <strong>📍 Endereço em Umuarama - PR</strong>
+              <span>Av. Portugal, 6759 — Zona I-A<br/>CEP 87501-000 • Umuarama / Paraná</span>
+            </div>
+            <div class="storefront-detail-box">
+              <strong>🕒 Horário & Atendimento</strong>
+              <span>Seg a Sex: 08h às 18h • Sáb: 08h às 12h<br/>WhatsApp: (44) 99135-1318</span>
+            </div>
+          </div>
+
+          <div class="storefront-actions">
+            <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="btn-storefront-maps">
+              📍 Traçar Rota no Google Maps →
+            </a>
+            <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Gostaria%20de%20visitar%20a%20loja%20na%20Av.%20Portugal%2C%206759%20em%20Umuarama!" target="_blank" rel="noopener" class="btn-storefront-wa">
+              💬 Falar com Especialista no WhatsApp
+            </a>
+          </div>
+        </div>
+
+        <div class="storefront-highlights-col">
+          <div class="storefront-highlight-card">
+            <strong>🎟️ +3 Cupons Grátis (Retirada Presencial por CPF)</strong>
+            <p>Siga <strong>@lojasj3d</strong> no Instagram e passe em nossa loja na Av. Portugal, 6759 para retirar 3 cupons grátis na urna do Sorteio A1 Mini!</p>
+          </div>
+          <div class="storefront-highlight-card">
+            <strong>🎨 Mostruário Físico com +80 Cores Reais</strong>
+            <p>Compare pessoalmente os acabamentos PLA Silk Dual/Tri Color, Rainbow, Mármore, Madeira, PETG Carbono e Bambu Lab RFID.</p>
+          </div>
+          <div class="storefront-highlight-card">
+            <strong>🛠️ Bancada Técnica & Peças Originais a Pronta Entrega</strong>
+            <p>Hotends Quick-Swap, Placas PEI Dupla Face, revisão preventiva, desentupimento e reparo de AMS na hora.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- 7. BANNER DE PROMOÇÕES NO FECHAMENTO DA CAPA -->
       ${gerarBannerPromocionalSecaoHtml()}
     `;
 
@@ -1454,6 +1649,7 @@
       atualizarControlesTopo();
       renderizarCatalogoCompleto();
     }
+    atualizarCaixaLateral();
   }
 
   function navegarParaCategoria(cat, updateHistory = true) {
@@ -2043,6 +2239,7 @@
     if (homeView) homeView.style.display = "none";
     gridView.style.display = "none";
     pdpView.style.display = "block";
+    atualizarCaixaLateral();
     atualizarMiniResumoNaPaginaProduto();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -2120,12 +2317,12 @@
       }
     }
 
-    // Eventos de Voltar ao Catálogo
+    // Eventos de Voltar ao Catálogo e Ver Pedido na Gaveta
     document.getElementById("pdp-back-btn")?.addEventListener("click", () => fecharPaginaProduto(false));
     document.getElementById("pdp-bc-home")?.addEventListener("click", () => fecharPaginaProduto(false));
     document.getElementById("pdp-bc-cat")?.addEventListener("click", () => fecharPaginaProduto(false));
     document.getElementById("pdp-see-all-btn")?.addEventListener("click", () => fecharPaginaProduto(false));
-    document.getElementById("pdp-view-order-btn")?.addEventListener("click", () => fecharPaginaProduto(true));
+    document.getElementById("pdp-view-order-btn")?.addEventListener("click", () => abrirGavetaPedido());
 
     // Alternar entre Marcas (Masterprint vs Bambu Lab) na PDP
     pdpView.querySelectorAll("[data-pdp-switch-brand]").forEach((btn) => {
@@ -2393,6 +2590,7 @@
   function atualizarBadgeUsuarioHeader() {
     const adminTopbar = document.getElementById("admin-vendor-topbar");
     const cartQuoteBtn = document.getElementById("btn-cart-to-quote");
+    const drawerQuoteBtn = document.getElementById("drawer-btn-cart-to-quote");
     const nameEl = document.getElementById("admin-topbar-user-name");
     const roleEl = document.getElementById("admin-topbar-user-role");
 
@@ -2402,11 +2600,13 @@
       // Usuário NÃO autenticado -> Site 100% público e limpo (sem barra nem botão de orçamento)
       if (adminTopbar) adminTopbar.style.display = "none";
       if (cartQuoteBtn) cartQuoteBtn.style.display = "none";
+      if (drawerQuoteBtn) drawerQuoteBtn.style.display = "none";
     } else {
       // Vendedor AUTENTICADO -> Exibe a Barra Administrativa do Vendedor e o botão no carrinho
       const u = state.usuarioGoogle;
       if (adminTopbar) adminTopbar.style.display = "block";
       if (cartQuoteBtn) cartQuoteBtn.style.display = "flex";
+      if (drawerQuoteBtn) drawerQuoteBtn.style.display = "flex";
       if (nameEl) nameEl.textContent = u.nome || "Vendedor";
       if (roleEl) roleEl.textContent = u.cargo || "Vendedor";
     }
@@ -3250,9 +3450,9 @@
         else lista.unshift(proposta);
         localStorage.setItem(STORAGE_KEY_ORCAMENTOS, JSON.stringify(lista));
       }
-      alert(`Orçamento ${meta.numero} salvo com sucesso no banco de dados da Loja SJ 3D!`);
+      mostrarToast(`✅ Orçamento <strong>${meta.numero}</strong> salvo com sucesso!`, "success");
     } catch (_) {
-      alert("Erro ao salvar proposta no banco de dados.");
+      mostrarToast("Erro ao salvar proposta no banco de dados.", "error");
     }
   }
 
@@ -3397,8 +3597,9 @@
       btnExp.onclick = () => {
         if (window.SJ_DB && window.SJ_DB.backup) {
           window.SJ_DB.backup.baixarBackupArquivo();
+          mostrarToast("📦 Arquivo de backup (.json) baixado com sucesso!", "success");
         } else {
-          alert("Backup indisponível no momento.");
+          mostrarToast("Backup indisponível no momento.", "warning");
         }
       };
     }
@@ -3414,10 +3615,13 @@
           if (window.SJ_DB && window.SJ_DB.backup) {
             const res = window.SJ_DB.backup.importarJson(ev.target.result);
             if (res.sucesso) {
-              alert(`Banco de dados restaurado com sucesso!\n• ${res.totalOrcamentos} orçamentos\n• ${res.totalClientes} clientes\n• ${res.totalUsuarios} usuários`);
+              mostrarToast(
+                `✅ Banco restaurado: ${res.totalOrcamentos} orçamentos e ${res.totalClientes} clientes!`,
+                "success"
+              );
               renderizarListaHistorico();
             } else {
-              alert("Erro na importação: " + res.mensagem);
+              mostrarToast("Erro na importação: " + res.mensagem, "error");
             }
           }
         };
@@ -4405,7 +4609,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("btn-cms-apply-bulk-price")?.addEventListener("click", () => {
       const raw = document.getElementById("cms-bulk-color-price")?.value.trim();
       if (!raw) {
-        alert("Digite o novo preço (ex: R$ 84,90) para aplicar nas cores desta linha.");
+        mostrarToast("Digite o novo preço (ex: R$ 84,90) para aplicar nas cores desta linha.", "warning");
         return;
       }
       const precoFormatado = formatarTextoPrecoPadrao(raw);
@@ -4419,6 +4623,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const precoValorInput = document.getElementById("cms-prod-preco-valor");
       if (precoVistaInput) precoVistaInput.value = precoFormatado;
       if (precoValorInput && valorNumerico > 0) precoValorInput.value = valorNumerico.toFixed(2);
+      mostrarToast(`Preço ${precoFormatado} aplicado em todas as cores! Clique em Salvar Produto para confirmar.`, "success");
     });
 
     // Adicionar nova cor na linha de filamento
@@ -4509,7 +4714,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       atualizarSiteAposEdicaoCms();
       voltarParaListaProdutosCms();
-      alert(`✅ Produto "${nome}" atualizado com sucesso no catálogo!`);
+      mostrarToast(`✅ Produto <strong>"${nome}"</strong> atualizado com sucesso no catálogo!`, "success");
     });
 
     // Upload de imagem de fundo para o Banner de Promoções
@@ -4589,19 +4794,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       state.heroSlideAtivo = 0;
       atualizarSiteAposEdicaoCms();
-      alert("✅ Banner de Promoções atualizado com sucesso!");
+      mostrarToast("✅ Banner de Promoções atualizado com sucesso!", "success");
     });
 
     // Botões de Exportação e Restauração na Aba 3 do CMS
     document.getElementById("btn-cms-download-dados")?.addEventListener("click", () => {
       if (window.SJ_DB && window.SJ_DB.catalogo) {
         window.SJ_DB.catalogo.baixarArquivoDadosJs();
+        mostrarToast("📥 Arquivo dados.js atualizado baixado com sucesso!", "success");
       }
     });
 
     document.getElementById("btn-cms-export-json")?.addEventListener("click", () => {
       if (window.SJ_DB && window.SJ_DB.backup) {
         window.SJ_DB.backup.baixarBackupArquivo();
+        mostrarToast("📦 Backup completo (.json) baixado com sucesso!", "success");
       }
     });
 
@@ -4617,7 +4824,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         renderizarListaProdutosCms();
         preencherFormularioBannerCms();
         atualizarSiteAposEdicaoCms();
-        alert("🔄 Catálogo e Banner restaurados para o padrão original de fábrica!");
+        mostrarToast("🔄 Catálogo e Banner restaurados para o padrão original de fábrica!", "success");
       }
     });
 
@@ -4789,64 +4996,50 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
-    // Limpar pedido
-    document.getElementById("btn-clear-box")?.addEventListener("click", () => {
+    // Limpar pedido (Coluna Lateral e Gaveta Deslizante)
+    const limparTodoPedido = () => {
       state.itensCaixa = [];
       atualizarCaixaLateral();
       atualizarMiniResumoNaPaginaProduto();
-    });
+      mostrarToast("Pedido limpo.", "warning");
+    };
+    document.getElementById("btn-clear-box")?.addEventListener("click", limparTodoPedido);
+    document.getElementById("drawer-btn-clear-box")?.addEventListener("click", limparTodoPedido);
 
-    // Ícone da Sacola no Topo e Barra Flutuante Mobile -> rolam para o Pedido
+    // Ícone da Sacola no Topo e Barra Flutuante -> abrem a Gaveta Deslizante do Pedido sem sair da página
     document.getElementById("header-bag-btn")?.addEventListener("click", () => {
-      fecharPaginaProduto(true);
+      abrirGavetaPedido();
     });
 
     document.getElementById("mobile-cart-jump-btn")?.addEventListener("click", () => {
-      fecharPaginaProduto(true);
+      abrirGavetaPedido();
+    });
+
+    // Fechar Gaveta Deslizante do Pedido
+    document.getElementById("close-cart-drawer-btn")?.addEventListener("click", () => {
+      fecharGavetaPedido();
+    });
+    document.getElementById("drawer-btn-continue")?.addEventListener("click", () => {
+      fecharGavetaPedido();
+    });
+    document.getElementById("cart-drawer-overlay")?.addEventListener("click", (e) => {
+      if (e.target && e.target.id === "cart-drawer-overlay") {
+        fecharGavetaPedido();
+      }
+    });
+
+    // Botão Vendedor "Fazer Orçamento Timbrado" dentro da Gaveta Deslizante
+    document.getElementById("drawer-btn-cart-to-quote")?.addEventListener("click", () => {
+      fecharGavetaPedido();
+      importarCarrinhoParaOrcamento();
     });
 
     // Finalizar Pedido -> Envia para o WhatsApp da Loja SJ 3D (44) 99135-1318
     document.getElementById("btn-submit-box")?.addEventListener("click", () => {
-      const { whatsapp } = window.SITE_DATA.loja;
-      if (state.itensCaixa.length === 0) {
-        alert("Adicione pelo menos 1 item ao seu pedido antes de enviar!");
-        return;
-      }
-
-      const totalKgFil = calcularTotalKgFilamentos();
-      const valorTotalEstimado = state.itensCaixa.reduce(
-        (acc, item) => acc + Number(item.precoUnitario || 0) * item.qtd,
-        0
-      );
-      const resumoCupons = calcularCuponsSorteio();
-
-      const linhas = state.itensCaixa.map((i) => {
-        const precoStr =
-          i.precoUnitario > 0
-            ? ` — *${formatarMoedaBR(i.precoUnitario * i.qtd)}*`
-            : "";
-        return `• ${i.qtd}x *${i.nome}* (${i.detalhe1} | ${i.detalhe2})${precoStr}`;
-      });
-
-      const resumoPeso =
-        totalKgFil > 0 ? `\n*Total de Filamentos:* ${totalKgFil} kg` : "";
-      const resumoValor =
-        valorTotalEstimado > 0
-          ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}`
-          : "";
-      const resumoCuponsStr =
-        resumoCupons.totalCuponsCompra > 0
-          ? `\n*🎟️ Sorteio A1 Mini:* ${resumoCupons.totalCuponsCompra} ${resumoCupons.totalCuponsCompra === 1 ? "cupom gerado" : "cupons gerados"
-          } (+3 grátis retirando no balcão!)`
-          : "";
-
-      const msg = encodeURIComponent(
-        `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-        `${linhas.join("\n")}${resumoPeso}${resumoValor}${resumoCuponsStr}\n\n` +
-        `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
-      );
-
-      window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
+      enviarPedidoParaWhatsApp();
+    });
+    document.getElementById("drawer-btn-submit-box")?.addEventListener("click", () => {
+      enviarPedidoParaWhatsApp();
     });
   });
 })();

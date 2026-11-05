@@ -321,7 +321,7 @@
     <section id="quote-studio-view" class="quote-studio-view" style="display: none;" aria-live="polite"></section>
   </main>
 
-  <!-- Barra Flutuante Mobile para Acesso Rápido ao Pedido -->
+  <!-- Barra Flutuante de Acesso Rápido ao Pedido (Mobile + Capa Desktop) -->
   <div class="mobile-floating-cart" id="mobile-floating-cart" style="display:none;">
     <div class="mobile-cart-info">
       <strong id="mobile-cart-count">0 itens</strong>
@@ -331,6 +331,87 @@
       Ver Pedido →
     </button>
   </div>
+
+  <!-- GAVETA DESLIZANTE DO PEDIDO (CART DRAWER VISÍVEL EM QUALQUER TELA: CAPA, PRODUTO OU CATÁLOGO) -->
+  <div class="cart-drawer-overlay" id="cart-drawer-overlay" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="cart-drawer-title">
+    <aside class="cart-drawer-panel" id="cart-drawer-panel">
+      <div class="cart-drawer-header">
+        <div class="cart-drawer-title-wrap">
+          <div class="cart-drawer-bag-icon">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <path d="M16 10a4 4 0 0 1-8 0"></path>
+            </svg>
+          </div>
+          <div>
+            <h4 id="cart-drawer-title">Seu Pedido Loja SJ 3D</h4>
+            <p>Umuarama - PR • Pronta Entrega & Envio Rápido</p>
+          </div>
+        </div>
+        <button type="button" class="modal-close-btn cart-drawer-close" id="close-cart-drawer-btn" aria-label="Fechar pedido">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
+      </div>
+
+      <div class="cart-drawer-body">
+        <div class="side-box-status-row">
+          <div class="added-count-pill" id="drawer-added-count-pill">
+            <span>✓ 0 Itens selecionados</span>
+          </div>
+          <button type="button" class="btn-clear-box" id="drawer-btn-clear-box" style="display:none;">Limpar Tudo</button>
+        </div>
+
+        <div class="box-items-list" id="drawer-items-list"></div>
+      </div>
+
+      <div class="cart-drawer-footer">
+        <div class="raffle-coupons-tracker" id="drawer-raffle-coupons-tracker"></div>
+        <div class="side-box-total" id="drawer-box-total">Total: R$ 0,00</div>
+
+        <button type="button" class="btn-submit-box" id="drawer-btn-submit-box">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+          </svg>
+          <span>Finalizar Pedido no WhatsApp</span>
+        </button>
+
+        <button type="button" class="btn-quote-box" id="drawer-btn-cart-to-quote" style="display: none;">
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+            <polyline points="14 2 14 8 20 8"></polyline>
+            <line x1="16" y1="13" x2="8" y2="13"></line>
+            <line x1="16" y1="17" x2="8" y2="17"></line>
+          </svg>
+          <span>Fazer Orçamento Timbrado</span>
+        </button>
+
+        <button type="button" class="cart-drawer-continue-btn" id="drawer-btn-continue">
+          ← Continuar Escolhendo Produtos
+        </button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- Botão Flutuante Rápido de WhatsApp (Canto Inferior Direito) -->
+  <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Estou%20no%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida."
+     target="_blank"
+     rel="noopener"
+     class="floating-whatsapp-fab"
+     id="floating-whatsapp-btn"
+     aria-label="Falar com a Loja SJ 3D no WhatsApp"
+     title="Atendimento Rápido no WhatsApp (44) 99135-1318">
+    <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+      <path d="M12.031 6.172c-3.181 0-5.767 2.586-5.768 5.766-.001 1.298.38 2.27 1.019 3.287l-.582 2.128 2.182-.573c.978.58 1.911.928 3.145.929 3.178 0 5.767-2.587 5.768-5.766 0-3.18-2.587-5.771-5.764-5.771zm3.392 8.244c-.144.405-.837.774-1.17.824-.312.045-.697.075-2.222-.553-1.823-.751-2.999-2.596-3.089-2.717-.089-.12-1.325-1.761-1.325-3.359 0-1.597.834-2.384 1.13-2.697.296-.312.646-.39 1.15-.39.146 0 .274.007.388.013.312.015.468.036.674.529.259.619.887 2.164.965 2.323.078.158.13.344.026.551-.104.207-.156.335-.312.516-.156.182-.328.406-.468.545-.156.155-.318.324-.136.636.182.312.81 1.332 1.737 2.158 1.194 1.064 2.203 1.393 2.515 1.549.312.156.494.13.676-.078.182-.208.78-1.012.988-1.359.208-.347.416-.289.697-.182.281.107 1.789.843 2.096.997.307.154.512.231.587.36.075.129.075.748-.069 1.153z"/>
+    </svg>
+    <span class="floating-wa-label">WhatsApp</span>
+  </a>
+
+  <!-- Container de Notificações Visuais (Toasts UI/UX Pro Max) -->
+  <div id="sj-toast-container" class="sj-toast-container" aria-live="polite"></div>
 
   <!-- ====================================================================
        3. RODAPÉ LIMPO COM CANAIS OFICIAIS E ENDEREÇO EM UMUARAMA

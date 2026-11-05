@@ -555,6 +555,8 @@ window.SITE_DATA = {
       nome: "Hotend Quick-Swap Aço Endurecido (A1 / A1 Mini)",
       subtitulo: "Troca magnética em 1 clique sem fios • Suporta até 300 °C",
       precoVista: "Consulte no Pedido",
+      precoVistaValor: 0,
+      precoParcelado: "Pronta entrega em Umuarama • 0.2mm / 0.4mm / 0.6mm / 0.8mm",
       imagem: "assets/produtos/peca-hotend.jpg",
       select1Opcoes: ["A1 / Mini", "P2S"],
       select2Opcoes: [
@@ -576,6 +578,8 @@ window.SITE_DATA = {
       nome: "Placa Flexível PEI Texturizada Dupla Face",
       subtitulo: "Aderência perfeita sem cola e remoção fácil dobrando a chapa",
       precoVista: "Consulte no Pedido",
+      precoVistaValor: 0,
+      precoParcelado: "Tamanhos 256×256 mm (A1/P2S) e 180×180 mm (A1 Mini)",
       imagem: "assets/produtos/peca-placa-pei.jpg",
       select1Opcoes: ["PEI Gold", "PEI Black"],
       select2Opcoes: [
@@ -596,6 +600,8 @@ window.SITE_DATA = {
       nome: "Peças de Reposição: Extrusora, Cortador & PTFE",
       subtitulo: "Componentes em estoque em Umuarama para manutenção imediata",
       precoVista: "Consulte no Pedido",
+      precoVistaValor: 0,
+      precoParcelado: "Engrenagens, Lâminas Cortador, Silicone Sock e Tubos PTFE",
       imagem: "assets/produtos/peca-hotend.jpg",
       select1Opcoes: ["Série A1", "Série P2S"],
       select2Opcoes: [
@@ -619,6 +625,8 @@ window.SITE_DATA = {
       nome: "Revisão Preventiva & Calibração Completa 3D",
       subtitulo: "Limpeza profunda de extrusora, lubrificação de guias e calibração",
       precoVista: "Orçamento Rápido",
+      precoVistaValor: 0,
+      precoParcelado: "Atendimento em nossa bancada técnica em Umuarama - PR",
       imagem: "assets/produtos/impressora-a1.jpg",
       select1Opcoes: ["Umuarama", "Região PR"],
       select2Opcoes: [
@@ -627,7 +635,7 @@ window.SITE_DATA = {
         "Para Bambu Lab P2S",
         "Para Snapmaker / Outra"
       ],
-      botaoTexto: "Adicionar ao Pedido",
+      botaoTexto: "Solicitar no Pedido",
       fichaTecnica: {
         "Incluso": "Higienização, lubrificação de eixos X/Y/Z, ajuste de correias e Input Shaper",
         "Garantia": "Serviço com garantia técnica Loja SJ 3D Umuarama"
@@ -640,6 +648,8 @@ window.SITE_DATA = {
       nome: "Manutenção Corretiva, Desentupimento & Reparo AMS",
       subtitulo: "Diagnóstico e conserto rápido na nossa bancada em Umuarama - PR",
       precoVista: "Orçamento Rápido",
+      precoVistaValor: 0,
+      precoParcelado: "Diagnóstico ágil • Peças de reposição originais em estoque",
       imagem: "assets/produtos/impressora-p2s_combo.jpg",
       select1Opcoes: ["Urgente", "Agendado"],
       select2Opcoes: [
@@ -648,7 +658,7 @@ window.SITE_DATA = {
         "Correção de Falha de Camada / Eixos",
         "Diagnóstico Completo na Bancada"
       ],
-      botaoTexto: "Adicionar ao Pedido",
+      botaoTexto: "Solicitar no Pedido",
       fichaTecnica: {
         "Local": "Av. Portugal, 6759 — Zona I-A, Umuarama - PR",
         "Suporte": "Atendimento direto pelo WhatsApp (44) 99135-1318"
@@ -661,6 +671,8 @@ window.SITE_DATA = {
       nome: "Instalação de Upgrades & Ajuste de Perfis de Filamento",
       subtitulo: "Parametrização fina para filamentos MaxPrint e Bambu Lab",
       precoVista: "Orçamento Rápido",
+      precoVistaValor: 0,
+      precoParcelado: "Perfis calibrados para Bambu Studio e OrcaSlicer",
       imagem: "assets/produtos/pla-bambulab.jpg",
       select1Opcoes: ["Presencial", "Remoto/Loja"],
       select2Opcoes: [
@@ -668,7 +680,7 @@ window.SITE_DATA = {
         "Calibração de Fluxo MaxPrint / Bambu",
         "Configuração para Print Farm"
       ],
-      botaoTexto: "Adicionar ao Pedido",
+      botaoTexto: "Solicitar no Pedido",
       fichaTecnica: {
         "Software": "Bambu Studio / OrcaSlicer",
         "Objetivo": "Máxima velocidade com qualidade de superfície perfeita"
