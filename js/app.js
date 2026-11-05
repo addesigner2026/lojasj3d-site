@@ -916,9 +916,9 @@
     ];
 
     const opcoesBambu = [
-      { id: "todos", label: "Todos Bambu Lab (13)", sub: "Carretel + Refil RFID" },
-      { id: "carretel", label: "Carretel c/ RFID (10)", sub: "R$ 99,90" },
-      { id: "refil", label: "Refil s/ Bobina RFID (3)", sub: "R$ 79,90" }
+      { id: "todos", label: "Todos Bambu Lab (13)" },
+      { id: "carretel", label: "Carretel c/ RFID (10)" },
+      { id: "refil", label: "Refil s/ Bobina RFID (3)" }
     ];
 
     // Conteúdo da Extensão Aberta (MaxPrint vs Bambu Lab)
@@ -959,7 +959,7 @@
                 data-hub-max-mat="${m.id}"
               >
                 <strong>${m.curto}</strong>
-                <span>${m.qtdCores} cores • ${m.preco}</span>
+                <span>${m.qtdCores} cores</span>
               </button>
             `
               )
@@ -969,8 +969,8 @@
               class="filament-ext-mat-tab ${mostrarTodosMax ? "active" : ""}"
               data-hub-max-mat="todos"
             >
-              <strong>Resumo das 5 Linhas</strong>
-              <span>PLA • Silk • PETG • TPU • ABS</span>
+              <strong>Todas as Linhas</strong>
+              <span>Ver resumo</span>
             </button>
           </div>
 
@@ -984,9 +984,9 @@
               : `
             <div class="filament-ext-selected-header">
               <div>
-                <span class="filament-ext-eyebrow">MASTERPRINT / MAXPRINT • 1.75 MM (1 KG LACRADO A VÁCUO)</span>
+                <span class="filament-ext-eyebrow">PRODUTOS MASTERPRINT / MAXPRINT</span>
                 <h3>${itemAtivo ? itemAtivo.nome : "Filamento Masterprint"}</h3>
-                <p>${itemAtivo ? itemAtivo.subtitulo : ""} • Clique na cor desejada para adicionar direto ao pedido ou ver em tela cheia.</p>
+                <p>Escolha a cor desejada abaixo para adicionar ao pedido ou clique na foto para ver detalhes.</p>
               </div>
               <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="${itemAtivo ? itemAtivo.id : "fil-pla-maxprint"}">
                 Ver Ficha Técnica & Detalhes →
@@ -1042,7 +1042,7 @@
           }
         `;
       } else {
-        // BAMBU LAB ATIVO: Mostra filtro (Todos | Carretel RFID | Refil RFID) e todas as cores da Bambu Lab!
+        // BAMBU LAB ATIVO: Mostra todas as opções da Bambu Lab!
         const itemBambu =
           window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
           window.SITE_DATA.catalogo[0];
@@ -1065,7 +1065,7 @@
           });
 
         extensaoConteudoHtml = `
-          <div class="filament-ext-materials-bar bambu-mode" role="tablist" aria-label="Filtrar apresentação Bambu Lab RFID">
+          <div class="filament-ext-materials-bar bambu-mode" role="tablist" aria-label="Filtrar apresentação Bambu Lab">
             ${opcoesBambu
               .map(
                 (op) => `
@@ -1075,7 +1075,6 @@
                 data-hub-bambu-filter="${op.id}"
               >
                 <strong>${op.label}</strong>
-                <span>${op.sub}</span>
               </button>
             `
               )
@@ -1084,9 +1083,9 @@
 
           <div class="filament-ext-selected-header bambu-header">
             <div>
-              <span class="filament-ext-eyebrow">🏷️ BAMBU LAB ORIGINAL • CHIP RFID P/ AMS & AMS LITE</span>
-              <h3>Filamentos Bambu Lab PLA Basic & Matte (Carretel & Refil RFID)</h3>
-              <p>Leitura automática de cor e parâmetros no AMS • Escolha abaixo entre Bobina Completa (R$ 99,90) ou Refil RFID (R$ 79,90).</p>
+              <span class="filament-ext-eyebrow">PRODUTOS BAMBU LAB</span>
+              <h3>Filamentos Bambu Lab</h3>
+              <p>Escolha a cor desejada abaixo para adicionar ao pedido ou clique na foto para ver detalhes.</p>
             </div>
             <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="fil-pla-bambulab">
               Ver Ficha Técnica Bambu Lab →
@@ -1150,7 +1149,7 @@
 
     return `
       <div class="filament-brand-hub-wrapper" data-filament-hub="${contexto}">
-        <!-- 1. DOIS GRANDES CARDS DE DESTAQUE POR MARCA (MASTERPRINT/MAXPRINT vs BAMBU LAB) -->
+        <!-- 1. DOIS CARDS LIMPOS DE ESCOLHA DA MARCA (MASTERPRINT/MAXPRINT vs BAMBU LAB) -->
         <div class="filament-brand-portals-grid">
           <!-- CARD MARCA 1: MASTERPRINT / MAXPRINT -->
           <div
@@ -1159,89 +1158,48 @@
           >
             <div class="portal-card-top">
               <div class="portal-img-box">
-                <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint / MaxPrint" loading="lazy" />
+                <img src="assets/produtos/pla-maxprint.jpg" alt="Produtos Masterprint / MaxPrint" loading="lazy" />
               </div>
               <div class="portal-head-info">
-                <span class="portal-eyebrow-pill">LINHA COMPLETA • +80 CORES</span>
-                <h3>Filamentos Masterprint / MaxPrint</h3>
-                <p>PLA Tradicional, PLA Silk Dual/Rainbow, PETG, TPU Flexível 95A e ABS & Glitter (1.75 mm • 1 kg).</p>
+                <span class="portal-eyebrow-pill">PRODUTOS MAXPRINT</span>
+                <h3>Masterprint / MaxPrint</h3>
+                <p>Ver todos os filamentos e cores da marca Masterprint / MaxPrint.</p>
               </div>
-            </div>
-
-            <div class="portal-materials-chips" aria-label="Atalhos de materiais MaxPrint">
-              ${materiaisMaxPrint
-                .map(
-                  (m) => `
-                <button
-                  type="button"
-                  class="portal-chip-btn ${extensaoAberta && !isBambuAtivo && state.hubFilamentoMaterialMaxPrint === m.id ? "active" : ""}"
-                  data-hub-jump-max="${m.id}"
-                >
-                  <strong>${m.curto}</strong>
-                  <small>${m.qtdCores} cores</small>
-                </button>
-              `
-                )
-                .join("")}
             </div>
 
             <div class="portal-card-footer">
-              <div class="portal-price-highlight">
-                <span>1 KG Lacrado a Vácuo</span>
-                <strong>A partir de R$ 59,90</strong>
-              </div>
               <button type="button" class="portal-cta-btn" data-hub-select-brand="MaxPrint">
                 ${
                   extensaoAberta && !isBambuAtivo
-                    ? "✓ Visualizando MaxPrint Abaixo"
-                    : "Ver PLA, PETG, Silk e Cores MaxPrint →"
+                    ? "✓ Visualizando Produtos MaxPrint"
+                    : "Escolher Masterprint / MaxPrint →"
                 }
               </button>
             </div>
           </div>
 
-          <!-- CARD MARCA 2: BAMBU LAB ORIGINAL RFID -->
+          <!-- CARD MARCA 2: BAMBU LAB -->
           <div
             class="filament-brand-portal-card portal-bambu ${extensaoAberta && isBambuAtivo ? "active-portal" : ""}"
             data-hub-select-brand="Bambu Lab"
           >
             <div class="portal-card-top">
               <div class="portal-img-box">
-                <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID" loading="lazy" />
+                <img src="assets/produtos/pla-bambulab.jpg" alt="Produtos Bambu Lab" loading="lazy" />
               </div>
               <div class="portal-head-info">
-                <span class="portal-eyebrow-pill bambu-pill">🏷️ CHIP RFID ORIGINAL P/ AMS</span>
-                <h3>Filamentos Bambu Lab RFID</h3>
-                <p>PLA Basic & Matte com reconhecimento automático no AMS e AMS Lite. Disponível em Carretel ou Refil.</p>
+                <span class="portal-eyebrow-pill bambu-pill">PRODUTOS BAMBU LAB</span>
+                <h3>Bambu Lab</h3>
+                <p>Ver todos os filamentos e cores originais da marca Bambu Lab.</p>
               </div>
-            </div>
-
-            <div class="portal-materials-chips" aria-label="Atalhos Bambu Lab RFID">
-              ${opcoesBambu
-                .map(
-                  (op) => `
-                <button
-                  type="button"
-                  class="portal-chip-btn ${extensaoAberta && isBambuAtivo && state.hubFilamentoFiltroBambu === op.id ? "active" : ""}"
-                  data-hub-jump-bambu="${op.id}"
-                >
-                  <strong>${op.label}</strong>
-                </button>
-              `
-                )
-                .join("")}
             </div>
 
             <div class="portal-card-footer">
-              <div class="portal-price-highlight">
-                <span>Refil R$ 79,90 • Carretel R$ 99,90</span>
-                <strong>A partir de R$ 79,90</strong>
-              </div>
               <button type="button" class="portal-cta-btn bambu-cta" data-hub-select-brand="Bambu Lab">
                 ${
                   extensaoAberta && isBambuAtivo
-                    ? "✓ Visualizando Bambu Lab Abaixo"
-                    : "Ver Todos os Filamentos Bambu Lab →"
+                    ? "✓ Visualizando Produtos Bambu Lab"
+                    : "Escolher Bambu Lab →"
                 }
               </button>
             </div>
@@ -1261,21 +1219,21 @@
                   class="ext-brand-switch-btn ${!isBambuAtivo ? "active" : ""}"
                   data-hub-select-brand="MaxPrint"
                 >
-                  🎨 Masterprint / MaxPrint (PLA, Silk, PETG, TPU, ABS)
+                  Produtos Masterprint / MaxPrint
                 </button>
                 <button
                   type="button"
                   class="ext-brand-switch-btn ${isBambuAtivo ? "active" : ""}"
                   data-hub-select-brand="Bambu Lab"
                 >
-                  🏷️ Bambu Lab Original RFID (Carretel & Refil)
+                  Produtos Bambu Lab
                 </button>
               </div>
               ${
                 isHome
                   ? `
                 <button type="button" class="ext-collapse-btn" data-hub-collapse-home="1">
-                  ✕ Recolher Extensão
+                  ✕ Fechar
                 </button>
               `
                   : ""
@@ -1466,7 +1424,7 @@
               <div class="category-section-header">
                 <h2>${sec.titulo}</h2>
                 <div class="category-header-right">
-                  <span>Escolha entre Masterprint/MaxPrint ou Bambu Lab RFID</span>
+                  <span>Escolha a marca: Masterprint / MaxPrint ou Bambu Lab</span>
                 </div>
               </div>
               ${gerarHubFilamentosHtml("catalogo")}
@@ -2386,8 +2344,8 @@
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
-            <span class="home-eyebrow">FILAMENTOS 3D • MASTERPRINT/MAXPRINT & BAMBU LAB RFID</span>
-            <h2>Escolha a Marca e Veja Toda a Extensão de Materiais e Cores</h2>
+            <span class="home-eyebrow">FILAMENTOS 3D</span>
+            <h2>Escolha a Marca: Masterprint / MaxPrint ou Bambu Lab</h2>
           </div>
           <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Abrir Catálogo de Filamentos →</button>
         </div>
