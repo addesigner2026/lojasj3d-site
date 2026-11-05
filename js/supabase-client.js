@@ -336,6 +336,84 @@
     return msg;
   }
 
+  // =========================================================================
+  // MÓDULO DE CLIENTES & CADASTRO PÚBLICO (INTEGRADO AO SUPABASE & SJ_DB)
+  // =========================================================================
+  const clientes = {
+    // Cadastra ou atualiza um cliente no Supabase e na base local
+    cadastrar: async function (dados) {
+      if (!dados || !dados.nome) {
+        return { sucesso: false, mensagem: "Nome é obrigatório para o cadastro." };
+      }
+
+      const client = inicializarCliente();
+      const idGerado = dados.id || "cli-" + Date.now();
+      const nomeLimpo = String(dados.nome || "").trim();
+      const cnpjCpfLimpo = String(dados.cnpjCpf || dados.cpf || dados.cnpj || "").trim();
+      const telefoneLimpo = String(dados.cepTelefone || dados.telefone || dados.whatsapp || "").trim();
+      const emailLimpo = String(dados.email || "").trim().toLowerCase();
+      const enderecoLimpo = String(dados.endereco || "").trim();
+      const bairroCidadeUfLimpo = String(dados.bairroCidadeUf || "Umuarama/PR").trim();
+
+      const payloadSupabase = {
+        id: idGerado,
+        nome: nomeLimpo,
+        cnpj_cpf: cnpjCpfLimpo || null,
+        endereco: enderecoLimpo || null,
+        bairro_cidade_uf: bairroCidadeUfLimpo,
+        cep_telefone: telefoneLimpo || null,
+        email: emailLimpo || null,
+        atualizado_em: new Date().toISOString()
+      };
+
+      let salvoNoSupabase = false;
+      let mensagemErroSupabase = null;
+
+      if (client) {
+        try {
+          const { error } = await client
+            .from("clientes")
+            .upsert(payloadSupabase, { onConflict: "id" });
+
+          if (error) {
+            console.warn("[SJ_SUPABASE] Aviso ao salvar cliente no Supabase:", error.message);
+            mensagemErroSupabase = error.message;
+          } else {
+            salvoNoSupabase = true;
+            console.log("[SJ_SUPABASE] Cliente salvo com sucesso no Supabase:", nomeLimpo);
+          }
+        } catch (err) {
+          console.warn("[SJ_SUPABASE] Exceção ao gravar no Supabase:", err);
+          mensagemErroSupabase = err.message;
+        }
+      }
+
+      // Salva ou sincroniza também com o banco local (SJ_DB)
+      let clienteLocal = null;
+      if (window.SJ_DB?.clientes?.salvar) {
+        clienteLocal = window.SJ_DB.clientes.salvar({
+          id: idGerado,
+          nome: nomeLimpo,
+          cnpjCpf: cnpjCpfLimpo,
+          endereco: enderecoLimpo,
+          bairroCidadeUf: bairroCidadeUfLimpo,
+          cepTelefone: telefoneLimpo,
+          email: emailLimpo,
+          tipoPessoa: dados.tipoPessoa || "pf",
+          interesses: dados.interesses || []
+        });
+      }
+
+      return {
+        sucesso: true,
+        id: idGerado,
+        salvoNoSupabase,
+        mensagemErroSupabase,
+        cliente: clienteLocal || payloadSupabase
+      };
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -357,6 +435,7 @@
       }
     },
     auth,
+    clientes,
     guardiao
   };
 });

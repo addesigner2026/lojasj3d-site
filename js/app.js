@@ -389,6 +389,9 @@
       </div>
 
       <div class="raffle-modal-footer-actions">
+        <button type="button" class="btn-raffle-whatsapp" style="background:#f04e23;" id="btn-raffle-abrir-cadastro">
+          🎁 Fazer Meu Cadastro & Concorrer
+        </button>
         ${
           b.btn1Texto
             ? `
@@ -403,6 +406,11 @@
         </button>
       </div>
     `;
+
+    bodyEl.querySelector("#btn-raffle-abrir-cadastro")?.addEventListener("click", () => {
+      fecharModalRegrasSorteio();
+      abrirModalCadastroCliente();
+    });
 
     bodyEl.querySelector("#btn-raffle-modal-entendi")?.addEventListener("click", fecharModalRegrasSorteio);
 
@@ -428,6 +436,452 @@
     if (btnSaibaMais) {
       e.preventDefault();
       abrirModalRegrasSorteio();
+    }
+  });
+
+  // =========================================================================
+  // SISTEMA DE CADASTRO DE CLIENTES (CLUBE DE VANTAGENS LOJA SJ 3D)
+  // =========================================================================
+
+  function aplicarMascaraTelefone(input) {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      let v = input.value.replace(/\D/g, "");
+      if (v.length > 11) v = v.slice(0, 11);
+      if (v.length > 10) {
+        input.value = `(${v.slice(0, 2)}) ${v.slice(2, 7)}-${v.slice(7)}`;
+      } else if (v.length > 6) {
+        input.value = `(${v.slice(0, 2)}) ${v.slice(2, 6)}-${v.slice(6)}`;
+      } else if (v.length > 2) {
+        input.value = `(${v.slice(0, 2)}) ${v.slice(2)}`;
+      } else if (v.length > 0) {
+        input.value = `(${v}`;
+      } else {
+        input.value = "";
+      }
+    });
+  }
+
+  function aplicarMascaraCpfCnpj(input, getTipoPessoa) {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      let v = input.value.replace(/\D/g, "");
+      const tipo = typeof getTipoPessoa === "function" ? getTipoPessoa() : "pf";
+      if (tipo === "pj") {
+        if (v.length > 14) v = v.slice(0, 14);
+        if (v.length > 12) {
+          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
+        } else if (v.length > 8) {
+          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8)}`;
+        } else if (v.length > 5) {
+          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
+        } else if (v.length > 2) {
+          input.value = `${v.slice(0, 2)}.${v.slice(2)}`;
+        } else {
+          input.value = v;
+        }
+      } else {
+        if (v.length > 11) v = v.slice(0, 11);
+        if (v.length > 9) {
+          input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+        } else if (v.length > 6) {
+          input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+        } else if (v.length > 3) {
+          input.value = `${v.slice(0, 3)}.${v.slice(3)}`;
+        } else {
+          input.value = v;
+        }
+      }
+    });
+  }
+
+  function gerarFormularioCadastroClienteHtml(idSufixo = "secao") {
+    return `
+      <form class="client-reg-form" id="form-cadastro-${idSufixo}" novalidate>
+        <div class="client-type-toggle">
+          <button type="button" class="client-type-btn active" data-tipo="pf" title="Cadastro com CPF">
+            <span>👤 Pessoa Física (CPF)</span>
+          </button>
+          <button type="button" class="client-type-btn" data-tipo="pj" title="Cadastro empresarial com CNPJ">
+            <span>🏢 Empresa (CNPJ)</span>
+          </button>
+        </div>
+
+        <div class="client-form-grid">
+          <div class="client-field-group full-col">
+            <label class="lbl-nome">Nome Completo *</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+              <input type="text" name="nome" placeholder="Ex: Thiago Novais" required autocomplete="name" />
+            </div>
+          </div>
+
+          <div class="client-field-group">
+            <label class="lbl-documento">CPF *</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="7" y1="8" x2="17" y2="8"></line>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+                <line x1="7" y1="16" x2="12" y2="16"></line>
+              </svg>
+              <input type="text" name="cnpj_cpf" placeholder="000.000.000-00" required inputmode="numeric" />
+            </div>
+          </div>
+
+          <div class="client-field-group">
+            <label>WhatsApp / Celular *</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <input type="tel" name="whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
+            </div>
+          </div>
+
+          <div class="client-field-group full-col">
+            <label>E-mail *</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <input type="email" name="email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="client-field-group">
+            <label>Cidade / UF *</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
+                <circle cx="12" cy="10" r="3"></circle>
+              </svg>
+              <input type="text" name="bairro_cidade_uf" value="Umuarama / PR" required />
+            </div>
+          </div>
+
+          <div class="client-field-group">
+            <label>Endereço / Bairro (Opcional)</label>
+            <div class="client-input-icon-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                <polyline points="9 22 9 12 15 12 15 22"></polyline>
+              </svg>
+              <input type="text" name="endereco" placeholder="Rua, Número e Bairro" />
+            </div>
+          </div>
+
+          <div class="client-interests-section full-col">
+            <label>Principais Interesses:</label>
+            <div class="client-interests-pills">
+              <label class="client-interest-chip">
+                <input type="checkbox" name="interesses" value="Filamentos" checked />
+                <span>🧵 Filamentos 3D</span>
+              </label>
+              <label class="client-interest-chip">
+                <input type="checkbox" name="interesses" value="Impressoras" checked />
+                <span>🖨️ Impressoras 3D</span>
+              </label>
+              <label class="client-interest-chip">
+                <input type="checkbox" name="interesses" value="Pecas" />
+                <span>⚙️ Peças & Reposição</span>
+              </label>
+              <label class="client-interest-chip">
+                <input type="checkbox" name="interesses" value="Manutencao" />
+                <span>🔧 Manutenção Especializada</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="client-submit-btn">
+          <span>🚀 Concluir Cadastro & Ativar Benefícios</span>
+        </button>
+      </form>
+    `;
+  }
+
+  function gerarSecaoCadastroClienteHtml() {
+    return `
+      <section id="secao-cadastro-cliente" class="client-registration-section" aria-label="Cadastro de Clientes Loja SJ 3D">
+        <div class="client-reg-grid">
+          <div class="client-reg-benefits-col">
+            <div class="client-reg-tag">
+              <span class="status-pulse-dot" style="background:#ff8a65; box-shadow:0 0 10px #f04e23;"></span>
+              <span>Clube de Clientes & Vantagens</span>
+            </div>
+            <h2 class="client-reg-title">Cadastre-se na <em>Loja SJ 3D</em> & Garanta Vantagens Exclusivas</h2>
+            <p class="client-reg-lead">
+              Concorra aos prêmios oficiais da loja física em Umuarama - PR, acumule cupons para o <strong>Sorteio da Bambu Lab A1 Mini</strong> e receba orçamentos comerciais timbrados com agilidade no WhatsApp.
+            </p>
+
+            <div class="client-reg-perks-list">
+              <div class="client-perk-item">
+                <span class="client-perk-icon">🎁</span>
+                <div class="client-perk-text">
+                  <strong>Sorteios & Cupons Oficiais</strong>
+                  <span>Cupons automáticos associados ao seu CPF/CNPJ para concorrer à A1 Mini + 4kg de filamentos</span>
+                </div>
+              </div>
+
+              <div class="client-perk-item">
+                <span class="client-perk-icon">⚡</span>
+                <div class="client-perk-text">
+                  <strong>Orçamentos Express</strong>
+                  <span>Seus dados salvos para fechar pedidos no balcão e no site sem redigitar nada</span>
+                </div>
+              </div>
+
+              <div class="client-perk-item">
+                <span class="client-perk-icon">🏷️</span>
+                <div class="client-perk-text">
+                  <strong>Novidades em Filamentos</strong>
+                  <span>Avisos em primeira mão sobre reposições de +80 cores Bambu Lab RFID e Masterprint</span>
+                </div>
+              </div>
+
+              <div class="client-perk-item">
+                <span class="client-perk-icon">📍</span>
+                <div class="client-perk-text">
+                  <strong>Atendimento VIP Balcão</strong>
+                  <span>Retirada presencial imediata e suporte técnico na Av. Portugal, 6759 - Umuarama</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="client-reg-security-note">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+              </svg>
+              <span>Seus dados estão protegidos com segurança pelo Supabase e Lei Geral de Proteção de Dados (LGPD).</span>
+            </div>
+          </div>
+
+          <div class="client-reg-card-wrap" id="client-reg-card-wrap-secao">
+            <div class="client-reg-card-head">
+              <h3>Criar Meu Cadastro</h3>
+              <p>Preencha os campos abaixo para ativar seus benefícios.</p>
+            </div>
+            ${gerarFormularioCadastroClienteHtml("secao")}
+          </div>
+        </div>
+      </section>
+    `;
+  }
+
+  function configurarFormularioCadastro(formEl, wrapId, onSucesso) {
+    if (!formEl) return;
+    const wrap = document.getElementById(wrapId);
+
+    let tipoPessoaAtual = "pf";
+    const btnPf = formEl.querySelector('[data-tipo="pf"]');
+    const btnPj = formEl.querySelector('[data-tipo="pj"]');
+    const lblNome = formEl.querySelector(".lbl-nome");
+    const lblDoc = formEl.querySelector(".lbl-documento");
+    const inputNome = formEl.querySelector('input[name="nome"]');
+    const inputDoc = formEl.querySelector('input[name="cnpj_cpf"]');
+    const inputTel = formEl.querySelector('input[name="whatsapp"]');
+
+    function alternarTipo(tipo) {
+      tipoPessoaAtual = tipo;
+      if (btnPf && btnPj) {
+        btnPf.classList.toggle("active", tipo === "pf");
+        btnPj.classList.toggle("active", tipo === "pj");
+      }
+      if (tipo === "pj") {
+        if (lblNome) lblNome.textContent = "Razão Social / Nome da Empresa *";
+        if (lblDoc) lblDoc.textContent = "CNPJ *";
+        if (inputNome) inputNome.placeholder = "Ex: SJ Novais e Cia Ltda";
+        if (inputDoc) inputDoc.placeholder = "00.000.000/0000-00";
+      } else {
+        if (lblNome) lblNome.textContent = "Nome Completo *";
+        if (lblDoc) lblDoc.textContent = "CPF *";
+        if (inputNome) inputNome.placeholder = "Ex: Thiago Novais";
+        if (inputDoc) inputDoc.placeholder = "000.000.000-00";
+      }
+      if (inputDoc) inputDoc.value = "";
+    }
+
+    btnPf?.addEventListener("click", () => alternarTipo("pf"));
+    btnPj?.addEventListener("click", () => alternarTipo("pj"));
+
+    aplicarMascaraTelefone(inputTel);
+    aplicarMascaraCpfCnpj(inputDoc, () => tipoPessoaAtual);
+
+    formEl.addEventListener("submit", async (e) => {
+      e.preventDefault();
+
+      const nomeVal = String(inputNome?.value || "").trim();
+      const docVal = String(inputDoc?.value || "").trim();
+      const telVal = String(inputTel?.value || "").trim();
+      const emailInput = formEl.querySelector('input[name="email"]');
+      const emailVal = String(emailInput?.value || "").trim();
+      const cidadeVal = String(formEl.querySelector('input[name="bairro_cidade_uf"]')?.value || "Umuarama / PR").trim();
+      const enderecoVal = String(formEl.querySelector('input[name="endereco"]')?.value || "").trim();
+
+      if (!nomeVal) {
+        alert("Por favor, preencha seu Nome Completo ou Razão Social.");
+        inputNome?.focus();
+        return;
+      }
+
+      if (!docVal) {
+        alert(`Por favor, preencha o seu ${tipoPessoaAtual === "pj" ? "CNPJ" : "CPF"}.`);
+        inputDoc?.focus();
+        return;
+      }
+
+      if (!telVal) {
+        alert("Por favor, informe seu WhatsApp para receber o cupom do sorteio e orçamentos.");
+        inputTel?.focus();
+        return;
+      }
+
+      if (!emailVal || !emailVal.includes("@")) {
+        alert("Por favor, informe um e-mail válido.");
+        emailInput?.focus();
+        return;
+      }
+
+      const interessesChecked = Array.from(
+        formEl.querySelectorAll('input[name="interesses"]:checked')
+      ).map((c) => c.value);
+
+      const submitBtn = formEl.querySelector(".client-submit-btn");
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.innerHTML = "<span>⏳ Ativando Cadastro no Supabase...</span>";
+      }
+
+      const dadosParaEnvio = {
+        nome: nomeVal,
+        cnpjCpf: docVal,
+        whatsapp: telVal,
+        cepTelefone: telVal,
+        email: emailVal,
+        bairroCidadeUf: cidadeVal,
+        endereco: enderecoVal,
+        tipoPessoa: tipoPessoaAtual,
+        interesses: interessesChecked
+      };
+
+      try {
+        let resultado = null;
+        if (window.SJ_SUPABASE?.clientes?.cadastrar) {
+          resultado = await window.SJ_SUPABASE.clientes.cadastrar(dadosParaEnvio);
+        } else if (window.SJ_DB?.clientes?.salvar) {
+          resultado = {
+            sucesso: true,
+            cliente: window.SJ_DB.clientes.salvar(dadosParaEnvio)
+          };
+        }
+
+        const msgWhats = encodeURIComponent(
+          `Olá Loja SJ 3D! Acabei de me cadastrar no Clube de Vantagens pelo site:\n\n` +
+          `• Nome: ${nomeVal}\n` +
+          `• ${tipoPessoaAtual === "pj" ? "CNPJ" : "CPF"}: ${docVal}\n` +
+          `• WhatsApp: ${telVal}\n` +
+          `• Cidade: ${cidadeVal}\n\n` +
+          `Gostaria de confirmar minha participação no Sorteio da Impressora A1 Mini!`
+        );
+        const linkWhats = `https://wa.me/5544991351318?text=${msgWhats}`;
+
+        if (wrap) {
+          wrap.innerHTML = `
+            <div class="client-success-box">
+              <div class="client-success-icon">✓</div>
+              <h4>🎉 Cadastro Realizado com Sucesso!</h4>
+              <p>
+                Parabéns, <strong>${nomeVal}</strong>! Seus dados foram salvos com segurança e você já faz parte do <strong>Clube de Vantagens da Loja SJ 3D</strong>.
+              </p>
+              <div class="client-success-actions">
+                <a href="${linkWhats}" target="_blank" rel="noopener" class="btn-success-whatsapp">
+                  💬 Confirmar no WhatsApp da Loja SJ 3D →
+                </a>
+                <button type="button" class="btn-success-continue" id="btn-sucesso-explorar-${wrapId}">
+                  🛍️ Explorar Filamentos & Impressoras
+                </button>
+              </div>
+            </div>
+          `;
+
+          wrap.querySelector(`#btn-sucesso-explorar-${wrapId}`)?.addEventListener("click", () => {
+            if (wrapId.includes("modal")) {
+              fecharModalCadastroCliente();
+            }
+            irParaCategoriaMenu("todos");
+          });
+        }
+
+        if (typeof onSucesso === "function") {
+          onSucesso(dadosParaEnvio);
+        }
+      } catch (err) {
+        console.error("[Cadastro Cliente] Erro:", err);
+        alert("Ocorreu um erro ao concluir o cadastro: " + err.message);
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = "<span>🚀 Concluir Cadastro & Ativar Benefícios</span>";
+        }
+      }
+    });
+  }
+
+  function abrirModalCadastroCliente() {
+    const modal = document.getElementById("modal-client-register");
+    const container = document.getElementById("client-reg-modal-container");
+    if (!modal || !container) return;
+
+    container.innerHTML = `
+      <div class="client-reg-card-wrap" id="client-reg-card-wrap-modal" style="padding:0; box-shadow:none;">
+        ${gerarFormularioCadastroClienteHtml("modal")}
+      </div>
+    `;
+
+    configurarFormularioCadastro(
+      document.getElementById("form-cadastro-modal"),
+      "client-reg-card-wrap-modal",
+      () => {
+        // Callback opcional após sucesso
+      }
+    );
+
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalCadastroCliente() {
+    const modal = document.getElementById("modal-client-register");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("close-client-reg-modal-btn")?.addEventListener("click", fecharModalCadastroCliente);
+  document.getElementById("modal-client-register")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-client-register") fecharModalCadastroCliente();
+  });
+
+  // Handler Global para o Botão "Cadastre-se" no menu ou em qualquer lugar do site
+  document.addEventListener("click", (e) => {
+    const btnCadastro = e.target.closest("#header-btn-cadastre-se, [data-open-cadastro]");
+    if (btnCadastro) {
+      e.preventDefault();
+      const secaoNaPagina = document.getElementById("secao-cadastro-cliente");
+      if (secaoNaPagina && state.categoriaMenu === "home" && !state.produtoDetalheAtivo) {
+        secaoNaPagina.scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => {
+          secaoNaPagina.querySelector('input[name="nome"]')?.focus();
+        }, 600);
+      } else {
+        abrirModalCadastroCliente();
+      }
     }
   });
 
@@ -2310,7 +2764,16 @@
 
       <!-- 6. BANNER ÚNICO E CLEAN DO SORTEIO / PROMOÇÃO NO FECHAMENTO DA CAPA -->
       ${gerarBannerPromocionalSecaoHtml()}
+
+      <!-- 7. SEÇÃO DE CADASTRO DE CLIENTES & CLUBE DE VANTAGENS -->
+      ${gerarSecaoCadastroClienteHtml()}
     `;
+
+    // Inicializa o formulário de cadastro de clientes na Home
+    configurarFormularioCadastro(
+      document.getElementById("form-cadastro-secao"),
+      "client-reg-card-wrap-secao"
+    );
 
     // Botão Admin Rápido nos banners da Home
     homeEl.querySelectorAll("[data-admin-edit-banner]").forEach((btn) => {
