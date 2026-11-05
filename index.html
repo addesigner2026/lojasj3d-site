@@ -185,7 +185,7 @@
       </div>
     </div>
 
-    <!-- Barra de Busca Expansível -->
+    <!-- Barra de Busca Expansível com Sugestões Visuais ao Vivo -->
     <div class="search-bar-Drop" id="search-bar-drop">
       <div class="container">
         <div class="search-bar-inner">
@@ -194,9 +194,16 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
-          <input type="search" id="global-search-input"
+          <input type="search" id="global-search-input" autocomplete="off"
             placeholder="Buscar por cor, código (ex: CÓD. 103), Bambu Lab, Masterprint, A1 Mini, P2S, Snapmaker U1..." />
+          <button type="button" id="global-search-clear-btn" class="inline-search-clear-btn" aria-label="Limpar busca" title="Limpar busca" style="display: none;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="18" y1="6" x2="6" y2="18"></line>
+              <line x1="6" y1="6" x2="18" y2="18"></line>
+            </svg>
+          </button>
         </div>
+        <div class="search-live-dropdown" id="search-live-dropdown" style="display: none;" role="region" aria-label="Sugestões rápidas de produtos e cores"></div>
       </div>
     </div>
   </header>
@@ -427,6 +434,24 @@
       </div>
       <div class="raffle-modal-body" id="raffle-modal-dynamic-body">
         <!-- Preenchido dinamicamente pelo JS com os dados atualizados do Sorteio / Promoção -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       MODAL COMPARADOR DE IMPRESSORAS 3D ("QUAL IMPRESSORA ESCOLHER?")
+       ==================================================================== -->
+  <div id="modal-printer-compare" class="raffle-modal-overlay" aria-hidden="true" role="dialog" aria-modal="true" aria-labelledby="printer-compare-title">
+    <div class="raffle-modal-card printer-compare-modal-card">
+      <div class="raffle-modal-header">
+        <div class="raffle-modal-header-badges">
+          <span class="raffle-pill-orange">⚖️ COMPARATIVO OFICIAL LOJA SJ 3D</span>
+          <span class="raffle-pill-date">BAMBU LAB & SNAPMAKER U1</span>
+        </div>
+        <button type="button" class="raffle-modal-close-btn" id="btn-close-printer-compare" aria-label="Fechar comparativo de impressoras">✕</button>
+      </div>
+      <div class="raffle-modal-body" id="printer-compare-dynamic-body">
+        <!-- Preenchido dinamicamente pelo JS com as 6 impressoras do catálogo -->
       </div>
     </div>
   </div>

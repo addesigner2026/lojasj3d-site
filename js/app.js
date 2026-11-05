@@ -491,6 +491,192 @@
     `;
   }
 
+  // Extrai o valor numérico e texto do parcelamento (10x) das impressoras 3D
+  function extrairDadosParcelamentoImpressora(item) {
+    const vistaStr = item.precoVista || "";
+    const vistaVal = Number(item.precoVistaValor || 0);
+    const parcRaw = String(item.precoParcelado || "").replace(/^ou\s+/i, "").trim();
+
+    // Ex: "10x de R$ 217,90" -> extrai 10 e 217,90
+    const match = parcRaw.match(/(\d+)\s*x\s*(?:de\s*)?R\$\s*([\d.]+,\d{2})/i);
+    if (match) {
+      const qtdParcelas = Number(match[1]) || 10;
+      const valParcela = Number(match[2].replace(/\./g, "").replace(",", ".")) || 0;
+      const totalPrazo = Math.round(qtdParcelas * valParcela * 100) / 100;
+      return {
+        vistaTexto: vistaStr,
+        vistaValor: vistaVal,
+         vistaSub: item.precoParcelado || "",
+        parceladoMain: `${qtdParcelas}x de R$ ${match[2]}`,
+        parceladoSub: `Total a prazo: ${formatarMoedaBR(totalPrazo)} (ou ${vistaStr} à vista)`,
+        parceladoValorTotal: totalPrazo,
+        parceladoTextoCurto: `${qtdParcelas}x de R$ ${match[2]} (${formatarMoedaBR(totalPrazo)})`
+      };
+    }
+
+    return {
+      vistaTexto: vistaStr,
+      vistaValor: vistaVal,
+      vistaSub: item.precoParcelado || "",
+      parceladoMain: parcRaw || vistaStr,
+      parceladoSub: vistaStr ? `À vista: ${vistaStr}` : "",
+      parceladoValorTotal: vistaVal,
+      parceladoTextoCurto: parcRaw || vistaStr
+    };
+  }
+
+  // Modal Comparador Oficial das Impressoras 3D ("Qual Impressora Escolher?")
+  function abrirModalCompararImpressoras() {
+    const modal = document.getElementById("modal-printer-compare");
+    const bodyEl = document.getElementById("printer-compare-dynamic-body");
+    if (!modal || !bodyEl) return;
+
+    const impressoras = (window.SITE_DATA.catalogo || []).filter((i) => i.categoria === "impressoras");
+
+    const metadadosExtras = {
+      "imp-bambu-a1-mini": {
+        volume: "180 × 180 × 180 mm³",
+        multicor: "1 Cor (Expansível c/ AMS Lite)",
+        estrutura: "Aberta Compacta",
+        perfil: "Iniciantes, Hobbistas & Presente"
+      },
+      "imp-bambu-a1-mini-combo": {
+        volume: "180 × 180 × 180 mm³",
+        multicor: "Até 4 Cores (AMS Lite Incluso)",
+        estrutura: "Aberta Compacta + AMS Lite",
+        perfil: "Miniaturas Coloridas & Chaveiros"
+      },
+      "imp-bambu-a1-normal": {
+        volume: "256 × 256 × 256 mm³",
+        multicor: "1 Cor (Expansível c/ AMS Lite)",
+        estrutura: "Aberta Grande Volume",
+        perfil: "Peças Maiores, Cosplay & Produção"
+      },
+      "imp-bambu-a1-combo": {
+        volume: "256 × 256 × 256 mm³",
+        multicor: "Até 4 Cores (AMS Lite Incluso)",
+        estrutura: "Aberta Grande Volume + AMS",
+        perfil: "Campeã de Vendas • Produção Multicor"
+      },
+      "imp-bambu-p2s": {
+        volume: "256 × 256 × 256 mm³",
+        multicor: "Até 4 Cores (AMS Fechado Incluso)",
+        estrutura: "CoreXY Fechada (ABS/ASA/Nylon)",
+        perfil: "Engenharia & Uso Profissional"
+      },
+      "imp-snapmaker": {
+        volume: "Grande Volume Industrial",
+        multicor: "4 Cabeçotes Independentes Reais",
+        estrutura: "Multicabeçote Alta Velocidade",
+        perfil: "Multicor Zero Desperdício"
+      }
+    };
+
+    bodyEl.innerHTML = `
+      <div class="raffle-modal-hero-summary">
+        <span class="raffle-modal-kicker">GUIA RÁPIDO DE ESCOLHA • PRONTA ENTREGA EM UMUARAMA</span>
+        <h2 id="printer-compare-title" class="raffle-modal-main-title">Compare nossas Impressoras 3D Lado a Lado</h2>
+        <p class="raffle-modal-subtitle">Todas dão direito a 🎟️ 10 cupons imediatos no Sorteio de Natal + suporte técnico Loja SJ 3D</p>
+      </div>
+
+      <div class="printer-compare-table-wrap">
+        <table class="printer-compare-table">
+          <thead>
+            <tr>
+              <th>Modelo</th>
+              <th>Volume de Impressão</th>
+              <th>Sistema Multicor (AMS)</th>
+              <th>Estrutura</th>
+              <th>Ideal Para</th>
+              <th>Valor (À Vista / 10x)</th>
+              <th>Ação</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${impressoras
+              .map((imp) => {
+                const extra = metadadosExtras[imp.id] || {};
+                const ft = imp.fichaTecnica || {};
+                const vol = ft["Volume de Impressão"] || extra.volume || "256 × 256 × 256 mm³";
+                const multi = ft["Sistema Multicor"] || extra.multicor || "Multicor";
+                const estr = ft["Arquitetura"] || extra.estrutura || "Alta Velocidade";
+                const ideal = extra.perfil || imp.subtitulo || "Produção 3D";
+                return `
+                  <tr>
+                    <td>
+                      <div class="compare-model-cell" data-compare-open="${imp.id}">
+                        <img src="${imp.imagem}" alt="${imp.nome}" />
+                        <div>
+                          <span class="compare-brand-tag">${imp.marca}</span>
+                          <strong>${imp.nome}</strong>
+                        </div>
+                      </div>
+                    </td>
+                    <td><strong>${vol}</strong></td>
+                    <td>${multi}</td>
+                    <td>${estr}</td>
+                    <td><span class="compare-ideal-pill">${ideal}</span></td>
+                    <td>
+                      <strong class="compare-price-vista">${imp.precoVista || "Sob consulta"}</strong>
+                      <small class="compare-price-parc">${imp.precoParcelado || ""}</small>
+                    </td>
+                    <td>
+                      <button type="button" class="compare-open-btn" data-compare-open="${imp.id}">
+                        Ver Detalhes →
+                      </button>
+                    </td>
+                  </tr>
+                `;
+              })
+              .join("")}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="raffle-modal-footer-actions">
+        <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Estou%20comparando%20as%20impressoras%203D%20no%20site%20e%20gostaria%20de%20ajuda%20para%20escolher%20o%20melhor%20modelo!" target="_blank" rel="noopener" class="btn-raffle-whatsapp">
+          💬 Tirar Dúvida com Especialista no WhatsApp
+        </a>
+        <button type="button" class="raffle-modal-btn-done" id="btn-close-compare-footer">
+          Fechar Comparativo
+        </button>
+      </div>
+    `;
+
+    bodyEl.querySelector("#btn-close-compare-footer")?.addEventListener("click", fecharModalCompararImpressoras);
+    bodyEl.querySelectorAll("[data-compare-open]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const id = el.dataset.compareOpen;
+        fecharModalCompararImpressoras();
+        abrirPaginaProduto(id);
+      });
+    });
+
+    modal.classList.add("open");
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalCompararImpressoras() {
+    const modal = document.getElementById("modal-printer-compare");
+    if (!modal) return;
+    modal.classList.remove("open");
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
+  document.getElementById("btn-close-printer-compare")?.addEventListener("click", fecharModalCompararImpressoras);
+  document.getElementById("modal-printer-compare")?.addEventListener("click", (e) => {
+    if (e.target.id === "modal-printer-compare") fecharModalCompararImpressoras();
+  });
+  document.addEventListener("click", (e) => {
+    const btnComp = e.target.closest("[data-open-printer-compare]");
+    if (btnComp) {
+      e.preventDefault();
+      abrirModalCompararImpressoras();
+    }
+  });
+
   // 2. Renderiza um Card Ultra-Clean na Grade Principal (Estilo Referência Anycubic)
   function gerarCardHTML(item) {
     const marcaAtual = state.marcaNoCardOverride[item.id] || item.marca;
@@ -545,6 +731,7 @@
     let select2Html = "";
     let filtroInicial = "none";
     let corInicialObj = null;
+    let swatchesHtml = "";
 
     if (item.tipoFilamento && listaCores && listaCores.length > 0) {
       const idxInicial =
@@ -562,23 +749,53 @@
       select2Html = listaCores
         .map((cor, idx) => {
           const nomeLimpo = (cor.nome || "").replace(/\s*1kg$/i, "");
+          const codStr = cor.cod ? ` — CÓD. ${cor.cod}` : "";
           return `<option value="${idx}" data-hex="${cor.hex}" data-nome="${cor.nome}" data-cod="${cor.cod || ""
             }" data-preco="${cor.preco || ""}" data-valor="${cor.valor || 0}" data-filtro="${cor.filtroCss
             }" data-img-catalogo="${cor.imgCatalogo || ""}" data-foto-direta="${cor.usaFotoCatalogoDireta ? "1" : "0"
             }" data-img-base="${imagemBase}" ${idx === idxInicial ? "selected" : ""
-            }>${nomeLimpo} (${(cor.hex || "#111111").toUpperCase()})</option>`;
+            }>${nomeLimpo}${codStr} (${cor.preco || ""})</option>`;
         })
         .join("");
+
+      const maxDots = 7;
+      const coresVisiveis = listaCores.slice(0, maxDots);
+      const restantes = Math.max(0, listaCores.length - maxDots);
+      swatchesHtml = `
+        <div class="color-swatches-strip" id="swatches-${item.id}" aria-label="Troca rápida de cor">
+          ${coresVisiveis
+            .map(
+              (cor, idx) => `
+              <button
+                type="button"
+                class="color-swatch-dot ${idx === idxInicial ? "active" : ""}"
+                style="background-color: ${cor.hex};"
+                data-swatch-card="${item.id}"
+                data-swatch-index="${idx}"
+                title="${cor.nome} — CÓD. ${cor.cod} (${cor.preco})"
+                aria-label="Selecionar cor ${cor.nome}"
+              ></button>
+            `
+            )
+            .join("")}
+          ${
+            restantes > 0
+              ? `<button type="button" class="color-swatch-more" data-open-modal="${item.id}" title="Ver todas as ${listaCores.length} cores disponíveis">+${restantes} cores</button>`
+              : ""
+          }
+        </div>
+      `;
     } else {
       select2Html = (item.select2Opcoes || ["Padrão"])
         .map((op) => `<option value="${op}">${op}</option>`)
         .join("");
     }
 
+    const dadosImp = item.categoria === "impressoras" ? extrairDadosParcelamentoImpressora(item) : null;
     const precoInicialExibicao = corInicialObj?.preco || item.precoVista || "";
     const parcelaCurta =
       !item.tipoFilamento && item.precoParcelado
-        ? `<span class="clean-price-sub">${item.precoParcelado}</span>`
+        ? `<span class="clean-price-sub" id="price-sub-${item.id}">${item.precoParcelado}</span>`
         : "";
 
     const priceLineHtml = precoInicialExibicao
@@ -590,13 +807,27 @@
       `
       : "";
 
+    const codBadgeHtml =
+      item.tipoFilamento && corInicialObj?.cod
+        ? `<span class="card-cod-badge" id="cod-badge-${item.id}">CÓD. ${corInicialObj.cod}</span>`
+        : "";
+
     return `
-      <article class="combo-filament-card" data-item-id="${item.id}">
+      <article
+        class="combo-filament-card"
+        data-item-id="${item.id}"
+        ${
+          dadosImp
+            ? `data-vista-txt="${dadosImp.vistaTexto}" data-vista-sub="${dadosImp.vistaSub}" data-parc-main="${dadosImp.parceladoMain}" data-parc-sub="${dadosImp.parceladoSub}"`
+            : ""
+        }
+      >
         <button type="button" class="admin-quick-edit-btn" data-admin-edit-prod="${item.id}" title="Editar foto, preço e descrição deste produto">
           ✏️ Editar
         </button>
 
         <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver todas as cores e detalhes">
+          ${codBadgeHtml}
           <img
             src="${imagemCard}"
             alt="${tituloCard}"
@@ -610,6 +841,7 @@
         <h3 class="combo-card-title" data-open-modal="${item.id}">${tituloCard}</h3>
 
         ${priceLineHtml}
+        ${swatchesHtml}
 
         <div class="combo-selects-row">
           <select class="combo-select" id="sel1-${item.id}" data-type-select="${item.id}" aria-label="Primeira opção">
@@ -663,7 +895,7 @@
             let textoCores = "";
             if (item.tipoFilamento) {
               const paleta = obterPaletaPorChave(item.usaCoresDinamicas, false) || [];
-              textoCores = paleta.map((c) => `${c.nome} ${c.cod}`).join(" ");
+              textoCores = paleta.map((c) => `${c.nome} ${c.cod} cod ${c.cod} cód ${c.cod}`).join(" ");
             }
             const alvo = `${item.nome} ${item.subtitulo} ${item.marca} ${textoCores}`.toLowerCase();
             if (!alvo.includes(termo)) return false;
@@ -676,12 +908,19 @@
 
         const sorteioBannerHtml =
           sec.id === "impressoras" ? gerarBannerPromocionalSecaoHtml() : "";
+        const btnCompararHtml =
+          sec.id === "impressoras"
+            ? `<button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
+            : "";
 
         return `
           <section class="category-section-block" id="sec-${sec.id}">
             <div class="category-section-header">
               <h2>${sec.titulo}</h2>
-              <span>${itensSecao.length} ${itensSecao.length === 1 ? "opção" : "opções"}</span>
+              <div class="category-header-right">
+                ${btnCompararHtml}
+                <span>${itensSecao.length} ${itensSecao.length === 1 ? "opção" : "opções"}</span>
+              </div>
             </div>
             <div class="combo-products-row">
               ${itensSecao.map((item) => gerarCardHTML(item)).join("")}
@@ -692,9 +931,45 @@
       })
       .join("");
 
+    const termoBuscado = state.busca.trim();
+    const waConsultaUrl = `https://wa.me/5544991351318?text=${encodeURIComponent(
+      `Olá Loja SJ 3D! Procurei por "${termoBuscado || "um produto"}" no site e gostaria de saber se vocês têm disponível em Umuarama!`
+    )}`;
+
     container.innerHTML =
       htmlSecoes ||
-      `<div style="padding:48px 20px; text-align:center; border:1px solid var(--border-card);">Nenhum item encontrado para essa busca.</div>`;
+      `
+        <div class="catalog-empty-state">
+          <div class="catalog-empty-icon">🔍</div>
+          <h3>Nenhum produto encontrado${termoBuscado ? ` para "${termoBuscado}"` : ""}</h3>
+          <p>Tente buscar por outro nome, código de cor (ex: <strong>CÓD. 34</strong>, <strong>Silk</strong>, <strong>A1 Mini</strong>) ou fale com nossa equipe em Umuarama.</p>
+          <div class="catalog-empty-actions">
+            <button type="button" class="btn-empty-reset" id="btn-empty-reset-search">
+              ↺ Limpar Busca e Ver Todo o Catálogo
+            </button>
+            <a href="${waConsultaUrl}" target="_blank" rel="noopener" class="btn-empty-whatsapp">
+              💬 Consultar no WhatsApp (44) 99135-1318
+            </a>
+          </div>
+        </div>
+      `;
+
+    container.querySelector("#btn-empty-reset-search")?.addEventListener("click", () => {
+      state.busca = "";
+      state.marcaFilamentoFiltro = "todos";
+      const s1 = document.getElementById("global-search-input");
+      const s2 = document.getElementById("inline-search-input");
+      const c1 = document.getElementById("global-search-clear-btn");
+      const c2 = document.getElementById("inline-search-clear-btn");
+      if (s1) s1.value = "";
+      if (s2) s2.value = "";
+      if (c1) c1.style.display = "none";
+      if (c2) c2.style.display = "none";
+      document.querySelectorAll("[data-filament-brand]").forEach((b) => {
+        b.classList.toggle("active", b.dataset.filamentBrand === "todos");
+      });
+      renderizarCatalogoCompleto();
+    });
 
     vincularEventosDosCards(container);
   }
@@ -755,7 +1030,8 @@
 
     // Clique direto nas bolinhas de cor (Swatches UX Pro Max)
     container.querySelectorAll("[data-swatch-card]").forEach((dotBtn) => {
-      dotBtn.addEventListener("click", () => {
+      dotBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
         const itemId = dotBtn.dataset.swatchCard;
         const idx = Number(dotBtn.dataset.swatchIndex);
         const sel2El = document.getElementById(`sel2-${itemId}`);
@@ -766,11 +1042,27 @@
       });
     });
 
-    // Quando mudar entre Carretel RFID e Refil RFID no seletor 1 do Bambu Lab, sincroniza a cor correspondente
+    // Quando mudar no seletor 1 (Carretel vs Refil nos Filamentos OU À Vista vs 10x nas Impressoras)
     container.querySelectorAll("select[data-type-select]").forEach((sel1El) => {
       sel1El.addEventListener("change", (e) => {
         const itemId = e.target.dataset.typeSelect;
         const val = e.target.value;
+        const cardEl = sel1El.closest(".combo-filament-card");
+
+        // Se for uma Impressora 3D, atualiza o preço em destaque entre À Vista e 10x!
+        if (cardEl && cardEl.hasAttribute("data-vista-txt")) {
+          const priceValEl = document.getElementById(`price-val-${itemId}`);
+          const priceSubEl = document.getElementById(`price-sub-${itemId}`);
+          if (val.includes("10x")) {
+            if (priceValEl) priceValEl.textContent = cardEl.getAttribute("data-parc-main") || "";
+            if (priceSubEl) priceSubEl.textContent = cardEl.getAttribute("data-parc-sub") || "";
+          } else {
+            if (priceValEl) priceValEl.textContent = cardEl.getAttribute("data-vista-txt") || "";
+            if (priceSubEl) priceSubEl.textContent = cardEl.getAttribute("data-vista-sub") || "";
+          }
+          return;
+        }
+
         const sel2El = document.getElementById(`sel2-${itemId}`);
         if (!sel2El || !sel2El.hasAttribute("data-color-select")) return;
 
@@ -888,6 +1180,15 @@
     } else if (sel2) {
       valor2 = sel2.value;
       corHex = item.categoria === "impressoras" ? "#111111" : "#F04E23";
+    }
+
+    // Se for uma Impressora 3D e o cliente escolheu a opção "10x", usa o valor/texto parcelado correspondente
+    if (item.categoria === "impressoras" && String(valor1).toLowerCase().includes("10x")) {
+      const dadosImp = extrairDadosParcelamentoImpressora(item);
+      if (dadosImp.parceladoValorTotal > 0) {
+        precoUnitario = dadosImp.parceladoValorTotal;
+        precoTexto = dadosImp.parceladoMain;
+      }
     }
 
     let nomeExibicao = item.nome;
@@ -1503,6 +1804,7 @@
             <button type="button" class="home-tab-btn" data-printer-tab="COMECE A CRIAR">Comece a Criar</button>
             <button type="button" class="home-tab-btn" data-printer-tab="EVOLUA SUA PRODUÇÃO">Evolua sua Produção</button>
             <button type="button" class="home-tab-btn" data-printer-tab="ALTA PERFORMANCE">Alta Performance</button>
+            <button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Modelos</button>
           </div>
         </div>
 
@@ -2193,7 +2495,7 @@
           <!-- Bloco de Preço -->
           <div class="pdp-price-card">
             <div class="pdp-price-main-row">
-              <span class="pdp-price-label">${item.tipoFilamento ? "1 KG" : "À VISTA"}</span>
+              <span class="pdp-price-label" id="pdp-price-label">${item.tipoFilamento ? "1 KG" : "À VISTA"}</span>
               <strong class="pdp-price-value" id="pdp-price-val">${precoTextoAtual}</strong>
               ${codAtual
         ? `<span class="pdp-cod-pill" id="pdp-info-cod">${codAtual}</span>`
@@ -2201,7 +2503,7 @@
       }
             </div>
             ${item.precoParcelado
-        ? `<div class="pdp-price-sub-row">${item.precoParcelado}</div>`
+        ? `<div class="pdp-price-sub-row" id="pdp-price-sub-row">${item.precoParcelado}</div>`
         : ""
       }
           </div>
@@ -2226,9 +2528,16 @@
               </button>
             </div>
 
-            <button type="button" class="pdp-btn-whatsapp-now" id="pdp-btn-buy-now">
-              Comprar Agora pelo WhatsApp
-            </button>
+            <div class="pdp-secondary-actions-row">
+              <button type="button" class="pdp-btn-whatsapp-now" id="pdp-btn-buy-now">
+                Comprar Agora pelo WhatsApp
+              </button>
+              ${
+                item.categoria === "impressoras"
+                  ? `<button type="button" class="btn-compare-printers-pill pdp-compare-btn" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
+                  : ""
+              }
+            </div>
           </div>
 
           <!-- Barra de Resumo do Pedido (aparece quando há itens no pedido) -->
@@ -2239,6 +2548,20 @@
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- BARRA FIXA DE COMPRA RÁPIDA NO CELULAR DENTRO DA PÁGINA DO PRODUTO -->
+      <div class="pdp-mobile-sticky-bar" id="pdp-mobile-sticky-bar">
+        <div class="pdp-sticky-left">
+          <span class="pdp-sticky-color-dot" id="pdp-sticky-dot" style="background: ${corAtiva ? corAtiva.hex : "#F04E23"};"></span>
+          <div class="pdp-sticky-meta">
+            <strong id="pdp-sticky-title">${corAtiva ? `${corAtiva.nome} (CÓD. ${corAtiva.cod})` : tituloPagina}</strong>
+            <span id="pdp-sticky-price">${precoTextoAtual}</span>
+          </div>
+        </div>
+        <button type="button" class="pdp-sticky-add-btn" id="pdp-sticky-add-btn">
+          + Adicionar
+        </button>
       </div>
 
       <!-- ABAIXO DA DOBRA: PARÂMETROS DE IMPRESSÃO & FICHA TÉCNICA CLEAN -->
@@ -2295,12 +2618,32 @@
     atualizarMiniResumoNaPaginaProduto();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
-    // Função interna para atualizar preço, foto e textos ao trocar cor ou quantidade na PDP
+    // Função interna para atualizar preço, foto e textos ao trocar cor, condição ou quantidade na PDP
     function sincronizarEstadoPDP() {
-      const precoUnit = corAtiva
+      let precoUnit = corAtiva
         ? Number(corAtiva.valor || 0)
         : Number(item.precoVistaValor || 0);
-      const precoTxt = corAtiva?.preco || item.precoVista || "";
+      let precoTxt = corAtiva?.preco || item.precoVista || "";
+      let labelPrecoTopo = item.tipoFilamento ? "1 KG" : "À VISTA";
+      let subPrecoTxt = item.precoParcelado || "";
+
+      if (item.categoria === "impressoras") {
+        const dadosImp = extrairDadosParcelamentoImpressora(item);
+        if (String(opcao1Ativa).toLowerCase().includes("10x")) {
+          labelPrecoTopo = "PARCELADO";
+          precoTxt = dadosImp.parceladoMain;
+          subPrecoTxt = dadosImp.parceladoSub;
+          if (dadosImp.parceladoValorTotal > 0) {
+            precoUnit = dadosImp.parceladoValorTotal;
+          }
+        } else {
+          labelPrecoTopo = "À VISTA";
+          precoTxt = dadosImp.vistaTexto;
+          subPrecoTxt = dadosImp.vistaSub;
+          precoUnit = dadosImp.vistaValor;
+        }
+      }
+
       const codTxt = corAtiva?.cod ? `CÓD. ${corAtiva.cod}` : "";
 
       const mainImg = document.getElementById("pdp-main-img");
@@ -2331,8 +2674,14 @@
         thumbCatImg.src = corAtiva.imgCatalogo;
       }
 
+      const priceLblEl = document.getElementById("pdp-price-label");
+      if (priceLblEl) priceLblEl.textContent = labelPrecoTopo;
+
       const priceValEl = document.getElementById("pdp-price-val");
       if (priceValEl && precoTxt) priceValEl.textContent = precoTxt;
+
+      const priceSubEl = document.getElementById("pdp-price-sub-row");
+      if (priceSubEl) priceSubEl.textContent = subPrecoTxt;
 
       const galleryCodEl = document.getElementById("pdp-gallery-cod");
       if (galleryCodEl && codTxt) galleryCodEl.textContent = codTxt;
@@ -2358,6 +2707,25 @@
             : "Adicionar ao Pedido";
       }
 
+      // Sincroniza a Barra Fixa Mobile (Sticky Bar) da PDP
+      const stickyDotEl = document.getElementById("pdp-sticky-dot");
+      const stickyTitleEl = document.getElementById("pdp-sticky-title");
+      const stickyPriceEl = document.getElementById("pdp-sticky-price");
+      if (stickyDotEl && corAtiva) {
+        stickyDotEl.style.backgroundColor = corAtiva.hex;
+      }
+      if (stickyTitleEl) {
+        stickyTitleEl.textContent = corAtiva
+          ? `${corAtiva.nome} (CÓD. ${corAtiva.cod})`
+          : `${tituloPagina}${opcao1Ativa ? ` • ${opcao1Ativa}` : ""}`;
+      }
+      if (stickyPriceEl) {
+        stickyPriceEl.textContent =
+          precoUnit > 0 && qtdAtiva > 1
+            ? `${qtdAtiva}x • ${formatarMoedaBR(precoUnit * qtdAtiva)}`
+            : precoTxt;
+      }
+
       // Destaca a bolinha ativa
       pdpView.querySelectorAll(".pdp-swatch-circle").forEach((b) => {
         b.classList.toggle("active", Number(b.dataset.pdpColorIdx) === idxCorAtiva);
@@ -2368,6 +2736,8 @@
         dropEl.value = String(idxCorAtiva);
       }
     }
+
+    sincronizarEstadoPDP();
 
     // Eventos de Voltar ao Catálogo e Ver Pedido na Gaveta
     document.getElementById("pdp-back-btn")?.addEventListener("click", () => fecharPaginaProduto(false));
@@ -2430,14 +2800,13 @@
             if (idxRefil >= 0) {
               idxCorAtiva = idxRefil;
               corAtiva = listaCores[idxCorAtiva];
-              sincronizarEstadoPDP();
             }
           } else if (opcao1Ativa.includes("Carretel") && (corAtiva?.nome || "").toLowerCase().includes("refil")) {
             idxCorAtiva = 0;
             corAtiva = listaCores[0];
-            sincronizarEstadoPDP();
           }
         }
+        sincronizarEstadoPDP();
       });
     });
 
@@ -2448,6 +2817,7 @@
         const lbl = document.getElementById("pdp-sel2-label");
         if (lbl) lbl.textContent = opcao2Ativa;
         pdpView.querySelectorAll("[data-pdp-sel2]").forEach((b) => b.classList.toggle("active", b === btn));
+        sincronizarEstadoPDP();
       });
     });
 
@@ -2513,17 +2883,20 @@
       sincronizarEstadoPDP();
     });
 
-    // Botão Primário: Adicionar ao Pedido
+    // Botão Primário e Botão Sticky Mobile: Adicionar ao Pedido
     const addBtn = document.getElementById("pdp-btn-add");
-    addBtn?.addEventListener("click", () => {
-      adicionarItemNaCaixa(item.id, addBtn, {
+    const stickyAddBtn = document.getElementById("pdp-sticky-add-btn");
+    const dispararAdicaoPDP = (botaoRef) => {
+      adicionarItemNaCaixa(item.id, botaoRef, {
         marca: marcaAtual,
         detalhe1: opcao1Ativa,
         detalhe2: opcao2Ativa,
         corObj: corAtiva,
         qtd: qtdAtiva
       });
-    });
+    };
+    addBtn?.addEventListener("click", () => dispararAdicaoPDP(addBtn));
+    stickyAddBtn?.addEventListener("click", () => dispararAdicaoPDP(stickyAddBtn));
 
     // Botão Secundário: Comprar Agora pelo WhatsApp
     document.getElementById("pdp-btn-buy-now")?.addEventListener("click", () => {
@@ -4994,35 +5367,236 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Busca na Lupa e Busca Rápida Inline na Barra do Catálogo (com botão Limpar)
+    // Busca na Lupa com Autocomplete Visual ao Vivo e Busca Rápida Inline na Barra do Catálogo
     const toggleSearchBtn = document.getElementById("toggle-search-btn");
     const searchDrop = document.getElementById("search-bar-drop");
     const searchInput = document.getElementById("global-search-input");
+    const globalSearchClearBtn = document.getElementById("global-search-clear-btn");
+    const searchLiveDropdown = document.getElementById("search-live-dropdown");
     const inlineSearchInput = document.getElementById("inline-search-input");
     const inlineSearchClearBtn = document.getElementById("inline-search-clear-btn");
 
     function sincronizarBotaoLimpar() {
-      if (!inlineSearchClearBtn) return;
-      const temTexto = Boolean(inlineSearchInput && inlineSearchInput.value.trim().length > 0);
-      inlineSearchClearBtn.style.display = temTexto ? "inline-flex" : "none";
+      if (inlineSearchClearBtn) {
+        const temTextoInline = Boolean(inlineSearchInput && inlineSearchInput.value.trim().length > 0);
+        inlineSearchClearBtn.style.display = temTextoInline ? "inline-flex" : "none";
+      }
+      if (globalSearchClearBtn) {
+        const temTextoGlobal = Boolean(searchInput && searchInput.value.trim().length > 0);
+        globalSearchClearBtn.style.display = temTextoGlobal ? "inline-flex" : "none";
+      }
+    }
+
+    function renderizarSugestoesBuscaAoVivo(termoRaw) {
+      if (!searchLiveDropdown) return;
+      const termo = String(termoRaw || "").trim().toLowerCase();
+      if (!termo) {
+        searchLiveDropdown.style.display = "none";
+        searchLiveDropdown.innerHTML = "";
+        return;
+      }
+
+      const resultados = [];
+
+      // 1. Procura produtos do catálogo (Impressoras, Filamentos, Peças, Manutenção)
+      (window.SITE_DATA.catalogo || []).forEach((item) => {
+        const alvoProd = `${item.nome} ${item.subtitulo} ${item.marca}`.toLowerCase();
+        if (alvoProd.includes(termo)) {
+          resultados.push({
+            tipo: "produto",
+            itemId: item.id,
+            corIdx: null,
+            titulo: item.nome,
+            sub: `${item.marca} • ${item.subtitulo}`,
+            preco: item.precoVista || "Sob consulta",
+            img: item.imagem,
+            hex: null,
+            cod: ""
+          });
+        }
+
+        // 2. Se for filamento, procura também nas cores e códigos individuais (ex: "137", "mármore", "laranja")
+        if (item.tipoFilamento) {
+          const isBambu = item.marca === "Bambu Lab";
+          const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
+          paleta.forEach((cor, idx) => {
+            const alvoCor = `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} ${item.nome}`.toLowerCase();
+            if (alvoCor.includes(termo)) {
+              resultados.push({
+                tipo: "cor",
+                itemId: item.id,
+                corIdx: idx,
+                corObj: cor,
+                marca: item.marca,
+                titulo: `${item.nome.replace(" — 1.75mm (1 kg)", "")} — ${cor.nome}`,
+                sub: `CÓD. ${cor.cod} • ${item.marca}`,
+                preco: cor.preco || item.precoVista || "",
+                img: cor.imgCatalogo || item.imagem,
+                hex: cor.hex,
+                cod: cor.cod
+              });
+            }
+          });
+        }
+      });
+
+      const topResultados = resultados.slice(0, 7);
+
+      if (topResultados.length === 0) {
+        const waUrl = `https://wa.me/5544991351318?text=${encodeURIComponent(
+          `Olá Loja SJ 3D! Procurei por "${termoRaw}" no site e gostaria de saber se vocês têm disponível!`
+        )}`;
+        searchLiveDropdown.innerHTML = `
+          <div class="search-live-empty">
+            <span>Nenhum item encontrado para <strong>"${termoRaw}"</strong>.</span>
+            <a href="${waUrl}" target="_blank" rel="noopener" class="search-live-wa-link">💬 Consultar no WhatsApp →</a>
+          </div>
+        `;
+        searchLiveDropdown.style.display = "block";
+        return;
+      }
+
+      searchLiveDropdown.innerHTML = `
+        <div class="search-live-header">
+          <span>Sugestões rápidas (${resultados.length} ${resultados.length === 1 ? "resultado" : "resultados"})</span>
+          <button type="button" class="search-live-see-all" id="btn-search-live-all">
+            Ver todos no catálogo (Enter) →
+          </button>
+        </div>
+        <div class="search-live-list">
+          ${topResultados
+            .map(
+              (r, i) => `
+              <div class="search-live-item" data-live-idx="${i}">
+                <div class="search-live-item-main" data-live-open="${i}">
+                  <div class="search-live-thumb-wrap">
+                    <img src="${r.img}" alt="${r.titulo}" loading="lazy" />
+                    ${
+                      r.hex
+                        ? `<span class="search-live-color-dot" style="background:${r.hex};"></span>`
+                        : ""
+                    }
+                  </div>
+                  <div class="search-live-info">
+                    <strong>${r.titulo}</strong>
+                    <span>${r.sub}</span>
+                  </div>
+                </div>
+                <div class="search-live-right">
+                  <strong class="search-live-price">${r.preco}</strong>
+                  <button type="button" class="search-live-add-btn" data-live-add="${i}" title="Adicionar direto ao pedido">
+                    + Adicionar
+                  </button>
+                </div>
+              </div>
+            `
+            )
+            .join("")}
+        </div>
+      `;
+
+      searchLiveDropdown.style.display = "block";
+
+      searchLiveDropdown.querySelector("#btn-search-live-all")?.addEventListener("click", () => {
+        state.busca = termoRaw;
+        if (inlineSearchInput) inlineSearchInput.value = termoRaw;
+        sincronizarBotaoLimpar();
+        searchLiveDropdown.style.display = "none";
+        searchDrop?.classList.remove("open");
+        if (state.categoriaMenu === "home") {
+          state.categoriaMenu = "todos";
+        }
+        fecharPaginaProduto(false);
+        atualizarVisaoPrincipal();
+      });
+
+      searchLiveDropdown.querySelectorAll("[data-live-open]").forEach((el) => {
+        el.addEventListener("click", () => {
+          const r = topResultados[Number(el.dataset.liveOpen)];
+          if (!r) return;
+          searchLiveDropdown.style.display = "none";
+          searchDrop?.classList.remove("open");
+          abrirPaginaProduto(r.itemId, r.corIdx !== null ? { corIdxInicial: r.corIdx } : null);
+        });
+      });
+
+      searchLiveDropdown.querySelectorAll("[data-live-add]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const r = topResultados[Number(btn.dataset.liveAdd)];
+          if (!r) return;
+          if (r.tipo === "cor" && r.corObj) {
+            adicionarItemNaCaixa(r.itemId, btn, {
+              marca: r.marca,
+              detalhe1: r.corObj.tipo || "1KG",
+              corObj: r.corObj,
+              qtd: 1
+            });
+          } else {
+            adicionarItemNaCaixa(r.itemId, btn);
+          }
+        });
+      });
     }
 
     if (toggleSearchBtn && searchDrop) {
       toggleSearchBtn.addEventListener("click", () => {
         searchDrop.classList.toggle("open");
-        if (searchDrop.classList.contains("open")) searchInput?.focus();
+        if (searchDrop.classList.contains("open")) {
+          searchInput?.focus();
+          if (searchInput && searchInput.value.trim()) {
+            renderizarSugestoesBuscaAoVivo(searchInput.value);
+          }
+        } else if (searchLiveDropdown) {
+          searchLiveDropdown.style.display = "none";
+        }
       });
     }
 
     if (searchInput) {
       searchInput.addEventListener("input", (e) => {
-        state.busca = e.target.value;
-        if (inlineSearchInput && inlineSearchInput.value !== state.busca) {
-          inlineSearchInput.value = state.busca;
-        }
+        const valor = e.target.value;
         sincronizarBotaoLimpar();
-        fecharPaginaProduto(false);
-        renderizarCatalogoCompleto();
+        renderizarSugestoesBuscaAoVivo(valor);
+
+        // Se o usuário já estiver na visão de catálogo, filtra a grade ao vivo também
+        if (state.categoriaMenu !== "home" && !state.produtoDetalheAtivo) {
+          state.busca = valor;
+          if (inlineSearchInput && inlineSearchInput.value !== state.busca) {
+            inlineSearchInput.value = state.busca;
+          }
+          renderizarCatalogoCompleto();
+        }
+      });
+
+      searchInput.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          state.busca = searchInput.value;
+          if (inlineSearchInput) inlineSearchInput.value = state.busca;
+          sincronizarBotaoLimpar();
+          if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
+          searchDrop?.classList.remove("open");
+          if (state.categoriaMenu === "home" && state.busca.trim() !== "") {
+            state.categoriaMenu = "todos";
+          }
+          fecharPaginaProduto(false);
+          atualizarVisaoPrincipal();
+        }
+      });
+    }
+
+    if (globalSearchClearBtn) {
+      globalSearchClearBtn.addEventListener("click", () => {
+        if (searchInput) searchInput.value = "";
+        if (inlineSearchInput) inlineSearchInput.value = "";
+        state.busca = "";
+        sincronizarBotaoLimpar();
+        if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
+        if (state.categoriaMenu !== "home") {
+          renderizarCatalogoCompleto();
+        }
+        searchInput?.focus();
       });
     }
 
@@ -5047,6 +5621,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         inlineSearchInput?.focus();
       });
     }
+
+    // Tecla ESC Global para fechar qualquer modal, gaveta ou busca aberta (UX Pro Max)
+    document.addEventListener("keydown", (e) => {
+      if (e.key !== "Escape") return;
+      fecharModalRegrasSorteio();
+      fecharModalCompararImpressoras();
+      fecharGavetaPedido();
+      if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
+      if (searchDrop && searchDrop.classList.contains("open")) {
+        searchDrop.classList.remove("open");
+      }
+    });
 
     // Limpar pedido (Coluna Lateral e Gaveta Deslizante)
     const limparTodoPedido = () => {
