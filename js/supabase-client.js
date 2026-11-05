@@ -25,7 +25,7 @@
   // IMPORTANTE: Use apenas a URL do Projeto e a chave Anon/Publishable pública.
   // NUNCA utilize a service_role key no frontend.
   const DEFAULT_CONFIG = {
-    url: window.SUPABASE_URL || "",
+    url: window.SUPABASE_URL || "https://tqeifmettwhwngeyzboh.supabase.co",
     anonKey: window.SUPABASE_ANON_KEY || ""
   };
 
