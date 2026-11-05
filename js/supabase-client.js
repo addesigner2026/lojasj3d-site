@@ -26,7 +26,7 @@
   // NUNCA utilize a service_role key no frontend.
   const DEFAULT_CONFIG = {
     url: window.SUPABASE_URL || "https://tqeifmettwhwngeyzboh.supabase.co",
-    anonKey: window.SUPABASE_ANON_KEY || ""
+    anonKey: window.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZWlmbWV0dHdod25nZXl6Ym9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5MDM5NjUsImV4cCI6MjEwOTQ3OTk2NX0.cgc9bDqnscMv9PCe8ttB7aYlkAmuBYOrnT_j_ukUrX0"
   };
 
   let supabaseInstance = null;
