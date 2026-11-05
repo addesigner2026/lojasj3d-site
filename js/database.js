@@ -145,9 +145,16 @@
   async function chamarApiOuLocal(endpoint, options = {}, fallbackFn) {
     if (state.conectadoComServidor && typeof window !== "undefined" && window.fetch) {
       try {
+        const token = state.usuarioAtual?.supabaseSession?.access_token || state.usuarioAtual?.id || "";
+        const headers = {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          ...(options.headers || {})
+        };
         const res = await fetch(endpoint, {
-          headers: { "Content-Type": "application/json", Accept: "application/json" },
-          ...options
+          ...options,
+          headers
         });
         if (res.ok) {
           const dados = await res.json();
@@ -270,18 +277,11 @@
       const user = usuarios.find((u) => u.email.toLowerCase() === emailLimpo);
 
       if (!user) {
-        // Se for o e-mail do admin principal, permite cadastrar/acessar com 123456
-        if (emailLimpo === "contato@gruposj.com.br" && senhaLimpa === "123456") {
-          state.usuarioAtual = { ...USUARIO_PADRAO, ultimoLogin: new Date().toISOString() };
-          gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
-          notificarAuth();
-          return { sucesso: true, usuario: state.usuarioAtual };
-        }
-        return { sucesso: false, mensagem: "Usuário não encontrado no cadastro da loja." };
+        return { sucesso: false, mensagem: "E-mail ou senha incorretos." };
       }
 
       if (user.senhaHash && user.senhaHash !== senhaLimpa) {
-        return { sucesso: false, mensagem: "Senha incorreta. Verifique suas credenciais." };
+        return { sucesso: false, mensagem: "E-mail ou senha incorretos." };
       }
 
       user.ultimoLogin = new Date().toISOString();

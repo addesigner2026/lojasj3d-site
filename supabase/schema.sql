@@ -18,14 +18,14 @@
 -- 1. EXTENSÕES
 create extension if not exists "uuid-ossp";
 
--- 2. PERFIS DE VENDEDORES / USUÁRIOS
+-- 2. PERFIS DE USUÁRIOS (CLIENTES, VENDEDORES E ADMINISTRADORES)
 -- Sincroniza automaticamente com auth.users do Supabase
 create table if not exists public.perfis_usuarios (
   id uuid references auth.users on delete cascade primary key,
   nome text not null,
   email text not null unique,
-  cargo text not null default 'Vendedor',
-  tipo text not null default 'operador', -- operador | admin
+  cargo text not null default 'Cliente',
+  tipo text not null default 'cliente', -- cliente | operador | admin
   foto_url text,
   ativo boolean not null default true,
   criado_em timestamptz not null default now(),
@@ -39,18 +39,32 @@ language plpgsql
 security definer
 set search_path = public
 as $$
+declare
+  v_cargo text;
+  v_tipo text;
 begin
-  insert into public.perfis_usuarios (id, nome, email, cargo, foto_url)
+  v_cargo := coalesce(new.raw_user_meta_data->>'cargo', 'Cliente');
+  -- Somente e-mails de administradores autorizados ou metadados de equipe são 'operador'/'admin'
+  if new.email in ('contato@gruposj.com.br') or v_cargo in ('Administrador', 'Vendedor', 'admin', 'operador') then
+    v_tipo := case when v_cargo in ('Administrador', 'admin') or new.email = 'contato@gruposj.com.br' then 'admin' else 'operador' end;
+  else
+    v_tipo := 'cliente';
+  end if;
+
+  insert into public.perfis_usuarios (id, nome, email, cargo, tipo, foto_url)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1)),
     new.email,
-    coalesce(new.raw_user_meta_data->>'cargo', 'Vendedor'),
+    v_cargo,
+    v_tipo,
     new.raw_user_meta_data->>'avatar_url'
   )
   on conflict (id) do update set
     nome = excluded.nome,
     email = excluded.email,
+    cargo = case when excluded.cargo <> 'Cliente' then excluded.cargo else public.perfis_usuarios.cargo end,
+    tipo = case when excluded.cargo in ('Administrador', 'Vendedor', 'admin', 'operador') then excluded.tipo else public.perfis_usuarios.tipo end,
     atualizado_em = now();
   return new;
 end;
@@ -60,6 +74,23 @@ drop trigger if exists on_auth_user_created on auth.users;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_novo_usuario();
+
+-- Função auxiliar de segurança (Security Definer) para verificar se o chamador é Vendedor ou Admin
+create or replace function public.is_admin_ou_vendedor()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.perfis_usuarios
+    where id = auth.uid()
+      and tipo in ('operador', 'admin')
+      and ativo = true
+  );
+$$;
 
 -- 3. CONFIGURAÇÕES DO SITE (BANNER DO SORTEIO/PROMOÇÕES E DADOS DA LOJA)
 create table if not exists public.configuracoes_site (
@@ -166,10 +197,13 @@ alter table public.orcamentos enable row level security;
 -- Permissões básicas do Data API para as roles anon e authenticated
 grant usage on schema public to anon, authenticated;
 grant select on public.configuracoes_site, public.produtos, public.filamento_cores to anon, authenticated;
-grant insert on public.clientes to anon, authenticated;
-grant all on public.perfis_usuarios, public.configuracoes_site, public.produtos, public.filamento_cores, public.clientes, public.orcamentos to authenticated;
+grant select, update on public.perfis_usuarios to authenticated;
+grant select, insert, update on public.clientes to authenticated;
+grant insert on public.clientes to anon;
+grant select, insert, update on public.orcamentos to authenticated;
+grant all on public.configuracoes_site, public.produtos, public.filamento_cores, public.clientes, public.orcamentos to authenticated;
 
--- Políticas: CONFIGURAÇÕES DO SITE
+-- Políticas: CONFIGURAÇÕES DO SITE (Leitura pública, Modificação apenas Operadores/Admins)
 drop policy if exists "Público pode ler configurações do site" on public.configuracoes_site;
 create policy "Público pode ler configurações do site"
   on public.configuracoes_site for select
@@ -180,121 +214,116 @@ drop policy if exists "Vendedores autenticados podem alterar configurações do 
 create policy "Vendedores autenticados podem alterar configurações do site"
   on public.configuracoes_site for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin_ou_vendedor())
+  with check (public.is_admin_ou_vendedor());
 
--- Políticas: PRODUTOS (Público lê produtos ativos, Vendedor gerencia tudo)
+-- Políticas: PRODUTOS (Público/Clientes leem produtos ativos, Vendedor/Admin gerencia tudo)
 drop policy if exists "Público pode ver produtos ativos" on public.produtos;
-create policy "Público pode ver produtos ativos"
+drop policy if exists "Vendedores autenticados podem ver todos os produtos" on public.produtos;
+create policy "Visualização de produtos ativos ou catálogo completo por vendedor"
   on public.produtos for select
   to anon, authenticated
-  using (ativo = true);
-
-drop policy if exists "Vendedores autenticados podem ver todos os produtos" on public.produtos;
-create policy "Vendedores autenticados podem ver todos os produtos"
-  on public.produtos for select
-  to authenticated
-  using (true);
+  using (ativo = true or public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem inserir produtos" on public.produtos;
 create policy "Vendedores autenticados podem inserir produtos"
   on public.produtos for insert
   to authenticated
-  with check (true);
+  with check (public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem atualizar produtos" on public.produtos;
 create policy "Vendedores autenticados podem atualizar produtos"
   on public.produtos for update
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin_ou_vendedor())
+  with check (public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem deletar produtos" on public.produtos;
 create policy "Vendedores autenticados podem deletar produtos"
   on public.produtos for delete
   to authenticated
-  using (true);
+  using (public.is_admin_ou_vendedor());
 
--- Políticas: CORES DE FILAMENTOS
+-- Políticas: CORES DE FILAMENTOS (Leitura pública ativa, Gerenciamento apenas Vendedor/Admin)
 drop policy if exists "Público pode ver cores ativas de filamentos" on public.filamento_cores;
 create policy "Público pode ver cores ativas de filamentos"
   on public.filamento_cores for select
   to anon, authenticated
-  using (ativo = true);
+  using (ativo = true or public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem gerenciar cores" on public.filamento_cores;
 create policy "Vendedores autenticados podem gerenciar cores"
   on public.filamento_cores for all
   to authenticated
-  using (true)
-  with check (true);
+  using (public.is_admin_ou_vendedor())
+  with check (public.is_admin_ou_vendedor());
 
--- Políticas: PERFIS DE USUÁRIOS
+-- Políticas: PERFIS DE USUÁRIOS (Isolamento por ID do Usuário)
 drop policy if exists "Usuários autenticados podem ler perfis" on public.perfis_usuarios;
-create policy "Usuários autenticados podem ler perfis"
+create policy "Usuários leem seus próprios perfis ou vendedores leem todos"
   on public.perfis_usuarios for select
   to authenticated
-  using (true);
+  using (id = auth.uid() or public.is_admin_ou_vendedor());
 
 drop policy if exists "Usuário autenticado pode atualizar seu próprio perfil" on public.perfis_usuarios;
 create policy "Usuário autenticado pode atualizar seu próprio perfil"
   on public.perfis_usuarios for update
   to authenticated
-  using ((select auth.uid()) = id)
-  with check ((select auth.uid()) = id);
+  using (id = auth.uid() or public.is_admin_ou_vendedor())
+  with check (id = auth.uid() or public.is_admin_ou_vendedor());
 
--- Políticas: CLIENTES (PROTEGIDO — Somente Vendedores Autenticados)
+-- Políticas: CLIENTES (Isolamento de Dados Pessoais / LGPD)
 drop policy if exists "Apenas vendedores autenticados podem ler clientes" on public.clientes;
-create policy "Apenas vendedores autenticados podem ler clientes"
+create policy "Clientes leem seus dados e vendedores leem todos"
   on public.clientes for select
   to authenticated
-  using (true);
+  using (id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem inserir clientes" on public.clientes;
 drop policy if exists "Público e vendedores podem cadastrar clientes" on public.clientes;
-create policy "Público e vendedores podem cadastrar clientes"
+create policy "Cadastro de novos clientes"
   on public.clientes for insert
   to anon, authenticated
-  with check (true);
+  with check (id = coalesce(auth.uid()::text, id) or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar clientes" on public.clientes;
-create policy "Apenas vendedores autenticados podem atualizar clientes"
+create policy "Clientes atualizam seus dados e vendedores atualizam todos"
   on public.clientes for update
   to authenticated
-  using (true)
-  with check (true);
+  using (id = auth.uid()::text or public.is_admin_ou_vendedor())
+  with check (id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir clientes" on public.clientes;
 create policy "Apenas vendedores autenticados podem excluir clientes"
   on public.clientes for delete
   to authenticated
-  using (true);
+  using (public.is_admin_ou_vendedor());
 
--- Políticas: ORÇAMENTOS (PROTEGIDO — Somente Vendedores Autenticados)
+-- Políticas: ORÇAMENTOS (Isolamento de Pedidos e Propostas por Cliente)
 drop policy if exists "Apenas vendedores autenticados podem ler orçamentos" on public.orcamentos;
-create policy "Apenas vendedores autenticados podem ler orçamentos"
+create policy "Clientes leem seus orçamentos e vendedores leem todos"
   on public.orcamentos for select
   to authenticated
-  using (true);
+  using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem criar orçamentos" on public.orcamentos;
-create policy "Apenas vendedores autenticados podem criar orçamentos"
+create policy "Clientes criam seus orçamentos e vendedores criam para todos"
   on public.orcamentos for insert
   to authenticated
-  with check (true);
+  with check (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar orçamentos" on public.orcamentos;
-create policy "Apenas vendedores autenticados podem atualizar orçamentos"
+create policy "Clientes atualizam seus orçamentos e vendedores atualizam todos"
   on public.orcamentos for update
   to authenticated
-  using (true)
-  with check (true);
+  using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor())
+  with check (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir orçamentos" on public.orcamentos;
 create policy "Apenas vendedores autenticados podem excluir orçamentos"
   on public.orcamentos for delete
   to authenticated
-  using (true);
+  using (public.is_admin_ou_vendedor());
 
 -- ============================================================================
 -- 9. STORAGE BUCKET PARA FOTOS DE PRODUTOS E BANNERS (produtos-midia)
@@ -313,20 +342,20 @@ drop policy if exists "Upload de imagens por vendedores autenticados" on storage
 create policy "Upload de imagens por vendedores autenticados"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'produtos-midia');
+  with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
 
 drop policy if exists "Atualização de imagens por vendedores autenticados" on storage.objects;
 create policy "Atualização de imagens por vendedores autenticados"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'produtos-midia')
-  with check (bucket_id = 'produtos-midia');
+  using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor())
+  with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
 
 drop policy if exists "Exclusão de imagens por vendedores autenticados" on storage.objects;
 create policy "Exclusão de imagens por vendedores autenticados"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'produtos-midia');
+  using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
 
 -- ============================================================================
 -- 10. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)

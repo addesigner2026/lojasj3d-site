@@ -93,9 +93,40 @@ function responderJson(res, statusCode, payload) {
     "Content-Type": "application/json; charset=utf-8",
     "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization"
+    "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Admin-Key"
   });
   res.end(JSON.stringify(payload));
+}
+
+const ADMIN_API_KEY = process.env.SJ_ADMIN_KEY || "sj-admin-dev-local";
+
+function verificarAutorizacaoAdmin(req, db) {
+  const authHeader = req.headers["authorization"] || "";
+  const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+  const customKey = req.headers["x-admin-key"] || "";
+
+  if (token === ADMIN_API_KEY || customKey === ADMIN_API_KEY) {
+    return true;
+  }
+
+  if (token && db && Array.isArray(db.usuarios)) {
+    const user = db.usuarios.find(
+      (u) => u.id === token && (u.tipo === "operador" || u.tipo === "admin" || String(u.cargo).toLowerCase().includes("vendedor") || String(u.cargo).toLowerCase().includes("admin"))
+    );
+    if (user) return true;
+  }
+
+  // Em chamadas locais diretas do browser em localhost
+  const host = req.headers["host"] || "";
+  const origin = req.headers["origin"] || "";
+  const referer = req.headers["referer"] || "";
+  const isLocalOrigin = (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) &&
+                        (!referer || referer.includes("localhost") || referer.includes("127.0.0.1"));
+  if ((host.startsWith("localhost:") || host.startsWith("127.0.0.1:")) && isLocalOrigin) {
+    return true;
+  }
+
+  return false;
 }
 
 function lerCorpoRequisicao(req) {
@@ -334,6 +365,10 @@ const server = http.createServer(async (req, res) => {
       const isStatusOnly = Boolean(matchOrcamento[2]);
 
       if (req.method === "DELETE") {
+        if (!verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para excluir orçamentos." });
+          return;
+        }
         db.orcamentos = db.orcamentos.filter((o) => o.id !== id);
         salvarBanco(db);
         responderJson(res, 200, { sucesso: true, idExcluido: id });
@@ -392,6 +427,10 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (req.method === "POST") {
+        if (!verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para editar catálogo." });
+          return;
+        }
         const body = await lerCorpoRequisicao(req);
         db.catalogoCustom = {
           ...(db.catalogoCustom || {}),
@@ -404,6 +443,10 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (req.method === "DELETE") {
+        if (!verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para restaurar catálogo." });
+          return;
+        }
         delete db.catalogoCustom;
         salvarBanco(db);
         responderJson(res, 200, { sucesso: true, mensagem: "Catálogo restaurado para o padrão de fábrica." });
@@ -413,11 +456,24 @@ const server = http.createServer(async (req, res) => {
 
     // 9. Backup Completo: Exportar (GET) ou Importar (POST)
     if (pathname === "/api/db/export" && req.method === "GET") {
-      responderJson(res, 200, db);
+      if (!verificarAutorizacaoAdmin(req, db)) {
+        responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para exportar dados." });
+        return;
+      }
+      // Sanitiza dados de usuários para nunca expor hashes ou senhas
+      const backupSanitizado = {
+        ...db,
+        usuarios: (db.usuarios || []).map(({ senhaHash, ...resto }) => resto)
+      };
+      responderJson(res, 200, backupSanitizado);
       return;
     }
 
     if (pathname === "/api/db/import" && req.method === "POST") {
+      if (!verificarAutorizacaoAdmin(req, db)) {
+        responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para importar dados." });
+        return;
+      }
       const body = await lerCorpoRequisicao(req);
       if (body && Array.isArray(body.usuarios)) {
         salvarBanco(body);

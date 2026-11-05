@@ -172,6 +172,25 @@
     });
   }
 
+  // Utilitários de Segurança e Sanitização contra XSS
+  function escaparHtml(str) {
+    if (str === null || str === undefined) return "";
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function sanitizarHtmlBasico(html) {
+    if (!html) return "";
+    return String(html)
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/\bon\w+\s*=\s*("[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      .replace(/javascript\s*:/gi, "");
+  }
+
   // Sistema de Notificações Visuais (Toasts UI/UX Pro Max)
   function mostrarToast(mensagem, tipo = "success", opcoes = {}) {
     const container = document.getElementById("sj-toast-container");
@@ -181,7 +200,11 @@
     toast.className = `sj-toast toast-${tipo}`;
 
     const spanTxt = document.createElement("span");
-    spanTxt.innerHTML = mensagem;
+    if (typeof mensagem === "string" && /<[a-z][\s\S]*>/i.test(mensagem)) {
+      spanTxt.innerHTML = sanitizarHtmlBasico(mensagem);
+    } else {
+      spanTxt.textContent = mensagem || "";
+    }
     toast.appendChild(spanTxt);
 
     if (opcoes.acaoTexto && typeof opcoes.onClick === "function") {
@@ -972,8 +995,13 @@
     }
 
     const c = state.clienteLogado;
-    const primeiroNome = (c.nome || "Cliente").split(" ")[0];
-    const avatarLetra = (primeiroNome[0] || "C").toUpperCase();
+    const nomeSeguro = escaparHtml(c.nome || "Cliente");
+    const primeiroNomeSeguro = escaparHtml((c.nome || "Cliente").split(" ")[0]);
+    const avatarLetra = (primeiroNomeSeguro[0] || "C").toUpperCase();
+    const emailSeguro = escaparHtml(c.email || "");
+    const whatsappSeguro = escaparHtml(c.whatsapp || "");
+    const cidadeUfSeguro = escaparHtml(c.cidadeUf || "Umuarama / PR");
+    const cpfSeguro = escaparHtml(c.cpf || "");
     const totalFavoritos = (state.favoritos || []).length;
 
     // Busca pedidos/orçamentos do cliente (localStorage + SJ_DB.orcamentos)
@@ -1033,14 +1061,14 @@
       <div class="client-profile-hero">
         <div class="client-profile-main-col">
           <div class="client-avatar-circle">
-            ${c.foto ? `<img src="${c.foto}" alt="${c.nome}" />` : `<span>${avatarLetra}</span>`}
+            ${c.foto ? `<img src="${c.foto}" alt="${nomeSeguro}" />` : `<span>${avatarLetra}</span>`}
           </div>
           <div class="client-profile-text">
-            <h2>Olá, ${primeiroNome}!</h2>
+            <h2>Olá, ${primeiroNomeSeguro}!</h2>
             <div class="client-profile-meta">
-              <span>📧 ${c.email || ""}</span>
-              ${c.whatsapp ? `<span>📱 ${c.whatsapp}</span>` : ""}
-              <span>📍 ${c.cidadeUf || "Umuarama / PR"}</span>
+              <span>📧 ${emailSeguro}</span>
+              ${whatsappSeguro ? `<span>📱 ${whatsappSeguro}</span>` : ""}
+              <span>📍 ${cidadeUfSeguro}</span>
               <span style="color:#ff8a65; font-weight:700;">🎟️ ${totalCupons} cupons no Sorteio</span>
             </div>
           </div>
@@ -1288,27 +1316,27 @@
           <form id="form-client-edit-profile" class="client-auth-form">
             <div class="auth-field">
               <label>Nome Completo *</label>
-              <input type="text" name="edit_nome" value="${c.nome || ""}" required />
+              <input type="text" name="edit_nome" value="${nomeSeguro}" required />
             </div>
 
             <div class="auth-field">
               <label>WhatsApp / Celular *</label>
-              <input type="tel" name="edit_whatsapp" value="${c.whatsapp || ""}" required />
+              <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" required />
             </div>
 
             <div class="auth-field">
               <label>CPF ou CNPJ</label>
-              <input type="text" name="edit_cpf" value="${c.cpf || ""}" />
+              <input type="text" name="edit_cpf" value="${cpfSeguro}" />
             </div>
 
             <div class="auth-field">
               <label>E-mail *</label>
-              <input type="email" name="edit_email" value="${c.email || ""}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
+              <input type="email" name="edit_email" value="${emailSeguro}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
             </div>
 
             <div class="auth-field">
               <label>Cidade / UF *</label>
-              <input type="text" name="edit_cidade" value="${c.cidadeUf || "Umuarama / PR"}" required />
+              <input type="text" name="edit_cidade" value="${cidadeUfSeguro}" required />
             </div>
 
             <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
@@ -7049,12 +7077,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const topResultados = resultados.slice(0, 7);
 
       if (topResultados.length === 0) {
+        const termoEscapado = escaparHtml(termoRaw);
         const waUrl = `https://wa.me/5544991351318?text=${encodeURIComponent(
           `Olá Loja SJ 3D! Procurei por "${termoRaw}" no site e gostaria de saber se vocês têm disponível!`
         )}`;
         searchLiveDropdown.innerHTML = `
           <div class="search-live-empty">
-            <span>Nenhum item encontrado para <strong>"${termoRaw}"</strong>.</span>
+            <span>Nenhum item encontrado para <strong>"${termoEscapado}"</strong>.</span>
             <a href="${waUrl}" target="_blank" rel="noopener" class="search-live-wa-link">💬 Consultar no WhatsApp →</a>
           </div>
         `;
