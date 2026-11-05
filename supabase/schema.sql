@@ -166,6 +166,7 @@ alter table public.orcamentos enable row level security;
 -- Permissões básicas do Data API para as roles anon e authenticated
 grant usage on schema public to anon, authenticated;
 grant select on public.configuracoes_site, public.produtos, public.filamento_cores to anon, authenticated;
+grant insert on public.clientes to anon, authenticated;
 grant all on public.perfis_usuarios, public.configuracoes_site, public.produtos, public.filamento_cores, public.clientes, public.orcamentos to authenticated;
 
 -- Políticas: CONFIGURAÇÕES DO SITE
@@ -250,9 +251,10 @@ create policy "Apenas vendedores autenticados podem ler clientes"
   using (true);
 
 drop policy if exists "Apenas vendedores autenticados podem inserir clientes" on public.clientes;
-create policy "Apenas vendedores autenticados podem inserir clientes"
+drop policy if exists "Público e vendedores podem cadastrar clientes" on public.clientes;
+create policy "Público e vendedores podem cadastrar clientes"
   on public.clientes for insert
-  to authenticated
+  to anon, authenticated
   with check (true);
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar clientes" on public.clientes;
