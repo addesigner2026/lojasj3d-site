@@ -37,7 +37,7 @@
   const secoesDefinicao = [
     {
       id: "filamentos",
-      titulo: "Filamentos 3D — Catálogo Oficial (Bambu Lab & Masterprint/MaxPrint)",
+      titulo: "Filamentos 3D — Catálogo Oficial (Bambu Lab & Masterprint)",
       subtitulo: "Clique nas bolinhas de cor ou use o seletor para ver o acabamento, código e valor"
     },
     {
@@ -714,13 +714,13 @@
         if (item.id === "fil-pla-bambulab") {
           tituloCard = "PLA Bambu Lab";
         } else if (item.id === "fil-pla-maxprint") {
-          tituloCard = "PLA Masterprint / MaxPrint";
+          tituloCard = "PLA Masterprint";
         } else if (item.id.includes("silk")) {
-          tituloCard = "PLA Silk Masterprint / MaxPrint";
+          tituloCard = "PLA Silk Masterprint";
         } else if (item.id.includes("petg")) {
-          tituloCard = "PETG Masterprint / MaxPrint";
+          tituloCard = "PETG Masterprint";
         } else if (item.id.includes("tpu")) {
-          tituloCard = "TPU Flexível Masterprint / MaxPrint";
+          tituloCard = "TPU Flexível Masterprint";
         } else if (item.id.includes("abs")) {
           tituloCard = "ABS & Especiais Masterprint";
         }
@@ -945,11 +945,11 @@
           });
 
         const todosCardsMaxPrint = (window.SITE_DATA.catalogo || []).filter(
-          (i) => i.tipoFilamento && i.marca === "MaxPrint"
+          (i) => i.tipoFilamento && (i.marca === "MaxPrint" || i.marca === "Masterprint")
         );
 
         extensaoConteudoHtml = `
-          <div class="filament-ext-materials-bar" role="tablist" aria-label="Escolher material Masterprint / MaxPrint">
+          <div class="filament-ext-materials-bar" role="tablist" aria-label="Escolher material Masterprint">
             ${materiaisMaxPrint
               .map(
                 (m) => `
@@ -984,7 +984,7 @@
               : `
             <div class="filament-ext-selected-header">
               <div>
-                <span class="filament-ext-eyebrow">PRODUTOS MASTERPRINT / MAXPRINT</span>
+                <span class="filament-ext-eyebrow">PRODUTOS MASTERPRINT</span>
                 <h3>${itemAtivo ? itemAtivo.nome : "Filamento Masterprint"}</h3>
                 <p>Escolha a cor desejada abaixo para adicionar ao pedido ou clique na foto para ver detalhes.</p>
               </div>
@@ -1149,21 +1149,21 @@
 
     return `
       <div class="filament-brand-hub-wrapper" data-filament-hub="${contexto}">
-        <!-- 1. DOIS CARDS LIMPOS DE ESCOLHA DA MARCA (MASTERPRINT/MAXPRINT vs BAMBU LAB) -->
+        <!-- 1. DOIS CARDS LIMPOS DE ESCOLHA DA MARCA (MASTERPRINT vs BAMBU LAB) -->
         <div class="filament-brand-portals-grid">
-          <!-- CARD MARCA 1: MASTERPRINT / MAXPRINT -->
+          <!-- CARD MARCA 1: MASTERPRINT -->
           <div
             class="filament-brand-portal-card portal-maxprint ${extensaoAberta && !isBambuAtivo ? "active-portal" : ""}"
             data-hub-select-brand="MaxPrint"
           >
             <div class="portal-card-top">
               <div class="portal-img-box">
-                <img src="assets/produtos/pla-maxprint.jpg" alt="Produtos Masterprint / MaxPrint" loading="lazy" />
+                <img src="assets/produtos/pla-maxprint.jpg" alt="Produtos Masterprint" loading="lazy" />
               </div>
               <div class="portal-head-info">
-                <span class="portal-eyebrow-pill">PRODUTOS MAXPRINT</span>
-                <h3>Masterprint / MaxPrint</h3>
-                <p>Ver todos os filamentos e cores da marca Masterprint / MaxPrint.</p>
+                <span class="portal-eyebrow-pill">PRODUTOS MASTERPRINT</span>
+                <h3>Masterprint</h3>
+                <p>Ver todos os filamentos e cores da marca Masterprint.</p>
               </div>
             </div>
 
@@ -1171,8 +1171,8 @@
               <button type="button" class="portal-cta-btn" data-hub-select-brand="MaxPrint">
                 ${
                   extensaoAberta && !isBambuAtivo
-                    ? "✓ Visualizando Produtos MaxPrint"
-                    : "Escolher Masterprint / MaxPrint →"
+                    ? "✓ Visualizando Produtos Masterprint"
+                    : "Escolher Masterprint →"
                 }
               </button>
             </div>
@@ -1206,7 +1206,7 @@
           </div>
         </div>
 
-        <!-- 2. EXTENSÃO COMPLETA (ABRE AO CLICAR EM MAXPRINT OU BAMBU LAB) -->
+        <!-- 2. EXTENSÃO COMPLETA (ABRE AO CLICAR EM MASTERPRINT OU BAMBU LAB) -->
         ${
           extensaoAberta
             ? `
@@ -1219,7 +1219,7 @@
                   class="ext-brand-switch-btn ${!isBambuAtivo ? "active" : ""}"
                   data-hub-select-brand="MaxPrint"
                 >
-                  Produtos Masterprint / MaxPrint
+                  Produtos Masterprint
                 </button>
                 <button
                   type="button"
@@ -1395,7 +1395,8 @@
           if (
             sec.id === "filamentos" &&
             state.marcaFilamentoFiltro !== "todos" &&
-            item.marca !== state.marcaFilamentoFiltro
+            item.marca !== state.marcaFilamentoFiltro &&
+            !(state.marcaFilamentoFiltro === "MaxPrint" && item.marca === "Masterprint")
           ) {
             return false;
           }
@@ -1417,14 +1418,14 @@
 
         if (itensSecao.length === 0) return "";
 
-        // Se for a seção de Filamentos, renderiza o Hub Organizado por Marca (MaxPrint vs Bambu Lab + Extensão Completa)
+        // Se for a seção de Filamentos, renderiza o Hub Organizado por Marca (Masterprint vs Bambu Lab + Extensão Completa)
         if (sec.id === "filamentos") {
           return `
             <section class="category-section-block" id="sec-filamentos">
               <div class="category-section-header">
                 <h2>${sec.titulo}</h2>
                 <div class="category-header-right">
-                  <span>Escolha a marca: Masterprint / MaxPrint ou Bambu Lab</span>
+                  <span>Escolha a marca: Masterprint ou Bambu Lab</span>
                 </div>
               </div>
               ${gerarHubFilamentosHtml("catalogo")}
@@ -1721,11 +1722,11 @@
     let nomeExibicao = item.nome;
     if (item.tipoFilamento && item.permiteTrocarMarcaNoCard) {
       if (item.id.includes("petg")) {
-        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "Filamento Bambu Lab RFID" : "PETG Masterprint / MaxPrint";
+        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "Filamento Bambu Lab RFID" : "PETG Masterprint";
       } else if (item.id.includes("silk")) {
-        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "PLA Bambu Lab RFID" : "PLA Silk Masterprint / MaxPrint";
+        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "PLA Bambu Lab RFID" : "PLA Silk Masterprint";
       } else {
-        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "PLA Bambu Lab RFID" : "PLA Masterprint / MaxPrint";
+        nomeExibicao = marcaEfetiva === "Bambu Lab" ? "PLA Bambu Lab RFID" : "PLA Masterprint";
       }
     }
 
@@ -1905,7 +1906,7 @@
 
     const htmlVazio = `
       <div style="font-size:0.8rem; color:var(--text-muted); padding:24px 0; text-align:center;">
-        Selecione seus filamentos Bambu Lab ou Masterprint/MaxPrint, impressoras ou peças e clique em <strong>Adicionar ao Pedido</strong>.
+        Selecione seus filamentos Bambu Lab ou Masterprint, impressoras ou peças e clique em <strong>Adicionar ao Pedido</strong>.
       </div>
     `;
 
@@ -2340,12 +2341,12 @@
         </div>
       </div>
 
-      <!-- 5. VITRINE ORGANIZADA DE FILAMENTOS: SEPARAÇÃO DESTACADA MAXPRINT vs BAMBU LAB + EXTENSÃO COMPLETA -->
+      <!-- 5. VITRINE ORGANIZADA DE FILAMENTOS: SEPARAÇÃO DESTACADA MASTERPRINT vs BAMBU LAB + EXTENSÃO COMPLETA -->
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
             <span class="home-eyebrow">FILAMENTOS 3D</span>
-            <h2>Escolha a Marca: Masterprint / MaxPrint ou Bambu Lab</h2>
+            <h2>Escolha a Marca: Masterprint ou Bambu Lab</h2>
           </div>
           <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Abrir Catálogo de Filamentos →</button>
         </div>
@@ -2604,7 +2605,7 @@
         if (item.id === "fil-pla-bambulab" || item.id === "fil-pla-maxprint") {
           tituloPagina = isBambu
             ? "Filamento PLA Bambu Lab (Carretel & Refil RFID)"
-            : "Filamento PLA Masterprint / MaxPrint — 1.75mm (1 kg)";
+            : "Filamento PLA Masterprint — 1.75mm (1 kg)";
         } else if (item.id.includes("petg")) {
           tituloPagina = isBambu
             ? "Filamento Bambu Lab RFID — 1.75mm"
@@ -2660,11 +2661,11 @@
         <div class="pdp-option-group">
           <div class="pdp-option-header">
             <span>Marca do Filamento:</span>
-            <strong>${isBambu ? "Bambu Lab (RFID Original)" : "Masterprint / MaxPrint"}</strong>
+            <strong>${isBambu ? "Bambu Lab (RFID Original)" : "Masterprint"}</strong>
           </div>
           <div class="pdp-pills-wrap pdp-brand-switch-row">
-            <button type="button" class="pdp-pill-btn ${!isBambu ? "active" : ""}" data-pdp-switch-brand="MaxPrint" title="Filamentos Masterprint / MaxPrint">
-              <span>Masterprint / MaxPrint</span>
+            <button type="button" class="pdp-pill-btn ${!isBambu ? "active" : ""}" data-pdp-switch-brand="MaxPrint" title="Filamentos Masterprint">
+              <span>Masterprint</span>
             </button>
             <button type="button" class="pdp-pill-btn ${isBambu ? "active" : ""}" data-pdp-switch-brand="Bambu Lab" title="Filamentos Bambu Lab com chip RFID">
               <span class="brand-pill-badge">RFID</span>
@@ -2680,7 +2681,7 @@
         seletorMaterialHtml = `
           <div class="pdp-option-group">
             <div class="pdp-option-header">
-              <span>Tipo / Material (MaxPrint):</span>
+              <span>Tipo / Material (Masterprint):</span>
               <strong>${
                 item.id === "fil-pla-maxprint"
                   ? "PLA (40 Cores)"
@@ -3674,7 +3675,7 @@
     return [
       {
         id: "item-" + Date.now(),
-        descricao: "Filamento PLA Masterprint / MaxPrint 1.75mm (1kg)",
+        descricao: "Filamento PLA Masterprint 1.75mm (1kg)",
         qtd: 1,
         precoUnitario: 79.90
       }
@@ -3856,7 +3857,7 @@
         state.itensOrcamento = [
           {
             id: "item-" + Date.now(),
-            descricao: "Filamento PLA Masterprint / MaxPrint 1.75mm (1kg)",
+            descricao: "Filamento PLA Masterprint 1.75mm (1kg)",
             qtd: 1,
             precoUnitario: 79.90
           }
@@ -4999,7 +5000,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("cms-prod-preco-vista").value = item.precoVista || "";
     document.getElementById("cms-prod-preco-valor").value =
       item.precoVistaValor !== undefined ? item.precoVistaValor : extrairNumeroDePrecoBR(item.precoVista);
-    document.getElementById("cms-prod-marca").value = item.marca || "";
+    document.getElementById("cms-prod-marca").value =
+      item.marca === "MaxPrint" ? "Masterprint" : item.marca || "";
     document.getElementById("cms-prod-preco-parcelado").value = item.precoParcelado || "";
     document.getElementById("cms-prod-tag").value = item.tagDestaque || "";
     document.getElementById("cms-prod-imagem").value = item.imagem || "";
@@ -5899,14 +5901,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       // 1. Procura produtos do catálogo (Impressoras, Filamentos, Peças, Manutenção)
       (window.SITE_DATA.catalogo || []).forEach((item) => {
-        const alvoProd = `${item.nome} ${item.subtitulo} ${item.marca}`.toLowerCase();
+        const nomeMarcaExibicao = item.marca === "MaxPrint" ? "Masterprint" : item.marca;
+        const alvoProd = `${item.nome} ${item.subtitulo} ${nomeMarcaExibicao} ${item.marca}`.toLowerCase();
         if (alvoProd.includes(termo)) {
           resultados.push({
             tipo: "produto",
             itemId: item.id,
             corIdx: null,
             titulo: item.nome,
-            sub: `${item.marca} • ${item.subtitulo}`,
+            sub: `${nomeMarcaExibicao} • ${item.subtitulo}`,
             preco: item.precoVista || "Sob consulta",
             img: item.imagem,
             hex: null,
@@ -5919,7 +5922,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const isBambu = item.marca === "Bambu Lab";
           const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
           paleta.forEach((cor, idx) => {
-            const alvoCor = `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} ${item.nome}`.toLowerCase();
+            const alvoCor = `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} ${item.nome} ${nomeMarcaExibicao}`.toLowerCase();
             if (alvoCor.includes(termo)) {
               resultados.push({
                 tipo: "cor",
@@ -5928,7 +5931,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 corObj: cor,
                 marca: item.marca,
                 titulo: `${item.nome.replace(" — 1.75mm (1 kg)", "")} — ${cor.nome}`,
-                sub: `CÓD. ${cor.cod} • ${item.marca}`,
+                sub: `CÓD. ${cor.cod} • ${nomeMarcaExibicao}`,
                 preco: cor.preco || item.precoVista || "",
                 img: cor.imgCatalogo || item.imagem,
                 hex: cor.hex,

@@ -238,7 +238,7 @@ window.SITE_DATA = {
       categoria: "filamentos",
       marca: "MaxPrint",
       permiteTrocarMarcaNoCard: true,
-      nome: "PLA Masterprint / MaxPrint — 40 Cores",
+      nome: "PLA Masterprint — 40 Cores",
       subtitulo: "Clássico, Fosco, Madeira, Mármore, Rainbow e Glitter • Bico 190–220°C",
       precoVista: "R$ 79,90",
       precoParcelado: "Cores Padrão: R$ 79,90 • Mármore/Glitter: R$ 89,90 a R$ 99,90",
@@ -251,7 +251,7 @@ window.SITE_DATA = {
       corInicialIndex: 0,
       botaoTexto: "Adicionar ao Pedido",
       fichaTecnica: {
-        "Marca": "Masterprint / MaxPrint (Catálogo Oficial Loja SJ)",
+        "Marca": "Masterprint (Catálogo Oficial Loja SJ)",
         "Material": "PLA 1.75 mm (Tolerância ± 0.02 mm)",
         "Temperatura do Bico": "190 °C a 220 °C",
         "Temperatura da Mesa": "Desligada a 60 °C (recomendado 50–60 °C)",
@@ -277,7 +277,7 @@ window.SITE_DATA = {
       corInicialIndex: 0,
       botaoTexto: "Adicionar ao Pedido",
       fichaTecnica: {
-        "Marca": "Masterprint / MaxPrint",
+        "Marca": "Masterprint",
         "Material": "PLA Silk (Efeito Metálico de Alto Brilho)",
         "Temperatura do Bico": "200 °C a 225 °C",
         "Temperatura da Mesa": "50 °C a 60 °C",
@@ -302,7 +302,7 @@ window.SITE_DATA = {
       corInicialIndex: 0,
       botaoTexto: "Adicionar ao Pedido",
       fichaTecnica: {
-        "Marca": "Masterprint / MaxPrint",
+        "Marca": "Masterprint",
         "Material": "PETG 1.75 mm (Alta Resistência Mecânica e Térmica)",
         "Temperatura do Bico": "220 °C a 240 °C",
         "Temperatura da Mesa": "70 °C a 90 °C",
@@ -327,7 +327,7 @@ window.SITE_DATA = {
       corInicialIndex: 0,
       botaoTexto: "Adicionar ao Pedido",
       fichaTecnica: {
-        "Marca": "Masterprint / MaxPrint",
+        "Marca": "Masterprint",
         "Material": "TPU Flexível (Poliuretano Termoplástico)",
         "Dureza Shore": "95A",
         "Temperatura do Bico": "190 °C a 230 °C (recomendado 210–225 °C)",
@@ -353,7 +353,7 @@ window.SITE_DATA = {
       corInicialIndex: 0,
       botaoTexto: "Adicionar ao Pedido",
       fichaTecnica: {
-        "Marca": "Masterprint / MaxPrint",
+        "Marca": "Masterprint",
         "Materiais": "ABS Preto (CÓD. 96) e Linha Especial com Glitter (CÓD. 55, 80, 90, 107, 149)",
         "Temperatura Bico ABS": "230 °C a 250 °C (Mesa 90 °C a 110 °C em impressora fechada como P2S)",
         "Temperatura Bico Glitter": "200 °C a 225 °C (Recomendado bico >= 0.4 mm)"
@@ -410,7 +410,7 @@ window.SITE_DATA = {
       ],
       select2Opcoes: [
         "A1 Mini + AMS Lite (4 Cores)",
-        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Masterprint",
         "Incluir Filamentos Bambu Lab RFID"
       ],
       botaoTexto: "Adicionar ao Pedido",
@@ -441,7 +441,7 @@ window.SITE_DATA = {
       ],
       select2Opcoes: [
         "Somente Impressora A1 (256³ mm)",
-        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Masterprint",
         "Incluir Filamentos Bambu Lab RFID"
       ],
       botaoTexto: "Adicionar ao Pedido",
@@ -472,7 +472,7 @@ window.SITE_DATA = {
       ],
       select2Opcoes: [
         "A1 + AMS Lite (4 Cores)",
-        "Incluir Filamentos MaxPrint",
+        "Incluir Filamentos Masterprint",
         "Incluir Filamentos Bambu Lab RFID"
       ],
       botaoTexto: "Adicionar ao Pedido",
@@ -669,7 +669,7 @@ window.SITE_DATA = {
       categoria: "manutencao",
       marca: "Oficina SJ 3D",
       nome: "Instalação de Upgrades & Ajuste de Perfis de Filamento",
-      subtitulo: "Parametrização fina para filamentos MaxPrint e Bambu Lab",
+      subtitulo: "Parametrização fina para filamentos Masterprint e Bambu Lab",
       precoVista: "Orçamento Rápido",
       precoVistaValor: 0,
       precoParcelado: "Perfis calibrados para Bambu Studio e OrcaSlicer",
@@ -677,7 +677,7 @@ window.SITE_DATA = {
       select1Opcoes: ["Presencial", "Remoto/Loja"],
       select2Opcoes: [
         "Upgrade Kit Aço Endurecido",
-        "Calibração de Fluxo MaxPrint / Bambu",
+        "Calibração de Fluxo Masterprint / Bambu",
         "Configuração para Print Farm"
       ],
       botaoTexto: "Solicitar no Pedido",

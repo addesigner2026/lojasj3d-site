@@ -1,6 +1,6 @@
 {
   "versao": "1.0.0",
-  "atualizadoEm": "2026-11-04T17:30:00.000Z",
+  "atualizadoEm": "2026-11-05T02:24:44.595Z",
   "usuarios": [
     {
       "id": "usr-admin-1",
@@ -12,10 +12,21 @@
       "foto": null,
       "ativo": true,
       "criadoEm": "2026-11-04T17:00:00.000Z",
-      "ultimoLogin": "2026-11-04T17:00:00.000Z"
+      "ultimoLogin": "2026-11-05T02:24:44.595Z"
     }
   ],
   "clientes": [
+    {
+      "id": "cli-1793823780128",
+      "nome": "Thiago",
+      "cnpjCpf": "",
+      "endereco": "",
+      "bairroCidadeUf": "Umuarama / PR",
+      "cepTelefone": "4499900000",
+      "email": "",
+      "atualizadoEm": "2026-11-04T20:23:00.143Z",
+      "criadoEm": "2026-11-04T20:23:00.140Z"
+    },
     {
       "id": "cli-1",
       "nome": "Cliente Balcão - Loja SJ 3D",
@@ -24,9 +35,144 @@
       "bairroCidadeUf": "Zona 1A - Umuarama/PR",
       "cepTelefone": "(44) 99135-1318",
       "email": "contato@gruposj.com.br",
-      "criadoEm": "2026-11-04T17:00:00.000Z"
+      "criadoEm": "2026-11-04T17:00:00.000Z",
+      "atualizadoEm": "2026-11-05T01:58:50.852Z"
     }
   ],
-  "orcamentos": []
+  "orcamentos": [
+    {
+      "id": "SJ-2026-1685",
+      "dataHoraSalvo": "2026-11-05T01:58:50.844Z",
+      "vendedor": "Thiago Novais",
+      "clienteNome": "Cliente Balcão - Loja SJ 3D",
+      "status": "pendente",
+      "total": 629.3,
+      "itensQtd": 3,
+      "metadados": {
+        "numero": "SJ-2026-1685",
+        "data": "04/11/2026",
+        "status": "pendente",
+        "validade": "15 dias",
+        "frete": 0,
+        "desconto": 0,
+        "formaPagamento": "Cartão de Débito",
+        "prazoEntrega": "Pronta Entrega / Imediato",
+        "observacoes": "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        "cliente": {
+          "nome": "Cliente Balcão - Loja SJ 3D",
+          "cnpjCpf": "66.275.129/0001-10",
+          "endereco": "Avenida Portugal, 6759",
+          "bairroCidadeUf": "Zona 1A - Umuarama/PR",
+          "cepTelefone": "(44) 99135-1318",
+          "email": "contato@gruposj.com.br"
+        }
+      },
+      "itens": [
+        {
+          "id": "item-1793843881493-0",
+          "descricao": "PLA Silk Masterprint — 1KG (Silk Dourado 1kg (CÓD. 69))",
+          "qtd": 5,
+          "precoUnitario": 89.9
+        },
+        {
+          "id": "item-1793843881493-1",
+          "descricao": "PLA Masterprint — 1KG (Preto 1kg (CÓD. 34))",
+          "qtd": 1,
+          "precoUnitario": 79.9
+        },
+        {
+          "id": "item-1793843881493-2",
+          "descricao": "PLA Bambu Lab RFID — 1KG (Laranja 1kg (CÓD. 137))",
+          "qtd": 1,
+          "precoUnitario": 99.9
+        }
+      ],
+      "atualizadoEm": "2026-11-05T01:58:50.852Z"
+    },
+    {
+      "id": "SJ-2026-2108",
+      "dataHoraSalvo": "2026-11-05T01:06:17.258Z",
+      "vendedor": "Thiago Novais (Loja SJ)",
+      "clienteNome": "Cliente Balcão - Loja SJ 3D",
+      "status": "pendente",
+      "total": 284.71000000000004,
+      "itensQtd": 3,
+      "metadados": {
+        "numero": "SJ-2026-2108",
+        "data": "04/11/2026",
+        "status": "pendente",
+        "validade": "15 dias",
+        "frete": 0,
+        "desconto": 14.99,
+        "formaPagamento": "PIX à Vista (Chave CNPJ: 66.275.129/0001-10) — Com 5% de Desconto à Vista aplicado",
+        "prazoEntrega": "Pronta Entrega / Imediato",
+        "observacoes": "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        "cliente": {
+          "nome": "Cliente Balcão - Loja SJ 3D",
+          "cnpjCpf": "66.275.129/0001-10",
+          "endereco": "Avenida Portugal, 6759",
+          "bairroCidadeUf": "Zona 1A - Umuarama/PR",
+          "cepTelefone": "(44) 99135-1318",
+          "email": "contato@gruposj.com.br"
+        }
+      },
+      "itens": [
+        {
+          "id": "item-1793840760547-0",
+          "descricao": "PLA Bambu Lab RFID — 1KG (Laranja 1kg (CÓD. 137))",
+          "qtd": 1,
+          "precoUnitario": 99.9
+        },
+        {
+          "id": "item-1793840760547-1",
+          "descricao": "PLA Bambu Lab RFID — 1KG (Amarelo Sol 1kg (CÓD. 113))",
+          "qtd": 1,
+          "precoUnitario": 99.9
+        },
+        {
+          "id": "item-1793840760547-2",
+          "descricao": "PLA Bambu Lab RFID — 1KG (Verde 1kg (CÓD. 115))",
+          "qtd": 1,
+          "precoUnitario": 99.9
+        }
+      ]
+    },
+    {
+      "id": "SJ-2026-2368",
+      "dataHoraSalvo": "2026-11-04T20:23:00.144Z",
+      "vendedor": "Thiago Novais",
+      "clienteNome": "Thiago",
+      "status": "aprovado",
+      "total": 10796,
+      "itensQtd": 1,
+      "metadados": {
+        "numero": "SJ-2026-2368",
+        "data": "04/11/2026",
+        "status": "pendente",
+        "validade": "15 dias",
+        "frete": 0,
+        "desconto": 0,
+        "formaPagamento": "PIX à Vista (Chave CNPJ: 66.275.129/0001-10)",
+        "prazoEntrega": "Pronta Entrega / Imediato",
+        "observacoes": "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        "cliente": {
+          "nome": "Thiago",
+          "cnpjCpf": "",
+          "endereco": "",
+          "bairroCidadeUf": "Umuarama / PR",
+          "cepTelefone": "4499900000",
+          "email": ""
+        }
+      },
+      "itens": [
+        {
+          "id": "item-1793823764467-0",
+          "descricao": "Bambu Lab A1 — À Vista (Somente Impressora A1 (256³ mm))",
+          "qtd": 4,
+          "precoUnitario": 2699
+        }
+      ],
+      "statusAtualizadoEm": "2026-11-04T20:23:20.678Z"
+    }
+  ]
 }
-
