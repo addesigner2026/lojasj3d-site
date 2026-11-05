@@ -222,11 +222,129 @@
     if (overlay) overlay.style.display = "none";
   }
 
+  function obterPedidosClienteSalvos(clienteId) {
+    if (!clienteId) return [];
+    try {
+      const raw = localStorage.getItem(`sj_pedidos_cliente_${clienteId}`);
+      if (raw) {
+        const arr = JSON.parse(raw);
+        if (Array.isArray(arr)) return arr;
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  function persistirPedidosClienteSalvos(clienteId, lista) {
+    if (!clienteId) return;
+    try {
+      localStorage.setItem(`sj_pedidos_cliente_${clienteId}`, JSON.stringify(lista));
+    } catch (_) {}
+  }
+
+  async function salvarPedidoOuOrcamentoCliente(opcoes = {}) {
+    const { enviadoWhatsApp = false, silencioso = false } = opcoes;
+
+    if (state.itensCaixa.length === 0) {
+      mostrarToast("Adicione produtos ao pedido antes de guardar!", "warning");
+      return null;
+    }
+
+    if (!state.clienteLogado) {
+      state.acaoPendenteAposLogin = {
+        tipo: "guardar_pedido",
+        enviadoWhatsApp
+      };
+      abrirModalAuthCliente("signup");
+      mostrarToastNotificacao(
+        "💡 Faça login ou crie sua conta para guardar seu pedido e acompanhar suas propostas!",
+        "info"
+      );
+      return null;
+    }
+
+    const c = state.clienteLogado;
+    const totalItens = state.itensCaixa.reduce((acc, i) => acc + (Number(i.qtd) || 1), 0);
+    const totalValor = state.itensCaixa.reduce(
+      (acc, i) => acc + (Number(i.precoUnitario) || 0) * (Number(i.qtd) || 1),
+      0
+    );
+    const totalKgFil = calcularTotalKgFilamentos();
+
+    const novoPedido = {
+      id: "SJ-PED-" + Math.floor(1000 + Math.random() * 9000),
+      clienteId: c.id,
+      clienteNome: c.nome,
+      clienteEmail: c.email || "",
+      clienteWhatsapp: c.whatsapp || "",
+      dataHoraSalvo: new Date().toISOString(),
+      status: enviadoWhatsApp ? "enviado_whatsapp" : "guardado",
+      statusLabel: enviadoWhatsApp ? "Enviado no WhatsApp" : "Orçamento Guardado",
+      total: totalValor,
+      itensQtd: totalItens,
+      totalKgFilamentos: totalKgFil,
+      itens: JSON.parse(JSON.stringify(state.itensCaixa))
+    };
+
+    // 1. Salva no localStorage isolado do cliente
+    const pedidos = obterPedidosClienteSalvos(c.id);
+    pedidos.unshift(novoPedido);
+    persistirPedidosClienteSalvos(c.id, pedidos);
+
+    // 2. Salva em window.SJ_DB.orcamentos se disponível (para histórico unificado)
+    if (window.SJ_DB?.orcamentos?.salvar) {
+      try {
+        await window.SJ_DB.orcamentos.salvar({
+          id: novoPedido.id,
+          clienteNome: c.nome,
+          clienteCpfCnpj: c.cpf || "",
+          clienteTelefone: c.whatsapp || "",
+          clienteEmail: c.email || "",
+          itens: novoPedido.itens.map((i) => ({
+            nome: i.nome,
+            detalhe: `${i.detalhe1 || ""} ${i.detalhe2 || ""}`.trim(),
+            corHex: i.corHex || "",
+            quantidade: i.qtd,
+            precoUnitario: i.precoUnitario,
+            subtotal: (Number(i.precoUnitario) || 0) * (Number(i.qtd) || 1)
+          })),
+          total: totalValor,
+          totalItens,
+          status: novoPedido.status,
+          metadados: {
+            tipoOrigem: "catalogo_cliente",
+            enviadoWhatsApp
+          }
+        });
+      } catch (_) {}
+    }
+
+    // 3. Feedback visual
+    if (!silencioso) {
+      mostrarToast(
+        `💾 Pedido <strong>${novoPedido.id}</strong> guardado com sucesso na sua Área do Cliente!`,
+        "success"
+      );
+    }
+
+    // Se estiver na Área do Cliente na aba pedidos, atualiza a exibição
+    if (state.categoriaMenu === "minha-conta" && state.abaClienteAtiva === "pedidos") {
+      renderizarAreaCliente("pedidos");
+    }
+
+    return novoPedido;
+  }
+
   function enviarPedidoParaWhatsApp() {
     const { whatsapp } = window.SITE_DATA.loja;
     if (state.itensCaixa.length === 0) {
       mostrarToast("Adicione pelo menos 1 item ao seu pedido antes de enviar!", "warning");
       return;
+    }
+
+    // Salva automaticamente o pedido no histórico do cliente (se logado)
+    let pedidoSalvo = null;
+    if (state.clienteLogado) {
+      pedidoSalvo = salvarPedidoOuOrcamentoCliente({ enviadoWhatsApp: true, silencioso: true });
     }
 
     const totalKgFil = calcularTotalKgFilamentos();
@@ -235,7 +353,6 @@
       0
     );
     const temSobConsulta = state.itensCaixa.some((i) => Number(i.precoUnitario || 0) === 0);
-    const resumoCupons = calcularCuponsSorteio();
 
     const linhas = state.itensCaixa.map((i) => {
       const precoStr =
@@ -251,14 +368,16 @@
       valorTotalEstimado > 0
         ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}${temSobConsulta ? " (+ itens sob consulta)" : ""}`
         : "";
+    const pedidoTag = pedidoSalvo && pedidoSalvo.id ? `\n*Cód. Proposta:* ${pedidoSalvo.id}` : "";
 
     const msg = encodeURIComponent(
       `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-        `${linhas.join("\n")}${resumoPeso}${resumoValor}\n\n` +
+        `${linhas.join("\n")}${resumoPeso}${resumoValor}${pedidoTag}\n\n` +
         `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
     );
 
     window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
+    fecharGavetaPedido();
   }
 
   // Retorna a configuração atualizada do Banner Promocional (editável via /admin)
@@ -464,6 +583,13 @@
     state.clienteLogado = cliente;
     if (cliente) {
       localStorage.setItem("sj_cliente_ativo_v1", JSON.stringify(cliente));
+      if (state.acaoPendenteAposLogin && state.acaoPendenteAposLogin.tipo === "guardar_pedido") {
+        const pend = state.acaoPendenteAposLogin;
+        state.acaoPendenteAposLogin = null;
+        setTimeout(() => {
+          salvarPedidoOuOrcamentoCliente({ enviadoWhatsApp: pend.enviadoWhatsApp });
+        }, 400);
+      }
     } else {
       localStorage.removeItem("sj_cliente_ativo_v1");
     }
@@ -850,18 +976,46 @@
     const avatarLetra = (primeiroNome[0] || "C").toUpperCase();
     const totalFavoritos = (state.favoritos || []).length;
 
-    // Busca pedidos/orçamentos do cliente
+    // Busca pedidos/orçamentos do cliente (localStorage + SJ_DB.orcamentos)
     let pedidosCliente = [];
+    if (c.id) {
+      pedidosCliente = obterPedidosClienteSalvos(c.id);
+    }
     if (window.SJ_DB?.orcamentos?.listar) {
       const todos = window.SJ_DB.orcamentos.listar();
       const emailCli = (c.email || "").toLowerCase();
       const nomeCli = (c.nome || "").toLowerCase();
-      pedidosCliente = todos.filter((o) => {
+      todos.forEach((o) => {
         const cNome = (o.clienteNome || "").toLowerCase();
-        const mEmail = (o.metadados?.clienteEmail || "").toLowerCase();
-        return (emailCli && mEmail === emailCli) || (nomeCli && cNome.includes(nomeCli));
+        const mEmail = (o.metadados?.clienteEmail || o.clienteEmail || "").toLowerCase();
+        if ((emailCli && mEmail === emailCli) || (nomeCli && cNome && cNome.includes(nomeCli))) {
+          if (!pedidosCliente.some((p) => p.id === o.id)) {
+            pedidosCliente.push({
+              id: o.id,
+              clienteId: c.id,
+              clienteNome: o.clienteNome || c.nome,
+              clienteEmail: o.clienteEmail || c.email,
+              clienteWhatsapp: o.clienteTelefone || c.whatsapp,
+              dataHoraSalvo: o.dataHoraSalvo || o.data || new Date().toISOString(),
+              status: o.status || "guardado",
+              statusLabel: o.status === "enviado_whatsapp" ? "Enviado no WhatsApp" : "Orçamento Guardado",
+              total: Number(o.total) || 0,
+              itensQtd: o.totalItens || (Array.isArray(o.itens) ? o.itens.length : 1),
+              itens: (o.itens || []).map((it) => ({
+                id: it.id || "item",
+                nome: it.nome,
+                detalhe1: it.detalhe || "",
+                detalhe2: "",
+                qtd: it.quantidade || 1,
+                precoUnitario: it.precoUnitario || 0,
+                corHex: it.corHex || "#F04E23"
+              }))
+            });
+          }
+        }
       });
     }
+    pedidosCliente.sort((a, b) => new Date(b.dataHoraSalvo || 0) - new Date(a.dataHoraSalvo || 0));
 
     // Calcula cupons estimados (1 cupom a cada R$ 60 + 3 cupons do cadastro/CPF)
     let totalGasto = pedidosCliente.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
@@ -981,39 +1135,92 @@
                   style: "currency",
                   currency: "BRL"
                 });
-                const dataFmt = ped.dataHoraSalvo
-                  ? new Date(ped.dataHoraSalvo).toLocaleDateString("pt-BR")
+                const dataObj = ped.dataHoraSalvo ? new Date(ped.dataHoraSalvo) : new Date();
+                const dataFmt = !isNaN(dataObj.getTime())
+                  ? dataObj.toLocaleDateString("pt-BR")
                   : "Recente";
-                const itensTxt = Array.isArray(ped.itens)
-                  ? ped.itens.map((i) => `${i.quantidade || 1}x ${i.nome}`).join(", ")
-                  : `${ped.itensQtd || 1} itens`;
+                const horaFmt = !isNaN(dataObj.getTime())
+                  ? dataObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+                  : "";
+
+                const itensLista = Array.isArray(ped.itens) ? ped.itens : [];
+                const itensTabelaHtml = itensLista
+                  .map((it) => {
+                    const subtotal = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
+                    const subtotalFmt = subtotal > 0
+                      ? subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                      : "(Sob consulta)";
+                    const dotHtml = it.corHex
+                      ? `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${it.corHex}; margin-right:6px; vertical-align:middle;"></span>`
+                      : "";
+                    const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
+                    return `
+                      <tr>
+                        <td>
+                          ${dotHtml}<strong>${it.qtd}x</strong> ${it.nome}
+                          ${det ? `<small style="color:var(--text-muted); display:block; margin-left:16px;">${det}</small>` : ""}
+                        </td>
+                        <td>${subtotalFmt}</td>
+                      </tr>
+                    `;
+                  })
+                  .join("");
+
+                // Mensagem personalizada para enviar no WhatsApp
+                const linhasMsg = itensLista.map((it) => {
+                  const sub = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
+                  const precoStr = sub > 0 ? ` — *${formatarMoedaBR(sub)}*` : "";
+                  const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
+                  return `• ${it.qtd}x *${it.nome}*${det ? ` (${det})` : ""}${precoStr}`;
+                });
+                const totalMsg = Number(ped.total) > 0 ? `\n*Total Estimado:* ${totalFmt}` : "";
                 const msgWhats = encodeURIComponent(
-                  `Olá Loja SJ 3D! Gostaria de consultar o andamento da minha proposta ${ped.id} no valor de ${totalFmt}.`
+                  `Olá *Loja SJ 3D*! Gostaria de falar sobre meu pedido *${ped.id}* salvo no site:\n\n` +
+                    `${linhasMsg.join("\n")}${totalMsg}\n\n` +
+                    `Gostaria de confirmar a disponibilidade e finalizar!`
                 );
 
+                const statusClass = ped.status || "guardado";
+                const statusTexto =
+                  ped.status === "enviado_whatsapp"
+                    ? "💬 Enviado no WhatsApp"
+                    : ped.status === "guardado"
+                      ? "💾 Orçamento Guardado"
+                      : (ped.statusLabel || String(ped.status).toUpperCase());
+
                 return `
-                <div class="client-order-card">
+                <div class="client-order-card" data-order-card="${ped.id}">
                   <div class="client-order-header">
                     <div class="client-order-id-group">
                       <strong>${ped.id}</strong>
-                      <span class="client-order-status-badge ${ped.status || "pendente"}">
-                        ${(ped.status || "Pendente").toUpperCase()}
+                      <span class="client-order-status-badge ${statusClass}">
+                        ${statusTexto}
                       </span>
                     </div>
-                    <span class="client-order-date">📅 ${dataFmt}</span>
+                    <span class="client-order-date">📅 ${dataFmt}${horaFmt ? ` às ${horaFmt}` : ""}</span>
                   </div>
 
                   <div class="client-order-body">
-                    <div class="client-order-summary-text">
-                      <strong>Itens:</strong> ${itensTxt}
-                    </div>
-                    <div class="client-order-total">${totalFmt}</div>
+                    <table class="client-order-items-table">
+                      <tbody>
+                        ${itensTabelaHtml || `<tr><td colspan="2">${ped.itensQtd || 1} itens</td></tr>`}
+                      </tbody>
+                    </table>
                   </div>
 
-                  <div class="client-order-actions">
-                    <a href="https://wa.me/5544991351318?text=${msgWhats}" target="_blank" rel="noopener" class="btn-order-whatsapp">
-                      💬 Acompanhar no WhatsApp
-                    </a>
+                  <div class="client-order-footer">
+                    <div class="client-order-total">${totalFmt}</div>
+                    <div class="client-order-actions">
+                      <button type="button" class="btn-order-reload" data-reload-order="${ped.id}" title="Carregar estes itens de volta no carrinho">
+                        🛒 Carregar no Carrinho
+                      </button>
+                      <a href="https://wa.me/5544991351318?text=${msgWhats}" target="_blank" rel="noopener" class="btn-order-whatsapp" title="Enviar ou negociar pelo WhatsApp da Loja SJ">
+                        💬 Negociar no WhatsApp
+                      </a>
+                      <button type="button" class="btn-order-delete" data-del-order="${ped.id}" title="Excluir este pedido guardado">
+                        🗑️ Excluir
+                      </button>
+                    </div>
                   </div>
                 </div>
               `;
@@ -1024,8 +1231,8 @@
             : `
           <div class="client-empty-box">
             <div class="client-empty-icon">📦</div>
-            <h4>Nenhum pedido ou orçamento registrado ainda</h4>
-            <p>Seus pedidos feitos no site ou no balcão da loja em Umuarama aparecerão aqui com status atualizado e detalhes da compra.</p>
+            <h4>Nenhum pedido ou orçamento guardado ainda</h4>
+            <p>Monte seu pedido no catálogo de impressoras, filamentos ou peças e use a opção <strong>"Guardar Pedido"</strong> para mantê-lo salvo no seu perfil e ter controle total do que precisa!</p>
             <button type="button" class="btn-client-explore" id="btn-pedidos-explorar">
               Montar Meu Pedido Agora →
             </button>
@@ -1132,6 +1339,59 @@
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         toggleFavorito(btn.dataset.delFav);
+      });
+    });
+
+    // Ação: Carregar Pedido Salvo de Volta no Carrinho
+    container.querySelectorAll("[data-reload-order]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pedId = btn.dataset.reloadOrder;
+        const pedido = pedidosCliente.find((p) => p.id === pedId);
+        if (!pedido || !Array.isArray(pedido.itens) || pedido.itens.length === 0) {
+          mostrarToast("Não foi possível carregar os itens deste pedido.", "warning");
+          return;
+        }
+
+        if (state.itensCaixa.length > 0) {
+          const confirma = confirm(
+            `Seu carrinho já contém ${state.itensCaixa.length} item(ns). Deseja substituir pelo pedido ${pedId}?`
+          );
+          if (!confirma) return;
+        }
+
+        state.itensCaixa = JSON.parse(JSON.stringify(pedido.itens));
+        atualizarCaixaLateral();
+        abrirGavetaPedido();
+        mostrarToast(
+          `🛒 Pedido <strong>${pedId}</strong> carregado no seu carrinho! Você pode adicionar mais itens ou finalizar.`,
+          "success"
+        );
+      });
+    });
+
+    // Ação: Excluir Pedido do Histórico do Cliente
+    container.querySelectorAll("[data-del-order]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pedId = btn.dataset.delOrder;
+        if (!confirm(`Deseja realmente remover o pedido ${pedId} do seu histórico?`)) {
+          return;
+        }
+
+        // Remove do localStorage do cliente
+        if (c.id) {
+          const list = obterPedidosClienteSalvos(c.id).filter((p) => p.id !== pedId);
+          persistirPedidosClienteSalvos(c.id, list);
+        }
+
+        // Remove de window.SJ_DB.orcamentos se existir
+        if (window.SJ_DB?.orcamentos?.excluir) {
+          try {
+            await window.SJ_DB.orcamentos.excluir(pedId);
+          } catch (_) {}
+        }
+
+        mostrarToast(`🗑️ Pedido ${pedId} removido do histórico.`, "info");
+        renderizarAreaCliente("pedidos");
       });
     });
 
@@ -7030,6 +7290,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
     document.getElementById("drawer-btn-submit-box")?.addEventListener("click", () => {
       enviarPedidoParaWhatsApp();
+    });
+
+    // Guardar Pedido / Salvar Orçamento na Conta do Cliente
+    document.getElementById("btn-save-box-order")?.addEventListener("click", () => {
+      salvarPedidoOuOrcamentoCliente();
+    });
+    document.getElementById("drawer-btn-save-order")?.addEventListener("click", () => {
+      salvarPedidoOuOrcamentoCliente();
     });
   });
 })();

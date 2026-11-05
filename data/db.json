@@ -1,6 +1,6 @@
 {
   "versao": "1.0.0",
-  "atualizadoEm": "2026-11-05T02:24:44.595Z",
+  "atualizadoEm": "2026-11-05T21:57:48.951Z",
   "usuarios": [
     {
       "id": "usr-admin-1",
@@ -16,6 +16,17 @@
     }
   ],
   "clientes": [
+    {
+      "id": "cli-1793912650193",
+      "nome": "JOSE THIAGO RIBEIRO",
+      "cnpjCpf": "014.534.329-99",
+      "endereco": "",
+      "bairroCidadeUf": "Umuarama/PR",
+      "cepTelefone": "(44) 99860-4639",
+      "email": "rjosethiago@gmail.com",
+      "atualizadoEm": "2026-11-05T21:57:48.951Z",
+      "criadoEm": "2026-11-05T21:04:10.207Z"
+    },
     {
       "id": "cli-1793823780128",
       "nome": "Thiago",
