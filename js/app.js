@@ -19,6 +19,11 @@
     heroSlideAtivo: 0,
     heroTimer: null,
     abaImpressoraHome: "todas",
+    // Hub Organizado de Filamentos (Separação Clara MaxPrint vs Bambu Lab + Extensão Completa)
+    hubFilamentoMarcaAtiva: "MaxPrint", // "MaxPrint" ou "Bambu Lab"
+    hubFilamentoMaterialMaxPrint: "fil-pla-maxprint", // "fil-pla-maxprint", "fil-silk-maxprint", "fil-petg-maxprint", "fil-tpu-maxprint", "fil-abs-especiais", "todos"
+    hubFilamentoFiltroBambu: "todos", // "todos", "carretel", "refil"
+    hubFilamentoAbertoHome: false, // Na Home começa com os 2 grandes portais e abre a extensão ao clicar
     // Sistema de Orçamento Timbrado Oficial Grupo SJ & Login Google
     usuarioGoogle: null,
     itensOrcamento: [],
@@ -865,6 +870,554 @@
     `;
   }
 
+  // 2.5 HUB INTERATIVO DE FILAMENTOS (SEPARAÇÃO DESTACADA MAXPRINT vs BAMBU LAB + EXTENSÃO COMPLETA)
+  function gerarHubFilamentosHtml(contexto = "catalogo") {
+    const isHome = contexto === "home";
+    const extensaoAberta = isHome ? state.hubFilamentoAbertoHome : true;
+    const marcaAtiva = state.hubFilamentoMarcaAtiva || "MaxPrint";
+    const isBambuAtivo = marcaAtiva === "Bambu Lab";
+
+    const materiaisMaxPrint = [
+      {
+        id: "fil-pla-maxprint",
+        curto: "PLA",
+        titulo: "PLA Tradicional & Especiais",
+        qtdCores: (window.SITE_DATA.coresMaxPrint || []).length,
+        preco: "R$ 79,90"
+      },
+      {
+        id: "fil-silk-maxprint",
+        curto: "PLA Silk",
+        titulo: "PLA Silk, Dual/Tri & Rainbow",
+        qtdCores: (window.SITE_DATA.coresPlaSilk || []).length,
+        preco: "R$ 99,90"
+      },
+      {
+        id: "fil-petg-maxprint",
+        curto: "PETG",
+        titulo: "PETG Alta Resistência",
+        qtdCores: (window.SITE_DATA.coresPetg || []).length,
+        preco: "A partir de R$ 59,90"
+      },
+      {
+        id: "fil-tpu-maxprint",
+        curto: "TPU 95A",
+        titulo: "TPU Flexível 95A",
+        qtdCores: (window.SITE_DATA.coresTpu || []).length,
+        preco: "R$ 109,90"
+      },
+      {
+        id: "fil-abs-especiais",
+        curto: "ABS & Glitter",
+        titulo: "ABS & Especiais Glitter",
+        qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length,
+        preco: "A partir de R$ 69,90"
+      }
+    ];
+
+    const opcoesBambu = [
+      { id: "todos", label: "Todos Bambu Lab (13)", sub: "Carretel + Refil RFID" },
+      { id: "carretel", label: "Carretel c/ RFID (10)", sub: "R$ 99,90" },
+      { id: "refil", label: "Refil s/ Bobina RFID (3)", sub: "R$ 79,90" }
+    ];
+
+    // Conteúdo da Extensão Aberta (MaxPrint vs Bambu Lab)
+    let extensaoConteudoHtml = "";
+    if (extensaoAberta) {
+      if (!isBambuAtivo) {
+        const matAtivoId = state.hubFilamentoMaterialMaxPrint || "fil-pla-maxprint";
+        const mostrarTodosMax = matAtivoId === "todos";
+        const itemAtivo =
+          window.SITE_DATA.catalogo.find((i) => i.id === matAtivoId) ||
+          window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-maxprint");
+
+        const paletaAtiva = itemAtivo
+          ? obterPaletaPorChave(itemAtivo.usaCoresDinamicas, false) || []
+          : [];
+        const termoBusca = (state.busca || "").trim().toLowerCase();
+        const coresFiltradas = paletaAtiva
+          .map((cor, originalIdx) => ({ ...cor, originalIdx }))
+          .filter((cor) => {
+            if (!termoBusca) return true;
+            return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod}`
+              .toLowerCase()
+              .includes(termoBusca);
+          });
+
+        const todosCardsMaxPrint = (window.SITE_DATA.catalogo || []).filter(
+          (i) => i.tipoFilamento && i.marca === "MaxPrint"
+        );
+
+        extensaoConteudoHtml = `
+          <div class="filament-ext-materials-bar" role="tablist" aria-label="Escolher material Masterprint / MaxPrint">
+            ${materiaisMaxPrint
+              .map(
+                (m) => `
+              <button
+                type="button"
+                class="filament-ext-mat-tab ${!mostrarTodosMax && matAtivoId === m.id ? "active" : ""}"
+                data-hub-max-mat="${m.id}"
+              >
+                <strong>${m.curto}</strong>
+                <span>${m.qtdCores} cores • ${m.preco}</span>
+              </button>
+            `
+              )
+              .join("")}
+            <button
+              type="button"
+              class="filament-ext-mat-tab ${mostrarTodosMax ? "active" : ""}"
+              data-hub-max-mat="todos"
+            >
+              <strong>Resumo das 5 Linhas</strong>
+              <span>PLA • Silk • PETG • TPU • ABS</span>
+            </button>
+          </div>
+
+          ${
+            mostrarTodosMax
+              ? `
+            <div class="combo-products-row" data-hub-cards-grid="1">
+              ${todosCardsMaxPrint.map((it) => gerarCardHTML(it)).join("")}
+            </div>
+          `
+              : `
+            <div class="filament-ext-selected-header">
+              <div>
+                <span class="filament-ext-eyebrow">MASTERPRINT / MAXPRINT • 1.75 MM (1 KG LACRADO A VÁCUO)</span>
+                <h3>${itemAtivo ? itemAtivo.nome : "Filamento Masterprint"}</h3>
+                <p>${itemAtivo ? itemAtivo.subtitulo : ""} • Clique na cor desejada para adicionar direto ao pedido ou ver em tela cheia.</p>
+              </div>
+              <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="${itemAtivo ? itemAtivo.id : "fil-pla-maxprint"}">
+                Ver Ficha Técnica & Detalhes →
+              </button>
+            </div>
+
+            <div class="filament-ext-colors-grid">
+              ${coresFiltradas
+                .map(
+                  (cor) => `
+                <article class="filament-color-tile">
+                  <div
+                    class="filament-color-tile-img"
+                    data-hub-open-color-pdp="${itemAtivo.id}"
+                    data-hub-color-idx="${cor.originalIdx}"
+                    title="Clique para ampliar ${cor.nome} (CÓD. ${cor.cod})"
+                  >
+                    <span class="tile-cod-badge">CÓD. ${cor.cod}</span>
+                    <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
+                    <img
+                      src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem}"
+                      alt="${cor.nome}"
+                      style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="filament-color-tile-body">
+                    <strong
+                      class="tile-color-name"
+                      data-hub-open-color-pdp="${itemAtivo.id}"
+                      data-hub-color-idx="${cor.originalIdx}"
+                    >${(cor.nome || "").replace(/\s*1kg$/i, "")}</strong>
+                    <div class="tile-price-row">
+                      <span class="tile-weight-tag">1 KG • 1.75mm</span>
+                      <strong class="tile-price-val">${cor.preco}</strong>
+                    </div>
+                    <button
+                      type="button"
+                      class="tile-add-btn"
+                      data-hub-quick-add="${itemAtivo.id}"
+                      data-hub-color-idx="${cor.originalIdx}"
+                      data-hub-brand="MaxPrint"
+                    >
+                      + Adicionar ao Pedido
+                    </button>
+                  </div>
+                </article>
+              `
+                )
+                .join("")}
+            </div>
+          `
+          }
+        `;
+      } else {
+        // BAMBU LAB ATIVO: Mostra filtro (Todos | Carretel RFID | Refil RFID) e todas as cores da Bambu Lab!
+        const itemBambu =
+          window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
+          window.SITE_DATA.catalogo[0];
+        const paletaBambu = window.SITE_DATA.coresBambuLab || [];
+        const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
+        const termoBusca = (state.busca || "").trim().toLowerCase();
+
+        const coresBambuFiltradas = paletaBambu
+          .map((cor, originalIdx) => ({ ...cor, originalIdx }))
+          .filter((cor) => {
+            const ehRefil = (cor.nome || "").toLowerCase().includes("refil") || (cor.tipo || "").toLowerCase().includes("refil");
+            if (filtroBambu === "carretel" && ehRefil) return false;
+            if (filtroBambu === "refil" && !ehRefil) return false;
+            if (termoBusca) {
+              return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} bambu`
+                .toLowerCase()
+                .includes(termoBusca);
+            }
+            return true;
+          });
+
+        extensaoConteudoHtml = `
+          <div class="filament-ext-materials-bar bambu-mode" role="tablist" aria-label="Filtrar apresentação Bambu Lab RFID">
+            ${opcoesBambu
+              .map(
+                (op) => `
+              <button
+                type="button"
+                class="filament-ext-mat-tab ${filtroBambu === op.id ? "active" : ""}"
+                data-hub-bambu-filter="${op.id}"
+              >
+                <strong>${op.label}</strong>
+                <span>${op.sub}</span>
+              </button>
+            `
+              )
+              .join("")}
+          </div>
+
+          <div class="filament-ext-selected-header bambu-header">
+            <div>
+              <span class="filament-ext-eyebrow">🏷️ BAMBU LAB ORIGINAL • CHIP RFID P/ AMS & AMS LITE</span>
+              <h3>Filamentos Bambu Lab PLA Basic & Matte (Carretel & Refil RFID)</h3>
+              <p>Leitura automática de cor e parâmetros no AMS • Escolha abaixo entre Bobina Completa (R$ 99,90) ou Refil RFID (R$ 79,90).</p>
+            </div>
+            <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="fil-pla-bambulab">
+              Ver Ficha Técnica Bambu Lab →
+            </button>
+          </div>
+
+          <div class="filament-ext-colors-grid">
+            ${coresBambuFiltradas
+              .map((cor) => {
+                const ehRefil =
+                  (cor.nome || "").toLowerCase().includes("refil") ||
+                  (cor.tipo || "").toLowerCase().includes("refil");
+                return `
+                  <article class="filament-color-tile bambu-tile">
+                    <div
+                      class="filament-color-tile-img"
+                      data-hub-open-color-pdp="fil-pla-bambulab"
+                      data-hub-color-idx="${cor.originalIdx}"
+                      title="Clique para ampliar ${cor.nome} (CÓD. ${cor.cod})"
+                    >
+                      <span class="tile-cod-badge">CÓD. ${cor.cod}</span>
+                      <span class="tile-rfid-badge ${ehRefil ? "is-refil" : ""}">${
+                  ehRefil ? "Refil RFID" : "Carretel RFID"
+                }</span>
+                      <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
+                      <img
+                        src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
+                        alt="${cor.nome}"
+                        style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
+                        loading="lazy"
+                      />
+                    </div>
+                    <div class="filament-color-tile-body">
+                      <strong
+                        class="tile-color-name"
+                        data-hub-open-color-pdp="fil-pla-bambulab"
+                        data-hub-color-idx="${cor.originalIdx}"
+                      >${(cor.nome || "").replace(/\s*1kg$/i, "")}</strong>
+                      <div class="tile-price-row">
+                        <span class="tile-weight-tag">${ehRefil ? "1 KG Refil RFID" : "1 KG c/ Bobina"}</span>
+                        <strong class="tile-price-val">${cor.preco}</strong>
+                      </div>
+                      <button
+                        type="button"
+                        class="tile-add-btn"
+                        data-hub-quick-add="fil-pla-bambulab"
+                        data-hub-color-idx="${cor.originalIdx}"
+                        data-hub-brand="Bambu Lab"
+                      >
+                        + Adicionar ao Pedido
+                      </button>
+                    </div>
+                  </article>
+                `;
+              })
+              .join("")}
+          </div>
+        `;
+      }
+    }
+
+    return `
+      <div class="filament-brand-hub-wrapper" data-filament-hub="${contexto}">
+        <!-- 1. DOIS GRANDES CARDS DE DESTAQUE POR MARCA (MASTERPRINT/MAXPRINT vs BAMBU LAB) -->
+        <div class="filament-brand-portals-grid">
+          <!-- CARD MARCA 1: MASTERPRINT / MAXPRINT -->
+          <div
+            class="filament-brand-portal-card portal-maxprint ${extensaoAberta && !isBambuAtivo ? "active-portal" : ""}"
+            data-hub-select-brand="MaxPrint"
+          >
+            <div class="portal-card-top">
+              <div class="portal-img-box">
+                <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint / MaxPrint" loading="lazy" />
+              </div>
+              <div class="portal-head-info">
+                <span class="portal-eyebrow-pill">LINHA COMPLETA • +80 CORES</span>
+                <h3>Filamentos Masterprint / MaxPrint</h3>
+                <p>PLA Tradicional, PLA Silk Dual/Rainbow, PETG, TPU Flexível 95A e ABS & Glitter (1.75 mm • 1 kg).</p>
+              </div>
+            </div>
+
+            <div class="portal-materials-chips" aria-label="Atalhos de materiais MaxPrint">
+              ${materiaisMaxPrint
+                .map(
+                  (m) => `
+                <button
+                  type="button"
+                  class="portal-chip-btn ${extensaoAberta && !isBambuAtivo && state.hubFilamentoMaterialMaxPrint === m.id ? "active" : ""}"
+                  data-hub-jump-max="${m.id}"
+                >
+                  <strong>${m.curto}</strong>
+                  <small>${m.qtdCores} cores</small>
+                </button>
+              `
+                )
+                .join("")}
+            </div>
+
+            <div class="portal-card-footer">
+              <div class="portal-price-highlight">
+                <span>1 KG Lacrado a Vácuo</span>
+                <strong>A partir de R$ 59,90</strong>
+              </div>
+              <button type="button" class="portal-cta-btn" data-hub-select-brand="MaxPrint">
+                ${
+                  extensaoAberta && !isBambuAtivo
+                    ? "✓ Visualizando MaxPrint Abaixo"
+                    : "Ver PLA, PETG, Silk e Cores MaxPrint →"
+                }
+              </button>
+            </div>
+          </div>
+
+          <!-- CARD MARCA 2: BAMBU LAB ORIGINAL RFID -->
+          <div
+            class="filament-brand-portal-card portal-bambu ${extensaoAberta && isBambuAtivo ? "active-portal" : ""}"
+            data-hub-select-brand="Bambu Lab"
+          >
+            <div class="portal-card-top">
+              <div class="portal-img-box">
+                <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID" loading="lazy" />
+              </div>
+              <div class="portal-head-info">
+                <span class="portal-eyebrow-pill bambu-pill">🏷️ CHIP RFID ORIGINAL P/ AMS</span>
+                <h3>Filamentos Bambu Lab RFID</h3>
+                <p>PLA Basic & Matte com reconhecimento automático no AMS e AMS Lite. Disponível em Carretel ou Refil.</p>
+              </div>
+            </div>
+
+            <div class="portal-materials-chips" aria-label="Atalhos Bambu Lab RFID">
+              ${opcoesBambu
+                .map(
+                  (op) => `
+                <button
+                  type="button"
+                  class="portal-chip-btn ${extensaoAberta && isBambuAtivo && state.hubFilamentoFiltroBambu === op.id ? "active" : ""}"
+                  data-hub-jump-bambu="${op.id}"
+                >
+                  <strong>${op.label}</strong>
+                </button>
+              `
+                )
+                .join("")}
+            </div>
+
+            <div class="portal-card-footer">
+              <div class="portal-price-highlight">
+                <span>Refil R$ 79,90 • Carretel R$ 99,90</span>
+                <strong>A partir de R$ 79,90</strong>
+              </div>
+              <button type="button" class="portal-cta-btn bambu-cta" data-hub-select-brand="Bambu Lab">
+                ${
+                  extensaoAberta && isBambuAtivo
+                    ? "✓ Visualizando Bambu Lab Abaixo"
+                    : "Ver Todos os Filamentos Bambu Lab →"
+                }
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- 2. EXTENSÃO COMPLETA (ABRE AO CLICAR EM MAXPRINT OU BAMBU LAB) -->
+        ${
+          extensaoAberta
+            ? `
+          <div class="filament-brand-extension-box" id="filament-ext-box-${contexto}">
+            <div class="filament-ext-top-switcher">
+              <div class="filament-ext-brand-tabs">
+                <span class="filament-ext-switch-label">Marca selecionada:</span>
+                <button
+                  type="button"
+                  class="ext-brand-switch-btn ${!isBambuAtivo ? "active" : ""}"
+                  data-hub-select-brand="MaxPrint"
+                >
+                  🎨 Masterprint / MaxPrint (PLA, Silk, PETG, TPU, ABS)
+                </button>
+                <button
+                  type="button"
+                  class="ext-brand-switch-btn ${isBambuAtivo ? "active" : ""}"
+                  data-hub-select-brand="Bambu Lab"
+                >
+                  🏷️ Bambu Lab Original RFID (Carretel & Refil)
+                </button>
+              </div>
+              ${
+                isHome
+                  ? `
+                <button type="button" class="ext-collapse-btn" data-hub-collapse-home="1">
+                  ✕ Recolher Extensão
+                </button>
+              `
+                  : ""
+              }
+            </div>
+
+            ${extensaoConteudoHtml}
+          </div>
+        `
+            : ""
+        }
+      </div>
+    `;
+  }
+
+  function vincularEventosHubFilamentos(rootEl, contexto = "catalogo") {
+    if (!rootEl) return;
+
+    const reRenderizarHub = (focarExtensao = false) => {
+      const wrapper = rootEl.querySelector(`[data-filament-hub="${contexto}"]`);
+      if (wrapper) {
+        wrapper.outerHTML = gerarHubFilamentosHtml(contexto);
+        vincularEventosHubFilamentos(rootEl, contexto);
+        const cardsGrid = rootEl.querySelector("[data-hub-cards-grid]");
+        if (cardsGrid) vincularEventosDosCards(cardsGrid);
+        if (focarExtensao) {
+          const extBox = document.getElementById(`filament-ext-box-${contexto}`);
+          extBox?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+        }
+      }
+    };
+
+    // Clique em um dos 2 grandes cards de marca ou nos botões de trocar marca (MaxPrint <-> Bambu Lab)
+    rootEl.querySelectorAll("[data-hub-select-brand]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        if (e.target.closest("[data-hub-jump-max]") || e.target.closest("[data-hub-jump-bambu]")) {
+          return;
+        }
+        const novaMarca = el.getAttribute("data-hub-select-brand");
+        state.hubFilamentoMarcaAtiva = novaMarca;
+        if (contexto === "home") {
+          state.hubFilamentoAbertoHome = true;
+        }
+        reRenderizarHub(true);
+      });
+    });
+
+    // Clique direto em uma pílula de material MaxPrint dentro do card (ex: PLA, PLA Silk, PETG, TPU, ABS)
+    rootEl.querySelectorAll("[data-hub-jump-max]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.hubFilamentoMarcaAtiva = "MaxPrint";
+        state.hubFilamentoMaterialMaxPrint = btn.getAttribute("data-hub-jump-max");
+        if (contexto === "home") {
+          state.hubFilamentoAbertoHome = true;
+        }
+        reRenderizarHub(true);
+      });
+    });
+
+    // Clique direto em uma pílula Bambu Lab dentro do card (Todos, Carretel RFID, Refil RFID)
+    rootEl.querySelectorAll("[data-hub-jump-bambu]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        state.hubFilamentoMarcaAtiva = "Bambu Lab";
+        state.hubFilamentoFiltroBambu = btn.getAttribute("data-hub-jump-bambu");
+        if (contexto === "home") {
+          state.hubFilamentoAbertoHome = true;
+        }
+        reRenderizarHub(true);
+      });
+    });
+
+    // Troca de aba de material dentro da extensão MaxPrint (PLA, Silk, PETG, TPU, ABS, Resumo)
+    rootEl.querySelectorAll("[data-hub-max-mat]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        state.hubFilamentoMaterialMaxPrint = tabBtn.getAttribute("data-hub-max-mat");
+        reRenderizarHub(false);
+      });
+    });
+
+    // Troca de aba de filtro dentro da extensão Bambu Lab (Todos, Carretel, Refil)
+    rootEl.querySelectorAll("[data-hub-bambu-filter]").forEach((tabBtn) => {
+      tabBtn.addEventListener("click", () => {
+        state.hubFilamentoFiltroBambu = tabBtn.getAttribute("data-hub-bambu-filter");
+        reRenderizarHub(false);
+      });
+    });
+
+    // Botão recolher extensão na Home
+    rootEl.querySelectorAll("[data-hub-collapse-home]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        state.hubFilamentoAbertoHome = false;
+        reRenderizarHub(false);
+      });
+    });
+
+    // Abrir página completa (PDP) do filamento
+    rootEl.querySelectorAll("[data-hub-open-pdp]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        abrirPaginaProduto(btn.getAttribute("data-hub-open-pdp"));
+      });
+    });
+
+    // Clicar na foto ou nome de uma cor na grade da extensão -> abre a página daquele filamento já naquela cor!
+    rootEl.querySelectorAll("[data-hub-open-color-pdp]").forEach((el) => {
+      el.addEventListener("click", () => {
+        const itemId = el.getAttribute("data-hub-open-color-pdp");
+        const corIdx = Number(el.getAttribute("data-hub-color-idx") || 0);
+        abrirPaginaProduto(itemId, { corIdxInicial: corIdx });
+      });
+    });
+
+    // Botão "+ Adicionar ao Pedido" direto em qualquer cor da extensão!
+    rootEl.querySelectorAll("[data-hub-quick-add]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const itemId = btn.getAttribute("data-hub-quick-add");
+        const corIdx = Number(btn.getAttribute("data-hub-color-idx") || 0);
+        const marca = btn.getAttribute("data-hub-brand") || "MaxPrint";
+        const item = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
+        if (!item) return;
+        const isBambu = marca === "Bambu Lab";
+        const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
+        const corObj = paleta[corIdx] || paleta[0];
+        if (!corObj) return;
+
+        const apresentacao = isBambu
+          ? (corObj.nome || "").toLowerCase().includes("refil")
+            ? "1KG Refil RFID"
+            : "1KG Carretel RFID"
+          : "1KG";
+
+        adicionarItemNaCaixa(item.id, btn, {
+          marca,
+          detalhe1: apresentacao,
+          corObj,
+          qtd: 1
+        });
+      });
+    });
+  }
+
   // 3. Renderiza todas as seções do catálogo
   function renderizarCatalogoCompleto() {
     const container = document.getElementById("catalog-sections-container");
@@ -905,6 +1458,21 @@
         });
 
         if (itensSecao.length === 0) return "";
+
+        // Se for a seção de Filamentos, renderiza o Hub Organizado por Marca (MaxPrint vs Bambu Lab + Extensão Completa)
+        if (sec.id === "filamentos") {
+          return `
+            <section class="category-section-block" id="sec-filamentos">
+              <div class="category-section-header">
+                <h2>${sec.titulo}</h2>
+                <div class="category-header-right">
+                  <span>Escolha entre Masterprint/MaxPrint ou Bambu Lab RFID</span>
+                </div>
+              </div>
+              ${gerarHubFilamentosHtml("catalogo")}
+            </section>
+          `;
+        }
 
         const sorteioBannerHtml =
           sec.id === "impressoras" ? gerarBannerPromocionalSecaoHtml() : "";
@@ -972,6 +1540,7 @@
     });
 
     vincularEventosDosCards(container);
+    vincularEventosHubFilamentos(container, "catalogo");
   }
 
   // 4. Eventos interativos dos cards
@@ -1813,48 +2382,17 @@
         </div>
       </div>
 
-      <!-- 5. VITRINE VISUAL: OS FILAMENTOS MAIS BONITOS DO CATÁLOGO -->
+      <!-- 5. VITRINE ORGANIZADA DE FILAMENTOS: SEPARAÇÃO DESTACADA MAXPRINT vs BAMBU LAB + EXTENSÃO COMPLETA -->
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
-            <span class="home-eyebrow">ACABAMENTOS ESPECIAIS & RFID</span>
-            <h2>Os Filamentos Mais Bonitos para Suas Impressões</h2>
+            <span class="home-eyebrow">FILAMENTOS 3D • MASTERPRINT/MAXPRINT & BAMBU LAB RFID</span>
+            <h2>Escolha a Marca e Veja Toda a Extensão de Materiais e Cores</h2>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Ver Todas as 80 Cores →</button>
+          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Abrir Catálogo de Filamentos →</button>
         </div>
 
-        <div class="home-pretty-filaments-grid">
-          ${filamentosDestaqueVisual
-        .map(
-          (f) => `
-              <article
-                class="pretty-filament-card"
-                data-pretty-item="${f.itemId}"
-                data-pretty-cor="${f.corIdx}"
-                title="Clique para abrir ${f.nome}"
-              >
-                <div class="pretty-filament-img">
-                  <img src="${f.img}" alt="${f.nome}" loading="lazy" />
-                  <span class="pretty-cod-tag">CÓD. ${f.cod}</span>
-                </div>
-                <div class="pretty-filament-body">
-                  <span class="pretty-effect-label">${f.efeito}</span>
-                  <h4>${f.nome}</h4>
-                  <div class="pretty-price-row">
-                    <strong>${f.preco}</strong>
-                    <span>Ver detalhes →</span>
-                  </div>
-                </div>
-              </article>
-            `
-        )
-        .join("")}
-        </div>
-
-        <!-- Grade das 6 Linhas de Filamentos -->
-        <div class="combo-products-row" id="home-filaments-grid" style="margin-top: 24px;">
-          ${todosFilamentos.map((fil) => gerarCardHTML(fil)).join("")}
-        </div>
+        ${gerarHubFilamentosHtml("home")}
       </div>
 
       <!-- 6. BANNER ÚNICO E CLEAN DO SORTEIO / PROMOÇÃO NO FECHAMENTO DA CAPA -->
@@ -1975,11 +2513,10 @@
       });
     });
 
-    // Vincula eventos dos cards de impressoras e filamentos renderizados na Home
+    // Vincula eventos dos cards de impressoras e do Hub de Filamentos na Home
     const printersGrid = document.getElementById("home-printers-grid");
-    const filamentsGrid = document.getElementById("home-filaments-grid");
     if (printersGrid) vincularEventosDosCards(printersGrid);
-    if (filamentsGrid) vincularEventosDosCards(filamentsGrid);
+    vincularEventosHubFilamentos(homeEl, "home");
   }
 
   function atualizarVisaoPrincipal() {
@@ -5359,7 +5896,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Botões de escolher Marca de Filamento (Todos | Somente Bambu Lab | Somente MaxPrint)
     document.querySelectorAll("[data-filament-brand]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.marcaFilamentoFiltro = btn.dataset.filamentBrand;
+        const marcaClicada = btn.dataset.filamentBrand;
+        state.marcaFilamentoFiltro = marcaClicada;
+        if (marcaClicada === "Bambu Lab" || marcaClicada === "MaxPrint") {
+          state.hubFilamentoMarcaAtiva = marcaClicada;
+        }
         document.querySelectorAll("[data-filament-brand]").forEach((b) => {
           b.classList.toggle("active", b === btn);
         });
