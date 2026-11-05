@@ -7286,3 +7286,43 @@ button.color-swatch-more:hover {
     grid-template-columns: repeat(2, 1fr);
   }
 }
+
+/* Badge de Status Supabase no CMS */
+.supabase-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 14px;
+  border-radius: 99px;
+  font-size: 0.82rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.supabase-status-badge .status-indicator {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.supabase-status-badge.not-connected {
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fde68a;
+}
+
+.supabase-status-badge.not-connected .status-indicator {
+  background: #d97706;
+}
+
+.supabase-status-badge.connected {
+  background: #dcfce7;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+}
+
+.supabase-status-badge.connected .status-indicator {
+  background: #22c55e;
+  box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
+}

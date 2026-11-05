@@ -173,6 +173,17 @@
       return state.usuarioAtual;
     },
 
+    // Permite que o cliente Supabase atualize diretamente o usuário ativo
+    definirUsuarioAtivo: function (usuario) {
+      state.usuarioAtual = usuario;
+      if (usuario) {
+        gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, usuario);
+      } else if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem(STORAGE_KEYS.USUARIO_ATIVO);
+      }
+      notificarAuth();
+    },
+
     // Registra listener para reagir a login/logout
     onAuthStateChanged: function (callback) {
       if (typeof callback === "function") {
@@ -181,11 +192,18 @@
       }
     },
 
-    // Login com Google (recebe objeto com dados decodificados ou token)
+    // Login com Google (integração Supabase Auth com fallback local)
     loginGoogle: async function (dadosGoogle) {
-      const email = (dadosGoogle.email || "").toLowerCase().trim();
-      const nome = dadosGoogle.nome || dadosGoogle.name || "Vendedor Google";
-      const foto = dadosGoogle.foto || dadosGoogle.picture || null;
+      if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+        const resSupa = await window.SJ_SUPABASE.auth.loginGoogle();
+        if (resSupa && resSupa.sucesso) {
+          return resSupa;
+        }
+      }
+
+      const email = (dadosGoogle?.email || "").toLowerCase().trim();
+      const nome = dadosGoogle?.nome || dadosGoogle?.name || "Vendedor Google";
+      const foto = dadosGoogle?.foto || dadosGoogle?.picture || null;
 
       const usuario = {
         id: "usr-google-" + Date.now(),
@@ -224,7 +242,7 @@
       return { sucesso: true, usuario: state.usuarioAtual };
     },
 
-    // Login corporativo com E-mail e Senha
+    // Login corporativo com E-mail e Senha (Supabase Auth com fallback local)
     loginEmail: async function (email, senha) {
       const emailLimpo = (email || "").toLowerCase().trim();
       const senhaLimpa = (senha || "").trim();
@@ -233,7 +251,21 @@
         return { sucesso: false, mensagem: "Informe o e-mail e a senha de acesso." };
       }
 
-      // Validação local
+      // 1. Tenta autenticar primeiro no Supabase se configurado
+      if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+        const resSupa = await window.SJ_SUPABASE.auth.loginEmail(emailLimpo, senhaLimpa);
+        if (resSupa.sucesso) {
+          state.usuarioAtual = resSupa.usuario;
+          gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
+          notificarAuth();
+          return resSupa;
+        }
+        if (!resSupa.fallback) {
+          return resSupa;
+        }
+      }
+
+      // 2. Validação local / Fallback
       const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]);
       const user = usuarios.find((u) => u.email.toLowerCase() === emailLimpo);
 
@@ -277,7 +309,7 @@
       return { sucesso: true, usuario: state.usuarioAtual };
     },
 
-    // Cadastro de Novo Vendedor / Operador
+    // Cadastro de Novo Vendedor / Operador (Supabase Auth com fallback local)
     registrar: async function ({ nome, email, senha, cargo = "Vendedor" }) {
       const nomeLimpo = (nome || "").trim();
       const emailLimpo = (email || "").toLowerCase().trim();
@@ -287,10 +319,32 @@
         return { sucesso: false, mensagem: "Preencha todos os campos obrigatórios." };
       }
 
-      if (senhaLimpa.length < 4) {
-        return { sucesso: false, mensagem: "A senha deve ter no mínimo 4 caracteres." };
+      if (senhaLimpa.length < 6) {
+        return { sucesso: false, mensagem: "A senha deve ter no mínimo 6 caracteres." };
       }
 
+      // 1. Tenta cadastrar no Supabase se configurado
+      if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+        const resSupa = await window.SJ_SUPABASE.auth.registrar({
+          nome: nomeLimpo,
+          email: emailLimpo,
+          password: senhaLimpa,
+          cargo: cargo
+        });
+        if (resSupa.sucesso) {
+          if (resSupa.usuario) {
+            state.usuarioAtual = resSupa.usuario;
+            gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
+            notificarAuth();
+          }
+          return resSupa;
+        }
+        if (!resSupa.fallback) {
+          return resSupa;
+        }
+      }
+
+      // 2. Fallback Local
       const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, []);
       const existente = usuarios.find((u) => u.email.toLowerCase() === emailLimpo);
       if (existente) {
@@ -335,7 +389,10 @@
     },
 
     // Encerra a sessão
-    logout: function () {
+    logout: async function () {
+      if (typeof window !== "undefined" && window.SJ_SUPABASE) {
+        await window.SJ_SUPABASE.auth.logout();
+      }
       state.usuarioAtual = null;
       if (typeof window !== "undefined" && window.localStorage) {
         window.localStorage.removeItem(STORAGE_KEYS.USUARIO_ATIVO);

@@ -3698,13 +3698,18 @@
   }
 
   function abrirEmissorOuPedirLogin(itensIniciais = null) {
-    if (!state.usuarioGoogle) {
-      abrirModalAuthGoogle(() => {
-        abrirAssistenteOrcamento(itensIniciais);
+    const executar = () => abrirAssistenteOrcamento(itensIniciais);
+    if (window.SJ_SUPABASE) {
+      window.SJ_SUPABASE.guardiao.validarAcessoRota("#orcamento", executar, () => {
+        abrirModalAuthGoogle(executar);
       });
       return;
     }
-    abrirAssistenteOrcamento(itensIniciais);
+    if (!state.usuarioGoogle) {
+      abrirModalAuthGoogle(executar);
+      return;
+    }
+    executar();
   }
 
   function importarCarrinhoParaOrcamento() {
@@ -4669,34 +4674,68 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const mapPanes = {
       produtos: "cms-pane-produtos",
       banner: "cms-pane-banner",
-      exportar: "cms-pane-exportar"
+      exportar: "cms-pane-exportar",
+      supabase: "cms-pane-supabase"
     };
     Object.entries(mapPanes).forEach(([key, id]) => {
       const el = document.getElementById(id);
       if (el) el.classList.toggle("active", key === aba);
     });
+    if (aba === "supabase") {
+      atualizarStatusSupabaseNoCms();
+    }
   }
 
   function abrirPainelAdminCms(abaInicial = "produtos", produtoIdParaEditar = null) {
-    if (!state.usuarioGoogle) {
-      abrirModalAuthGoogle(() => {
-        abrirPainelAdminCms(abaInicial, produtoIdParaEditar);
-      }, "email");
+    const executarAbertura = () => {
+      const modal = document.getElementById("modal-admin-cms");
+      if (!modal) return;
+      modal.style.display = "flex";
+
+      selecionarAbaCms(abaInicial || "produtos");
+      renderizarListaProdutosCms();
+      preencherFormularioBannerCms();
+      atualizarStatusSupabaseNoCms();
+
+      if (produtoIdParaEditar) {
+        abrirEditorProdutoCms(produtoIdParaEditar);
+      } else {
+        voltarParaListaProdutosCms();
+      }
+    };
+
+    if (window.SJ_SUPABASE) {
+      window.SJ_SUPABASE.guardiao.validarAcessoRota("#admin", executarAbertura, () => {
+        abrirModalAuthGoogle(executarAbertura, "email");
+      });
       return;
     }
 
-    const modal = document.getElementById("modal-admin-cms");
-    if (!modal) return;
-    modal.style.display = "flex";
+    if (!state.usuarioGoogle) {
+      abrirModalAuthGoogle(executarAbertura, "email");
+      return;
+    }
 
-    selecionarAbaCms(abaInicial || "produtos");
-    renderizarListaProdutosCms();
-    preencherFormularioBannerCms();
+    executarAbertura();
+  }
 
-    if (produtoIdParaEditar) {
-      abrirEditorProdutoCms(produtoIdParaEditar);
-    } else {
-      voltarParaListaProdutosCms();
+  function atualizarStatusSupabaseNoCms() {
+    const badge = document.getElementById("cms-supabase-status-badge");
+    const text = document.getElementById("cms-supabase-status-text");
+    const urlInput = document.getElementById("cms-supabase-url");
+    const keyInput = document.getElementById("cms-supabase-key");
+
+    if (!window.SJ_SUPABASE) return;
+    const cfg = window.SJ_SUPABASE.getConfig();
+    if (urlInput && !urlInput.value && cfg.url) urlInput.value = cfg.url;
+    if (keyInput && !keyInput.value && cfg.anonKey) keyInput.value = cfg.anonKey;
+
+    const isConnected = window.SJ_SUPABASE.isConfigured();
+    if (badge && text) {
+      badge.className = `supabase-status-badge ${isConnected ? "connected" : "not-connected"}`;
+      text.textContent = isConnected
+        ? `Status: Conectado ao Supabase (${cfg.url})`
+        : "Status: Supabase não conectado (operando no modo local)";
     }
   }
 
@@ -5698,16 +5737,51 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
     });
 
+    // Configurações do Supabase no CMS (Aba 4)
+    document.getElementById("btn-cms-save-supabase")?.addEventListener("click", () => {
+      const url = document.getElementById("cms-supabase-url")?.value?.trim();
+      const key = document.getElementById("cms-supabase-key")?.value?.trim();
+      if (!url || !key) {
+        mostrarToast("⚠️ Preencha a URL do Projeto e a Anon Key do Supabase.", "warning");
+        return;
+      }
+      if (window.SJ_SUPABASE) {
+        const salvou = window.SJ_SUPABASE.salvarConfig(url, key);
+        if (salvou) {
+          atualizarStatusSupabaseNoCms();
+          mostrarToast("⚡ Credenciais do Supabase salvas com sucesso!", "success");
+        } else {
+          mostrarToast("❌ Erro ao salvar credenciais.", "error");
+        }
+      }
+    });
+
+    document.getElementById("btn-cms-test-supabase")?.addEventListener("click", async () => {
+      if (!window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
+        mostrarToast("⚠️ Salve as credenciais primeiro para testar.", "warning");
+        return;
+      }
+      const client = window.SJ_SUPABASE.getClient();
+      if (!client) {
+        mostrarToast("❌ Falha ao inicializar o cliente Supabase.", "error");
+        return;
+      }
+      try {
+        const { error } = await client.from("configuracoes_site").select("chave").limit(1);
+        if (error) {
+          mostrarToast(`⚠️ Supabase respondeu: ${error.message}`, "warning");
+        } else {
+          mostrarToast("✅ Conexão com o Supabase testada e funcionando com sucesso!", "success");
+        }
+      } catch (err) {
+        mostrarToast(`❌ Erro ao conectar com o Supabase: ${err.message}`, "error");
+      }
+    });
+
     // Link de Acesso Restrito (/admin) no Rodapé
     document.getElementById("footer-admin-link")?.addEventListener("click", (e) => {
       e.preventDefault();
-      if (state.usuarioGoogle) {
-        abrirPainelAdminCms("produtos");
-      } else {
-        abrirModalAuthGoogle(() => {
-          abrirPainelAdminCms("produtos");
-        }, "email");
-      }
+      abrirPainelAdminCms("produtos");
     });
 
     // Botão "Fazer Orçamento Timbrado" na Caixa Lateral
@@ -5729,12 +5803,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         hash === "#login";
 
       if (ehRotaAdmin) {
-        if (state.usuarioGoogle) {
-          abrirPainelAdminCms("produtos");
+        const abrirAdmin = () => abrirPainelAdminCms("produtos");
+        if (window.SJ_SUPABASE) {
+          window.SJ_SUPABASE.guardiao.validarAcessoRota(hash || path, abrirAdmin, () => {
+            abrirModalAuthGoogle(abrirAdmin, "email");
+          });
+        } else if (state.usuarioGoogle) {
+          abrirAdmin();
         } else {
-          abrirModalAuthGoogle(() => {
-            abrirPainelAdminCms("produtos");
-          }, "email");
+          abrirModalAuthGoogle(abrirAdmin, "email");
         }
         return true;
       }
