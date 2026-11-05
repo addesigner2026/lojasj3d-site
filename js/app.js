@@ -2305,58 +2305,22 @@
   }
 
   function atualizarBadgeUsuarioHeader() {
-    const badgeEl = document.getElementById("header-auth-badge");
-    if (!badgeEl) return;
+    const adminTopbar = document.getElementById("admin-vendor-topbar");
+    const cartQuoteBtn = document.getElementById("btn-cart-to-quote");
+    const nameEl = document.getElementById("admin-topbar-user-name");
+    const roleEl = document.getElementById("admin-topbar-user-role");
 
     if (!state.usuarioGoogle) {
-      badgeEl.style.display = "inline-flex";
-      badgeEl.style.cursor = "pointer";
-      badgeEl.innerHTML = `
-        <div class="header-auth-avatar" title="Entrar como Vendedor" aria-hidden="true">
-          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-        </div>
-        <span id="btn-header-open-login" style="font-weight:700; color:#E84520;">Login Vendedor</span>
-      `;
-      badgeEl.onclick = () => {
-        abrirModalAuthGoogle(() => {
-          if (state.itensCaixa && state.itensCaixa.length > 0) {
-            importarCarrinhoParaOrcamento();
-          }
-        });
-      };
+      // Usuário NÃO autenticado -> Site 100% público e limpo (sem barra nem botão de orçamento)
+      if (adminTopbar) adminTopbar.style.display = "none";
+      if (cartQuoteBtn) cartQuoteBtn.style.display = "none";
     } else {
+      // Vendedor AUTENTICADO -> Exibe a Barra Administrativa do Vendedor e o botão no carrinho
       const u = state.usuarioGoogle;
-      const avatarHtml = u.foto
-        ? `<img src="${u.foto}" alt="${u.nome}" style="width:100%;height:100%;border-radius:50%;object-fit:cover;" />`
-        : `<span style="font-weight:700;">${(u.nome || "V").charAt(0).toUpperCase()}</span>`;
-
-      badgeEl.style.display = "inline-flex";
-      badgeEl.style.cursor = "default";
-      badgeEl.onclick = null;
-      badgeEl.innerHTML = `
-        <div class="header-auth-avatar" title="${u.nome}" style="cursor:pointer;" id="btn-header-switch-user">${avatarHtml}</div>
-        <span style="cursor:pointer;" id="btn-header-user-name" title="Clique para gerenciar login ou cadastrar vendedor">${u.nome.split(" ")[0]} (${u.cargo || "Vendedor"})</span>
-        <button type="button" class="header-auth-logout" id="btn-header-logout" title="Desconectar do perfil de vendedor">(Sair)</button>
-      `;
-      document.getElementById("btn-header-switch-user")?.addEventListener("click", () => {
-        abrirModalAuthGoogle(() => {
-          if (state.emissorAberto) renderizarTelaOrcamento();
-        });
-      });
-      document.getElementById("btn-header-user-name")?.addEventListener("click", () => {
-        abrirModalAuthGoogle(() => {
-          if (state.emissorAberto) renderizarTelaOrcamento();
-        });
-      });
-      document.getElementById("btn-header-logout")?.addEventListener("click", (e) => {
-        e.stopPropagation();
-        if (confirm(`Deseja desconectar a conta do vendedor ${u.nome}?`)) {
-          fazerLogoutGoogle();
-        }
-      });
+      if (adminTopbar) adminTopbar.style.display = "block";
+      if (cartQuoteBtn) cartQuoteBtn.style.display = "flex";
+      if (nameEl) nameEl.textContent = u.nome || "Vendedor";
+      if (roleEl) roleEl.textContent = u.cargo || "Vendedor";
     }
   }
 
@@ -2401,13 +2365,34 @@
     });
   }
 
-  function abrirModalAuthGoogle(callbackApos = null) {
+  function selecionarAbaModalAuth(tabId) {
+    document.querySelectorAll("[data-auth-tab]").forEach((b) => {
+      const ativo = b.dataset.authTab === tabId;
+      b.classList.toggle("active", ativo);
+      b.setAttribute("aria-selected", ativo ? "true" : "false");
+    });
+
+    const panes = ["pane-auth-google", "pane-auth-email", "pane-auth-register"];
+    const paneMap = { google: "pane-auth-google", email: "pane-auth-email", register: "pane-auth-register" };
+    panes.forEach((paneId) => {
+      const el = document.getElementById(paneId);
+      if (el) {
+        el.style.display = (paneId === paneMap[tabId]) ? "block" : "none";
+      }
+    });
+  }
+
+  function abrirModalAuthGoogle(callbackApos = null, abaInicial = null) {
     state.callbackPosLoginGoogle = callbackApos;
     const modal = document.getElementById("modal-google-auth");
     if (modal) modal.style.display = "flex";
 
     const feedbackBox = document.getElementById("auth-feedback-box");
     if (feedbackBox) feedbackBox.style.display = "none";
+
+    if (abaInicial) {
+      selecionarAbaModalAuth(abaInicial);
+    }
 
     renderizarChipsVendedoresRapidos();
 
@@ -3744,27 +3729,79 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
     });
 
-    // Botão "Orçamento" no Topo
+    // Botões da Barra Exclusiva do Vendedor Autenticado (#admin-vendor-topbar)
     document.getElementById("header-btn-quote")?.addEventListener("click", () => {
       abrirEmissorOuPedirLogin();
     });
 
-    // Botão "Gerar Orçamento Timbrado" na Caixa Lateral ("aproveitando a forma do carrinho")
+    document.getElementById("admin-bar-btn-history")?.addEventListener("click", () => {
+      abrirModalHistoricoOrcamentos();
+    });
+
+    document.getElementById("admin-bar-btn-users")?.addEventListener("click", () => {
+      abrirModalAuthGoogle(() => {
+        if (state.emissorAberto) renderizarTelaOrcamento();
+      });
+    });
+
+    document.getElementById("admin-bar-btn-logout")?.addEventListener("click", () => {
+      const nome = state.usuarioGoogle ? state.usuarioGoogle.nome : "vendedor";
+      if (confirm(`Deseja encerrar a sessão de ${nome} e voltar ao site público?`)) {
+        fazerLogoutGoogle();
+        if (window.location.hash === "#admin" || window.location.hash === "#orcamento") {
+          history.replaceState(null, "", window.location.pathname);
+        }
+      }
+    });
+
+    // Link de Acesso Restrito (/admin) no Rodapé
+    document.getElementById("footer-admin-link")?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalAuthGoogle(null, "email");
+    });
+
+    // Botão "Fazer Orçamento Timbrado" na Caixa Lateral
     document.getElementById("btn-cart-to-quote")?.addEventListener("click", () => {
       importarCarrinhoParaOrcamento();
     });
 
-    // Leitura do hash inicial na URL para deep-linking (ex: #orcamento, #produto-fil-pla-bambulab ou #cat-impressoras)
-    const initialHash = window.location.hash || "";
-    if (initialHash === "#orcamento") {
-      abrirEmissorOuPedirLogin();
-    } else if (initialHash.startsWith("#produto-")) {
-      const id = initialHash.replace("#produto-", "");
-      abrirPaginaProduto(id, null, false);
-    } else if (initialHash.startsWith("#cat-")) {
-      const cat = initialHash.replace("#cat-", "");
-      navegarParaCategoria(cat, false);
+    // Verifica se acessou via /admin, ?admin ou #admin para abrir Login & Senha
+    function verificarRotaAdminOuHash() {
+      const path = (window.location.pathname || "").toLowerCase();
+      const search = (window.location.search || "").toLowerCase();
+      const hash = (window.location.hash || "").toLowerCase();
+
+      const ehRotaAdmin =
+        path.endsWith("/admin") ||
+        path.endsWith("/admin/") ||
+        search.includes("admin") ||
+        hash === "#admin" ||
+        hash === "#login";
+
+      if (ehRotaAdmin) {
+        abrirModalAuthGoogle(null, "email");
+        return true;
+      }
+      return false;
     }
+
+    // Leitura do endereço inicial na URL (ex: /admin, #admin, #orcamento, #produto-...)
+    const initialHash = window.location.hash || "";
+    if (!verificarRotaAdminOuHash()) {
+      if (initialHash === "#orcamento") {
+        abrirEmissorOuPedirLogin();
+      } else if (initialHash.startsWith("#produto-")) {
+        const id = initialHash.replace("#produto-", "");
+        abrirPaginaProduto(id, null, false);
+      } else if (initialHash.startsWith("#cat-")) {
+        const cat = initialHash.replace("#cat-", "");
+        navegarParaCategoria(cat, false);
+      }
+    }
+
+    window.addEventListener("hashchange", () => {
+      verificarRotaAdminOuHash();
+    });
 
     // Suporte ao botão "Voltar" do navegador / celular
     window.addEventListener("popstate", (e) => {
