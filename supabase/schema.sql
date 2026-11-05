@@ -302,3 +302,29 @@ create policy "Exclusão de imagens por vendedores autenticados"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'produtos-midia');
+
+-- ============================================================================
+-- 10. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
+-- ============================================================================
+insert into public.configuracoes_site (chave, valor)
+values 
+  ('loja', '{
+    "nome": "LOJA SJ 3D",
+    "razaoSocial": "SJ NOVAIS E CIA LTDA",
+    "cnpj": "66.275.129/0001-10",
+    "whatsapp": "5544991351318",
+    "whatsappFormatado": "(44) 99135-1318",
+    "endereco": "Avenida Portugal, nº 6759 — Zona 1A, Umuarama - PR",
+    "email": "contato@gruposj.com.br"
+  }'::jsonb),
+  ('banner_promocao', '{
+    "ativo": true,
+    "estilo": "sorteio",
+    "badge": "A MAIOR BLACK FRIDAY DA LOJA SJ",
+    "tituloPrincipal": "SORTEIO <em>A1 MINI</em>",
+    "subtituloPremio": "+ KIT COM 4 KG DE FILAMENTOS",
+    "descricaoCurta": "Compre na Loja SJ 3D em Umuarama - PR e concorra a uma Impressora Bambu Lab A1 Mini!",
+    "dataSorteio": "SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO"
+  }'::jsonb)
+on conflict (chave) do nothing;
+
