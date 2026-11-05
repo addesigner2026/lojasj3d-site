@@ -183,8 +183,6 @@
     const spanTxt = document.createElement("span");
     spanTxt.innerHTML = mensagem;
     toast.appendChild(spanTxt);
-  }
-  const mostrarToastNotificacao = (msg, tipo = "success") => mostrarToast(msg, tipo === "sucesso" ? "success" : tipo);
 
     if (opcoes.acaoTexto && typeof opcoes.onClick === "function") {
       const btn = document.createElement("button");
@@ -210,6 +208,7 @@
       }
     }, duracao);
   }
+  const mostrarToastNotificacao = (msg, tipo = "success") => mostrarToast(msg, tipo === "sucesso" ? "success" : tipo);
 
   function abrirGavetaPedido() {
     const overlay = document.getElementById("cart-drawer-overlay");
