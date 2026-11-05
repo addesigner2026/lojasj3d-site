@@ -215,9 +215,12 @@
   }
 
   function gerarEstiloBgBannerPromocao(imagemFundo) {
-    if (!imagemFundo) return "";
-    const urlEscapada = String(imagemFundo).replace(/"/g, '\\"');
-    return `background: linear-gradient(90deg, rgba(10, 8, 8, 0.78) 0%, rgba(10, 8, 8, 0.54) 46%, rgba(10, 8, 8, 0.12) 70%, rgba(10, 8, 8, 0) 100%), url("${urlEscapada}") center / cover no-repeat;`;
+    const imgTrim = String(imagemFundo || "").trim();
+    if (!imgTrim || imgTrim === "assets/produtos/banner-sorteio-natal-wide.jpg") {
+      return "";
+    }
+    const urlSegura = imgTrim.replace(/'/g, "\\'").replace(/"/g, "%22");
+    return `background: linear-gradient(90deg, rgba(10, 8, 8, 0.74) 0%, rgba(10, 8, 8, 0.52) 45%, rgba(10, 8, 8, 0.08) 68%, rgba(10, 8, 8, 0) 100%), url('${urlSegura}') center / cover no-repeat;`;
   }
 
   function gerarBannerPromocionalSecaoHtml() {
