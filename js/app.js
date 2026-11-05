@@ -31,7 +31,11 @@
     callbackPosLoginGoogle: null,
     emissorAberto: false,
     historicoFiltroStatus: "todos",
-    historicoBusca: ""
+    historicoBusca: "",
+    // Área do Cliente & Minha Conta
+    clienteLogado: null,
+    favoritos: [],
+    abaClienteAtiva: "favoritos"
   };
 
   const secoesDefinicao = [
@@ -179,6 +183,8 @@
     const spanTxt = document.createElement("span");
     spanTxt.innerHTML = mensagem;
     toast.appendChild(spanTxt);
+  }
+  const mostrarToastNotificacao = (msg, tipo = "success") => mostrarToast(msg, tipo === "sucesso" ? "success" : tipo);
 
     if (opcoes.acaoTexto && typeof opcoes.onClick === "function") {
       const btn = document.createElement("button");
@@ -440,8 +446,105 @@
   });
 
   // =========================================================================
-  // SISTEMA DE CADASTRO DE CLIENTES (CLUBE DE VANTAGENS LOJA SJ 3D)
+  // SISTEMA DO CLIENTE & MINHA CONTA — LOJA SJ 3D (PORTAL, FAVORITOS E CUPONS)
   // =========================================================================
+
+  // Inicialização do estado do cliente a partir do LocalStorage
+  function carregarClienteSalvo() {
+    try {
+      const c = localStorage.getItem("sj_cliente_ativo_v1");
+      if (c) state.clienteLogado = JSON.parse(c);
+      const fav = localStorage.getItem("sj_cliente_favoritos_v1");
+      if (fav) state.favoritos = JSON.parse(fav);
+      if (!Array.isArray(state.favoritos)) state.favoritos = [];
+    } catch (_) {}
+  }
+  carregarClienteSalvo();
+
+  function salvarClienteLocal(cliente) {
+    state.clienteLogado = cliente;
+    if (cliente) {
+      localStorage.setItem("sj_cliente_ativo_v1", JSON.stringify(cliente));
+    } else {
+      localStorage.removeItem("sj_cliente_ativo_v1");
+    }
+    atualizarBotaoHeaderConta();
+  }
+
+  function salvarFavoritosLocal() {
+    localStorage.setItem("sj_cliente_favoritos_v1", JSON.stringify(state.favoritos));
+    atualizarBadgeFavoritos();
+  }
+
+  function isFavorito(itemId) {
+    return Array.isArray(state.favoritos) && state.favoritos.includes(itemId);
+  }
+
+  function toggleFavorito(itemId) {
+    if (!itemId) return;
+
+    // Se cliente não estiver logado, abre o pop-up com mensagem
+    if (!state.clienteLogado) {
+      abrirModalAuthCliente("signup");
+      mostrarToastNotificacao("💡 Crie sua conta para guardar seus favoritos e concorra a prêmios!", "info");
+      return;
+    }
+
+    if (!Array.isArray(state.favoritos)) state.favoritos = [];
+    const idx = state.favoritos.indexOf(itemId);
+    let adicionado = false;
+
+    if (idx >= 0) {
+      state.favoritos.splice(idx, 1);
+      mostrarToastNotificacao("Item removido dos seus Favoritos.", "info");
+    } else {
+      state.favoritos.unshift(itemId);
+      adicionado = true;
+      mostrarToastNotificacao("❤️ Produto salvo nos seus Favoritos!", "sucesso");
+    }
+
+    salvarFavoritosLocal();
+
+    // Atualiza ícones de coração visíveis na tela
+    document.querySelectorAll(`[data-toggle-fav="${itemId}"]`).forEach((btn) => {
+      btn.classList.toggle("active", adicionado);
+      const svg = btn.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("fill", adicionado ? "#f04e23" : "none");
+        svg.setAttribute("stroke", adicionado ? "#f04e23" : "#71717a");
+      }
+    });
+
+    // Se estiver na Área do Cliente na aba de favoritos, re-renderiza
+    if (state.categoriaMenu === "minha-conta" && state.abaClienteAtiva === "favoritos") {
+      renderizarAreaCliente("favoritos");
+    }
+  }
+
+  function atualizarBadgeFavoritos() {
+    const badge = document.getElementById("fav-count-badge");
+    if (!badge) return;
+    const total = (state.favoritos || []).length;
+    badge.textContent = total;
+    badge.style.display = total > 0 ? "inline-flex" : "none";
+  }
+
+  function atualizarBotaoHeaderConta() {
+    const btnText = document.getElementById("header-account-btn-text");
+    const btn = document.getElementById("header-account-btn");
+    if (!btnText || !btn) return;
+
+    if (state.clienteLogado) {
+      const primeiroNome = (state.clienteLogado.nome || "Cliente").split(" ")[0];
+      btnText.textContent = `Olá, ${primeiroNome}`;
+      btn.classList.add("logged-in");
+      btn.title = `Minha Conta (${state.clienteLogado.nome})`;
+    } else {
+      btnText.textContent = "Entrar / Cadastrar";
+      btn.classList.remove("logged-in");
+      btn.title = "Acessar Minha Conta / Cadastrar";
+    }
+  }
 
   function aplicarMascaraTelefone(input) {
     if (!input) return;
@@ -462,426 +565,669 @@
     });
   }
 
-  function aplicarMascaraCpfCnpj(input, getTipoPessoa) {
+  function aplicarMascaraCpfCnpj(input) {
     if (!input) return;
     input.addEventListener("input", () => {
       let v = input.value.replace(/\D/g, "");
-      const tipo = typeof getTipoPessoa === "function" ? getTipoPessoa() : "pf";
-      if (tipo === "pj") {
-        if (v.length > 14) v = v.slice(0, 14);
-        if (v.length > 12) {
-          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
-        } else if (v.length > 8) {
-          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8)}`;
-        } else if (v.length > 5) {
-          input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
-        } else if (v.length > 2) {
-          input.value = `${v.slice(0, 2)}.${v.slice(2)}`;
-        } else {
-          input.value = v;
-        }
+      if (v.length > 14) v = v.slice(0, 14);
+      if (v.length > 11) {
+        // CNPJ
+        input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
+      } else if (v.length > 9) {
+        // CPF
+        input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+      } else if (v.length > 6) {
+        input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+      } else if (v.length > 3) {
+        input.value = `${v.slice(0, 3)}.${v.slice(3)}`;
       } else {
-        if (v.length > 11) v = v.slice(0, 11);
-        if (v.length > 9) {
-          input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
-        } else if (v.length > 6) {
-          input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
-        } else if (v.length > 3) {
-          input.value = `${v.slice(0, 3)}.${v.slice(3)}`;
-        } else {
-          input.value = v;
-        }
+        input.value = v;
       }
     });
   }
 
-  function gerarFormularioCadastroClienteHtml(idSufixo = "secao") {
-    return `
-      <form class="client-reg-form" id="form-cadastro-${idSufixo}" novalidate>
-        <div class="client-type-toggle">
-          <button type="button" class="client-type-btn active" data-tipo="pf" title="Cadastro com CPF">
-            <span>👤 Pessoa Física (CPF)</span>
-          </button>
-          <button type="button" class="client-type-btn" data-tipo="pj" title="Cadastro empresarial com CNPJ">
-            <span>🏢 Empresa (CNPJ)</span>
-          </button>
-        </div>
+  // =========================================================================
+  // MODAL POP-UP DE AUTENTICAÇÃO DO CLIENTE (LOGIN / CADASTRO / GOOGLE)
+  // =========================================================================
 
-        <div class="client-form-grid">
-          <div class="client-field-group full-col">
-            <label class="lbl-nome">Nome Completo *</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-              <input type="text" name="nome" placeholder="Ex: Thiago Novais" required autocomplete="name" />
-            </div>
-          </div>
+  function abrirModalAuthCliente(abaInicial = "login") {
+    const modal = document.getElementById("modal-client-auth");
+    if (!modal) return;
 
-          <div class="client-field-group">
-            <label class="lbl-documento">CPF *</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <line x1="7" y1="8" x2="17" y2="8"></line>
-                <line x1="7" y1="12" x2="17" y2="12"></line>
-                <line x1="7" y1="16" x2="12" y2="16"></line>
-              </svg>
-              <input type="text" name="cnpj_cpf" placeholder="000.000.000-00" required inputmode="numeric" />
-            </div>
-          </div>
-
-          <div class="client-field-group">
-            <label>WhatsApp / Celular *</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-              </svg>
-              <input type="tel" name="whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
-            </div>
-          </div>
-
-          <div class="client-field-group full-col">
-            <label>E-mail *</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                <polyline points="22,6 12,13 2,6"></polyline>
-              </svg>
-              <input type="email" name="email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
-            </div>
-          </div>
-
-          <div class="client-field-group">
-            <label>Cidade / UF *</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <input type="text" name="bairro_cidade_uf" value="Umuarama / PR" required />
-            </div>
-          </div>
-
-          <div class="client-field-group">
-            <label>Endereço / Bairro (Opcional)</label>
-            <div class="client-input-icon-wrap">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-                <polyline points="9 22 9 12 15 12 15 22"></polyline>
-              </svg>
-              <input type="text" name="endereco" placeholder="Rua, Número e Bairro" />
-            </div>
-          </div>
-
-          <div class="client-interests-section full-col">
-            <label>Principais Interesses:</label>
-            <div class="client-interests-pills">
-              <label class="client-interest-chip">
-                <input type="checkbox" name="interesses" value="Filamentos" checked />
-                <span>🧵 Filamentos 3D</span>
-              </label>
-              <label class="client-interest-chip">
-                <input type="checkbox" name="interesses" value="Impressoras" checked />
-                <span>🖨️ Impressoras 3D</span>
-              </label>
-              <label class="client-interest-chip">
-                <input type="checkbox" name="interesses" value="Pecas" />
-                <span>⚙️ Peças & Reposição</span>
-              </label>
-              <label class="client-interest-chip">
-                <input type="checkbox" name="interesses" value="Manutencao" />
-                <span>🔧 Manutenção Especializada</span>
-              </label>
-            </div>
-          </div>
-        </div>
-
-        <button type="submit" class="client-submit-btn">
-          <span>🚀 Concluir Cadastro & Ativar Benefícios</span>
-        </button>
-      </form>
-    `;
-  }
-
-  function gerarSecaoCadastroClienteHtml() {
-    return `
-      <section id="secao-cadastro-cliente" class="client-registration-section" aria-label="Cadastro de Clientes Loja SJ 3D">
-        <div class="client-reg-grid">
-          <div class="client-reg-benefits-col">
-            <div class="client-reg-tag">
-              <span class="status-pulse-dot" style="background:#ff8a65; box-shadow:0 0 10px #f04e23;"></span>
-              <span>Clube de Clientes & Vantagens</span>
-            </div>
-            <h2 class="client-reg-title">Cadastre-se na <em>Loja SJ 3D</em> & Garanta Vantagens Exclusivas</h2>
-            <p class="client-reg-lead">
-              Concorra aos prêmios oficiais da loja física em Umuarama - PR, acumule cupons para o <strong>Sorteio da Bambu Lab A1 Mini</strong> e receba orçamentos comerciais timbrados com agilidade no WhatsApp.
-            </p>
-
-            <div class="client-reg-perks-list">
-              <div class="client-perk-item">
-                <span class="client-perk-icon">🎁</span>
-                <div class="client-perk-text">
-                  <strong>Sorteios & Cupons Oficiais</strong>
-                  <span>Cupons automáticos associados ao seu CPF/CNPJ para concorrer à A1 Mini + 4kg de filamentos</span>
-                </div>
-              </div>
-
-              <div class="client-perk-item">
-                <span class="client-perk-icon">⚡</span>
-                <div class="client-perk-text">
-                  <strong>Orçamentos Express</strong>
-                  <span>Seus dados salvos para fechar pedidos no balcão e no site sem redigitar nada</span>
-                </div>
-              </div>
-
-              <div class="client-perk-item">
-                <span class="client-perk-icon">🏷️</span>
-                <div class="client-perk-text">
-                  <strong>Novidades em Filamentos</strong>
-                  <span>Avisos em primeira mão sobre reposições de +80 cores Bambu Lab RFID e Masterprint</span>
-                </div>
-              </div>
-
-              <div class="client-perk-item">
-                <span class="client-perk-icon">📍</span>
-                <div class="client-perk-text">
-                  <strong>Atendimento VIP Balcão</strong>
-                  <span>Retirada presencial imediata e suporte técnico na Av. Portugal, 6759 - Umuarama</span>
-                </div>
-              </div>
-            </div>
-
-            <div class="client-reg-security-note">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-              </svg>
-              <span>Seus dados estão protegidos com segurança pelo Supabase e Lei Geral de Proteção de Dados (LGPD).</span>
-            </div>
-          </div>
-
-          <div class="client-reg-card-wrap" id="client-reg-card-wrap-secao">
-            <div class="client-reg-card-head">
-              <h3>Criar Meu Cadastro</h3>
-              <p>Preencha os campos abaixo para ativar seus benefícios.</p>
-            </div>
-            ${gerarFormularioCadastroClienteHtml("secao")}
-          </div>
-        </div>
-      </section>
-    `;
-  }
-
-  function configurarFormularioCadastro(formEl, wrapId, onSucesso) {
-    if (!formEl) return;
-    const wrap = document.getElementById(wrapId);
-
-    let tipoPessoaAtual = "pf";
-    const btnPf = formEl.querySelector('[data-tipo="pf"]');
-    const btnPj = formEl.querySelector('[data-tipo="pj"]');
-    const lblNome = formEl.querySelector(".lbl-nome");
-    const lblDoc = formEl.querySelector(".lbl-documento");
-    const inputNome = formEl.querySelector('input[name="nome"]');
-    const inputDoc = formEl.querySelector('input[name="cnpj_cpf"]');
-    const inputTel = formEl.querySelector('input[name="whatsapp"]');
-
-    function alternarTipo(tipo) {
-      tipoPessoaAtual = tipo;
-      if (btnPf && btnPj) {
-        btnPf.classList.toggle("active", tipo === "pf");
-        btnPj.classList.toggle("active", tipo === "pj");
-      }
-      if (tipo === "pj") {
-        if (lblNome) lblNome.textContent = "Razão Social / Nome da Empresa *";
-        if (lblDoc) lblDoc.textContent = "CNPJ *";
-        if (inputNome) inputNome.placeholder = "Ex: SJ Novais e Cia Ltda";
-        if (inputDoc) inputDoc.placeholder = "00.000.000/0000-00";
-      } else {
-        if (lblNome) lblNome.textContent = "Nome Completo *";
-        if (lblDoc) lblDoc.textContent = "CPF *";
-        if (inputNome) inputNome.placeholder = "Ex: Thiago Novais";
-        if (inputDoc) inputDoc.placeholder = "000.000.000-00";
-      }
-      if (inputDoc) inputDoc.value = "";
-    }
-
-    btnPf?.addEventListener("click", () => alternarTipo("pf"));
-    btnPj?.addEventListener("click", () => alternarTipo("pj"));
-
-    aplicarMascaraTelefone(inputTel);
-    aplicarMascaraCpfCnpj(inputDoc, () => tipoPessoaAtual);
-
-    formEl.addEventListener("submit", async (e) => {
-      e.preventDefault();
-
-      const nomeVal = String(inputNome?.value || "").trim();
-      const docVal = String(inputDoc?.value || "").trim();
-      const telVal = String(inputTel?.value || "").trim();
-      const emailInput = formEl.querySelector('input[name="email"]');
-      const emailVal = String(emailInput?.value || "").trim();
-      const cidadeVal = String(formEl.querySelector('input[name="bairro_cidade_uf"]')?.value || "Umuarama / PR").trim();
-      const enderecoVal = String(formEl.querySelector('input[name="endereco"]')?.value || "").trim();
-
-      if (!nomeVal) {
-        alert("Por favor, preencha seu Nome Completo ou Razão Social.");
-        inputNome?.focus();
-        return;
-      }
-
-      if (!docVal) {
-        alert(`Por favor, preencha o seu ${tipoPessoaAtual === "pj" ? "CNPJ" : "CPF"}.`);
-        inputDoc?.focus();
-        return;
-      }
-
-      if (!telVal) {
-        alert("Por favor, informe seu WhatsApp para receber o cupom do sorteio e orçamentos.");
-        inputTel?.focus();
-        return;
-      }
-
-      if (!emailVal || !emailVal.includes("@")) {
-        alert("Por favor, informe um e-mail válido.");
-        emailInput?.focus();
-        return;
-      }
-
-      const interessesChecked = Array.from(
-        formEl.querySelectorAll('input[name="interesses"]:checked')
-      ).map((c) => c.value);
-
-      const submitBtn = formEl.querySelector(".client-submit-btn");
-      if (submitBtn) {
-        submitBtn.disabled = true;
-        submitBtn.innerHTML = "<span>⏳ Ativando Cadastro no Supabase...</span>";
-      }
-
-      const dadosParaEnvio = {
-        nome: nomeVal,
-        cnpjCpf: docVal,
-        whatsapp: telVal,
-        cepTelefone: telVal,
-        email: emailVal,
-        bairroCidadeUf: cidadeVal,
-        endereco: enderecoVal,
-        tipoPessoa: tipoPessoaAtual,
-        interesses: interessesChecked
-      };
-
-      try {
-        let resultado = null;
-        if (window.SJ_SUPABASE?.clientes?.cadastrar) {
-          resultado = await window.SJ_SUPABASE.clientes.cadastrar(dadosParaEnvio);
-        } else if (window.SJ_DB?.clientes?.salvar) {
-          resultado = {
-            sucesso: true,
-            cliente: window.SJ_DB.clientes.salvar(dadosParaEnvio)
-          };
-        }
-
-        const msgWhats = encodeURIComponent(
-          `Olá Loja SJ 3D! Acabei de me cadastrar no Clube de Vantagens pelo site:\n\n` +
-          `• Nome: ${nomeVal}\n` +
-          `• ${tipoPessoaAtual === "pj" ? "CNPJ" : "CPF"}: ${docVal}\n` +
-          `• WhatsApp: ${telVal}\n` +
-          `• Cidade: ${cidadeVal}\n\n` +
-          `Gostaria de confirmar minha participação no Sorteio da Impressora A1 Mini!`
-        );
-        const linkWhats = `https://wa.me/5544991351318?text=${msgWhats}`;
-
-        if (wrap) {
-          wrap.innerHTML = `
-            <div class="client-success-box">
-              <div class="client-success-icon">✓</div>
-              <h4>🎉 Cadastro Realizado com Sucesso!</h4>
-              <p>
-                Parabéns, <strong>${nomeVal}</strong>! Seus dados foram salvos com segurança e você já faz parte do <strong>Clube de Vantagens da Loja SJ 3D</strong>.
-              </p>
-              <div class="client-success-actions">
-                <a href="${linkWhats}" target="_blank" rel="noopener" class="btn-success-whatsapp">
-                  💬 Confirmar no WhatsApp da Loja SJ 3D →
-                </a>
-                <button type="button" class="btn-success-continue" id="btn-sucesso-explorar-${wrapId}">
-                  🛍️ Explorar Filamentos & Impressoras
-                </button>
-              </div>
-            </div>
-          `;
-
-          wrap.querySelector(`#btn-sucesso-explorar-${wrapId}`)?.addEventListener("click", () => {
-            if (wrapId.includes("modal")) {
-              fecharModalCadastroCliente();
-            }
-            irParaCategoriaMenu("todos");
-          });
-        }
-
-        if (typeof onSucesso === "function") {
-          onSucesso(dadosParaEnvio);
-        }
-      } catch (err) {
-        console.error("[Cadastro Cliente] Erro:", err);
-        alert("Ocorreu um erro ao concluir o cadastro: " + err.message);
-        if (submitBtn) {
-          submitBtn.disabled = false;
-          submitBtn.innerHTML = "<span>🚀 Concluir Cadastro & Ativar Benefícios</span>";
-        }
-      }
-    });
-  }
-
-  function abrirModalCadastroCliente() {
-    const modal = document.getElementById("modal-client-register");
-    const container = document.getElementById("client-reg-modal-container");
-    if (!modal || !container) return;
-
-    container.innerHTML = `
-      <div class="client-reg-card-wrap" id="client-reg-card-wrap-modal" style="padding:0; box-shadow:none;">
-        ${gerarFormularioCadastroClienteHtml("modal")}
-      </div>
-    `;
-
-    configurarFormularioCadastro(
-      document.getElementById("form-cadastro-modal"),
-      "client-reg-card-wrap-modal",
-      () => {
-        // Callback opcional após sucesso
-      }
-    );
+    alternarAbaAuthCliente(abaInicial);
 
     modal.style.display = "flex";
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
   }
 
-  function fecharModalCadastroCliente() {
-    const modal = document.getElementById("modal-client-register");
+  function fecharModalAuthCliente() {
+    const modal = document.getElementById("modal-client-auth");
     if (!modal) return;
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
   }
 
-  document.getElementById("close-client-reg-modal-btn")?.addEventListener("click", fecharModalCadastroCliente);
-  document.getElementById("modal-client-register")?.addEventListener("click", (e) => {
-    if (e.target.id === "modal-client-register") fecharModalCadastroCliente();
-  });
+  function alternarAbaAuthCliente(aba) {
+    const tabLogin = document.getElementById("tab-client-login");
+    const tabSignup = document.getElementById("tab-client-signup");
+    const formLogin = document.getElementById("form-client-login");
+    const formSignup = document.getElementById("form-client-signup");
+    const title = document.getElementById("client-auth-title");
+    const desc = document.getElementById("client-auth-desc");
 
-  // Handler Global para o Botão "Cadastre-se" no menu ou em qualquer lugar do site
-  document.addEventListener("click", (e) => {
-    const btnCadastro = e.target.closest("#header-btn-cadastre-se, [data-open-cadastro]");
-    if (btnCadastro) {
-      e.preventDefault();
-      const secaoNaPagina = document.getElementById("secao-cadastro-cliente");
-      if (secaoNaPagina && state.categoriaMenu === "home" && !state.produtoDetalheAtivo) {
-        secaoNaPagina.scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => {
-          secaoNaPagina.querySelector('input[name="nome"]')?.focus();
-        }, 600);
+    if (aba === "signup") {
+      tabSignup?.classList.add("active");
+      tabLogin?.classList.remove("active");
+      if (formSignup) formSignup.style.display = "flex";
+      if (formLogin) formLogin.style.display = "none";
+      if (title) title.textContent = "Criar Minha Conta no Clube SJ";
+      if (desc) desc.textContent = "Cadastre-se para guardar favoritos, ver compras e concorrer ao Sorteio da A1 Mini.";
+    } else {
+      tabLogin?.classList.add("active");
+      tabSignup?.classList.remove("active");
+      if (formLogin) formLogin.style.display = "flex";
+      if (formSignup) formSignup.style.display = "none";
+      if (title) title.textContent = "Entrar na Minha Conta";
+      if (desc) desc.textContent = "Acesse seus favoritos, histórico de compras e seus cupons.";
+    }
+  }
+
+  function configurarModalAuthCliente() {
+    const tabLogin = document.getElementById("tab-client-login");
+    const tabSignup = document.getElementById("tab-client-signup");
+    const formLogin = document.getElementById("form-client-login");
+    const formSignup = document.getElementById("form-client-signup");
+    const btnGoogle = document.getElementById("btn-google-client-login");
+    const btnClose = document.getElementById("close-client-auth-btn");
+    const modal = document.getElementById("modal-client-auth");
+
+    tabLogin?.addEventListener("click", () => alternarAbaAuthCliente("login"));
+    tabSignup?.addEventListener("click", () => alternarAbaAuthCliente("signup"));
+    btnClose?.addEventListener("click", fecharModalAuthCliente);
+    modal?.addEventListener("click", (e) => {
+      if (e.target.id === "modal-client-auth") fecharModalAuthCliente();
+    });
+
+    // Máscaras nos campos de cadastro
+    const inputTel = formSignup?.querySelector('input[name="signup_whatsapp"]');
+    const inputCpf = formSignup?.querySelector('input[name="signup_cpf"]');
+    aplicarMascaraTelefone(inputTel);
+    aplicarMascaraCpfCnpj(inputCpf);
+
+    // Login com Google (Oficial Supabase Auth)
+    btnGoogle?.addEventListener("click", async () => {
+      if (window.SJ_SUPABASE?.auth?.loginComGoogle) {
+        const res = await window.SJ_SUPABASE.auth.loginComGoogle();
+        if (res && res.url) {
+          window.location.href = res.url;
+        } else if (res && !res.sucesso) {
+          alert("Não foi possível iniciar o login com Google: " + res.mensagem);
+        }
       } else {
-        abrirModalCadastroCliente();
+        alert("Serviço de autenticação não inicializado.");
       }
+    });
+
+    // Login com E-mail e Senha
+    formLogin?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const email = String(formLogin.querySelector('input[name="login_email"]')?.value || "").trim().toLowerCase();
+      const password = String(formLogin.querySelector('input[name="login_password"]')?.value || "").trim();
+
+      if (!email || !password) {
+        alert("Preencha seu e-mail e senha.");
+        return;
+      }
+
+      const btnSubmit = document.getElementById("btn-submit-client-login");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "<span>⏳ Entrando...</span>";
+      }
+
+      try {
+        let authOk = false;
+        let userData = null;
+
+        if (window.SJ_SUPABASE?.auth?.loginComEmail) {
+          const res = await window.SJ_SUPABASE.auth.loginComEmail({ email, password });
+          if (res.sucesso && res.usuario) {
+            authOk = true;
+            userData = {
+              id: res.usuario.id,
+              nome: res.usuario.nome || email.split("@")[0],
+              email: res.usuario.email,
+              whatsapp: res.usuario.whatsapp || "",
+              cpf: res.usuario.cpf || "",
+              tipo: "cliente"
+            };
+          } else {
+            alert(res.mensagem || "E-mail ou senha incorretos.");
+          }
+        } else {
+          // Fallback Local
+          authOk = true;
+          userData = { id: "cli-" + Date.now(), nome: email.split("@")[0], email, tipo: "cliente" };
+        }
+
+        if (authOk && userData) {
+          salvarClienteLocal(userData);
+          fecharModalAuthCliente();
+          mostrarToastNotificacao(`🎉 Bem-vindo(a) de volta, ${userData.nome}!`, "sucesso");
+          navegarParaCategoria("minha-conta");
+        }
+      } catch (err) {
+        alert("Erro ao entrar: " + err.message);
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = "<span>Entrar na Minha Conta</span>";
+        }
+      }
+    });
+
+    // Cadastro de Nova Conta
+    formSignup?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = String(formSignup.querySelector('input[name="signup_nome"]')?.value || "").trim();
+      const whatsapp = String(formSignup.querySelector('input[name="signup_whatsapp"]')?.value || "").trim();
+      const cpf = String(formSignup.querySelector('input[name="signup_cpf"]')?.value || "").trim();
+      const email = String(formSignup.querySelector('input[name="signup_email"]')?.value || "").trim().toLowerCase();
+      const password = String(formSignup.querySelector('input[name="signup_password"]')?.value || "").trim();
+
+      if (!nome) {
+        alert("Por favor, digite seu Nome Completo.");
+        return;
+      }
+      if (!whatsapp) {
+        alert("Por favor, informe seu WhatsApp.");
+        return;
+      }
+      if (!email || !email.includes("@")) {
+        alert("Por favor, informe um e-mail válido.");
+        return;
+      }
+      if (!password || password.length < 6) {
+        alert("A senha deve ter pelo menos 6 caracteres.");
+        return;
+      }
+
+      const btnSubmit = document.getElementById("btn-submit-client-signup");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "<span>⏳ Criando sua conta no Clube SJ...</span>";
+      }
+
+      try {
+        let userId = "cli-" + Date.now();
+
+        // 1. Cadastra no Supabase Auth
+        if (window.SJ_SUPABASE?.auth?.registrar) {
+          const resAuth = await window.SJ_SUPABASE.auth.registrar({
+            nome,
+            email,
+            password,
+            cargo: "Cliente"
+          });
+          if (resAuth?.usuario?.id) {
+            userId = resAuth.usuario.id;
+          }
+        }
+
+        // 2. Salva na tabela public.clientes do Supabase
+        if (window.SJ_SUPABASE?.clientes?.cadastrar) {
+          await window.SJ_SUPABASE.clientes.cadastrar({
+            id: userId,
+            nome,
+            cnpjCpf: cpf,
+            whatsapp,
+            email,
+            bairroCidadeUf: "Umuarama/PR"
+          });
+        }
+
+        const novoCliente = {
+          id: userId,
+          nome,
+          whatsapp,
+          cpf,
+          email,
+          cidadeUf: "Umuarama / PR",
+          tipo: "cliente"
+        };
+
+        salvarClienteLocal(novoCliente);
+        fecharModalAuthCliente();
+        mostrarToastNotificacao(`🎉 Conta criada com sucesso! Bem-vindo(a) ao Clube SJ 3D, ${nome}!`, "sucesso");
+        navegarParaCategoria("minha-conta");
+      } catch (err) {
+        alert("Erro ao criar conta: " + err.message);
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = "<span>🚀 Criar Minha Conta & Entrar</span>";
+        }
+      }
+    });
+  }
+
+  // =========================================================================
+  // ÁREA DO CLIENTE / MINHA CONTA (PÁGINA DEDICADA: FAVORITOS, COMPRAS, CUPONS)
+  // =========================================================================
+
+  function renderizarAreaCliente(abaAtiva = state.abaClienteAtiva || "favoritos") {
+    const container = document.getElementById("client-account-view");
+    if (!container) return;
+
+    state.abaClienteAtiva = abaAtiva;
+
+    // Se não estiver logado, exibe prompt para entrar/cadastrar
+    if (!state.clienteLogado) {
+      container.innerHTML = `
+        <div class="client-empty-box" style="margin: 40px auto 60px;">
+          <div class="client-empty-icon">👤</div>
+          <h4>Área do Cliente • Clube Loja SJ 3D</h4>
+          <p>Faça login ou crie sua conta gratuitamente para guardar seus produtos favoritos, consultar seus pedidos e acompanhar seus cupons no Sorteio da Bambu Lab A1 Mini.</p>
+          <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
+            <button type="button" class="btn-client-explore" id="btn-login-prompt-area">
+              🔑 Entrar na Minha Conta
+            </button>
+            <button type="button" class="btn-client-explore" id="btn-signup-prompt-area" style="background:var(--sj-orange);">
+              ✨ Criar Nova Conta
+            </button>
+          </div>
+        </div>
+      `;
+
+      container.querySelector("#btn-login-prompt-area")?.addEventListener("click", () => abrirModalAuthCliente("login"));
+      container.querySelector("#btn-signup-prompt-area")?.addEventListener("click", () => abrirModalAuthCliente("signup"));
+      return;
+    }
+
+    const c = state.clienteLogado;
+    const primeiroNome = (c.nome || "Cliente").split(" ")[0];
+    const avatarLetra = (primeiroNome[0] || "C").toUpperCase();
+    const totalFavoritos = (state.favoritos || []).length;
+
+    // Busca pedidos/orçamentos do cliente
+    let pedidosCliente = [];
+    if (window.SJ_DB?.orcamentos?.listar) {
+      const todos = window.SJ_DB.orcamentos.listar();
+      const emailCli = (c.email || "").toLowerCase();
+      const nomeCli = (c.nome || "").toLowerCase();
+      pedidosCliente = todos.filter((o) => {
+        const cNome = (o.clienteNome || "").toLowerCase();
+        const mEmail = (o.metadados?.clienteEmail || "").toLowerCase();
+        return (emailCli && mEmail === emailCli) || (nomeCli && cNome.includes(nomeCli));
+      });
+    }
+
+    // Calcula cupons estimados (1 cupom a cada R$ 60 + 3 cupons do cadastro/CPF)
+    let totalGasto = pedidosCliente.reduce((acc, p) => acc + (Number(p.total) || 0), 0);
+    let cuponsCompras = Math.floor(totalGasto / 60);
+    let cuponsCadastro = c.cpf ? 3 : 1;
+    let totalCupons = cuponsCompras + cuponsCadastro;
+
+    // Itens Favoritados
+    const produtosFavoritos = (window.SITE_DATA.catalogo || []).filter((p) =>
+      state.favoritos.includes(p.id)
+    );
+
+    container.innerHTML = `
+      <!-- 1. HERO DO PERFIL -->
+      <div class="client-profile-hero">
+        <div class="client-profile-main-col">
+          <div class="client-avatar-circle">
+            ${c.foto ? `<img src="${c.foto}" alt="${c.nome}" />` : `<span>${avatarLetra}</span>`}
+          </div>
+          <div class="client-profile-text">
+            <h2>Olá, ${primeiroNome}!</h2>
+            <div class="client-profile-meta">
+              <span>📧 ${c.email || ""}</span>
+              ${c.whatsapp ? `<span>📱 ${c.whatsapp}</span>` : ""}
+              <span>📍 ${c.cidadeUf || "Umuarama / PR"}</span>
+              <span style="color:#ff8a65; font-weight:700;">🎟️ ${totalCupons} cupons no Sorteio</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="client-profile-hero-actions">
+          <button type="button" class="btn-client-logout" id="btn-cliente-sair">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+              <polyline points="16 17 21 12 16 7"></polyline>
+              <line x1="21" y1="12" x2="9" y2="12"></line>
+            </svg>
+            <span>Sair da Conta</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. ABAS DE NAVEGAÇÃO -->
+      <div class="client-tabs-nav">
+        <button type="button" class="client-tab-nav-btn ${abaAtiva === "favoritos" ? "active" : ""}" data-target-tab="favoritos">
+          <span>❤️ Meus Favoritos</span>
+          <span class="tab-badge">${totalFavoritos}</span>
+        </button>
+        <button type="button" class="client-tab-nav-btn ${abaAtiva === "pedidos" ? "active" : ""}" data-target-tab="pedidos">
+          <span>📦 Meus Pedidos & Orçamentos</span>
+          <span class="tab-badge">${pedidosCliente.length}</span>
+        </button>
+        <button type="button" class="client-tab-nav-btn ${abaAtiva === "cupons" ? "active" : ""}" data-target-tab="cupons">
+          <span>🎟️ Meus Cupons no Sorteio</span>
+          <span class="tab-badge">${totalCupons}</span>
+        </button>
+        <button type="button" class="client-tab-nav-btn ${abaAtiva === "dados" ? "active" : ""}" data-target-tab="dados">
+          <span>👤 Meus Dados</span>
+        </button>
+      </div>
+
+      <!-- 3. CONTEÚDO DAS ABAS -->
+
+      <!-- ABA A: FAVORITOS -->
+      <div class="client-tab-pane ${abaAtiva === "favoritos" ? "active" : ""}" id="pane-client-favoritos">
+        ${
+          produtosFavoritos.length > 0
+            ? `
+          <div class="client-favorites-grid">
+            ${produtosFavoritos
+              .map(
+                (item) => `
+              <div class="client-fav-item-card" data-fav-card="${item.id}">
+                <button type="button" class="btn-remove-fav" data-del-fav="${item.id}" title="Remover dos favoritos">✕</button>
+                <div class="client-fav-img-wrap" data-open-modal="${item.id}" style="cursor:pointer;">
+                  <img src="${item.imagem}" alt="${item.nome}" loading="lazy" />
+                </div>
+                <div class="client-fav-info">
+                  <span class="client-fav-brand">${item.marca}</span>
+                  <h4 class="client-fav-title" data-open-modal="${item.id}" style="cursor:pointer;">${item.nome}</h4>
+                  <div class="client-fav-prices">
+                    <strong>${item.precoVista}</strong>
+                    ${item.precoParcelado ? `<small>${item.precoParcelado}</small>` : ""}
+                  </div>
+                  <button type="button" class="btn-fav-add-cart" data-add-item="${item.id}">
+                    🛍️ Adicionar ao Pedido
+                  </button>
+                </div>
+              </div>
+            `
+              )
+              .join("")}
+          </div>
+        `
+            : `
+          <div class="client-empty-box">
+            <div class="client-empty-icon">❤️</div>
+            <h4>Sua lista de favoritos está vazia</h4>
+            <p>Navegue pelo nosso catálogo de impressoras e +80 cores de filamentos e clique no coraçãozinho ❤️ dos produtos que você mais gostou para guardá-los aqui!</p>
+            <button type="button" class="btn-client-explore" id="btn-fav-explorar-catalogo">
+              Explorar Catálogo Completo →
+            </button>
+          </div>
+        `
+        }
+      </div>
+
+      <!-- ABA B: PEDIDOS E HISTÓRICO DE COMPRAS -->
+      <div class="client-tab-pane ${abaAtiva === "pedidos" ? "active" : ""}" id="pane-client-pedidos">
+        ${
+          pedidosCliente.length > 0
+            ? `
+          <div class="client-orders-list">
+            ${pedidosCliente
+              .map((ped) => {
+                const totalFmt = (Number(ped.total) || 0).toLocaleString("pt-BR", {
+                  style: "currency",
+                  currency: "BRL"
+                });
+                const dataFmt = ped.dataHoraSalvo
+                  ? new Date(ped.dataHoraSalvo).toLocaleDateString("pt-BR")
+                  : "Recente";
+                const itensTxt = Array.isArray(ped.itens)
+                  ? ped.itens.map((i) => `${i.quantidade || 1}x ${i.nome}`).join(", ")
+                  : `${ped.itensQtd || 1} itens`;
+                const msgWhats = encodeURIComponent(
+                  `Olá Loja SJ 3D! Gostaria de consultar o andamento da minha proposta ${ped.id} no valor de ${totalFmt}.`
+                );
+
+                return `
+                <div class="client-order-card">
+                  <div class="client-order-header">
+                    <div class="client-order-id-group">
+                      <strong>${ped.id}</strong>
+                      <span class="client-order-status-badge ${ped.status || "pendente"}">
+                        ${(ped.status || "Pendente").toUpperCase()}
+                      </span>
+                    </div>
+                    <span class="client-order-date">📅 ${dataFmt}</span>
+                  </div>
+
+                  <div class="client-order-body">
+                    <div class="client-order-summary-text">
+                      <strong>Itens:</strong> ${itensTxt}
+                    </div>
+                    <div class="client-order-total">${totalFmt}</div>
+                  </div>
+
+                  <div class="client-order-actions">
+                    <a href="https://wa.me/5544991351318?text=${msgWhats}" target="_blank" rel="noopener" class="btn-order-whatsapp">
+                      💬 Acompanhar no WhatsApp
+                    </a>
+                  </div>
+                </div>
+              `;
+              })
+              .join("")}
+          </div>
+        `
+            : `
+          <div class="client-empty-box">
+            <div class="client-empty-icon">📦</div>
+            <h4>Nenhum pedido ou orçamento registrado ainda</h4>
+            <p>Seus pedidos feitos no site ou no balcão da loja em Umuarama aparecerão aqui com status atualizado e detalhes da compra.</p>
+            <button type="button" class="btn-client-explore" id="btn-pedidos-explorar">
+              Montar Meu Pedido Agora →
+            </button>
+          </div>
+        `
+        }
+      </div>
+
+      <!-- ABA C: CUPONS DO SORTEIO DA A1 MINI -->
+      <div class="client-tab-pane ${abaAtiva === "cupons" ? "active" : ""}" id="pane-client-cupons">
+        <div class="client-raffle-card">
+          <div class="client-raffle-badge">🎟️ GRANDE PRÊMIO DE NATAL • SORTEIO 20 DE DEZEMBRO</div>
+          <h3>Concorra a 1 Impressora Bambu Lab A1 Mini + 4kg de Filamento!</h3>
+          <p>
+            Seus cupons ficam armazenados e vinculados ao seu cadastro. O sorteio oficial será realizado em live ao vivo no Instagram <strong>@lojasj3d</strong>.
+          </p>
+
+          <div class="client-tickets-box">
+            <div class="client-ticket-count-col">
+              <strong>${totalCupons}</strong>
+              <span>Seus cupons ativos para a urna do sorteio</span>
+            </div>
+            <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Sou%20o(a)%20${encodeURIComponent(c.nome)}%20e%20gostaria%20de%20garantir%20mais%20cupons%20para%20o%20Sorteio%20A1%20Mini!" target="_blank" rel="noopener" class="btn-success-whatsapp" style="width:auto;">
+              🎟️ Garantir Mais Cupons no WhatsApp →
+            </a>
+          </div>
+
+          <div class="client-tickets-rules-grid">
+            <div class="client-ticket-rule">
+              <strong>1️⃣ Compras na Loja SJ 3D</strong>
+              <p>A cada R$ 60 em filamentos, peças ou serviços você acumula 1 cupom na hora.</p>
+            </div>
+            <div class="client-ticket-rule">
+              <strong>2️⃣ Impressora 3D</strong>
+              <p>Compre qualquer Impressora 3D (Bambu Lab ou Snapmaker) e garanta 10 cupons imediatos.</p>
+            </div>
+            <div class="client-ticket-rule">
+              <strong>3️⃣ Visita ao Balcão Físico</strong>
+              <p>Visite nossa loja na Av. Portugal, 6759 - Umuarama, siga @lojasj3d e ganhe +3 cupons gratuitos por CPF!</p>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA D: MEUS DADOS CADASTRAIS -->
+      <div class="client-tab-pane ${abaAtiva === "dados" ? "active" : ""}" id="pane-client-dados">
+        <div class="client-reg-card-wrap" style="max-width: 680px; margin: 0 auto; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
+          <div class="client-reg-card-head">
+            <h3>Meus Dados Cadastrais</h3>
+            <p>Mantenha seus dados atualizados para agilizar a emissão de orçamentos e entregas em Umuarama e Região.</p>
+          </div>
+
+          <form id="form-client-edit-profile" class="client-auth-form">
+            <div class="auth-field">
+              <label>Nome Completo *</label>
+              <input type="text" name="edit_nome" value="${c.nome || ""}" required />
+            </div>
+
+            <div class="auth-field">
+              <label>WhatsApp / Celular *</label>
+              <input type="tel" name="edit_whatsapp" value="${c.whatsapp || ""}" required />
+            </div>
+
+            <div class="auth-field">
+              <label>CPF ou CNPJ</label>
+              <input type="text" name="edit_cpf" value="${c.cpf || ""}" />
+            </div>
+
+            <div class="auth-field">
+              <label>E-mail *</label>
+              <input type="email" name="edit_email" value="${c.email || ""}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
+            </div>
+
+            <div class="auth-field">
+              <label>Cidade / UF *</label>
+              <input type="text" name="edit_cidade" value="${c.cidadeUf || "Umuarama / PR"}" required />
+            </div>
+
+            <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
+              💾 Salvar Alterações
+            </button>
+          </form>
+        </div>
+      </div>
+    `;
+
+    // Eventos das Abas Internas da Área do Cliente
+    container.querySelectorAll("[data-target-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        renderizarAreaCliente(btn.dataset.targetTab);
+      });
+    });
+
+    // Evento de Logout do Cliente
+    container.querySelector("#btn-cliente-sair")?.addEventListener("click", () => {
+      salvarClienteLocal(null);
+      if (window.SJ_SUPABASE?.auth?.logout) window.SJ_SUPABASE.auth.logout();
+      mostrarToastNotificacao("Você saiu da sua conta.", "info");
+      navegarParaCategoria("home");
+    });
+
+    // Evento de Remoção de Favorito
+    container.querySelectorAll("[data-del-fav]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorito(btn.dataset.delFav);
+      });
+    });
+
+    // Eventos de Explorar Catálogo
+    container.querySelector("#btn-fav-explorar-catalogo")?.addEventListener("click", () => {
+      navegarParaCategoria("todos");
+    });
+    container.querySelector("#btn-pedidos-explorar")?.addEventListener("click", () => {
+      navegarParaCategoria("todos");
+    });
+
+    // Formulário de Edição de Perfil
+    const formEdit = container.querySelector("#form-client-edit-profile");
+    if (formEdit) {
+      aplicarMascaraTelefone(formEdit.querySelector('input[name="edit_whatsapp"]'));
+      aplicarMascaraCpfCnpj(formEdit.querySelector('input[name="edit_cpf"]'));
+
+      formEdit.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nome = String(formEdit.querySelector('input[name="edit_nome"]')?.value || "").trim();
+        const whatsapp = String(formEdit.querySelector('input[name="edit_whatsapp"]')?.value || "").trim();
+        const cpf = String(formEdit.querySelector('input[name="edit_cpf"]')?.value || "").trim();
+        const cidadeUf = String(formEdit.querySelector('input[name="edit_cidade"]')?.value || "Umuarama / PR").trim();
+
+        if (!nome || !whatsapp) {
+          alert("Nome e WhatsApp são obrigatórios.");
+          return;
+        }
+
+        const atualizado = {
+          ...state.clienteLogado,
+          nome,
+          whatsapp,
+          cpf,
+          cidadeUf
+        };
+
+        salvarClienteLocal(atualizado);
+
+        // Atualiza na nuvem
+        if (window.SJ_SUPABASE?.clientes?.cadastrar) {
+          await window.SJ_SUPABASE.clientes.cadastrar({
+            id: atualizado.id,
+            nome,
+            cnpjCpf: cpf,
+            whatsapp,
+            email: atualizado.email,
+            bairroCidadeUf: cidadeUf
+          });
+        }
+
+        mostrarToastNotificacao("Dados cadastrais atualizados com sucesso!", "sucesso");
+        renderizarAreaCliente("dados");
+      });
+    }
+  }
+
+  // Handler Global para Cliques de Favoritar e Minha Conta
+  document.addEventListener("click", (e) => {
+    // Clique no coração de favoritar
+    const btnFav = e.target.closest("[data-toggle-fav]");
+    if (btnFav) {
+      e.preventDefault();
+      e.stopPropagation();
+      toggleFavorito(btnFav.dataset.toggleFav);
+      return;
+    }
+
+    // Clique no botão Favoritos do Header
+    const btnHeaderFav = e.target.closest("#header-fav-btn");
+    if (btnHeaderFav) {
+      e.preventDefault();
+      navegarParaCategoria("minha-conta");
+      renderizarAreaCliente("favoritos");
+      return;
+    }
+
+    // Clique no botão Minha Conta / Entrar do Header
+    const btnHeaderAcc = e.target.closest("#header-account-btn");
+    if (btnHeaderAcc) {
+      e.preventDefault();
+      if (state.clienteLogado) {
+        navegarParaCategoria("minha-conta");
+      } else {
+        abrirModalAuthCliente("login");
+      }
+      return;
+    }
+
+    // Botões no carrinho ou banner que convidam ao cadastro
+    const btnOpenCad = e.target.closest("[data-open-cadastro]");
+    if (btnOpenCad) {
+      e.preventDefault();
+      abrirModalAuthCliente("signup");
+      return;
     }
   });
 
@@ -1280,6 +1626,11 @@
         </button>
 
         <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver todas as cores e detalhes">
+          <button type="button" class="card-fav-btn ${isFavorito(item.id) ? "active" : ""}" data-toggle-fav="${item.id}" aria-label="Favoritar ${tituloCard}" title="Guardar nos Favoritos">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="${isFavorito(item.id) ? "#f04e23" : "none"}" stroke="${isFavorito(item.id) ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+            </svg>
+          </button>
           ${codBadgeHtml}
           <img
             src="${imagemCard}"
@@ -2764,16 +3115,7 @@
 
       <!-- 6. BANNER ÚNICO E CLEAN DO SORTEIO / PROMOÇÃO NO FECHAMENTO DA CAPA -->
       ${gerarBannerPromocionalSecaoHtml()}
-
-      <!-- 7. SEÇÃO DE CADASTRO DE CLIENTES & CLUBE DE VANTAGENS -->
-      ${gerarSecaoCadastroClienteHtml()}
     `;
-
-    // Inicializa o formulário de cadastro de clientes na Home
-    configurarFormularioCadastro(
-      document.getElementById("form-cadastro-secao"),
-      "client-reg-card-wrap-secao"
-    );
 
     // Botão Admin Rápido nos banners da Home
     homeEl.querySelectorAll("[data-admin-edit-banner]").forEach((btn) => {
@@ -2900,12 +3242,27 @@
     const pdpView = document.getElementById("product-detail-view");
     const gridView = document.getElementById("catalog-grid-view");
     const quoteView = document.getElementById("quote-studio-view");
+    const clientView = document.getElementById("client-account-view");
 
     if (pdpView) pdpView.style.display = "none";
     state.produtoDetalheAtivo = null;
 
     if (quoteView) quoteView.style.display = "none";
     state.emissorAberto = false;
+
+    if (state.categoriaMenu === "minha-conta") {
+      if (homeView) homeView.style.display = "none";
+      if (gridView) gridView.style.display = "none";
+      if (clientView) {
+        clientView.style.display = "block";
+        renderizarAreaCliente();
+      }
+      atualizarCaixaLateral();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      return;
+    }
+
+    if (clientView) clientView.style.display = "none";
 
     if (state.categoriaMenu === "home" && state.busca.trim() === "") {
       if (homeView) homeView.style.display = "block";
@@ -6612,11 +6969,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
+    // Inicializa o Sistema do Cliente (Minha Conta, Favoritos, Pop-up)
+    configurarModalAuthCliente();
+    atualizarBotaoHeaderConta();
+    atualizarBadgeFavoritos();
+
     // Tecla ESC Global para fechar qualquer modal, gaveta ou busca aberta (UX Pro Max)
     document.addEventListener("keydown", (e) => {
       if (e.key !== "Escape") return;
       fecharModalRegrasSorteio();
       fecharModalCompararImpressoras();
+      fecharModalAuthCliente();
       fecharGavetaPedido();
       if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
       if (searchDrop && searchDrop.classList.contains("open")) {

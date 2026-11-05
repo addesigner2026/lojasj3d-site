@@ -151,7 +151,6 @@
         <button class="header-nav-link" data-nav-cat="pecas">Peças & Acessórios</button>
         <button class="header-nav-link" data-nav-cat="manutencao">Serviços & Manutenção</button>
         <button class="header-nav-link" data-nav-cat="todos">Catálogo Completo</button>
-        <button class="header-nav-link nav-link-cadastre-se" id="header-btn-cadastre-se" type="button" title="Cadastre-se no Clube de Vantagens e Participe do Sorteio"><span class="badge-nav-gift">🎁</span><span>Cadastre-se</span></button>
       </nav>
 
       <div class="header-icons">
@@ -161,6 +160,23 @@
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
+        </button>
+
+        <!-- Botão Meus Favoritos (Wishlist) -->
+        <button class="icon-btn header-fav-btn-wrap" id="header-fav-btn" aria-label="Meus Favoritos" title="Ver meus produtos favoritados">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+          </svg>
+          <span class="bag-badge" id="fav-count-badge" style="display: none;">0</span>
+        </button>
+
+        <!-- Botão Área do Cliente / Minha Conta / Entrar -->
+        <button type="button" class="header-account-pill-btn" id="header-account-btn" aria-label="Área do Cliente" title="Acessar Minha Conta / Cadastrar">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span id="header-account-btn-text">Entrar / Cadastrar</span>
         </button>
 
         <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="header-whatsapp-pill"
@@ -326,6 +342,9 @@
 
     <!-- VISÃO C: ÁREA OFICIAL DE ORÇAMENTO TIMBRADO GRUPO SJ (LOJA SJ 3D) -->
     <section id="quote-studio-view" class="quote-studio-view" style="display: none;" aria-live="polite"></section>
+
+    <!-- VISÃO D: ÁREA DO CLIENTE / MINHA CONTA (FAVORITOS, PEDIDOS, CUPONS DO SORTEIO) -->
+    <section id="client-account-view" class="client-account-section" style="display: none;" aria-label="Área do Cliente Loja SJ 3D"></section>
   </main>
 
   <!-- Barra Flutuante de Acesso Rápido ao Pedido (Mobile + Capa Desktop) -->
@@ -523,28 +542,140 @@
   </footer>
 
   <!-- ====================================================================
-       MODAL DE CADASTRO RÁPIDO DO CLIENTE (CLUBE DE VANTAGENS LOJA SJ 3D)
+       POP-UP MODAL DE ACESSO DO CLIENTE (LOGIN / CADASTRO COM GOOGLE)
        ==================================================================== -->
-  <div class="modal-overlay" id="modal-client-register" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="client-reg-modal-title">
-    <div class="modal-card client-reg-modal-card">
-      <button type="button" class="modal-close-btn" id="close-client-reg-modal-btn" aria-label="Fechar janela de cadastro">
+  <div class="modal-overlay" id="modal-client-auth" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="client-auth-title">
+    <div class="client-auth-card">
+      <button type="button" class="modal-close-btn" id="close-client-auth-btn" aria-label="Fechar janela">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
         </svg>
       </button>
 
-      <div class="client-reg-card-head">
-        <div class="client-reg-tag" style="margin-bottom:8px;">
-          <span>🎁 Clube de Vantagens Loja SJ 3D</span>
+      <div class="client-auth-header">
+        <div class="client-auth-logo-badge">
+          <span>🎁 CLUBE DE VANTAGENS LOJA SJ 3D</span>
         </div>
-        <h3 id="client-reg-modal-title">Cadastre-se na Loja SJ 3D</h3>
-        <p>Participe do Sorteio da Bambu Lab A1 Mini e garanta atendimento e orçamentos ágeis.</p>
+        <h3 id="client-auth-title">Minha Conta & Clube SJ</h3>
+        <p id="client-auth-desc">Acesse seus favoritos, histórico de compras e participe do Sorteio da A1 Mini.</p>
       </div>
 
-      <div id="client-reg-modal-container">
-        <!-- Conteúdo do formulário gerado pelo app.js -->
+      <!-- Botão Google Oficial de 1 Clique -->
+      <button type="button" class="btn-google-auth-client" id="btn-google-client-login">
+        <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+          <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
+          <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />
+          <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z" />
+          <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z" />
+        </svg>
+        <span>Continuar com o Google</span>
+      </button>
+
+      <div class="auth-divider-line">
+        <span>ou com seu e-mail</span>
       </div>
+
+      <!-- Abas: Entrar vs Criar Conta -->
+      <div class="client-auth-tabs">
+        <button type="button" class="client-auth-tab-btn active" id="tab-client-login" data-auth-tab="login">
+          Entrar na Conta
+        </button>
+        <button type="button" class="client-auth-tab-btn" id="tab-client-signup" data-auth-tab="signup">
+          Criar Nova Conta
+        </button>
+      </div>
+
+      <!-- Formulário de Login -->
+      <form id="form-client-login" class="client-auth-form">
+        <div class="auth-field">
+          <label>Seu E-mail *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <input type="email" name="login_email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>Sua Senha *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" name="login_password" placeholder="••••••••" required autocomplete="current-password" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-client-submit-auth" id="btn-submit-client-login">
+          <span>Entrar na Minha Conta</span>
+        </button>
+      </form>
+
+      <!-- Formulário de Cadastro / Criação de Conta -->
+      <form id="form-client-signup" class="client-auth-form" style="display: none;">
+        <div class="auth-field">
+          <label>Nome Completo *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" name="signup_nome" placeholder="Ex: Thiago Novais" required autocomplete="name" />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>WhatsApp / Celular *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+            </svg>
+            <input type="tel" name="signup_whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>CPF ou CNPJ (p/ cupons do Sorteio)</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+              <line x1="7" y1="8" x2="17" y2="8"></line>
+              <line x1="7" y1="12" x2="17" y2="12"></line>
+            </svg>
+            <input type="text" name="signup_cpf" placeholder="000.000.000-00" inputmode="numeric" />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>Seu E-mail *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+              <polyline points="22,6 12,13 2,6"></polyline>
+            </svg>
+            <input type="email" name="signup_email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>Criar Senha *</label>
+          <div class="auth-input-wrap">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+            </svg>
+            <input type="password" name="signup_password" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
+          </div>
+        </div>
+
+        <button type="submit" class="btn-client-submit-auth" id="btn-submit-client-signup">
+          <span>🚀 Criar Minha Conta & Entrar</span>
+        </button>
+      </form>
     </div>
   </div>
 
