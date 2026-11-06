@@ -98,7 +98,12 @@ function responderJson(res, statusCode, payload) {
   res.end(JSON.stringify(payload));
 }
 
-const ADMIN_API_KEY = process.env.SJ_ADMIN_KEY || "sj-admin-dev-local";
+const ADMIN_API_KEY = process.env.SJ_ADMIN_KEY || (process.env.NODE_ENV === "production" ? null : "sj-admin-dev-local");
+
+if (!ADMIN_API_KEY && process.env.NODE_ENV === "production") {
+  console.error("FATAL: A variável de ambiente SJ_ADMIN_KEY é obrigatória em produção.");
+  process.exit(1);
+}
 
 function verificarAutorizacaoAdmin(req, db) {
   const authHeader = req.headers["authorization"] || "";
@@ -310,7 +315,20 @@ const server = http.createServer(async (req, res) => {
     // 5. Orçamentos: Listar (GET) ou Salvar (POST)
     if (pathname === "/api/orcamentos") {
       if (req.method === "GET") {
-        responderJson(res, 200, db.orcamentos);
+        if (verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 200, db.orcamentos);
+          return;
+        }
+        const authHeader = req.headers["authorization"] || "";
+        const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+        if (token) {
+          const filtrados = (db.orcamentos || []).filter(
+            (o) => o.clienteId === token || o.metadados?.clienteId === token || o.cliente_id === token
+          );
+          responderJson(res, 200, filtrados);
+          return;
+        }
+        responderJson(res, 401, { sucesso: false, mensagem: "Acesso não autorizado para listar orçamentos." });
         return;
       }
 
@@ -376,13 +394,22 @@ const server = http.createServer(async (req, res) => {
       }
 
       if (req.method === "PATCH" && isStatusOnly) {
+        if (!verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para alterar status de orçamentos." });
+          return;
+        }
         const body = await lerCorpoRequisicao(req);
         const orc = db.orcamentos.find((o) => o.id === id);
         if (orc) {
-          orc.status = body.status;
-          orc.statusAtualizadoEm = new Date().toISOString();
-          salvarBanco(db);
-          responderJson(res, 200, { sucesso: true, orcamento: orc });
+          const statusPermitidos = ["pendente", "aprovado", "faturado", "cancelado", "guardado", "enviado_whatsapp"];
+          if (body.status && statusPermitidos.includes(body.status)) {
+            orc.status = body.status;
+            orc.statusAtualizadoEm = new Date().toISOString();
+            salvarBanco(db);
+            responderJson(res, 200, { sucesso: true, orcamento: orc });
+          } else {
+            responderJson(res, 400, { sucesso: false, mensagem: "Status de orçamento inválido." });
+          }
         } else {
           responderJson(res, 404, { sucesso: false, mensagem: "Orçamento não encontrado" });
         }
@@ -393,6 +420,10 @@ const server = http.createServer(async (req, res) => {
     // 7. Clientes: Listar (GET) ou Salvar (POST)
     if (pathname === "/api/clientes") {
       if (req.method === "GET") {
+        if (!verificarAutorizacaoAdmin(req, db)) {
+          responderJson(res, 403, { sucesso: false, mensagem: "Acesso restrito a vendedores e administradores." });
+          return;
+        }
         responderJson(res, 200, db.clientes);
         return;
       }

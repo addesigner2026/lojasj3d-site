@@ -819,27 +819,66 @@
       URL.revokeObjectURL(url);
     },
 
-    // Restaura base completa a partir de texto JSON
+    // Restaura base completa a partir de texto JSON com sanitização e validação de segurança
     importarJson: function (jsonString) {
       try {
+        if (!jsonString || typeof jsonString !== "string" || jsonString.length > 5 * 1024 * 1024) {
+          return { sucesso: false, mensagem: "Arquivo de backup inválido ou muito grande (máximo 5 MB)." };
+        }
+
+        // Prevenção contra Prototype Pollution
+        if (jsonString.includes("__proto__") || jsonString.includes("constructor") || jsonString.includes("prototype")) {
+          return { sucesso: false, mensagem: "Tentativa de injeção de propriedades maliciosas rejeitada." };
+        }
+
         const dados = JSON.parse(jsonString);
-        if (!dados || typeof dados !== "object") {
-          return { sucesso: false, mensagem: "Arquivo JSON inválido." };
+        if (!dados || typeof dados !== "object" || Array.isArray(dados)) {
+          return { sucesso: false, mensagem: "Estrutura do arquivo JSON inválida." };
         }
 
         if (Array.isArray(dados.usuarios) && dados.usuarios.length > 0) {
-          gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, dados.usuarios);
+          // Sanitiza para não aceitar tipos maliciosos
+          const usuariosSanitizados = dados.usuarios
+            .filter((u) => u && typeof u === "object" && u.email && u.nome)
+            .map((u) => ({
+              id: String(u.id || "usr-" + Date.now()),
+              nome: String(u.nome).slice(0, 100),
+              email: String(u.email).slice(0, 150),
+              cargo: String(u.cargo || "Vendedor").slice(0, 50),
+              tipo: u.tipo === "admin" || u.tipo === "operador" ? u.tipo : "operador",
+              foto: u.foto ? String(u.foto) : null,
+              ativo: Boolean(u.ativo !== false),
+              criadoEm: u.criadoEm || new Date().toISOString()
+            }));
+          gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, usuariosSanitizados);
         }
 
         if (Array.isArray(dados.clientes)) {
-          gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, dados.clientes);
+          const clientesSanitizados = dados.clientes
+            .filter((c) => c && typeof c === "object" && c.nome)
+            .map((c) => ({
+              id: String(c.id || "cli-" + Date.now()),
+              nome: String(c.nome).slice(0, 120),
+              cnpjCpf: String(c.cnpjCpf || "").slice(0, 30),
+              endereco: String(c.endereco || "").slice(0, 200),
+              bairroCidadeUf: String(c.bairroCidadeUf || "").slice(0, 100),
+              cepTelefone: String(c.cepTelefone || "").slice(0, 50),
+              email: String(c.email || "").slice(0, 150)
+            }));
+          gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, clientesSanitizados);
         }
 
         if (Array.isArray(dados.orcamentos)) {
-          gravarLocal(STORAGE_KEYS.ORCAMENTOS_TABELA, dados.orcamentos);
+          const orcamentosSanitizados = dados.orcamentos
+            .filter((o) => o && typeof o === "object" && (o.id || o.metadados?.numero))
+            .map((o) => ({
+              ...o,
+              id: String(o.id || o.metadados?.numero)
+            }));
+          gravarLocal(STORAGE_KEYS.ORCAMENTOS_TABELA, orcamentosSanitizados);
         }
 
-        if (dados.catalogoCustom && typeof dados.catalogoCustom === "object") {
+        if (dados.catalogoCustom && typeof dados.catalogoCustom === "object" && !Array.isArray(dados.catalogoCustom)) {
           gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, dados.catalogoCustom);
           catalogo.aplicarCustomizacoes(dados.catalogoCustom);
         }

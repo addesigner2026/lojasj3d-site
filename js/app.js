@@ -5591,6 +5591,20 @@
       fileInp.onchange = (e) => {
         const file = e.target.files && e.target.files[0];
         if (!file) return;
+
+        // Validação de tipo e tamanho
+        if (!file.name.toLowerCase().endsWith(".json") && file.type !== "application/json") {
+          mostrarToast("Formato inválido. Selecione um arquivo de backup no formato .json.", "warning");
+          fileInp.value = "";
+          return;
+        }
+
+        if (file.size > 5 * 1024 * 1024) {
+          mostrarToast("Arquivo muito grande. O tamanho máximo permitido para backup é de 5 MB.", "warning");
+          fileInp.value = "";
+          return;
+        }
+
         const reader = new FileReader();
         reader.onload = (ev) => {
           if (window.SJ_DB && window.SJ_DB.backup) {
@@ -5605,6 +5619,7 @@
               mostrarToast("Erro na importação: " + res.mensagem, "error");
             }
           }
+          fileInp.value = "";
         };
         reader.readAsText(file);
       };
@@ -5729,13 +5744,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     return str;
   }
 
-  // Comprime imagem enviada pelo computador/celular via HTML5 Canvas para salvar rápido no banco
+  // Valida e comprime imagem enviada pelo computador/celular via HTML5 Canvas
   function comprimirImagemUpload(file, maxWidth = 900, quality = 0.84) {
     return new Promise((resolve, reject) => {
       if (!file) {
-        reject(new Error("Nenhum arquivo selecionado"));
-        return;
+        return reject(new Error("Nenhum arquivo selecionado"));
       }
+
+      // Validação estrita de tipo MIME seguro (proíbe SVGs executáveis, scripts e binários)
+      const TIPOS_PERMITIDOS = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
+      const fileType = (file.type || "").toLowerCase();
+      if (!TIPOS_PERMITIDOS.includes(fileType)) {
+        return reject(new Error("Formato inválido. Apenas imagens JPG, PNG ou WEBP são permitidas."));
+      }
+
+      // Limite de tamanho máximo: 8 MB
+      const TAMANHO_MAX = 8 * 1024 * 1024;
+      if (file.size > TAMANHO_MAX) {
+        return reject(new Error("Imagem muito pesada. O tamanho máximo permitido é de 8 MB."));
+      }
+
       const reader = new FileReader();
       reader.onload = (ev) => {
         const img = new Image();
@@ -5756,10 +5784,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const dataUrl = canvas.toDataURL("image/jpeg", quality);
           resolve(dataUrl);
         };
-        img.onerror = () => resolve(ev.target.result);
+        img.onerror = () => reject(new Error("Arquivo corrompido ou formato de imagem não renderizável."));
         img.src = ev.target.result;
       };
-      reader.onerror = reject;
+      reader.onerror = () => reject(new Error("Erro ao ler o arquivo selecionado."));
       reader.readAsDataURL(file);
     });
   }
@@ -6595,7 +6623,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const prev = document.getElementById("cms-prod-img-preview");
         if (inpUrl) inpUrl.value = dataUrl;
         if (prev) prev.src = dataUrl;
-      } catch (_) {}
+      } catch (err) {
+        mostrarToast(err.message || "Erro ao processar imagem.", "warning");
+        e.target.value = "";
+      }
     });
 
     document.getElementById("cms-prod-imagem")?.addEventListener("input", (e) => {
@@ -6743,7 +6774,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const prev = document.getElementById("cms-ban-img-preview");
         if (inp) inp.value = dataUrl;
         if (prev) prev.src = dataUrl;
-      } catch (_) {}
+      } catch (err) {
+        mostrarToast(err.message || "Erro ao processar imagem.", "warning");
+        e.target.value = "";
+      }
     });
 
     document.getElementById("cms-ban-imagem")?.addEventListener("input", (e) => {

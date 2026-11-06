@@ -1,7 +1,7 @@
 # Registro de Correções e Melhorias de Segurança — Loja SJ 3D
 
 **Data de Aplicação:** 05/11/2026  
-**Status:** Todas as 5 categorias de vulnerabilidades corrigidas com sucesso.
+**Status:** Todas as 5 categorias de vulnerabilidades corrigidas e testadas.
 
 ---
 
@@ -20,8 +20,9 @@
 - **Arquivo modificado:** [server.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/server.js)
 - **Correções implementadas:**
   1. Criação do validador de autorização no servidor `verificarAutorizacaoAdmin(req, db)`.
-  2. Bloqueio de rotas administrativas mutáveis: `POST /api/catalogo` e `DELETE /api/catalogo` agora exigem privilégios válidos.
-  3. Fechamento dos endpoints de backup: `GET /api/db/export` e `POST /api/db/import` agora exigem autorização administrativa.
+  2. Proteção nas rotas de listagem: `GET /api/orcamentos` agora só retorna orçamentos pertencentes ao cliente autenticado (ou todos se for administrador). `GET /api/clientes` é restrito a operadores/administradores.
+  3. Bloqueio de rotas administrativas mutáveis: `POST /api/catalogo` e `DELETE /api/catalogo` agora exigem privilégios válidos.
+  4. Fechamento dos endpoints de backup: `GET /api/db/export` e `POST /api/db/import` agora exigem autorização administrativa.
 
 ---
 
@@ -29,7 +30,7 @@
 - **Arquivos modificados:** [supabase/schema.sql](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/supabase/schema.sql) e [server.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/server.js)
 - **Correções implementadas:**
   1. No Supabase PostgREST: exclusões (`DELETE`) em `orcamentos` e `clientes` foram restritas a administradores/vendedores. Clientes não podem manipular nem excluir orçamentos de terceiros via API.
-  2. No servidor local (`server.js`): `DELETE /api/orcamentos/:id` agora valida autorização antes de realizar a remoção.
+  2. No servidor local (`server.js`): `DELETE /api/orcamentos/:id` e `PATCH /api/orcamentos/:id/status` agora exigem validação de autorização antes de realizar a remoção ou modificação de status.
 
 ---
 
@@ -37,20 +38,23 @@
 - **Arquivos modificados:** [js/database.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/js/database.js), [server.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/server.js), e `.git/config`
 - **Correções implementadas:**
   1. **Remoção do backdoor:** Excluído o bloco em `js/database.js` que permitia autenticação imediata e privilégios totais com o e-mail `contato@gruposj.com.br` e senha estática `123456`.
-  2. Sanitização da exportação de banco (`GET /api/db/export`): o campo `senhaHash` de todos os usuários é removido antes do envio da resposta JSON.
-  3. Sanitização do repositório Git: o token pessoal (PAT) embutido no URL da `origin` em `.git/config` foi substituído pelo endereço padrão limpo `https://github.com/addesigner2026/lojasj3d-site.git`, utilizando o gerenciador de credenciais do sistema (`osxkeychain`).
-  4. Padronização de mensagens de erro de autenticação para `"E-mail ou senha incorretos."`, eliminando a enumeração de usuários.
+  2. Validação de startup de segredo em produção: `server.js` aborta a inicialização se `SJ_ADMIN_KEY` não for configurada em ambiente de produção, evitando o uso de defaults públicos.
+  3. Sanitização da exportação de banco (`GET /api/db/export`): o campo `senhaHash` de todos os usuários é removido antes do envio da resposta JSON.
+  4. Sanitização do repositório Git: o token pessoal (PAT) embutido no URL da `origin` em `.git/config` foi substituído pelo endereço padrão limpo `https://github.com/addesigner2026/lojasj3d-site.git`, utilizando o gerenciador de credenciais do sistema (`osxkeychain`).
+  5. Padronização de mensagens de erro de autenticação para `"E-mail ou senha incorretos."`, eliminando a enumeração de usuários.
 
 ---
 
-## 5. Inputs sem Tratamento (Prevenção contra DOM XSS)
-- **Arquivo modificado:** [js/app.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/js/app.js)
+## 5. Inputs sem Tratamento, Uploads e Sanitização
+- **Arquivos modificados:** [js/app.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/js/app.js) e [js/database.js](file:///Users/ThiagoeSheila/Library/Mobile%20Documents/com~apple~CloudDocs/Antigravity/Site/js/database.js)
 - **Correções implementadas:**
-  1. Implementação da função `escaparHtml(str)` para codificação segura de entidades HTML (`&`, `<`, `>`, `"`, `'`).
-  2. Implementação do sanitizador `sanitizarHtmlBasico(html)` para remoção de tags `<script>`, handlers inline (`onerror=`, `onload=`) e pseudoprotocolos `javascript:`.
-  3. Correção no mecanismo de busca ao vivo (`renderizarSugestoesBuscaAoVivo`): o termo buscado (`termoRaw`) agora é codificado antes de ser injetado no DOM via `innerHTML`.
-  4. Endurecimento do componente `mostrarToast`: mensagens textuais passam por sanitização ativa ou atribuição segura via `textContent`.
-  5. Proteção de dados na Área do Cliente (`renderizarAreaCliente`): campos cadastrais de perfil (`c.nome`, `c.email`, `c.whatsapp`, `c.cpf`, `c.cidadeUf`) são devidamente escapados antes da renderização no perfil e nos formulários de edição.
+  1. **Validação estrita de upload de imagem:** A função `comprimirImagemUpload` agora valida o tipo MIME (`image/jpeg`, `image/png`, `image/webp`), limita o tamanho máximo em 8 MB e rejeita arquivos SVG ou não-renderizáveis (removido o fallback inseguro no `img.onerror`).
+  2. **Proteção contra DoS e Prototype Pollution no backup:** A importação de backup (`input-backup-import` e `importarJson`) agora limita o tamanho em 5 MB, rejeita chaves perigosas (`__proto__`, `constructor`, `prototype`) e sanitiza as propriedades antes de gravar nas tabelas.
+  3. Implementação da função `escaparHtml(str)` para codificação segura de entidades HTML (`&`, `<`, `>`, `"`, `'`).
+  4. Implementação do sanitizador `sanitizarHtmlBasico(html)` para remoção de tags `<script>`, handlers inline (`onerror=`, `onload=`) e pseudoprotocolos `javascript:`.
+  5. Correção no mecanismo de busca ao vivo (`renderizarSugestoesBuscaAoVivo`): o termo buscado (`termoRaw`) agora é codificado antes de ser injetado no DOM via `innerHTML`.
+  6. Endurecimento do componente `mostrarToast`: mensagens textuais passam por sanitização ativa ou atribuição segura via `textContent`.
+  7. Proteção de dados na Área do Cliente (`renderizarAreaCliente`): campos cadastrais de perfil (`c.nome`, `c.email`, `c.whatsapp`, `c.cpf`, `c.cidadeUf`) são devidamente escapados antes da renderização no perfil e nos formulários de edição.
 
 ---
 
