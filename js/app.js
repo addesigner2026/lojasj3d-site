@@ -4496,19 +4496,32 @@
   const STORAGE_KEY_GOOGLE_USER = "sj_google_user_v1";
   const STORAGE_KEY_ORCAMENTOS = "lojasj3d_orcamentos_salvos_v1";
 
+  function ehUsuarioEquipe(u) {
+    if (!u) return false;
+    const cargo = String(u.cargo || "").toLowerCase();
+    const tipo = String(u.tipo || "").toLowerCase();
+    const email = String(u.email || "").toLowerCase();
+    if (tipo === "cliente" || cargo === "cliente") return false;
+    return cargo.includes("admin") || cargo.includes("vendedor") || email === "contato@gruposj.com.br";
+  }
+
   // Carrega operador / vendedor salvo localmente ou via Banco de Dados
   function carregarUsuarioGoogle() {
+    function filtrarApenasEquipe(u) {
+      return (u && ehUsuarioEquipe(u)) ? u : null;
+    }
+
     if (window.SJ_DB && window.SJ_DB.auth) {
-      state.usuarioGoogle = window.SJ_DB.auth.getUsuarioAtual();
+      state.usuarioGoogle = filtrarApenasEquipe(window.SJ_DB.auth.getUsuarioAtual());
       window.SJ_DB.auth.onAuthStateChanged((u) => {
-        state.usuarioGoogle = u;
+        state.usuarioGoogle = filtrarApenasEquipe(u);
         atualizarBadgeUsuarioHeader();
       });
     } else {
       try {
         const raw = window.localStorage && window.localStorage.getItem(STORAGE_KEY_GOOGLE_USER);
         if (raw) {
-          state.usuarioGoogle = JSON.parse(raw);
+          state.usuarioGoogle = filtrarApenasEquipe(JSON.parse(raw));
         }
       } catch (_) {}
     }
@@ -4576,23 +4589,55 @@
     const nameEl = document.getElementById("admin-topbar-user-name");
     const roleEl = document.getElementById("admin-topbar-user-role");
 
-    document.body.classList.toggle("is-admin-logged-in", Boolean(state.usuarioGoogle));
+    // SÓ ativa modo admin se houver operador administrativo legítimo da equipe
+    const ehAdmin = Boolean(state.usuarioGoogle && ehUsuarioEquipe(state.usuarioGoogle));
 
-    if (!state.usuarioGoogle) {
-      // Usuário NÃO autenticado -> Site 100% público e limpo (sem barra nem botão de orçamento)
+    document.body.classList.toggle("is-admin-logged-in", ehAdmin);
+
+    if (!ehAdmin) {
+      // Usuário NÃO é admin (ou é cliente comum) -> Site 100% público e limpo (sem barra nem botão de orçamento)
       if (adminTopbar) adminTopbar.style.display = "none";
       if (cartQuoteBtn) cartQuoteBtn.style.display = "none";
       if (drawerQuoteBtn) drawerQuoteBtn.style.display = "none";
     } else {
-      // Vendedor AUTENTICADO -> Exibe a Barra Administrativa do Vendedor e o botão no carrinho
+      // Vendedor / Administrador AUTENTICADO -> Exibe a Barra Administrativa
       const u = state.usuarioGoogle;
       if (adminTopbar) adminTopbar.style.display = "block";
       if (cartQuoteBtn) cartQuoteBtn.style.display = "flex";
       if (drawerQuoteBtn) drawerQuoteBtn.style.display = "flex";
-      if (nameEl) nameEl.textContent = u.nome || "Vendedor";
-      if (roleEl) roleEl.textContent = u.cargo || "Vendedor";
+      if (nameEl) nameEl.textContent = u.nome || "Administrador";
+      if (roleEl) roleEl.textContent = u.cargo || "Administrador";
     }
   }
+
+  // Sincronização oficial da sessão Supabase com o portal do Cliente e Área Restrita
+  window.addEventListener("sj-auth-state-changed", (evt) => {
+    const u = evt.detail?.usuario;
+    if (!u) return;
+
+    if (!u.ehEquipe) {
+      // 1. USUÁRIO É CLIENTE (Login Google ou Cadastro Normal na Loja)
+      const clienteData = {
+        id: u.id,
+        nome: u.nome,
+        email: u.email,
+        foto: u.foto,
+        whatsapp: u.whatsapp || "",
+        tipo: "cliente"
+      };
+      salvarClienteLocal(clienteData);
+
+      // Garante que o cliente NÃO tenha nenhum privilégio de administrador
+      state.usuarioGoogle = null;
+      atualizarBadgeUsuarioHeader();
+      fecharModalAuthCliente();
+    } else {
+      // 2. USUÁRIO É EQUIPE / ADMINISTRADOR (Entrou pela Área Restrita)
+      state.usuarioGoogle = u;
+      atualizarBadgeUsuarioHeader();
+      fecharModalAuthGoogle();
+    }
+  });
 
   function renderizarChipsVendedoresRapidos() {
     const container = document.getElementById("quick-saved-operators");
@@ -4652,7 +4697,7 @@
     });
   }
 
-  function abrirModalAuthGoogle(callbackApos = null, abaInicial = null) {
+  function abrirModalAuthGoogle(callbackApos = null, abaInicial = "email") {
     state.callbackPosLoginGoogle = callbackApos;
     const modal = document.getElementById("modal-google-auth");
     if (modal) modal.style.display = "flex";
@@ -4660,9 +4705,7 @@
     const feedbackBox = document.getElementById("auth-feedback-box");
     if (feedbackBox) feedbackBox.style.display = "none";
 
-    if (abaInicial) {
-      selecionarAbaModalAuth(abaInicial);
-    }
+    selecionarAbaModalAuth(abaInicial || "email");
 
     renderizarChipsVendedoresRapidos();
 
