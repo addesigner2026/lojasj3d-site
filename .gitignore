@@ -18,8 +18,10 @@ yarn-error.log*
 # Variáveis de ambiente & Chaves
 .env
 .env.local
+.env*.local
 *.pem
 *.key
+.vercel/
 
 # Agentes e Ferramentas Internas
 .agents/

@@ -5,7 +5,8 @@
   "main": "server.js",
   "scripts": {
     "dev": "node server.js",
-    "start": "node server.js"
+    "start": "node server.js",
+    "build": "echo 'Site estático pronto para deploy na Vercel'"
   },
   "keywords": [
     "loja-sj-3d",
