@@ -55,13 +55,22 @@
       return null;
     }
 
-    if (typeof window === "undefined" || !window.supabase || typeof window.supabase.createClient !== "function") {
-      console.warn("[SJ_SUPABASE] Biblioteca @supabase/supabase-js não encontrada no escopo global.");
+    const supaGlobal =
+      typeof window !== "undefined"
+        ? (window.supabase && typeof window.supabase.createClient === "function"
+            ? window.supabase
+            : window.supabaseJs && typeof window.supabaseJs.createClient === "function"
+              ? window.supabaseJs
+              : null)
+        : null;
+
+    if (!supaGlobal) {
+      console.warn("[SJ_SUPABASE] Biblioteca @supabase/supabase-js não encontrada no escopo global, operando em modo local.");
       return null;
     }
 
     try {
-      supabaseInstance = window.supabase.createClient(config.url, config.anonKey, {
+      supabaseInstance = supaGlobal.createClient(config.url, config.anonKey, {
         auth: {
           persistSession: true,
           autoRefreshToken: true,

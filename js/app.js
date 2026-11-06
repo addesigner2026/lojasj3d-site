@@ -804,7 +804,7 @@
     aplicarMascaraTelefone(inputTel);
     aplicarMascaraCpfCnpj(inputCpf);
 
-    // Login com Google (Oficial Supabase Auth)
+    // Login com Google (Oficial Supabase Auth com Fallback caso o provedor ou SDK não esteja ativo)
     btnGoogle?.addEventListener("click", async () => {
       const loginFn = window.SJ_SUPABASE?.auth?.loginGoogle || window.SJ_SUPABASE?.auth?.loginComGoogle;
       if (typeof loginFn === "function") {
@@ -812,14 +812,22 @@
           const res = await loginFn();
           if (res && res.url) {
             window.location.href = res.url;
-          } else if (res && !res.sucesso) {
-            alert("Não foi possível iniciar o login com Google: " + (res.mensagem || "Provedor Google não habilitado no Supabase."));
+            return;
+          }
+          if (res && !res.sucesso) {
+            mostrarToast(
+              "💡 Dica: Utilize seu E-mail e Senha logo abaixo para entrar ou criar sua conta de Cliente rapidamente!",
+              "warning"
+            );
+            const emailInp = formLogin?.querySelector('input[name="login_email"]');
+            emailInp?.focus();
+            return;
           }
         } catch (err) {
-          alert("Erro ao conectar com Google: " + (err.message || err));
+          mostrarToast("Utilize seu E-mail e Senha abaixo para acessar sua conta de Cliente.", "warning");
         }
       } else {
-        alert("Aguarde a inicialização do serviço de autenticação ou recarregue a página.");
+        mostrarToast("Utilize seu E-mail e Senha abaixo para acessar sua conta de Cliente.", "warning");
       }
     });
 
@@ -855,6 +863,20 @@
               email: res.usuario.email,
               whatsapp: res.usuario.whatsapp || "",
               cpf: res.usuario.cpf || "",
+              tipo: "cliente"
+            };
+          } else if (res.fallback) {
+            // Se o Supabase estiver offline ou em modo local, autentica pelo banco local de clientes
+            const cliExistente = (window.SJ_DB?.clientes?.listar?.() || []).find(
+              (c) => String(c.email || "").toLowerCase() === email
+            );
+            authOk = true;
+            userData = {
+              id: cliExistente?.id || ("cli-" + Date.now()),
+              nome: cliExistente?.nome || email.split("@")[0],
+              email,
+              whatsapp: cliExistente?.cepTelefone || "",
+              cpf: cliExistente?.cnpjCpf || "",
               tipo: "cliente"
             };
           } else {
@@ -1842,11 +1864,13 @@
         .map((cor, idx) => {
           const nomeLimpo = (cor.nome || "").replace(/\s*1kg$/i, "");
           const codStr = cor.cod ? ` — CÓD. ${cor.cod}` : "";
+          const stCor = cor.estoqueStatus || "disponivel";
+          const tagEst = stCor === "esgotado" ? " [ESGOTADO]" : stCor === "poucas_unidades" ? " [POUCAS UNID.]" : "";
           return `<option value="${idx}" data-hex="${cor.hex}" data-nome="${cor.nome}" data-cod="${cor.cod || ""
             }" data-preco="${cor.preco || ""}" data-valor="${cor.valor || 0}" data-filtro="${cor.filtroCss
             }" data-img-catalogo="${cor.imgCatalogo || ""}" data-foto-direta="${cor.usaFotoCatalogoDireta ? "1" : "0"
-            }" data-img-base="${imagemBase}" ${idx === idxInicial ? "selected" : ""
-            }>${nomeLimpo}${codStr} (${cor.preco || ""})</option>`;
+            }" data-img-base="${imagemBase}" data-estoque="${stCor}" ${idx === idxInicial ? "selected" : ""
+            }>${nomeLimpo}${codStr} (${cor.preco || ""})${tagEst}</option>`;
         })
         .join("");
 
@@ -1904,9 +1928,17 @@
         ? `<span class="card-cod-badge" id="cod-badge-${item.id}">CÓD. ${corInicialObj.cod}</span>`
         : "";
 
+    const statusInicial = (corInicialObj && corInicialObj.estoqueStatus)
+      ? corInicialObj.estoqueStatus
+      : (item.estoqueStatus || "disponivel");
+    const ehEsgotado = statusInicial === "esgotado";
+    const ehPoucas = statusInicial === "poucas_unidades";
+
+    const stockBadgeCardHtml = `<span class="card-stock-badge status-${statusInicial}" id="stock-badge-${item.id}" style="${statusInicial === "disponivel" ? "display:none;" : ""}">${ehEsgotado ? "🔴 ESGOTADO" : ehPoucas ? "🟠 POUCAS UNIDADES" : ""}</span>`;
+
     return `
       <article
-        class="combo-filament-card"
+        class="combo-filament-card ${ehEsgotado ? "is-out-of-stock" : ""}"
         data-item-id="${item.id}"
         ${
           dadosImp
@@ -1914,7 +1946,7 @@
             : ""
         }
       >
-        <button type="button" class="admin-quick-edit-btn" data-admin-edit-prod="${item.id}" title="Editar foto, preço e descrição deste produto">
+        <button type="button" class="admin-quick-edit-btn" data-admin-edit-prod="${item.id}" title="Editar foto, preço, estoque e descrição deste produto">
           ✏️ Editar
         </button>
 
@@ -1925,6 +1957,7 @@
             </svg>
           </button>
           ${codBadgeHtml}
+          ${stockBadgeCardHtml}
           <img
             src="${imagemCard}"
             alt="${tituloCard}"
@@ -1955,8 +1988,8 @@
           </select>
         </div>
 
-        <button type="button" class="btn-add-to-box" data-add-item="${item.id}">
-          ${item.botaoTexto || "Adicionar ao Pedido"}
+        <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao Pedido"}" ${ehEsgotado ? "disabled" : ""}>
+          ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "Adicionar ao Pedido")}
         </button>
       </article>
     `;
@@ -2087,9 +2120,12 @@
 
             <div class="filament-ext-colors-grid">
               ${coresFiltradas
-                .map(
-                  (cor) => `
-                <article class="filament-color-tile">
+                .map((cor) => {
+                  const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
+                  const isEsg = stCor === "esgotado";
+                  const isPouc = stCor === "poucas_unidades";
+                  return `
+                <article class="filament-color-tile ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
                     class="filament-color-tile-img"
                     data-hub-open-color-pdp="${itemAtivo.id}"
@@ -2097,6 +2133,13 @@
                     title="Clique para ampliar ${cor.nome} (CÓD. ${cor.cod})"
                   >
                     <span class="tile-cod-badge">CÓD. ${cor.cod}</span>
+                    ${
+                      isEsg
+                        ? `<span class="card-stock-badge status-esgotado" style="top:auto; bottom:8px; left:8px;">🔴 ESGOTADO</span>`
+                        : isPouc
+                          ? `<span class="card-stock-badge status-poucas_unidades" style="top:auto; bottom:8px; left:8px;">🟠 POUCAS UNID.</span>`
+                          : ""
+                    }
                     <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
                     <img
                       src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem}"
@@ -2117,17 +2160,18 @@
                     </div>
                     <button
                       type="button"
-                      class="tile-add-btn"
+                      class="tile-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
                       data-hub-quick-add="${itemAtivo.id}"
                       data-hub-color-idx="${cor.originalIdx}"
                       data-hub-brand="MaxPrint"
+                      ${isEsg ? "disabled" : ""}
                     >
-                      + Adicionar ao Pedido
+                      ${isEsg ? "🔴 Esgotado" : "+ Adicionar ao Pedido"}
                     </button>
                   </div>
                 </article>
-              `
-                )
+              `;
+                })
                 .join("")}
             </div>
           `
@@ -2190,8 +2234,11 @@
                 const ehRefil =
                   (cor.nome || "").toLowerCase().includes("refil") ||
                   (cor.tipo || "").toLowerCase().includes("refil");
+                const stCor = cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
+                const isEsg = stCor === "esgotado";
+                const isPouc = stCor === "poucas_unidades";
                 return `
-                  <article class="filament-color-tile bambu-tile">
+                  <article class="filament-color-tile bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
                     <div
                       class="filament-color-tile-img"
                       data-hub-open-color-pdp="fil-pla-bambulab"
@@ -2202,6 +2249,13 @@
                       <span class="tile-rfid-badge ${ehRefil ? "is-refil" : ""}">${
                   ehRefil ? "Refil RFID" : "Carretel RFID"
                 }</span>
+                      ${
+                        isEsg
+                          ? `<span class="card-stock-badge status-esgotado" style="top:auto; bottom:8px; left:8px;">🔴 ESGOTADO</span>`
+                          : isPouc
+                            ? `<span class="card-stock-badge status-poucas_unidades" style="top:auto; bottom:8px; left:8px;">🟠 POUCAS UNID.</span>`
+                            : ""
+                      }
                       <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
                       <img
                         src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
@@ -2222,12 +2276,13 @@
                       </div>
                       <button
                         type="button"
-                        class="tile-add-btn"
+                        class="tile-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
                         data-hub-quick-add="fil-pla-bambulab"
                         data-hub-color-idx="${cor.originalIdx}"
                         data-hub-brand="Bambu Lab"
+                        ${isEsg ? "disabled" : ""}
                       >
-                        + Adicionar ao Pedido
+                        ${isEsg ? "🔴 Esgotado" : "+ Adicionar ao Pedido"}
                       </button>
                     </div>
                   </article>
@@ -2639,6 +2694,38 @@
           codBadgeEl.textContent = `CÓD. ${cod}`;
         }
 
+        // Atualiza selo de estoque e botão Adicionar ao trocar a cor do filamento
+        const estoqueCor = opt.dataset.estoque || "disponivel";
+        const stockBadgeEl = document.getElementById(`stock-badge-${itemId}`);
+        if (stockBadgeEl) {
+          stockBadgeEl.className = `card-stock-badge status-${estoqueCor}`;
+          if (estoqueCor === "esgotado") {
+            stockBadgeEl.textContent = "🔴 ESGOTADO";
+            stockBadgeEl.style.display = "inline-flex";
+          } else if (estoqueCor === "poucas_unidades") {
+            stockBadgeEl.textContent = "🟠 POUCAS UNIDADES";
+            stockBadgeEl.style.display = "inline-flex";
+          } else {
+            stockBadgeEl.textContent = "";
+            stockBadgeEl.style.display = "none";
+          }
+        }
+
+        const btnAddCard = document.getElementById(`btn-add-${itemId}`);
+        if (btnAddCard) {
+          const itemCat = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
+          const defaultBtnText = itemCat ? itemCat.textoBotao || "Adicionar ao Pedido" : "Adicionar ao Pedido";
+          if (estoqueCor === "esgotado") {
+            btnAddCard.disabled = true;
+            btnAddCard.classList.add("btn-out-of-stock");
+            btnAddCard.textContent = "🔴 Esgotado no Momento";
+          } else {
+            btnAddCard.disabled = false;
+            btnAddCard.classList.remove("btn-out-of-stock");
+            btnAddCard.textContent = defaultBtnText;
+          }
+        }
+
         const swatchesContainer = document.getElementById(`swatches-${itemId}`);
         if (swatchesContainer) {
           swatchesContainer.querySelectorAll(".color-swatch-dot").forEach((dot) => {
@@ -2764,6 +2851,18 @@
 
     const sel1 = document.getElementById(`sel1-${item.id}`);
     const sel2 = document.getElementById(`sel2-${item.id}`);
+
+    // Verifica se o produto ou a cor selecionada está esgotado
+    let statusEstoque = item.estoqueStatus || "disponivel";
+    if (customConfig && customConfig.corObj && customConfig.corObj.estoqueStatus) {
+      statusEstoque = customConfig.corObj.estoqueStatus;
+    } else if (item.tipoFilamento && sel2 && sel2.options[sel2.selectedIndex]) {
+      statusEstoque = sel2.options[sel2.selectedIndex].dataset.estoque || statusEstoque;
+    }
+    if (statusEstoque === "esgotado") {
+      mostrarNotificacaoToast("🔴 Este item está esgotado no momento. Consulte previsão pelo WhatsApp!");
+      return;
+    }
 
     const valor1 =
       customConfig && customConfig.detalhe1 !== undefined
@@ -4043,7 +4142,7 @@
         <div class="pdp-info-col">
           <div class="pdp-meta-row">
             <span class="pdp-brand-badge">${marcaAtual}</span>
-            <span class="pdp-stock-status">● Em estoque para envio / retirada</span>
+            <span class="pdp-stock-status" id="pdp-stock-status-badge">● Em estoque para envio / retirada</span>
           </div>
 
           <h1 class="pdp-title">${tituloPagina}</h1>
@@ -4257,11 +4356,47 @@
       }
 
       const addBtnEl = document.getElementById("pdp-btn-add");
+      const stickyAddBtnEl = document.getElementById("pdp-sticky-add-btn");
+      const pdpStockBadgeEl = document.getElementById("pdp-stock-status-badge");
+      const statusEstoquePdp =
+        (corAtiva && corAtiva.estoqueStatus) || item.estoqueStatus || "disponivel";
+
+      if (pdpStockBadgeEl) {
+        pdpStockBadgeEl.className = `pdp-stock-status status-${statusEstoquePdp}`;
+        if (statusEstoquePdp === "esgotado") {
+          pdpStockBadgeEl.textContent = "🔴 Esgotado no momento — Consulte previsão no WhatsApp";
+        } else if (statusEstoquePdp === "poucas_unidades") {
+          pdpStockBadgeEl.textContent = "🟠 Poucas unidades — Últimas peças em estoque!";
+        } else {
+          pdpStockBadgeEl.textContent = "● Em estoque para envio / retirada";
+        }
+      }
+
       if (addBtnEl) {
-        addBtnEl.textContent =
-          precoUnit > 0
-            ? `Adicionar ao Pedido — ${formatarMoedaBR(precoUnit * qtdAtiva)}`
-            : "Adicionar ao Pedido";
+        if (statusEstoquePdp === "esgotado") {
+          addBtnEl.disabled = true;
+          addBtnEl.classList.add("btn-out-of-stock");
+          addBtnEl.textContent = "🔴 Esgotado no Momento";
+        } else {
+          addBtnEl.disabled = false;
+          addBtnEl.classList.remove("btn-out-of-stock");
+          addBtnEl.textContent =
+            precoUnit > 0
+              ? `Adicionar ao Pedido — ${formatarMoedaBR(precoUnit * qtdAtiva)}`
+              : "Adicionar ao Pedido";
+        }
+      }
+
+      if (stickyAddBtnEl) {
+        if (statusEstoquePdp === "esgotado") {
+          stickyAddBtnEl.disabled = true;
+          stickyAddBtnEl.classList.add("btn-out-of-stock");
+          stickyAddBtnEl.textContent = "🔴 Esgotado";
+        } else {
+          stickyAddBtnEl.disabled = false;
+          stickyAddBtnEl.classList.remove("btn-out-of-stock");
+          stickyAddBtnEl.textContent = "+ Adicionar";
+        }
       }
 
       // Sincroniza a Barra Fixa Mobile (Sticky Bar) da PDP
@@ -5903,8 +6038,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   function usuarioLogadoEhMaster() {
-    const u = state.usuarioGoogle;
-    return Boolean(u && String(u.email || "").toLowerCase() === "jt.designer21@gmail.com");
+    const u = state.usuarioGoogle || (window.SJ_DB && window.SJ_DB.auth ? window.SJ_DB.auth.getUsuarioAtual() : null);
+    if (!u) return false;
+    const email = String(u.email || "").toLowerCase();
+    return Boolean(
+      u.isMaster ||
+      email === "jt.designer21@gmail.com" ||
+      email === "jt.design21@gmail.com" ||
+      email === "jt.design21@gmail.com.br"
+    );
   }
 
   async function renderizarPainelEquipeCms() {
@@ -5917,96 +6059,161 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     atualizarBadgesSolicitacoesPendentes(lista);
 
     const ehMaster = usuarioLogadoEhMaster();
-    const emailLogado = state.usuarioGoogle ? state.usuarioGoogle.email : "";
+    const uAtual = state.usuarioGoogle || auth.getUsuarioAtual();
+    const emailLogado = uAtual ? uAtual.email : "jt.designer21@gmail.com";
     const emailEl = document.getElementById("cms-admin-pwd-email");
-    if (emailEl) emailEl.textContent = emailLogado || "—";
+    if (emailEl) emailEl.textContent = emailLogado || "jt.designer21@gmail.com";
 
-    const btnStyle = (bg) =>
-      `style="background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:600; cursor:pointer;"`;
+    const btnStyle = (bg, fg = "#fff") =>
+      `style="background:${bg}; color:${fg}; border:none; border-radius:8px; padding:7px 13px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity 0.15s;"`;
     const badge = (status) => {
       const map = {
-        aprovado: ["#DCFCE7", "#166534", "Aprovado"],
-        pendente: ["#FEF3C7", "#92400E", "Pendente"],
-        bloqueado: ["#FEE2E2", "#991B1B", "Bloqueado"]
+        aprovado: ["#DCFCE7", "#166534", "✅ Aprovado (Liberado)"],
+        pendente: ["#FEF3C7", "#92400E", "⏳ Aguardando Aprovação"],
+        bloqueado: ["#FEE2E2", "#991B1B", "🚫 Bloqueado / Negado"]
       };
       const [bg, fg, label] = map[status] || map.pendente;
-      return `<span style="background:${bg}; color:${fg}; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px;">${label}</span>`;
+      return `<span style="background:${bg}; color:${fg}; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px; display:inline-block;">${label}</span>`;
     };
-    const avisoSomenteMaster = `<p style="margin:0; color:#6B7280; font-size:0.85rem;">🔒 Apenas o Administrador Oficial pode liberar ou bloquear acessos.</p>`;
 
     // 1) Solicitações pendentes
     const pendentesEl = document.getElementById("cms-pending-requests-list");
     if (pendentesEl) {
       const pendentes = lista.filter((u) => u.status === "pendente");
       if (pendentes.length === 0) {
-        pendentesEl.innerHTML = `<p style="margin:0; color:#6B7280; font-size:0.85rem;">Nenhuma solicitação pendente no momento. ✅</p>`;
+        pendentesEl.innerHTML = `
+          <div style="padding:14px 16px; background:#F9FAFB; border:1px dashed #D1D5DB; border-radius:10px; color:#4B5563; font-size:0.84rem;">
+            ✅ Nenhuma solicitação pendente de aprovação neste momento. Quando uma pessoa pedir acesso na aba <strong>"Solicitar Autorização"</strong> da Área Restrita, o e-mail dela aparecerá aqui com os botões para você <strong>Aprovar</strong>, <strong>Negar</strong> ou <strong>Bloquear</strong>.
+          </div>
+        `;
       } else {
         pendentesEl.innerHTML = pendentes.map((u) => `
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px; border:1px solid #FDE68A; background:#FFFBEB; border-radius:10px; margin-bottom:8px;">
-            <div style="min-width:220px;">
-              <div style="font-size:0.9rem;">📧 O e-mail <strong>${escaparHtmlEquipe(u.email)}</strong> solicitou autorização para ser administrador.</div>
-              <div style="font-size:0.8rem; color:#6B7280; margin-top:2px;">
-                ${escaparHtmlEquipe(u.nome)}${u.motivo ? " • " + escaparHtmlEquipe(u.motivo) : ""}${u.criadoEm ? " • " + new Date(u.criadoEm).toLocaleString("pt-BR") : ""}
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1.5px solid #F59E0B; background:#FFFBEB; border-radius:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(245,158,11,0.08);">
+            <div style="min-width:240px; flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                <span style="background:#F59E0B; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:999px;">NOVO PEDIDO DE ACESSO</span>
+                <strong style="font-size:0.95rem; color:#111827;">${escaparHtmlEquipe(u.nome || "Solicitante")}</strong>
+              </div>
+              <div style="font-size:0.9rem; color:#1F2937; margin-bottom:3px;">
+                📧 E-mail solicitante: <strong style="color:#E84520; text-decoration:underline;">${escaparHtmlEquipe(u.email)}</strong>
+              </div>
+              <div style="font-size:0.78rem; color:#6B7280;">
+                ${u.motivo ? `💬 Motivo/Função: <strong>${escaparHtmlEquipe(u.motivo)}</strong> • ` : ""}Solicitado em: ${u.criadoEm ? new Date(u.criadoEm).toLocaleString("pt-BR") : "Recente"}
               </div>
             </div>
-            ${ehMaster ? `
-            <div style="display:flex; gap:6px;">
-              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>✅ Liberar Acesso</button>
-              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>
-            </div>` : ""}
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>
+                ✅ Aprovar & Liberar
+              </button>
+              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>
+                🚫 Negar / Bloquear
+              </button>
+              <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#6B7280")}>
+                🗑️ Excluir Pedido
+              </button>
+            </div>
           </div>
-        `).join("") + (ehMaster ? "" : avisoSomenteMaster);
+        `).join("");
       }
     }
 
-    // 2) Todos os administradores
+    // 2) Todos os administradores e solicitações registradas
     const todosEl = document.getElementById("cms-all-admins-list");
     if (todosEl) {
       todosEl.innerHTML = lista.map((u) => {
-        const master = u.isMaster;
+        const master = u.isMaster || String(u.email || "").toLowerCase() === "jt.designer21@gmail.com";
         let acoes = "";
         if (master) {
-          acoes = `<span style="font-size:0.75rem; color:#6B7280; font-weight:600;">👑 Administrador Oficial (protegido)</span>`;
-        } else if (ehMaster) {
+          acoes = `<span style="font-size:0.76rem; background:#FEF3C7; color:#92400E; padding:5px 10px; border-radius:8px; font-weight:800;">👑 Administrador Oficial (Vitalício)</span>`;
+        } else {
           acoes = `
-            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>Liberar</button>` : ""}
-            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#F59E0B")}>Bloquear</button>` : ""}
-            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#6B7280")}>Excluir</button>`;
+            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>✅ Aprovar / Liberar</button>` : ""}
+            ${u.status !== "pendente" ? `<button type="button" data-equipe-acao="pendente" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#D97706")}>⏳ Colocar Pendente</button>` : ""}
+            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>` : ""}
+            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#4B5563")}>🗑️ Excluir</button>
+          `;
         }
         return `
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #E5E7EB; border-radius:10px; margin-bottom:8px;">
-            <div style="min-width:220px;">
-              <div style="font-size:0.9rem; font-weight:600;">${escaparHtmlEquipe(u.nome || u.email)} ${badge(u.status)}</div>
-              <div style="font-size:0.8rem; color:#6B7280;">${escaparHtmlEquipe(u.email)} • ${escaparHtmlEquipe(u.cargo || "")}</div>
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid #E5E7EB; background:${master ? "#FAFAFA" : "#FFFFFF"}; border-radius:10px; margin-bottom:8px;">
+            <div style="min-width:240px; flex:1;">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="font-size:0.92rem; color:#111827;">${escaparHtmlEquipe(u.nome || "Administrador")}</strong>
+                ${badge(u.status)}
+              </div>
+              <div style="font-size:0.84rem; color:#374151; margin-top:3px;">
+                📧 <strong>${escaparHtmlEquipe(u.email)}</strong> • <span style="color:#6B7280;">${escaparHtmlEquipe(u.cargo || "Administrador")}</span>
+                ${u.motivo ? ` • <span style="color:#6B7280;">Motivo: ${escaparHtmlEquipe(u.motivo)}</span>` : ""}
+              </div>
             </div>
             <div style="display:flex; gap:6px; flex-wrap:wrap;">${acoes}</div>
           </div>`;
       }).join("");
     }
 
-    // Ações (delegação)
+    // Ações nos botões (Aprovar, Bloquear, Pendente, Excluir)
     document.querySelectorAll("#cms-pane-equipe [data-equipe-acao]").forEach((btn) => {
       btn.addEventListener("click", async () => {
-        if (!usuarioLogadoEhMaster()) {
-          alert("Apenas o Administrador Oficial pode realizar esta ação.");
-          return;
-        }
         const acao = btn.dataset.equipeAcao;
         const email = btn.dataset.equipeEmail;
         let res;
         if (acao === "remover") {
-          if (!confirm(`Excluir definitivamente o acesso de ${email}?`)) return;
+          if (!confirm(`Deseja excluir o registro de ${email}?`)) return;
           res = await auth.removerUsuario(email);
         } else {
           res = await auth.alterarStatusUsuario(email, acao);
         }
-        if (res && res.mensagem) alert(res.mensagem);
+        if (res && res.mensagem) {
+          mostrarToast(res.mensagem, res.sucesso ? "success" : "warning");
+        }
         renderizarPainelEquipeCms();
       });
     });
   }
 
   function configurarFormularioSenhaAdmin() {
+    // Botão Atualizar Solicitações
+    const btnRefresh = document.getElementById("btn-cms-refresh-equipe");
+    if (btnRefresh && btnRefresh.dataset.bound !== "1") {
+      btnRefresh.dataset.bound = "1";
+      btnRefresh.addEventListener("click", async () => {
+        btnRefresh.textContent = "⏳ Atualizando...";
+        await renderizarPainelEquipeCms();
+        btnRefresh.textContent = "🔄 Atualizar Solicitações";
+        mostrarToast("Lista de solicitações e administradores atualizada!", "success");
+      });
+    }
+
+    // Formulário para adicionar/autorizar novo administrador manualmente
+    const formAdd = document.getElementById("form-cms-add-admin");
+    if (formAdd && formAdd.dataset.bound !== "1") {
+      formAdd.dataset.bound = "1";
+      formAdd.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById("cms-new-admin-nome")?.value.trim();
+        const email = document.getElementById("cms-new-admin-email")?.value.trim().toLowerCase();
+        const senha = document.getElementById("cms-new-admin-senha")?.value.trim();
+        const statusInicial = document.getElementById("cms-new-admin-status")?.value || "aprovado";
+
+        if (!nome || !email || !senha) return;
+        const res = await window.SJ_DB.auth.registrar({
+          nome,
+          email,
+          senha,
+          cargo: "Administrador Autorizado",
+          motivo: "Cadastrado no Painel Admin"
+        });
+
+        if (statusInicial === "aprovado") {
+          await window.SJ_DB.auth.alterarStatusUsuario(email, "aprovado");
+          mostrarToast(`✅ E-mail ${email} cadastrado e já LIBERADO como administrador!`, "success");
+        } else {
+          mostrarToast(`📩 Solicitação para ${email} criada como Pendente!`, "success");
+        }
+        formAdd.reset();
+        renderizarPainelEquipeCms();
+      });
+    }
+
     const form = document.getElementById("form-cms-change-admin-pwd");
     if (!form || form.dataset.bound === "1") return;
     form.dataset.bound = "1";
@@ -6023,15 +6230,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const atual = document.getElementById("cms-admin-pwd-current")?.value.trim();
       const nova = document.getElementById("cms-admin-pwd-new")?.value.trim();
       const conf = document.getElementById("cms-admin-pwd-confirm")?.value.trim();
-      if (!state.usuarioGoogle || !state.usuarioGoogle.email) {
-        mostrar(false, "Sessão administrativa não encontrada. Entre novamente.");
-        return;
-      }
+      const uAtual = state.usuarioGoogle || (window.SJ_DB && window.SJ_DB.auth ? window.SJ_DB.auth.getUsuarioAtual() : null);
+      const emailAlvo = (uAtual && uAtual.email) ? uAtual.email : "jt.designer21@gmail.com";
       if (nova !== conf) {
         mostrar(false, "A confirmação não confere com a nova senha.");
         return;
       }
-      const res = await window.SJ_DB.auth.alterarSenhaAdmin(state.usuarioGoogle.email, atual, nova);
+      const res = await window.SJ_DB.auth.alterarSenhaAdmin(emailAlvo, atual, nova);
       mostrar(res.sucesso, res.mensagem);
       if (res.sucesso) form.reset();
     });
@@ -6142,6 +6347,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const qtdCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])
           ? window.SITE_DATA[chavePaleta].length
           : 0;
+        const statusEst = p.estoqueStatus || "disponivel";
 
         return `
           <div class="cms-product-item-card">
@@ -6156,6 +6362,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 <span class="cms-prod-price-badge">${p.precoVista || "Sob consulta"}</span>
                 ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">🎨 ${qtdCores} cores</span>` : ""}
               </div>
+              <div style="margin-top:8px;">
+                <select class="cms-quick-stock-select stock-${statusEst}" data-cms-quick-stock="${p.id}" title="Alterar status de estoque deste produto">
+                  <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>🟢 Em Estoque</option>
+                  <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>🟠 Poucas Unidades</option>
+                  <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+                </select>
+              </div>
             </div>
             <div class="cms-prod-card-actions">
               <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${p.id}">
@@ -6169,6 +6382,28 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         `;
       })
       .join("");
+
+    // Troca rápida de status de estoque direto na grade do Painel Admin
+    grid.querySelectorAll("[data-cms-quick-stock]").forEach((sel) => {
+      sel.addEventListener("change", async (e) => {
+        const id = sel.dataset.cmsQuickStock;
+        const novoStatus = e.target.value;
+        const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
+        if (!prod) return;
+        prod.estoqueStatus = novoStatus;
+        sel.className = `cms-quick-stock-select stock-${novoStatus}`;
+        if (window.SJ_DB && window.SJ_DB.catalogo) {
+          await window.SJ_DB.catalogo.salvarProduto(prod);
+        }
+        atualizarSiteAposEdicaoCms();
+        const labelMap = {
+          disponivel: "🟢 Em Estoque",
+          poucas_unidades: "🟠 Poucas Unidades",
+          esgotado: "🔴 Esgotado"
+        };
+        mostrarToast(`📦 Estoque de <strong>"${prod.nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
+      });
+    });
 
     grid.querySelectorAll("[data-cms-edit-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -6232,7 +6467,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     container.innerHTML = cmsState.coresTempEditando
       .map(
-        (c, idx) => `
+        (c, idx) => {
+          const stCor = c.estoqueStatus || "disponivel";
+          return `
           <div class="cms-color-edit-row" data-color-row-idx="${idx}">
             <input type="color" class="cms-color-hex-picker" data-c-field="hex" data-c-idx="${idx}" value="${(c.hex && c.hex.startsWith("#") && c.hex.length === 7) ? c.hex : "#F04E23"}" title="Escolher tom da cor" />
             <div class="cms-color-thumb-mini">
@@ -6241,6 +6478,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             <input type="text" class="cms-c-input-name" data-c-field="nome" data-c-idx="${idx}" value="${String(c.nome || "").replace(/"/g, "&quot;")}" placeholder="Nome da Cor (ex: Preto 1kg)" />
             <input type="text" class="cms-c-input-cod" data-c-field="cod" data-c-idx="${idx}" value="${String(c.cod || "").replace(/"/g, "&quot;")}" placeholder="CÓD." title="Código no Catálogo" />
             <input type="text" class="cms-c-input-price" data-c-field="preco" data-c-idx="${idx}" value="${String(c.preco || "R$ 79,90").replace(/"/g, "&quot;")}" placeholder="Preço (R$)" />
+            <select class="cms-c-input-stock stock-${stCor}" data-c-field="estoqueStatus" data-c-idx="${idx}" title="Disponibilidade desta cor">
+              <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>🟢 Em estoque</option>
+              <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>🟠 Poucas unid.</option>
+              <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+            </select>
             <input type="text" class="cms-c-input-img" data-c-field="imgCatalogo" data-c-idx="${idx}" value="${String(c.imgCatalogo || "").replace(/"/g, "&quot;")}" placeholder="URL/Caminho da Foto" />
             <label class="btn-cms-color-upload" title="Enviar nova foto para esta cor">
               📷 Foto
@@ -6248,17 +6490,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             </label>
             <button type="button" class="btn-cms-remove-row" data-c-del-idx="${idx}" title="Remover esta cor">&times;</button>
           </div>
-        `
+        `;
+        }
       )
       .join("");
 
-    // Sincroniza alterações nos inputs de cada cor
+    // Sincroniza alterações nos inputs e selects de cada cor
     container.querySelectorAll("[data-c-field]").forEach((inp) => {
-      inp.addEventListener("input", (e) => {
+      const evtName = inp.tagName === "SELECT" ? "change" : "input";
+      inp.addEventListener(evtName, (e) => {
         const idx = Number(inp.dataset.cIdx);
         const field = inp.dataset.cField;
         if (!cmsState.coresTempEditando[idx]) return;
         cmsState.coresTempEditando[idx][field] = e.target.value;
+        if (field === "estoqueStatus") {
+          inp.className = `cms-c-input-stock stock-${e.target.value}`;
+        }
         if (field === "preco") {
           const valNum = extrairNumeroDePrecoBR(e.target.value);
           if (valNum > 0) cmsState.coresTempEditando[idx].valor = valNum;
@@ -6344,6 +6591,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       item.marca === "MaxPrint" ? "Masterprint" : item.marca || "";
     document.getElementById("cms-prod-preco-parcelado").value = item.precoParcelado || "";
     document.getElementById("cms-prod-tag").value = item.tagDestaque || "";
+    const estoqueSelectEl = document.getElementById("cms-prod-estoque");
+    if (estoqueSelectEl) {
+      estoqueSelectEl.value = item.estoqueStatus || "disponivel";
+    }
     document.getElementById("cms-prod-imagem").value = item.imagem || "";
 
     const previewImg = document.getElementById("cms-prod-img-preview");
@@ -6895,6 +7146,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const marca = document.getElementById("cms-prod-marca")?.value.trim() || "Loja SJ 3D";
       const precoParcelado = document.getElementById("cms-prod-preco-parcelado")?.value.trim() || "";
       const tagDestaque = document.getElementById("cms-prod-tag")?.value.trim() || "";
+      const estoqueStatus = document.getElementById("cms-prod-estoque")?.value || "disponivel";
       const imagem = document.getElementById("cms-prod-imagem")?.value.trim() || "assets/produtos/impressora-a1_mini.jpg";
 
       const sel1Raw = document.getElementById("cms-prod-select1")?.value || "";
@@ -6922,6 +7174,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         precoVistaValor,
         precoParcelado,
         tagDestaque,
+        estoqueStatus,
         imagem,
         imagemCustomizada: imagem !== existente.imagem ? true : Boolean(existente.imagemCustomizada),
         opcoesCustomizadas: true,
