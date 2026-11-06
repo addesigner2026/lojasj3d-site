@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_6" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_7" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1035,65 +1035,311 @@
   </div>
 
   <!-- ====================================================================
-       PAINEL ADMINISTRATIVO DE GESTÃO DO SITE (CMS: PRODUTOS, PREÇOS, FOTOS & BANNER)
+       PAINEL CRM & ADMINISTRAÇÃO LOJA SJ 3D (/ADMIN - NOVA ARQUITETURA UI/UX)
        ==================================================================== -->
+  <style id="sj-crm-critical-styles">
+    #modal-admin-cms.modal-overlay {
+      padding: 16px !important;
+      align-items: center !important;
+      justify-content: center !important;
+      background: rgba(9, 9, 13, 0.82) !important;
+      backdrop-filter: blur(10px) !important;
+    }
+    .sj-crm-shell {
+      position: relative !important;
+      width: 96vw !important;
+      max-width: 1280px !important;
+      height: 90vh !important;
+      min-height: 600px !important;
+      max-height: 92vh !important;
+      background: #f4f5f7 !important;
+      border-radius: 18px !important;
+      border: 1px solid rgba(255, 255, 255, 0.14) !important;
+      box-shadow: 0 30px 80px rgba(0, 0, 0, 0.5) !important;
+      display: grid !important;
+      grid-template-columns: 265px 1fr !important;
+      overflow: hidden !important;
+    }
+    .sj-crm-sidebar {
+      background: #111116 !important;
+      color: #ffffff !important;
+      display: flex !important;
+      flex-direction: column !important;
+      justify-content: space-between !important;
+      padding: 20px 16px !important;
+      border-right: 1px solid rgba(255, 255, 255, 0.08) !important;
+      overflow-y: auto !important;
+    }
+    .sj-crm-brand {
+      display: flex !important;
+      align-items: center !important;
+      gap: 10px !important;
+      padding-bottom: 14px !important;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
+      margin-bottom: 14px !important;
+    }
+    .sj-crm-brand-icon {
+      width: 38px !important;
+      height: 38px !important;
+      border-radius: 10px !important;
+      background: linear-gradient(135deg, #F04E23 0%, #c83712 100%) !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: center !important;
+      font-weight: 900 !important;
+      font-size: 0.95rem !important;
+      color: #fff !important;
+      flex-shrink: 0 !important;
+    }
+    .sj-crm-admin-box {
+      background: rgba(255, 255, 255, 0.05) !important;
+      border: 1px solid rgba(255, 255, 255, 0.1) !important;
+      border-radius: 12px !important;
+      padding: 11px 12px !important;
+      margin-bottom: 16px !important;
+    }
+    .sj-crm-nav {
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 6px !important;
+    }
+    .sj-crm-nav-btn {
+      width: 100% !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 10px !important;
+      padding: 11px 13px !important;
+      border-radius: 10px !important;
+      border: 1px solid transparent !important;
+      background: transparent !important;
+      color: #a1a1aa !important;
+      font-size: 0.84rem !important;
+      font-weight: 700 !important;
+      text-align: left !important;
+      cursor: pointer !important;
+      transition: all 0.16s ease !important;
+    }
+    .sj-crm-nav-btn:hover {
+      background: rgba(255, 255, 255, 0.06) !important;
+      color: #ffffff !important;
+    }
+    .sj-crm-nav-btn.active {
+      background: #F04E23 !important;
+      color: #ffffff !important;
+      border-color: rgba(255, 255, 255, 0.18) !important;
+      box-shadow: 0 6px 18px rgba(240, 78, 35, 0.35) !important;
+    }
+    .sj-crm-main {
+      display: flex !important;
+      flex-direction: column !important;
+      height: 90vh !important;
+      max-height: 92vh !important;
+      min-width: 0 !important;
+      background: #f4f5f7 !important;
+      overflow: hidden !important;
+    }
+    .sj-crm-topbar {
+      height: 72px !important;
+      flex-shrink: 0 !important;
+      background: #ffffff !important;
+      border-bottom: 1px solid #e4e4e7 !important;
+      padding: 0 24px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 16px !important;
+    }
+    .sj-crm-workspace {
+      flex: 1 1 auto !important;
+      height: calc(90vh - 72px) !important;
+      min-height: 420px !important;
+      overflow-y: auto !important;
+      padding: 22px 24px 36px !important;
+      box-sizing: border-box !important;
+    }
+    .sj-crm-workspace .admin-cms-pane {
+      display: none !important;
+    }
+    .sj-crm-workspace .admin-cms-pane.active {
+      display: block !important;
+    }
+    .sj-crm-kpi-row {
+      display: grid !important;
+      grid-template-columns: repeat(4, 1fr) !important;
+      gap: 12px !important;
+      margin-bottom: 18px !important;
+    }
+    .sj-crm-kpi-card {
+      background: #ffffff !important;
+      border: 1.5px solid #e4e4e7 !important;
+      border-radius: 12px !important;
+      padding: 13px 15px !important;
+      cursor: pointer !important;
+      transition: all 0.15s ease !important;
+      text-align: left !important;
+    }
+    .sj-crm-kpi-card:hover,
+    .sj-crm-kpi-card.active-kpi {
+      border-color: #F04E23 !important;
+      box-shadow: 0 6px 16px rgba(240, 78, 35, 0.1) !important;
+    }
+    @media (max-width: 900px) {
+      .sj-crm-shell {
+        grid-template-columns: 1fr !important;
+        height: 94vh !important;
+      }
+      .sj-crm-sidebar {
+        padding: 12px 14px !important;
+        border-right: none !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
+      }
+      .sj-crm-brand, .sj-crm-admin-box, .sj-crm-sidebar-footer {
+        display: none !important;
+      }
+      .sj-crm-nav {
+        flex-direction: row !important;
+        overflow-x: auto !important;
+      }
+      .sj-crm-nav-btn {
+        white-space: nowrap !important;
+        width: auto !important;
+      }
+      .sj-crm-kpi-row {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+  </style>
+
   <div class="modal-overlay" id="modal-admin-cms" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-cms-title">
-    <div class="admin-cms-card" style="position:relative; width:100%; max-width:1080px; height:88vh; min-height:560px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; background:#fff;">
-      <!-- Cabeçalho do Painel Admin -->
-      <div class="admin-cms-header" style="flex-shrink:0; position:relative; padding-right:64px;">
-        <div class="admin-cms-header-left">
-          <span class="auth-portal-badge" style="margin-bottom:4px;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M12 20h9"></path>
-              <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
-            </svg>
-            <span>PAINEL DE GESTÃO LOJA SJ 3D (/ADMIN)</span>
-          </span>
-          <h3 id="admin-cms-title">Gerenciar Produtos, Preços, Fotos & Banner de Promoções</h3>
+    <div class="sj-crm-shell">
+
+      <!-- COLUNA ESQUERDA: MENU LATERAL DO CRM -->
+      <aside class="sj-crm-sidebar">
+        <div>
+          <div class="sj-crm-brand">
+            <div class="sj-crm-brand-icon">SJ</div>
+            <div>
+              <div style="font-size:0.92rem; font-weight:900; letter-spacing:0.3px;">LOJA SJ 3D</div>
+              <div style="font-size:0.7rem; color:#a1a1aa; font-weight:600;">CRM &amp; Painel de Controle</div>
+            </div>
+          </div>
+
+          <div class="sj-crm-admin-box">
+            <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+              <span style="width:8px; height:8px; border-radius:50%; background:#22c55e; display:inline-block;"></span>
+              <span style="font-size:0.68rem; font-weight:800; color:#f59e0b; text-transform:uppercase; letter-spacing:0.4px;">👑 Admin Oficial</span>
+            </div>
+            <div id="crm-sidebar-admin-email" style="font-size:0.78rem; font-weight:700; color:#ffffff; word-break:break-all;">jt.designer21@gmail.com</div>
+            <div style="font-size:0.68rem; color:#a1a1aa; margin-top:2px;">Área Restrita Autorizada</div>
+          </div>
+
+          <div style="font-size:0.66rem; font-weight:800; color:#71717a; text-transform:uppercase; letter-spacing:0.8px; padding:0 8px 6px;">Módulos de Gestão</div>
+
+          <nav class="sj-crm-nav" role="tablist">
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
+              <span>📦 Catálogo &amp; Estoque</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
+              <span>🔐 Acessos &amp; Solicitações</span>
+              <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="banner" role="tab">
+              <span>🎨 Banner &amp; Sorteio</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
+              <span>⚡ Supabase &amp; Nuvem</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
+              <span>💾 Backup &amp; Dados</span>
+            </button>
+          </nav>
         </div>
-        <button type="button" class="modal-close-btn" id="close-admin-cms-btn" aria-label="Fechar painel de gestão">&times;</button>
-      </div>
 
-      <!-- Abas Principais do CMS -->
-      <div class="admin-cms-tabs" role="tablist" style="flex-shrink:0; display:flex; flex-wrap:wrap; gap:6px;">
-        <button type="button" class="admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
-          📦 Produtos &amp; Estoque
-        </button>
-        <button type="button" class="admin-cms-tab-btn" data-cms-tab="banner" role="tab">
-          🎨 Banner de Promoções
-        </button>
-        <button type="button" class="admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
-          💾 Salvar &amp; Restaurar
-        </button>
-        <button type="button" class="admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
-          ⚡ Supabase &amp; Nuvem
-        </button>
-        <button type="button" class="admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
-          🔐 Administradores &amp; Senha <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; margin-left:5px; font-weight:700;">0</span>
-        </button>
-      </div>
+        <div class="sj-crm-sidebar-footer" style="border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; display:flex; flex-direction:column; gap:6px;">
+          <button type="button" id="crm-btn-open-quote" style="width:100%; padding:9px 12px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer; text-align:left;">
+            📄 Emitir Orçamento Timbrado
+          </button>
+          <button type="button" id="crm-btn-open-history" style="width:100%; padding:9px 12px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer; text-align:left;">
+            🕒 Histórico de Orçamentos
+          </button>
+        </div>
+      </aside>
 
-      <!-- CORPO ROLÁVEL DO PAINEL -->
-      <div class="admin-cms-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; padding:20px 24px; background:#fff;">
+      <!-- COLUNA DIREITA: TOPBAR + ÁREA DE TRABALHO ROLÁVEL -->
+      <div class="sj-crm-main">
+        <header class="sj-crm-topbar">
+          <div>
+            <span style="font-size:0.7rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.6px;">PAINEL DE CONTROLE CRM • LOJA SJ 3D</span>
+            <h3 id="admin-cms-title" style="margin:2px 0 0; font-size:1.15rem; font-weight:900; color:#111827;">Gerenciar Catálogo, Preços, Estoque &amp; Acessos</h3>
+          </div>
+
+          <div style="display:flex; align-items:center; gap:10px;">
+            <button type="button" id="crm-top-btn-equipe-shortcut" style="padding:8px 13px; border-radius:9px; border:1.5px solid #e4e4e7; background:#fafafa; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              <span>📩 Solicitações de Admin</span>
+              <span id="crm-top-pending-pill" style="background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; font-weight:800; display:none;">0</span>
+            </button>
+            <button type="button" id="close-admin-cms-btn" aria-label="Fechar painel de gestão" style="padding:8px 14px; border-radius:9px; border:1.5px solid #fecaca; background:#fef2f2; color:#dc2626; font-size:0.8rem; font-weight:800; cursor:pointer;">
+              ✕ Fechar Painel
+            </button>
+          </div>
+        </header>
+
+        <!-- CORPO ROLÁVEL DO PAINEL -->
+        <div class="sj-crm-workspace admin-cms-body">
 
         <!-- ==============================================================
-             ABA 1: PRODUTOS, PREÇOS, FOTOS, DESCRIÇÕES E CORES DE FILAMENTO
+             ABA 1: PRODUTOS, PREÇOS, FOTOS, ESTOQUE E CORES DE FILAMENTO
              ============================================================== -->
-        <div class="admin-cms-pane active" id="cms-pane-produtos">
+        <div class="admin-cms-pane active" id="cms-pane-produtos" style="display: block;">
 
           <!-- SUB-VIEW 1A: LISTA DE PRODUTOS DO CATÁLOGO -->
           <div id="cms-products-list-view">
-            <div class="cms-toolbar-row">
+            <!-- KPIs Rápidos de Estoque (Clicáveis para filtrar) -->
+            <div class="sj-crm-kpi-row">
+              <button type="button" class="sj-crm-kpi-card active-kpi" data-cms-stock-kpi="todos">
+                <div style="font-size:0.72rem; font-weight:700; color:#6b7280;">📦 TOTAL DE PRODUTOS</div>
+                <div id="cms-kpi-total" style="font-size:1.45rem; font-weight:900; color:#111827; margin-top:2px;">0</div>
+                <div style="font-size:0.68rem; color:#9ca3af;">Clique para ver todos</div>
+              </button>
+              <button type="button" class="sj-crm-kpi-card" data-cms-stock-kpi="disponivel">
+                <div style="font-size:0.72rem; font-weight:700; color:#166534;">🟢 EM ESTOQUE</div>
+                <div id="cms-kpi-ok" style="font-size:1.45rem; font-weight:900; color:#15803d; margin-top:2px;">0</div>
+                <div style="font-size:0.68rem; color:#6b7280;">Pronta entrega normal</div>
+              </button>
+              <button type="button" class="sj-crm-kpi-card" data-cms-stock-kpi="poucas_unidades">
+                <div style="font-size:0.72rem; font-weight:700; color:#b45309;">🟠 POUCAS UNIDADES</div>
+                <div id="cms-kpi-low" style="font-size:1.45rem; font-weight:900; color:#d97706; margin-top:2px;">0</div>
+                <div style="font-size:0.68rem; color:#6b7280;">Exibe alerta de últimas peças</div>
+              </button>
+              <button type="button" class="sj-crm-kpi-card" data-cms-stock-kpi="esgotado">
+                <div style="font-size:0.72rem; font-weight:700; color:#b91c1c;">🔴 ESGOTADOS</div>
+                <div id="cms-kpi-out" style="font-size:1.45rem; font-weight:900; color:#dc2626; margin-top:2px;">0</div>
+                <div style="font-size:0.68rem; color:#6b7280;">Compra pausada no site</div>
+              </button>
+            </div>
+
+            <div class="cms-toolbar-row" style="background:#fff; padding:14px 16px; border-radius:12px; border:1px solid #e4e4e7; margin-bottom:16px;">
               <div class="cms-cat-pills" id="cms-cat-filter-pills">
                 <button type="button" class="cms-cat-pill active" data-cms-cat="todos">Todos</button>
                 <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">Filamentos</button>
                 <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">Impressoras 3D</button>
-                <button type="button" class="cms-cat-pill" data-cms-cat="pecas">Peças & Acessórios</button>
-                <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">Serviços & Manutenção</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="pecas">Peças &amp; Acessórios</button>
+                <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">Serviços &amp; Manutenção</button>
               </div>
 
               <div class="cms-toolbar-right">
-                <input type="text" id="cms-product-search" class="cms-search-input" placeholder="🔍 Buscar produto por nome ou marca..." />
+                <select id="cms-stock-filter-select" style="height:36px; padding:0 10px; border:1.5px solid #d4d4d8; border-radius:8px; font-size:0.78rem; font-weight:700; background:#fff;">
+                  <option value="todos">📦 Todos os Status de Estoque</option>
+                  <option value="disponivel">🟢 Somente Em Estoque</option>
+                  <option value="poucas_unidades">🟠 Somente Poucas Unidades</option>
+                  <option value="esgotado">🔴 Somente Esgotados</option>
+                </select>
+                <input type="text" id="cms-product-search" class="cms-search-input" placeholder="🔍 Buscar impressora, filamento, peça..." />
                 <button type="button" class="btn-cms-primary" id="btn-cms-new-product">
                   + Novo Produto
                 </button>
@@ -1581,15 +1827,16 @@
           </div>
         </div>
 
+        </div>
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_6"></script>
-  <script src="js/dados.js?v=20261106_6"></script>
-  <script src="js/database.js?v=20261106_6"></script>
-  <script src="js/app.js?v=20261106_6"></script>
+  <script src="js/supabase-client.js?v=20261106_7"></script>
+  <script src="js/dados.js?v=20261106_7"></script>
+  <script src="js/database.js?v=20261106_7"></script>
+  <script src="js/app.js?v=20261106_7"></script>
 </body>
 
 </html>

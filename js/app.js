@@ -5889,6 +5889,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   const cmsState = {
     abaAtiva: "produtos",
     categoriaFiltro: "todos",
+    estoqueFiltro: "todos",
     busca: "",
     produtoEditandoId: null,
     coresTempEditando: [],
@@ -5998,6 +5999,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       supabase: "cms-pane-supabase",
       equipe: "cms-pane-equipe"
     };
+    const mapTitles = {
+      produtos: "Catálogo, Preços & Controle de Estoque",
+      equipe: "Acessos, Solicitações de Admin & Senha",
+      banner: "Banner de Promoções & Sorteio",
+      supabase: "Conexão Supabase & Nuvem",
+      exportar: "Backup & Exportação de Dados"
+    };
+    const titleEl = document.getElementById("admin-cms-title");
+    if (titleEl && mapTitles[aba]) {
+      titleEl.textContent = mapTitles[aba];
+    }
     Object.entries(mapPanes).forEach(([key, id]) => {
       const el = document.getElementById(id);
       if (el) {
@@ -6032,12 +6044,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       lista = window.SJ_DB.auth.listarUsuarios() || [];
     }
     const qtd = (lista || []).filter((u) => u.status === "pendente").length;
-    ["cms-pending-badge", "topbar-pending-badge"].forEach((id) => {
+    ["cms-pending-badge", "topbar-pending-badge", "crm-top-pending-pill"].forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.textContent = String(qtd);
       el.style.display = qtd > 0 ? "inline-block" : "none";
     });
+    const sidebarEmail = document.getElementById("crm-sidebar-admin-email");
+    if (sidebarEmail) {
+      const u = state.usuarioGoogle || (window.SJ_DB && window.SJ_DB.auth ? window.SJ_DB.auth.getUsuarioAtual() : null);
+      if (u && u.email) sidebarEmail.textContent = u.email;
+    }
     return qtd;
   }
 
@@ -6324,15 +6341,43 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     renderizarListaProdutosCms();
   }
 
+  function atualizarContadoresEstoqueKpiCms() {
+    if (!window.SITE_DATA) return;
+    const catalogo = window.SITE_DATA.catalogo || [];
+    let ok = 0;
+    let low = 0;
+    let out = 0;
+    catalogo.forEach((p) => {
+      const st = p.estoqueStatus || "disponivel";
+      if (st === "esgotado") out++;
+      else if (st === "poucas_unidades") low++;
+      else ok++;
+    });
+    const elTotal = document.getElementById("cms-kpi-total");
+    const elOk = document.getElementById("cms-kpi-ok");
+    const elLow = document.getElementById("cms-kpi-low");
+    const elOut = document.getElementById("cms-kpi-out");
+    if (elTotal) elTotal.textContent = String(catalogo.length);
+    if (elOk) elOk.textContent = String(ok);
+    if (elLow) elLow.textContent = String(low);
+    if (elOut) elOut.textContent = String(out);
+  }
+
   function renderizarListaProdutosCms() {
     const grid = document.getElementById("cms-products-grid");
     if (!grid || !window.SITE_DATA) return;
+
+    atualizarContadoresEstoqueKpiCms();
 
     const catalogo = window.SITE_DATA.catalogo || [];
     const termo = (cmsState.busca || "").toLowerCase().trim();
 
     const filtrados = catalogo.filter((item) => {
       if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+        return false;
+      }
+      const st = item.estoqueStatus || "disponivel";
+      if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
         return false;
       }
       if (termo) {
@@ -6408,6 +6453,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         if (window.SJ_DB && window.SJ_DB.catalogo) {
           await window.SJ_DB.catalogo.salvarProduto(prod);
         }
+        atualizarContadoresEstoqueKpiCms();
         atualizarSiteAposEdicaoCms();
         const labelMap = {
           disponivel: "🟢 Em Estoque",
@@ -7028,6 +7074,43 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       btn.addEventListener("click", () => {
         selecionarAbaCms(btn.dataset.cmsTab);
       });
+    });
+
+    document.getElementById("crm-top-btn-equipe-shortcut")?.addEventListener("click", () => {
+      selecionarAbaCms("equipe");
+    });
+
+    document.getElementById("crm-btn-open-quote")?.addEventListener("click", () => {
+      fecharPainelAdminCms();
+      abrirEmissorOuPedirLogin();
+    });
+
+    document.getElementById("crm-btn-open-history")?.addEventListener("click", () => {
+      fecharPainelAdminCms();
+      abrirModalHistoricoOrcamentos();
+    });
+
+    // Filtros de estoque via KPIs clicáveis e select no CRM
+    document.querySelectorAll("[data-cms-stock-kpi]").forEach((card) => {
+      card.addEventListener("click", () => {
+        const val = card.dataset.cmsStockKpi || "todos";
+        cmsState.estoqueFiltro = val;
+        document.querySelectorAll("[data-cms-stock-kpi]").forEach((c) => {
+          c.classList.toggle("active", c === card);
+        });
+        const sel = document.getElementById("cms-stock-filter-select");
+        if (sel) sel.value = val;
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.getElementById("cms-stock-filter-select")?.addEventListener("change", (e) => {
+      const val = e.target.value || "todos";
+      cmsState.estoqueFiltro = val;
+      document.querySelectorAll("[data-cms-stock-kpi]").forEach((c) => {
+        c.classList.toggle("active", c.dataset.cmsStockKpi === val);
+      });
+      renderizarListaProdutosCms();
     });
 
     // Filtros de categoria e busca dentro do CMS
