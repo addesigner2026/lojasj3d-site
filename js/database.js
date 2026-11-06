@@ -613,28 +613,56 @@
       return lerLocal(STORAGE_KEYS.CLIENTES_TABELA, CLIENTES_PADRAO);
     },
 
-    // Salva ou atualiza os dados de um cliente
+    // Salva ou atualiza os dados de um cliente (incluindo dados fiscais para NF-e)
     salvar: function (dadosCliente) {
       if (!dadosCliente || !dadosCliente.nome) return null;
 
       const lista = clientes.listar();
       const nomeLimpo = dadosCliente.nome.trim();
-      const cnpjCpfLimpo = (dadosCliente.cnpjCpf || "").trim();
+      const cnpjCpfLimpo = (dadosCliente.cnpjCpf || dadosCliente.cpf || "").trim();
+      const emailLimpo = (dadosCliente.email || "").trim().toLowerCase();
 
-      // Busca por CPF/CNPJ se preenchido, ou por Nome
+      // Busca por E-mail, CPF/CNPJ se preenchido, ou por Nome
       const idx = lista.findIndex((c) => {
+        if (emailLimpo && c.email && c.email.trim().toLowerCase() === emailLimpo) return true;
         if (cnpjCpfLimpo && c.cnpjCpf && c.cnpjCpf.trim() === cnpjCpfLimpo) return true;
-        return c.nome.toLowerCase() === nomeLimpo.toLowerCase();
+        return c.nome && c.nome.toLowerCase() === nomeLimpo.toLowerCase();
       });
 
+      const logradouro = (dadosCliente.logradouro || "").trim();
+      const numero = (dadosCliente.numero || "").trim();
+      const complemento = (dadosCliente.complemento || "").trim();
+      const bairro = (dadosCliente.bairro || "").trim();
+      const cidade = (dadosCliente.cidade || "").trim();
+      const uf = (dadosCliente.uf || "").trim().toUpperCase();
+      const cep = (dadosCliente.cep || "").trim();
+      const whatsapp = (dadosCliente.whatsapp || dadosCliente.cepTelefone || "").trim();
+
+      const enderecoMontado = (dadosCliente.endereco || "").trim() ||
+        [logradouro, numero ? `nº ${numero}` : "", complemento].filter(Boolean).join(", ");
+      const bairroCidadeMontado = (dadosCliente.bairroCidadeUf || "").trim() ||
+        [bairro, [cidade, uf].filter(Boolean).join("/")].filter(Boolean).join(" - ");
+
       const clientePronto = {
-        id: idx >= 0 ? lista[idx].id : ("cli-" + Date.now()),
+        id: dadosCliente.id || (idx >= 0 ? lista[idx].id : ("cli-" + Date.now())),
         nome: nomeLimpo,
         cnpjCpf: cnpjCpfLimpo,
-        endereco: (dadosCliente.endereco || "").trim(),
-        bairroCidadeUf: (dadosCliente.bairroCidadeUf || "").trim(),
-        cepTelefone: (dadosCliente.cepTelefone || "").trim(),
-        email: (dadosCliente.email || "").trim(),
+        cpf: cnpjCpfLimpo,
+        inscricaoEstadual: (dadosCliente.inscricaoEstadual || "").trim(),
+        precisaNotaFiscal: Boolean(dadosCliente.precisaNotaFiscal),
+        cep,
+        logradouro,
+        numero,
+        complemento,
+        bairro,
+        cidade,
+        uf,
+        whatsapp,
+        endereco: enderecoMontado,
+        bairroCidadeUf: bairroCidadeMontado,
+        cepTelefone: [cep ? `CEP ${cep}` : "", whatsapp].filter(Boolean).join(" • ") || whatsapp,
+        email: emailLimpo,
+        cadastroAprovado: Boolean(dadosCliente.cadastroAprovado),
         atualizadoEm: new Date().toISOString()
       };
 

@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_7" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_8" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -313,6 +313,18 @@
           <div class="raffle-coupons-tracker" id="raffle-coupons-tracker" style="display: none;"></div>
 
           <div class="side-box-total" id="side-box-total">Total: R$ 0,00</div>
+
+          <!-- Opção de Emissão de Nota Fiscal (NF-e) no Pedido -->
+          <div class="cart-nf-toggle-box" id="side-box-nf-wrap" style="margin: 8px 0 10px; padding: 10px 12px; background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 10px;">
+            <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#9A3412; margin:0;">
+              <input type="checkbox" id="chk-cart-precisa-nf" style="margin-top:2px; width:16px; height:16px; accent-color:#F04E23; cursor:pointer;" />
+              <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+            </label>
+            <div id="side-box-nf-status" style="font-size:0.74rem; color:#7C2D12; margin-top:4px; padding-left:24px; line-height:1.35;">
+              Se marcado, seus dados completos de CPF/CNPJ e endereço fiscal serão incluídos no pedido.
+            </div>
+          </div>
+
           <button type="button" class="btn-submit-box" id="btn-submit-box">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -407,7 +419,18 @@
         <div class="raffle-coupons-tracker" id="drawer-raffle-coupons-tracker" style="display: none;"></div>
         <div class="side-box-total" id="drawer-box-total">Total: R$ 0,00</div>
 
-        <div class="drawer-client-club-link-wrap" style="margin: 8px 0 10px;">
+        <!-- Opção de Emissão de Nota Fiscal (NF-e) na Gaveta do Pedido -->
+        <div class="cart-nf-toggle-box" id="drawer-box-nf-wrap" style="margin: 8px 0 8px; padding: 10px 12px; background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 10px;">
+          <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#9A3412; margin:0;">
+            <input type="checkbox" id="chk-drawer-precisa-nf" style="margin-top:2px; width:16px; height:16px; accent-color:#F04E23; cursor:pointer;" />
+            <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+          </label>
+          <div id="drawer-box-nf-status" style="font-size:0.74rem; color:#7C2D12; margin-top:4px; padding-left:24px; line-height:1.35;">
+            Se marcado, seus dados completos de CPF/CNPJ e endereço fiscal serão incluídos no pedido.
+          </div>
+        </div>
+
+        <div class="drawer-client-club-link-wrap" id="drawer-client-club-link-wrap" style="margin: 6px 0 10px;">
           <button type="button" class="drawer-client-club-btn" data-open-cadastro="1" style="width:100%; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--sj-orange-soft); color:var(--sj-orange); border:1px dashed var(--sj-orange); border-radius:8px; padding:8px 10px; font-size:0.79rem; font-weight:700; cursor:pointer;">
             <span>🎁 Cadastre-se no Clube SJ & Concorra à A1 Mini</span>
           </button>
@@ -563,7 +586,7 @@
        POP-UP MODAL DE ACESSO DO CLIENTE (LOGIN / CADASTRO COM GOOGLE)
        ==================================================================== -->
   <div class="modal-overlay" id="modal-client-auth" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="client-auth-title">
-    <div class="client-auth-card">
+    <div class="client-auth-card" style="max-height: 92vh; overflow-y: auto; max-width: 540px; width: 100%;">
       <button type="button" class="modal-close-btn" id="close-client-auth-btn" aria-label="Fechar janela">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -590,12 +613,12 @@
         <span>Continuar com o Google</span>
       </button>
 
-      <div class="auth-divider-line">
+      <div class="auth-divider-line" id="client-auth-divider">
         <span>ou com seu e-mail</span>
       </div>
 
       <!-- Abas: Entrar vs Criar Conta -->
-      <div class="client-auth-tabs">
+      <div class="client-auth-tabs" id="client-auth-tabs-wrap">
         <button type="button" class="client-auth-tab-btn active" id="tab-client-login" data-auth-tab="login">
           Entrar na Conta
         </button>
@@ -636,62 +659,262 @@
       <!-- Formulário de Cadastro / Criação de Conta -->
       <form id="form-client-signup" class="client-auth-form" style="display: none;">
         <div class="auth-field">
-          <label>Nome Completo *</label>
+          <label>Nome Completo ou Razão Social *</label>
           <div class="auth-input-wrap">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <input type="text" name="signup_nome" placeholder="Ex: Thiago Novais" required autocomplete="name" />
+            <input type="text" name="signup_nome" placeholder="Ex: Thiago Novais ou Empresa LTDA" required autocomplete="name" />
           </div>
         </div>
 
-        <div class="auth-field">
-          <label>WhatsApp / Celular *</label>
-          <div class="auth-input-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
-            </svg>
-            <input type="tel" name="signup_whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="auth-field">
+            <label>WhatsApp / Celular *</label>
+            <div class="auth-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path>
+              </svg>
+              <input type="tel" name="signup_whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label>CPF ou CNPJ *</label>
+            <div class="auth-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="7" y1="8" x2="17" y2="8"></line>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+              </svg>
+              <input type="text" name="signup_cpf" placeholder="CPF ou CNPJ" required inputmode="numeric" />
+            </div>
           </div>
         </div>
 
-        <div class="auth-field">
-          <label>CPF ou CNPJ (p/ cupons do Sorteio)</label>
-          <div class="auth-input-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-              <line x1="7" y1="8" x2="17" y2="8"></line>
-              <line x1="7" y1="12" x2="17" y2="12"></line>
-            </svg>
-            <input type="text" name="signup_cpf" placeholder="000.000.000-00" inputmode="numeric" />
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="auth-field">
+            <label>Seu E-mail *</label>
+            <div class="auth-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
+              <input type="email" name="signup_email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
+            </div>
+          </div>
+
+          <div class="auth-field">
+            <label>Criar Senha *</label>
+            <div class="auth-input-wrap">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+              </svg>
+              <input type="password" name="signup_password" placeholder="Mín. 6 caracteres" required autocomplete="new-password" />
+            </div>
           </div>
         </div>
 
-        <div class="auth-field">
-          <label>Seu E-mail *</label>
-          <div class="auth-input-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-              <polyline points="22,6 12,13 2,6"></polyline>
-            </svg>
-            <input type="email" name="signup_email" placeholder="seuemail@exemplo.com" required autocomplete="email" />
-          </div>
+        <!-- Opção de Nota Fiscal no Cadastro -->
+        <div style="padding:11px 13px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px; margin-top:2px;">
+          <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.84rem; font-weight:800; color:#9A3412; margin:0;">
+            <input type="checkbox" name="signup_precisa_nf" id="chk-signup-precisa-nf" style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
+            <span>🧾 Preciso de Nota Fiscal (NF-e) nas minhas compras</span>
+          </label>
+          <p style="margin:4px 0 0 26px; font-size:0.75rem; color:#7C2D12; line-height:1.35;">
+            Marque esta opção para preencher os dados fiscais completos (CPF/CNPJ e endereço de faturamento).
+          </p>
         </div>
 
-        <div class="auth-field">
-          <label>Criar Senha *</label>
-          <div class="auth-input-wrap">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-              <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-            </svg>
-            <input type="password" name="signup_password" placeholder="Mínimo 6 caracteres" required autocomplete="new-password" />
+        <!-- Campos Obrigatórios da Nota Fiscal (NF-e) -->
+        <div id="signup-nf-fields-wrap" style="display:none; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:12px; margin-top:2px; gap:10px; flex-direction:column;">
+          <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+            📋 Dados Obrigatórios para Emissão de Nota Fiscal (NF-e)
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>CEP Fiscal *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_cep" placeholder="87501-000" inputmode="numeric" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Inscrição Estadual (se CNPJ)</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_ie" placeholder="Nº da IE ou ISENTO" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Endereço (Rua / Avenida) *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_logradouro" placeholder="Ex: Av. Brasil" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Número *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_numero" placeholder="Ex: 1250" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Bairro *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_bairro" placeholder="Ex: Zona I" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Complemento (Opcional)</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_complemento" placeholder="Sala, Apto, Bloco..." />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Cidade *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_cidade" placeholder="Umuarama" value="Umuarama" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>UF *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="signup_uf" placeholder="PR" value="PR" maxlength="2" style="text-transform:uppercase;" />
+              </div>
+            </div>
           </div>
         </div>
 
         <button type="submit" class="btn-client-submit-auth" id="btn-submit-client-signup">
-          <span>🚀 Criar Minha Conta & Entrar</span>
+          <span>🚀 Criar Minha Conta & Aprovar Cadastro</span>
+        </button>
+      </form>
+
+      <!-- Formulário de Complemento Obrigatório (Pós-Login Google ou Antes de Enviar p/ WhatsApp) -->
+      <form id="form-client-complete" class="client-auth-form" style="display: none;">
+        <div id="complete-profile-banner" style="padding:10px 12px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; font-size:0.8rem; color:#065F46; line-height:1.4;">
+          <strong>✅ Conta vinculada!</strong> Preencha seus dados abaixo para aprovar seu cadastro e enviar seu pedido completo no WhatsApp.
+        </div>
+
+        <div class="auth-field">
+          <label>Nome Completo ou Razão Social *</label>
+          <div class="auth-input-wrap">
+            <input type="text" name="comp_nome" placeholder="Nome Completo ou Razão Social" required />
+          </div>
+        </div>
+
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+          <div class="auth-field">
+            <label>WhatsApp / Celular *</label>
+            <div class="auth-input-wrap">
+              <input type="tel" name="comp_whatsapp" placeholder="(44) 99999-9999" required inputmode="tel" />
+            </div>
+          </div>
+          <div class="auth-field">
+            <label>CPF ou CNPJ *</label>
+            <div class="auth-input-wrap">
+              <input type="text" name="comp_cpf" placeholder="000.000.000-00 ou CNPJ" required inputmode="numeric" />
+            </div>
+          </div>
+        </div>
+
+        <div class="auth-field">
+          <label>E-mail (p/ contato e envio da Nota Fiscal) *</label>
+          <div class="auth-input-wrap">
+            <input type="email" name="comp_email" placeholder="seuemail@exemplo.com" required />
+          </div>
+        </div>
+
+        <!-- Opção de Nota Fiscal -->
+        <div style="padding:11px 13px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px;">
+          <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.84rem; font-weight:800; color:#9A3412; margin:0;">
+            <input type="checkbox" name="comp_precisa_nf" id="chk-complete-precisa-nf" style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
+            <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+          </label>
+          <p style="margin:4px 0 0 26px; font-size:0.75rem; color:#7C2D12; line-height:1.35;">
+            Se marcado, preencha todos os campos de endereço fiscal abaixo para emissão da NF-e.
+          </p>
+        </div>
+
+        <!-- Campos Fiscais Completos -->
+        <div id="complete-nf-fields-wrap" style="display:none; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:12px; gap:10px; flex-direction:column;">
+          <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+            📋 Dados Obrigatórios para Nota Fiscal (NF-e)
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>CEP Fiscal *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_cep" placeholder="87501-000" inputmode="numeric" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Inscrição Estadual (se CNPJ)</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_ie" placeholder="Nº da IE ou ISENTO" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Endereço (Rua / Avenida) *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_logradouro" placeholder="Ex: Av. Portugal" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Número *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_numero" placeholder="Ex: 6759" />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Bairro *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_bairro" placeholder="Ex: Zona I-A" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>Complemento (Opcional)</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_complemento" placeholder="Sala, Apto, Bloco..." />
+              </div>
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:2fr 1fr; gap:10px;">
+            <div class="auth-field">
+              <label>Cidade *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_cidade" placeholder="Umuarama" value="Umuarama" />
+              </div>
+            </div>
+            <div class="auth-field">
+              <label>UF *</label>
+              <div class="auth-input-wrap">
+                <input type="text" name="comp_uf" placeholder="PR" value="PR" maxlength="2" style="text-transform:uppercase;" />
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-client-submit-auth" id="btn-submit-client-complete">
+          <span>✅ Salvar Cadastro & Continuar</span>
         </button>
       </form>
     </div>
@@ -1833,10 +2056,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_7"></script>
-  <script src="js/dados.js?v=20261106_7"></script>
-  <script src="js/database.js?v=20261106_7"></script>
-  <script src="js/app.js?v=20261106_7"></script>
+  <script src="js/supabase-client.js?v=20261106_8"></script>
+  <script src="js/dados.js?v=20261106_8"></script>
+  <script src="js/database.js?v=20261106_8"></script>
+  <script src="js/app.js?v=20261106_8"></script>
 </body>
 
 </html>

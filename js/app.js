@@ -264,8 +264,115 @@
     } catch (_) {}
   }
 
+  // Valida se o cadastro do cliente (e os dados de Nota Fiscal, quando solicitada) estão 100% preenchidos e aprovados
+  function validarDadosCliente(cliente, exigirNotaFiscal = false) {
+    if (!cliente) {
+      return {
+        valido: false,
+        faltando: ["Login / Cadastro da Conta"],
+        mensagem: "Faça login ou crie sua conta preenchendo seus dados antes de finalizar."
+      };
+    }
+
+    const faltando = [];
+    const nome = String(cliente.nome || "").trim();
+    const whatsappDigitos = String(cliente.whatsapp || "").replace(/\D/g, "");
+    const cpfCnpjDigitos = String(cliente.cpf || cliente.cnpjCpf || "").replace(/\D/g, "");
+    const email = String(cliente.email || "").trim();
+
+    if (nome.length < 3) faltando.push("Nome Completo ou Razão Social");
+    if (whatsappDigitos.length < 10) faltando.push("WhatsApp / Telefone com DDD");
+    if (cpfCnpjDigitos.length !== 11 && cpfCnpjDigitos.length !== 14) {
+      faltando.push("CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+    }
+    if (!email || !email.includes("@")) faltando.push("E-mail válido");
+
+    const precisaNf = Boolean(exigirNotaFiscal || cliente.precisaNotaFiscal);
+    if (precisaNf) {
+      const cepDigitos = String(cliente.cep || "").replace(/\D/g, "");
+      const logradouro = String(cliente.logradouro || "").trim();
+      const numero = String(cliente.numero || "").trim();
+      const bairro = String(cliente.bairro || "").trim();
+      const cidade = String(cliente.cidade || "").trim();
+      const uf = String(cliente.uf || "").trim();
+
+      if (cepDigitos.length !== 8) faltando.push("CEP Fiscal (8 dígitos)");
+      if (!logradouro) faltando.push("Endereço (Rua / Avenida)");
+      if (!numero) faltando.push("Número do Endereço");
+      if (!bairro) faltando.push("Bairro");
+      if (!cidade) faltando.push("Cidade");
+      if (uf.length !== 2) faltando.push("UF (Estado)");
+    }
+
+    return {
+      valido: faltando.length === 0,
+      precisaNf,
+      faltando,
+      mensagem:
+        faltando.length > 0
+          ? `Preencha os campos obrigatórios para aprovar seu cadastro${precisaNf ? " e emissão de Nota Fiscal" : ""}: ${faltando.join(", ")}.`
+          : "Cadastro aprovado e completo."
+    };
+  }
+
+  function formatarEnderecoCompletoCliente(c) {
+    if (!c) return "";
+    const partes = [];
+    if (c.logradouro) {
+      partes.push(`${c.logradouro}${c.numero ? `, nº ${c.numero}` : ""}${c.complemento ? ` (${c.complemento})` : ""}`);
+    } else if (c.endereco) {
+      partes.push(c.endereco);
+    }
+    if (c.bairro) partes.push(`Bairro ${c.bairro}`);
+    const cidadeUf = [c.cidade, c.uf].filter(Boolean).join("/") || c.cidadeUf || "";
+    if (cidadeUf) partes.push(cidadeUf);
+    if (c.cep) partes.push(`CEP ${c.cep}`);
+    return partes.join(" — ");
+  }
+
+  function sincronizarStatusNotaFiscalCarrinho() {
+    const chkSide = document.getElementById("chk-cart-precisa-nf");
+    const chkDrawer = document.getElementById("chk-drawer-precisa-nf");
+    const statusSide = document.getElementById("side-box-nf-status");
+    const statusDrawer = document.getElementById("drawer-box-nf-status");
+    const clubWrapDrawer = document.getElementById("drawer-client-club-link-wrap");
+
+    const c = state.clienteLogado;
+    const precisaNf =
+      typeof state.precisaNotaFiscalPedido === "boolean"
+        ? state.precisaNotaFiscalPedido
+        : Boolean(c?.precisaNotaFiscal);
+
+    if (chkSide) chkSide.checked = precisaNf;
+    if (chkDrawer) chkDrawer.checked = precisaNf;
+
+    if (clubWrapDrawer) {
+      clubWrapDrawer.style.display = c ? "none" : "block";
+    }
+
+    let htmlStatus = "";
+    if (!c) {
+      htmlStatus = precisaNf
+        ? `<span style="color:#B45309; font-weight:600;">⚠️ Ao finalizar, você preencherá seu CPF/CNPJ e endereço completo para emissão da Nota Fiscal (NF-e).</span>`
+        : `<span>Ao finalizar no WhatsApp, seus dados cadastrais e itens escolhidos serão enviados completos.</span>`;
+    } else {
+      const validacao = validarDadosCliente(c, precisaNf);
+      if (validacao.valido) {
+        const docTxt = c.cpf || c.cnpjCpf || "";
+        htmlStatus = precisaNf
+          ? `<span style="color:#047857; font-weight:700;">✅ Dados Fiscais Aprovados (${escaparHtml(docTxt)}) — Nota Fiscal será solicitada no WhatsApp!</span>`
+          : `<span style="color:#047857; font-weight:600;">✅ Cadastro Aprovado (${escaparHtml(c.nome)}) • Dados prontos para envio.</span>`;
+      } else {
+        htmlStatus = `<span style="color:#DC2626; font-weight:600;">⚠️ Falta preencher: ${escaparHtml(validacao.faltando.join(", "))}. Clique em Finalizar para completar.</span>`;
+      }
+    }
+
+    if (statusSide) statusSide.innerHTML = htmlStatus;
+    if (statusDrawer) statusDrawer.innerHTML = htmlStatus;
+  }
+
   async function salvarPedidoOuOrcamentoCliente(opcoes = {}) {
-    const { enviadoWhatsApp = false, silencioso = false } = opcoes;
+    const { enviadoWhatsApp = false, silencioso = false, precisaNotaFiscal = false } = opcoes;
 
     if (state.itensCaixa.length === 0) {
       mostrarToast("Adicione produtos ao pedido antes de guardar!", "warning");
@@ -292,13 +399,18 @@
       0
     );
     const totalKgFil = calcularTotalKgFilamentos();
+    const solicitaNf = Boolean(precisaNotaFiscal || state.precisaNotaFiscalPedido || c.precisaNotaFiscal);
 
     const novoPedido = {
       id: "SJ-PED-" + Math.floor(1000 + Math.random() * 9000),
       clienteId: c.id,
       clienteNome: c.nome,
+      clienteCpfCnpj: c.cpf || c.cnpjCpf || "",
+      clienteInscricaoEstadual: c.inscricaoEstadual || "",
       clienteEmail: c.email || "",
       clienteWhatsapp: c.whatsapp || "",
+      clienteEnderecoFiscal: formatarEnderecoCompletoCliente(c),
+      precisaNotaFiscal: solicitaNf,
       dataHoraSalvo: new Date().toISOString(),
       status: enviadoWhatsApp ? "enviado_whatsapp" : "guardado",
       statusLabel: enviadoWhatsApp ? "Enviado no WhatsApp" : "Orçamento Guardado",
@@ -319,9 +431,10 @@
         await window.SJ_DB.orcamentos.salvar({
           id: novoPedido.id,
           clienteNome: c.nome,
-          clienteCpfCnpj: c.cpf || "",
+          clienteCpfCnpj: c.cpf || c.cnpjCpf || "",
           clienteTelefone: c.whatsapp || "",
           clienteEmail: c.email || "",
+          clienteEndereco: formatarEnderecoCompletoCliente(c),
           itens: novoPedido.itens.map((i) => ({
             nome: i.nome,
             detalhe: `${i.detalhe1 || ""} ${i.detalhe2 || ""}`.trim(),
@@ -335,7 +448,10 @@
           status: novoPedido.status,
           metadados: {
             tipoOrigem: "catalogo_cliente",
-            enviadoWhatsApp
+            enviadoWhatsApp,
+            precisaNotaFiscal: solicitaNf,
+            inscricaoEstadual: c.inscricaoEstadual || "",
+            enderecoFiscal: formatarEnderecoCompletoCliente(c)
           }
         });
       } catch (_) {}
@@ -357,18 +473,68 @@
     return novoPedido;
   }
 
-  function enviarPedidoParaWhatsApp() {
+  async function enviarPedidoParaWhatsApp() {
     const { whatsapp } = window.SITE_DATA.loja;
     if (state.itensCaixa.length === 0) {
       mostrarToast("Adicione pelo menos 1 item ao seu pedido antes de enviar!", "warning");
       return;
     }
 
-    // Salva automaticamente o pedido no histórico do cliente (se logado)
-    let pedidoSalvo = null;
-    if (state.clienteLogado) {
-      pedidoSalvo = salvarPedidoOuOrcamentoCliente({ enviadoWhatsApp: true, silencioso: true });
+    const chkSide = document.getElementById("chk-cart-precisa-nf");
+    const chkDrawer = document.getElementById("chk-drawer-precisa-nf");
+    const precisaNf = Boolean(
+      (chkSide && chkSide.checked) ||
+      (chkDrawer && chkDrawer.checked) ||
+      state.precisaNotaFiscalPedido ||
+      state.clienteLogado?.precisaNotaFiscal
+    );
+    state.precisaNotaFiscalPedido = precisaNf;
+
+    // 1. Verifica se o cliente está logado e se todos os dados obrigatórios (e de Nota Fiscal, se marcada) estão preenchidos
+    if (!state.clienteLogado) {
+      state.acaoPendenteAposLogin = {
+        tipo: "enviar_whatsapp",
+        precisaNotaFiscal: precisaNf
+      };
+      fecharGavetaPedido();
+      abrirModalAuthCliente("signup", { preMarcarNf: precisaNf });
+      mostrarToastNotificacao(
+        precisaNf
+          ? "🧾 Para emitir sua Nota Fiscal e enviar no WhatsApp, crie ou acesse sua conta e preencha seus dados fiscais completos!"
+          : "👤 Crie sua conta ou faça login rapidamente para enviar seu pedido com seus dados completos no WhatsApp!",
+        "info"
+      );
+      return;
     }
+
+    const validacao = validarDadosCliente(state.clienteLogado, precisaNf);
+    if (!validacao.valido) {
+      state.acaoPendenteAposLogin = {
+        tipo: "enviar_whatsapp",
+        precisaNotaFiscal: precisaNf
+      };
+      fecharGavetaPedido();
+      abrirModalAuthCliente("complete", {
+        preMarcarNf: precisaNf,
+        mensagemTopo: `⚠️ Para finalizar seu pedido${precisaNf ? " com emissão de Nota Fiscal (NF-e)" : ""}, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
+      });
+      mostrarToast(validacao.mensagem, "warning");
+      return;
+    }
+
+    const c = state.clienteLogado;
+    // Atualiza flag precisaNotaFiscal no cadastro se marcado
+    if (c.precisaNotaFiscal !== precisaNf) {
+      c.precisaNotaFiscal = precisaNf;
+      salvarClienteLocal(c);
+    }
+
+    // Salva automaticamente o pedido no histórico do cliente
+    const pedidoSalvo = await salvarPedidoOuOrcamentoCliente({
+      enviadoWhatsApp: true,
+      silencioso: true,
+      precisaNotaFiscal: precisaNf
+    });
 
     const totalKgFil = calcularTotalKgFilamentos();
     const valorTotalEstimado = state.itensCaixa.reduce(
@@ -391,12 +557,33 @@
       valorTotalEstimado > 0
         ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}${temSobConsulta ? " (+ itens sob consulta)" : ""}`
         : "";
-    const pedidoTag = pedidoSalvo && pedidoSalvo.id ? `\n*Cód. Proposta:* ${pedidoSalvo.id}` : "";
+    const pedidoTag = pedidoSalvo && pedidoSalvo.id ? `\n*Cód. Pedido:* ${pedidoSalvo.id}` : "";
+
+    // Bloco com os Dados Completos do Cliente & Dados Fiscais Aprovados
+    const docNumeros = String(c.cpf || c.cnpjCpf || "").replace(/\D/g, "");
+    const labelDoc = docNumeros.length === 14 ? "CNPJ" : "CPF";
+    const enderecoStr = formatarEnderecoCompletoCliente(c);
+    const linhasCliente = [
+      `\n\n📋 *DADOS DO CLIENTE (CADASTRO APROVADO):*`,
+      `• *Nome / Razão Social:* ${c.nome}`,
+      `• *${labelDoc}:* ${c.cpf || c.cnpjCpf}`,
+      c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
+      `• *WhatsApp:* ${c.whatsapp}`,
+      `• *E-mail:* ${c.email}`,
+      enderecoStr ? `• *Endereço Completo:* ${enderecoStr}` : ""
+    ].filter(Boolean);
+
+    const fraseNotaFiscal = precisaNf
+      ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados fiscais completos informados acima.`
+      : `\n\n✅ *Nota Fiscal:* Não solicitada neste pedido.`;
 
     const msg = encodeURIComponent(
       `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-        `${linhas.join("\n")}${resumoPeso}${resumoValor}${pedidoTag}\n\n` +
-        `Gostaria de confirmar a disponibilidade e finalizar o pedido!`
+        `🛒 *ITENS ESCOLHIDOS:*\n` +
+        `${linhas.join("\n")}${resumoPeso}${resumoValor}${pedidoTag}` +
+        `${linhasCliente.join("\n")}` +
+        `${fraseNotaFiscal}\n\n` +
+        `Gostaria de confirmar a disponibilidade e finalizar a compra!`
     );
 
     window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
@@ -606,17 +793,34 @@
     state.clienteLogado = cliente;
     if (cliente) {
       localStorage.setItem("sj_cliente_ativo_v1", JSON.stringify(cliente));
-      if (state.acaoPendenteAposLogin && state.acaoPendenteAposLogin.tipo === "guardar_pedido") {
+      if (window.SJ_DB?.clientes?.salvar) {
+        try {
+          window.SJ_DB.clientes.salvar(cliente);
+        } catch (_) {}
+      }
+      if (typeof cliente.precisaNotaFiscal === "boolean" && typeof state.precisaNotaFiscalPedido !== "boolean") {
+        state.precisaNotaFiscalPedido = cliente.precisaNotaFiscal;
+      }
+      if (state.acaoPendenteAposLogin) {
         const pend = state.acaoPendenteAposLogin;
-        state.acaoPendenteAposLogin = null;
-        setTimeout(() => {
-          salvarPedidoOuOrcamentoCliente({ enviadoWhatsApp: pend.enviadoWhatsApp });
-        }, 400);
+        const precisaNf = Boolean(pend.precisaNotaFiscal || state.precisaNotaFiscalPedido || cliente.precisaNotaFiscal);
+        const validacao = validarDadosCliente(cliente, precisaNf);
+        if (validacao.valido) {
+          state.acaoPendenteAposLogin = null;
+          setTimeout(() => {
+            if (pend.tipo === "enviar_whatsapp") {
+              enviarPedidoParaWhatsApp();
+            } else if (pend.tipo === "guardar_pedido") {
+              salvarPedidoOuOrcamentoCliente({ enviadoWhatsApp: pend.enviadoWhatsApp });
+            }
+          }, 350);
+        }
       }
     } else {
       localStorage.removeItem("sj_cliente_ativo_v1");
     }
     atualizarBotaoHeaderConta();
+    sincronizarStatusNotaFiscalCarrinho();
   }
 
   function salvarFavoritosLocal() {
@@ -734,15 +938,47 @@
     });
   }
 
+  function aplicarMascaraCep(input, aoCompletarCep = null) {
+    if (!input) return;
+    input.addEventListener("input", async () => {
+      let v = input.value.replace(/\D/g, "");
+      if (v.length > 8) v = v.slice(0, 8);
+      if (v.length > 5) {
+        input.value = `${v.slice(0, 5)}-${v.slice(5)}`;
+      } else {
+        input.value = v;
+      }
+
+      if (v.length === 8 && typeof aoCompletarCep === "function") {
+        try {
+          const r = await fetch(`https://viacep.com.br/ws/${v}/json/`);
+          if (r.ok) {
+            const dados = await r.json();
+            if (dados && !dados.erro) {
+              aoCompletarCep(dados);
+            }
+          }
+        } catch (_) {}
+      }
+    });
+  }
+
+  function buscarDadosClienteSalvoPorEmail(email) {
+    if (!email) return null;
+    const emailLimpo = String(email).trim().toLowerCase();
+    const lista = window.SJ_DB?.clientes?.listar?.() || [];
+    return lista.find((c) => String(c.email || "").trim().toLowerCase() === emailLimpo) || null;
+  }
+
   // =========================================================================
-  // MODAL POP-UP DE AUTENTICAÇÃO DO CLIENTE (LOGIN / CADASTRO / GOOGLE)
+  // MODAL POP-UP DE AUTENTICAÇÃO DO CLIENTE (LOGIN / CADASTRO / GOOGLE / NF-E)
   // =========================================================================
 
-  function abrirModalAuthCliente(abaInicial = "login") {
+  function abrirModalAuthCliente(abaInicial = "login", opcoes = {}) {
     const modal = document.getElementById("modal-client-auth");
     if (!modal) return;
 
-    alternarAbaAuthCliente(abaInicial);
+    alternarAbaAuthCliente(abaInicial, opcoes);
 
     modal.style.display = "flex";
     modal.setAttribute("aria-hidden", "false");
@@ -757,13 +993,89 @@
     document.body.style.overflow = "";
   }
 
-  function alternarAbaAuthCliente(aba) {
+  function alternarAbaAuthCliente(aba, opcoes = {}) {
     const tabLogin = document.getElementById("tab-client-login");
     const tabSignup = document.getElementById("tab-client-signup");
     const formLogin = document.getElementById("form-client-login");
     const formSignup = document.getElementById("form-client-signup");
+    const formComplete = document.getElementById("form-client-complete");
+    const btnGoogle = document.getElementById("btn-google-client-login");
+    const divider = document.getElementById("client-auth-divider");
+    const tabsWrap = document.getElementById("client-auth-tabs-wrap");
     const title = document.getElementById("client-auth-title");
     const desc = document.getElementById("client-auth-desc");
+
+    if (aba === "complete") {
+      if (btnGoogle) btnGoogle.style.display = "none";
+      if (divider) divider.style.display = "none";
+      if (tabsWrap) tabsWrap.style.display = "none";
+      if (formLogin) formLogin.style.display = "none";
+      if (formSignup) formSignup.style.display = "none";
+      if (formComplete) formComplete.style.display = "flex";
+
+      const c = state.clienteLogado || {};
+      const precisaNf = Boolean(
+        opcoes.preMarcarNf ||
+        state.precisaNotaFiscalPedido ||
+        c.precisaNotaFiscal
+      );
+
+      if (title) {
+        title.textContent = precisaNf
+          ? "Completar Dados & Nota Fiscal (NF-e)"
+          : "Completar Meu Cadastro de Cliente";
+      }
+      if (desc) {
+        desc.textContent = precisaNf
+          ? "Preencha todos os dados fiscais obrigatórios (CPF/CNPJ e endereço) para emitirmos sua Nota Fiscal e enviarmos seu pedido no WhatsApp."
+          : "Preencha seus dados obrigatórios para aprovar seu cadastro e finalizar seus pedidos.";
+      }
+
+      const banner = document.getElementById("complete-profile-banner");
+      if (banner) {
+        banner.innerHTML = opcoes.mensagemTopo
+          ? `<strong>${escaparHtml(opcoes.mensagemTopo)}</strong>`
+          : `<strong>✅ Conta conectada (${escaparHtml(c.email || c.nome || "Cliente")})!</strong> Complete os campos obrigatórios abaixo para aprovar seu cadastro.`;
+      }
+
+      if (formComplete) {
+        const setVal = (name, val) => {
+          const el = formComplete.querySelector(`input[name="${name}"]`);
+          if (el && val != null && val !== "") el.value = val;
+        };
+        setVal("comp_nome", c.nome || "");
+        setVal("comp_whatsapp", c.whatsapp || "");
+        setVal("comp_cpf", c.cpf || c.cnpjCpf || "");
+        setVal("comp_email", c.email || "");
+        setVal("comp_cep", c.cep || "");
+        setVal("comp_ie", c.inscricaoEstadual || "");
+        setVal("comp_logradouro", c.logradouro || "");
+        setVal("comp_numero", c.numero || "");
+        setVal("comp_bairro", c.bairro || "");
+        setVal("comp_complemento", c.complemento || "");
+        setVal("comp_cidade", c.cidade || "Umuarama");
+        setVal("comp_uf", c.uf || "PR");
+
+        const chkCompNf = document.getElementById("chk-complete-precisa-nf");
+        const wrapCompNf = document.getElementById("complete-nf-fields-wrap");
+        if (chkCompNf) chkCompNf.checked = precisaNf;
+        if (wrapCompNf) wrapCompNf.style.display = precisaNf ? "flex" : "none";
+
+        const btnSubComp = document.getElementById("btn-submit-client-complete");
+        if (btnSubComp) {
+          btnSubComp.innerHTML =
+            state.acaoPendenteAposLogin?.tipo === "enviar_whatsapp"
+              ? `<span>✅ Aprovar Cadastro & Enviar Pedido no WhatsApp</span>`
+              : `<span>✅ Salvar & Aprovar Meu Cadastro</span>`;
+        }
+      }
+      return;
+    }
+
+    if (btnGoogle) btnGoogle.style.display = "flex";
+    if (divider) divider.style.display = "flex";
+    if (tabsWrap) tabsWrap.style.display = "grid";
+    if (formComplete) formComplete.style.display = "none";
 
     if (aba === "signup") {
       tabSignup?.classList.add("active");
@@ -771,14 +1083,24 @@
       if (formSignup) formSignup.style.display = "flex";
       if (formLogin) formLogin.style.display = "none";
       if (title) title.textContent = "Criar Minha Conta no Clube SJ";
-      if (desc) desc.textContent = "Cadastre-se para guardar favoritos, ver compras e concorrer ao Sorteio da A1 Mini.";
+      if (desc) desc.textContent = "Preencha seus dados completos. Se precisar de Nota Fiscal (NF-e), marque a opção abaixo.";
+
+      const chkSignupNf = document.getElementById("chk-signup-precisa-nf");
+      const wrapSignupNf = document.getElementById("signup-nf-fields-wrap");
+      const preMarcar = Boolean(opcoes.preMarcarNf || state.precisaNotaFiscalPedido);
+      if (chkSignupNf && preMarcar) {
+        chkSignupNf.checked = true;
+      }
+      if (wrapSignupNf && chkSignupNf) {
+        wrapSignupNf.style.display = chkSignupNf.checked ? "flex" : "none";
+      }
     } else {
       tabLogin?.classList.add("active");
       tabSignup?.classList.remove("active");
       if (formLogin) formLogin.style.display = "flex";
       if (formSignup) formSignup.style.display = "none";
       if (title) title.textContent = "Entrar na Minha Conta";
-      if (desc) desc.textContent = "Acesse seus favoritos, histórico de compras e seus cupons.";
+      if (desc) desc.textContent = "Acesse seus favoritos, dados fiscais, histórico de compras e seus cupons.";
     }
   }
 
@@ -787,6 +1109,7 @@
     const tabSignup = document.getElementById("tab-client-signup");
     const formLogin = document.getElementById("form-client-login");
     const formSignup = document.getElementById("form-client-signup");
+    const formComplete = document.getElementById("form-client-complete");
     const btnGoogle = document.getElementById("btn-google-client-login");
     const btnClose = document.getElementById("close-client-auth-btn");
     const modal = document.getElementById("modal-client-auth");
@@ -798,11 +1121,64 @@
       if (e.target.id === "modal-client-auth") fecharModalAuthCliente();
     });
 
-    // Máscaras nos campos de cadastro
-    const inputTel = formSignup?.querySelector('input[name="signup_whatsapp"]');
-    const inputCpf = formSignup?.querySelector('input[name="signup_cpf"]');
-    aplicarMascaraTelefone(inputTel);
-    aplicarMascaraCpfCnpj(inputCpf);
+    // Sincronizar checkboxes de Nota Fiscal no Carrinho Lateral e Gaveta
+    const chkCartNf = document.getElementById("chk-cart-precisa-nf");
+    const chkDrawerNf = document.getElementById("chk-drawer-precisa-nf");
+    const aoAlternarNfCarrinho = (checked) => {
+      state.precisaNotaFiscalPedido = Boolean(checked);
+      if (state.clienteLogado) {
+        state.clienteLogado.precisaNotaFiscal = Boolean(checked);
+        localStorage.setItem("sj_cliente_ativo_v1", JSON.stringify(state.clienteLogado));
+      }
+      sincronizarStatusNotaFiscalCarrinho();
+    };
+    chkCartNf?.addEventListener("change", (e) => aoAlternarNfCarrinho(e.target.checked));
+    chkDrawerNf?.addEventListener("change", (e) => aoAlternarNfCarrinho(e.target.checked));
+
+    // Toggle dos campos de Nota Fiscal no Cadastro Local
+    const chkSignupNf = document.getElementById("chk-signup-precisa-nf");
+    const wrapSignupNf = document.getElementById("signup-nf-fields-wrap");
+    chkSignupNf?.addEventListener("change", () => {
+      if (wrapSignupNf) wrapSignupNf.style.display = chkSignupNf.checked ? "flex" : "none";
+    });
+
+    // Toggle dos campos de Nota Fiscal no Complemento de Cadastro
+    const chkCompNf = document.getElementById("chk-complete-precisa-nf");
+    const wrapCompNf = document.getElementById("complete-nf-fields-wrap");
+    chkCompNf?.addEventListener("change", () => {
+      if (wrapCompNf) wrapCompNf.style.display = chkCompNf.checked ? "flex" : "none";
+    });
+
+    // Máscaras nos campos de cadastro e busca automática de CEP (ViaCEP)
+    if (formSignup) {
+      aplicarMascaraTelefone(formSignup.querySelector('input[name="signup_whatsapp"]'));
+      aplicarMascaraCpfCnpj(formSignup.querySelector('input[name="signup_cpf"]'));
+      aplicarMascaraCep(formSignup.querySelector('input[name="signup_cep"]'), (dadosCep) => {
+        const logInp = formSignup.querySelector('input[name="signup_logradouro"]');
+        const baiInp = formSignup.querySelector('input[name="signup_bairro"]');
+        const cidInp = formSignup.querySelector('input[name="signup_cidade"]');
+        const ufInp = formSignup.querySelector('input[name="signup_uf"]');
+        if (logInp && dadosCep.logradouro) logInp.value = dadosCep.logradouro;
+        if (baiInp && dadosCep.bairro) baiInp.value = dadosCep.bairro;
+        if (cidInp && dadosCep.localidade) cidInp.value = dadosCep.localidade;
+        if (ufInp && dadosCep.uf) ufInp.value = dadosCep.uf;
+      });
+    }
+
+    if (formComplete) {
+      aplicarMascaraTelefone(formComplete.querySelector('input[name="comp_whatsapp"]'));
+      aplicarMascaraCpfCnpj(formComplete.querySelector('input[name="comp_cpf"]'));
+      aplicarMascaraCep(formComplete.querySelector('input[name="comp_cep"]'), (dadosCep) => {
+        const logInp = formComplete.querySelector('input[name="comp_logradouro"]');
+        const baiInp = formComplete.querySelector('input[name="comp_bairro"]');
+        const cidInp = formComplete.querySelector('input[name="comp_cidade"]');
+        const ufInp = formComplete.querySelector('input[name="comp_uf"]');
+        if (logInp && dadosCep.logradouro) logInp.value = dadosCep.logradouro;
+        if (baiInp && dadosCep.bairro) baiInp.value = dadosCep.bairro;
+        if (cidInp && dadosCep.localidade) cidInp.value = dadosCep.localidade;
+        if (ufInp && dadosCep.uf) ufInp.value = dadosCep.uf;
+      });
+    }
 
     // Login com Google (Oficial Supabase Auth com Fallback caso o provedor ou SDK não esteja ativo)
     btnGoogle?.addEventListener("click", async () => {
@@ -816,11 +1192,10 @@
           }
           if (res && !res.sucesso) {
             mostrarToast(
-              "💡 Dica: Utilize seu E-mail e Senha logo abaixo para entrar ou criar sua conta de Cliente rapidamente!",
+              "💡 Dica: Utilize a aba 'Criar Nova Conta' ou seu E-mail e Senha logo abaixo para acessar sua conta rapidamente!",
               "warning"
             );
-            const emailInp = formLogin?.querySelector('input[name="login_email"]');
-            emailInp?.focus();
+            alternarAbaAuthCliente("signup");
             return;
           }
         } catch (err) {
@@ -851,6 +1226,7 @@
       try {
         let authOk = false;
         let userData = null;
+        const salvoDb = buscarDadosClienteSalvoPorEmail(email) || {};
 
         const loginEmailFn = window.SJ_SUPABASE?.auth?.loginEmail || window.SJ_SUPABASE?.auth?.loginComEmail;
         if (typeof loginEmailFn === "function") {
@@ -858,41 +1234,60 @@
           if (res.sucesso && res.usuario) {
             authOk = true;
             userData = {
-              id: res.usuario.id,
-              nome: res.usuario.nome || email.split("@")[0],
-              email: res.usuario.email,
-              whatsapp: res.usuario.whatsapp || "",
-              cpf: res.usuario.cpf || "",
+              ...salvoDb,
+              id: res.usuario.id || salvoDb.id || ("cli-" + Date.now()),
+              nome: salvoDb.nome || res.usuario.nome || email.split("@")[0],
+              email: res.usuario.email || email,
+              whatsapp: salvoDb.whatsapp || res.usuario.whatsapp || "",
+              cpf: salvoDb.cpf || salvoDb.cnpjCpf || res.usuario.cpf || "",
+              cnpjCpf: salvoDb.cnpjCpf || salvoDb.cpf || res.usuario.cpf || "",
               tipo: "cliente"
             };
           } else if (res.fallback) {
-            // Se o Supabase estiver offline ou em modo local, autentica pelo banco local de clientes
-            const cliExistente = (window.SJ_DB?.clientes?.listar?.() || []).find(
-              (c) => String(c.email || "").toLowerCase() === email
-            );
             authOk = true;
             userData = {
-              id: cliExistente?.id || ("cli-" + Date.now()),
-              nome: cliExistente?.nome || email.split("@")[0],
+              ...salvoDb,
+              id: salvoDb.id || ("cli-" + Date.now()),
+              nome: salvoDb.nome || email.split("@")[0],
               email,
-              whatsapp: cliExistente?.cepTelefone || "",
-              cpf: cliExistente?.cnpjCpf || "",
+              whatsapp: salvoDb.whatsapp || salvoDb.cepTelefone || "",
+              cpf: salvoDb.cpf || salvoDb.cnpjCpf || "",
+              cnpjCpf: salvoDb.cnpjCpf || salvoDb.cpf || "",
               tipo: "cliente"
             };
           } else {
             alert(res.mensagem || "E-mail ou senha incorretos.");
           }
         } else {
-          // Fallback Local
           authOk = true;
-          userData = { id: "cli-" + Date.now(), nome: email.split("@")[0], email, tipo: "cliente" };
+          userData = {
+            ...salvoDb,
+            id: salvoDb.id || ("cli-" + Date.now()),
+            nome: salvoDb.nome || email.split("@")[0],
+            email,
+            tipo: "cliente"
+          };
         }
 
         if (authOk && userData) {
+          const precisaNf = Boolean(state.precisaNotaFiscalPedido || userData.precisaNotaFiscal);
+          const validacao = validarDadosCliente(userData, precisaNf);
+          userData.cadastroAprovado = validacao.valido;
           salvarClienteLocal(userData);
+
+          if (!validacao.valido) {
+            alternarAbaAuthCliente("complete", {
+              preMarcarNf: precisaNf,
+              mensagemTopo: `⚠️ Complete seus dados obrigatórios (${validacao.faltando.join(", ")}) para aprovar seu cadastro!`
+            });
+            return;
+          }
+
           fecharModalAuthCliente();
           mostrarToastNotificacao(`🎉 Bem-vindo(a) de volta, ${userData.nome}!`, "sucesso");
-          navegarParaCategoria("minha-conta");
+          if (!state.acaoPendenteAposLogin) {
+            navegarParaCategoria("minha-conta");
+          }
         }
       } catch (err) {
         alert("Erro ao entrar: " + err.message);
@@ -904,7 +1299,7 @@
       }
     });
 
-    // Cadastro de Nova Conta
+    // Cadastro de Nova Conta (Com validação completa e Nota Fiscal opcional/obrigatória)
     formSignup?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = String(formSignup.querySelector('input[name="signup_nome"]')?.value || "").trim();
@@ -912,34 +1307,55 @@
       const cpf = String(formSignup.querySelector('input[name="signup_cpf"]')?.value || "").trim();
       const email = String(formSignup.querySelector('input[name="signup_email"]')?.value || "").trim().toLowerCase();
       const password = String(formSignup.querySelector('input[name="signup_password"]')?.value || "").trim();
+      const precisaNotaFiscal = Boolean(formSignup.querySelector('input[name="signup_precisa_nf"]')?.checked);
 
-      if (!nome) {
-        alert("Por favor, digite seu Nome Completo.");
-        return;
-      }
-      if (!whatsapp) {
-        alert("Por favor, informe seu WhatsApp.");
-        return;
-      }
-      if (!email || !email.includes("@")) {
-        alert("Por favor, informe um e-mail válido.");
-        return;
-      }
+      const cep = String(formSignup.querySelector('input[name="signup_cep"]')?.value || "").trim();
+      const inscricaoEstadual = String(formSignup.querySelector('input[name="signup_ie"]')?.value || "").trim();
+      const logradouro = String(formSignup.querySelector('input[name="signup_logradouro"]')?.value || "").trim();
+      const numero = String(formSignup.querySelector('input[name="signup_numero"]')?.value || "").trim();
+      const bairro = String(formSignup.querySelector('input[name="signup_bairro"]')?.value || "").trim();
+      const complemento = String(formSignup.querySelector('input[name="signup_complemento"]')?.value || "").trim();
+      const cidade = String(formSignup.querySelector('input[name="signup_cidade"]')?.value || "Umuarama").trim();
+      const uf = String(formSignup.querySelector('input[name="signup_uf"]')?.value || "PR").trim().toUpperCase();
+
       if (!password || password.length < 6) {
         alert("A senha deve ter pelo menos 6 caracteres.");
+        return;
+      }
+
+      const candidatoCliente = {
+        nome,
+        whatsapp,
+        cpf,
+        cnpjCpf: cpf,
+        email,
+        precisaNotaFiscal,
+        cep,
+        inscricaoEstadual,
+        logradouro,
+        numero,
+        bairro,
+        complemento,
+        cidade,
+        uf,
+        cidadeUf: `${cidade} / ${uf}`
+      };
+
+      const validacao = validarDadosCliente(candidatoCliente, precisaNotaFiscal);
+      if (!validacao.valido) {
+        alert(validacao.mensagem);
         return;
       }
 
       const btnSubmit = document.getElementById("btn-submit-client-signup");
       if (btnSubmit) {
         btnSubmit.disabled = true;
-        btnSubmit.innerHTML = "<span>⏳ Criando sua conta no Clube SJ...</span>";
+        btnSubmit.innerHTML = "<span>⏳ Criando conta e aprovando cadastro...</span>";
       }
 
       try {
         let userId = "cli-" + Date.now();
 
-        // 1. Cadastra no Supabase Auth
         if (window.SJ_SUPABASE?.auth?.registrar) {
           const resAuth = await window.SJ_SUPABASE.auth.registrar({
             nome,
@@ -952,7 +1368,13 @@
           }
         }
 
-        // 2. Salva na tabela public.clientes do Supabase
+        const novoCliente = {
+          ...candidatoCliente,
+          id: userId,
+          cadastroAprovado: true,
+          tipo: "cliente"
+        };
+
         if (window.SJ_SUPABASE?.clientes?.cadastrar) {
           await window.SJ_SUPABASE.clientes.cadastrar({
             id: userId,
@@ -960,31 +1382,105 @@
             cnpjCpf: cpf,
             whatsapp,
             email,
-            bairroCidadeUf: "Umuarama/PR"
+            endereco: formatarEnderecoCompletoCliente(novoCliente),
+            bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
           });
         }
 
-        const novoCliente = {
-          id: userId,
-          nome,
-          whatsapp,
-          cpf,
-          email,
-          cidadeUf: "Umuarama / PR",
-          tipo: "cliente"
-        };
-
+        const tinhaAcaoPendente = Boolean(state.acaoPendenteAposLogin);
         salvarClienteLocal(novoCliente);
         fecharModalAuthCliente();
-        mostrarToastNotificacao(`🎉 Conta criada com sucesso! Bem-vindo(a) ao Clube SJ 3D, ${nome}!`, "sucesso");
-        navegarParaCategoria("minha-conta");
+        mostrarToastNotificacao(
+          `✅ Conta criada e cadastro aprovado com sucesso, ${nome}!`,
+          "sucesso"
+        );
+        if (!tinhaAcaoPendente) {
+          navegarParaCategoria("minha-conta");
+        }
       } catch (err) {
         alert("Erro ao criar conta: " + err.message);
       } finally {
         if (btnSubmit) {
           btnSubmit.disabled = false;
-          btnSubmit.innerHTML = "<span>🚀 Criar Minha Conta & Entrar</span>";
+          btnSubmit.innerHTML = "<span>🚀 Criar Minha Conta & Aprovar Cadastro</span>";
         }
+      }
+    });
+
+    // Complemento Obrigatório de Cadastro (Pós-Login Google ou Antes de Enviar Pedido com Nota Fiscal no WhatsApp)
+    formComplete?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const nome = String(formComplete.querySelector('input[name="comp_nome"]')?.value || "").trim();
+      const whatsapp = String(formComplete.querySelector('input[name="comp_whatsapp"]')?.value || "").trim();
+      const cpf = String(formComplete.querySelector('input[name="comp_cpf"]')?.value || "").trim();
+      const email = String(formComplete.querySelector('input[name="comp_email"]')?.value || "").trim().toLowerCase();
+      const precisaNotaFiscal = Boolean(formComplete.querySelector('input[name="comp_precisa_nf"]')?.checked);
+
+      const cep = String(formComplete.querySelector('input[name="comp_cep"]')?.value || "").trim();
+      const inscricaoEstadual = String(formComplete.querySelector('input[name="comp_ie"]')?.value || "").trim();
+      const logradouro = String(formComplete.querySelector('input[name="comp_logradouro"]')?.value || "").trim();
+      const numero = String(formComplete.querySelector('input[name="comp_numero"]')?.value || "").trim();
+      const bairro = String(formComplete.querySelector('input[name="comp_bairro"]')?.value || "").trim();
+      const complemento = String(formComplete.querySelector('input[name="comp_complemento"]')?.value || "").trim();
+      const cidade = String(formComplete.querySelector('input[name="comp_cidade"]')?.value || "Umuarama").trim();
+      const uf = String(formComplete.querySelector('input[name="comp_uf"]')?.value || "PR").trim().toUpperCase();
+
+      const clienteAtualizado = {
+        ...(state.clienteLogado || {}),
+        id: state.clienteLogado?.id || ("cli-" + Date.now()),
+        nome,
+        whatsapp,
+        cpf,
+        cnpjCpf: cpf,
+        email,
+        precisaNotaFiscal,
+        cep,
+        inscricaoEstadual,
+        logradouro,
+        numero,
+        bairro,
+        complemento,
+        cidade,
+        uf,
+        cidadeUf: `${cidade} / ${uf}`,
+        tipo: "cliente"
+      };
+
+      const validacao = validarDadosCliente(clienteAtualizado, precisaNotaFiscal);
+      if (!validacao.valido) {
+        alert(validacao.mensagem);
+        return;
+      }
+
+      clienteAtualizado.cadastroAprovado = true;
+      state.precisaNotaFiscalPedido = precisaNotaFiscal;
+
+      if (window.SJ_SUPABASE?.clientes?.cadastrar) {
+        try {
+          await window.SJ_SUPABASE.clientes.cadastrar({
+            id: clienteAtualizado.id,
+            nome,
+            cnpjCpf: cpf,
+            whatsapp,
+            email,
+            endereco: formatarEnderecoCompletoCliente(clienteAtualizado),
+            bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
+          });
+        } catch (_) {}
+      }
+
+      const tinhaAcaoPendente = Boolean(state.acaoPendenteAposLogin);
+      salvarClienteLocal(clienteAtualizado);
+      fecharModalAuthCliente();
+      mostrarToastNotificacao(
+        precisaNotaFiscal
+          ? "✅ Cadastro e dados de Nota Fiscal (NF-e) aprovados com sucesso!"
+          : "✅ Cadastro completo e aprovado com sucesso!",
+        "sucesso"
+      );
+
+      if (!tinhaAcaoPendente && state.categoriaMenu === "minha-conta") {
+        renderizarAreaCliente("dados");
       }
     });
   }
@@ -1222,7 +1718,7 @@
                   })
                   .join("");
 
-                // Mensagem personalizada para enviar no WhatsApp
+                // Mensagem personalizada para enviar no WhatsApp (com dados completos e solicitação de NF-e)
                 const linhasMsg = itensLista.map((it) => {
                   const sub = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
                   const precoStr = sub > 0 ? ` — *${formatarMoedaBR(sub)}*` : "";
@@ -1230,10 +1726,28 @@
                   return `• ${it.qtd}x *${it.nome}*${det ? ` (${det})` : ""}${precoStr}`;
                 });
                 const totalMsg = Number(ped.total) > 0 ? `\n*Total Estimado:* ${totalFmt}` : "";
+                const solicitaNfPed = Boolean(ped.precisaNotaFiscal || c.precisaNotaFiscal);
+                const docNum = String(c.cpf || c.cnpjCpf || ped.clienteCpfCnpj || "").replace(/\D/g, "");
+                const labelDocPed = docNum.length === 14 ? "CNPJ" : "CPF";
+                const endCompletoPed = formatarEnderecoCompletoCliente(c) || ped.clienteEnderecoFiscal || "";
+                const blocoCliPed = [
+                  `\n\n📋 *DADOS DO CLIENTE:*`,
+                  `• *Nome / Razão Social:* ${c.nome || ped.clienteNome}`,
+                  (c.cpf || c.cnpjCpf || ped.clienteCpfCnpj) ? `• *${labelDocPed}:* ${c.cpf || c.cnpjCpf || ped.clienteCpfCnpj}` : "",
+                  c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
+                  c.whatsapp ? `• *WhatsApp:* ${c.whatsapp}` : "",
+                  c.email ? `• *E-mail:* ${c.email}` : "",
+                  endCompletoPed ? `• *Endereço Completo:* ${endCompletoPed}` : ""
+                ].filter(Boolean).join("\n");
+                const fraseNfPed = solicitaNfPed
+                  ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados fiscais completos informados acima.`
+                  : "";
                 const msgWhats = encodeURIComponent(
-                  `Olá *Loja SJ 3D*! Gostaria de falar sobre meu pedido *${ped.id}* salvo no site:\n\n` +
-                    `${linhasMsg.join("\n")}${totalMsg}\n\n` +
-                    `Gostaria de confirmar a disponibilidade e finalizar!`
+                  `Olá *Loja SJ 3D*! Gostaria de finalizar meu pedido *${ped.id}* salvo no site:\n\n` +
+                    `🛒 *ITENS ESCOLHIDOS:*\n` +
+                    `${linhasMsg.join("\n")}${totalMsg}` +
+                    `${blocoCliPed}${fraseNfPed}\n\n` +
+                    `Gostaria de confirmar a disponibilidade e finalizar a compra!`
                 );
 
                 const statusClass = ped.status || "guardado";
@@ -1333,42 +1847,110 @@
         </div>
       </div>
 
-      <!-- ABA D: MEUS DADOS CADASTRAIS -->
+      <!-- ABA D: MEUS DADOS CADASTRAIS & NOTA FISCAL (NF-E) -->
       <div class="client-tab-pane ${abaAtiva === "dados" ? "active" : ""}" id="pane-client-dados">
-        <div class="client-reg-card-wrap" style="max-width: 680px; margin: 0 auto; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
+        <div class="client-reg-card-wrap" style="max-width: 720px; margin: 0 auto; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
           <div class="client-reg-card-head">
-            <h3>Meus Dados Cadastrais</h3>
-            <p>Mantenha seus dados atualizados para agilizar a emissão de orçamentos e entregas em Umuarama e Região.</p>
+            <h3>Meus Dados Cadastrais &amp; Nota Fiscal (NF-e)</h3>
+            <p>Mantenha seu CPF/CNPJ e endereço fiscal completos para aprovação automática e envio imediato dos seus pedidos no WhatsApp.</p>
           </div>
+
+          ${(() => {
+            const valAtual = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+            return valAtual.valido
+              ? `<div style="margin:0 0 14px; padding:10px 14px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; color:#065F46; font-size:0.82rem; font-weight:700;">
+                   ✅ Cadastro Aprovado! Seus dados completos${c.precisaNotaFiscal ? " e dados de Nota Fiscal (NF-e)" : ""} já vão prontos quando você finalizar no WhatsApp.
+                 </div>`
+              : `<div style="margin:0 0 14px; padding:10px 14px; background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; color:#991B1B; font-size:0.82rem; font-weight:700;">
+                   ⚠️ Cadastro Pendente: preencha ${escaparHtml(valAtual.faltando.join(", "))} abaixo para aprovar seu cadastro.
+                 </div>`;
+          })()}
 
           <form id="form-client-edit-profile" class="client-auth-form">
             <div class="auth-field">
-              <label>Nome Completo *</label>
+              <label>Nome Completo ou Razão Social *</label>
               <input type="text" name="edit_nome" value="${nomeSeguro}" required />
             </div>
 
-            <div class="auth-field">
-              <label>WhatsApp / Celular *</label>
-              <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" required />
+            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+              <div class="auth-field">
+                <label>WhatsApp / Celular *</label>
+                <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" required />
+              </div>
+
+              <div class="auth-field">
+                <label>CPF ou CNPJ *</label>
+                <input type="text" name="edit_cpf" value="${cpfSeguro}" placeholder="000.000.000-00 ou CNPJ" required />
+              </div>
             </div>
 
             <div class="auth-field">
-              <label>CPF ou CNPJ</label>
-              <input type="text" name="edit_cpf" value="${cpfSeguro}" />
-            </div>
-
-            <div class="auth-field">
-              <label>E-mail *</label>
+              <label>E-mail (para Nota Fiscal e contato) *</label>
               <input type="email" name="edit_email" value="${emailSeguro}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
             </div>
 
-            <div class="auth-field">
-              <label>Cidade / UF *</label>
-              <input type="text" name="edit_cidade" value="${cidadeUfSeguro}" required />
+            <div style="padding:12px 14px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px; margin:4px 0;">
+              <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.86rem; font-weight:800; color:#9A3412; margin:0;">
+                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${c.precisaNotaFiscal ? "checked" : ""} style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
+                <span>🧾 Preciso de emissão de Nota Fiscal (NF-e) nas minhas compras</span>
+              </label>
+              <p style="margin:4px 0 0 26px; font-size:0.76rem; color:#7C2D12;">
+                Quando ativo, todos os dados fiscais abaixo são enviados automaticamente junto com os itens no WhatsApp.
+              </p>
+            </div>
+
+            <div id="edit-nf-fields-wrap" style="display:grid; gap:10px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:14px;">
+              <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+                📋 Endereço &amp; Dados Fiscais (Obrigatórios para Nota Fiscal)
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="auth-field">
+                  <label>CEP *</label>
+                  <input type="text" name="edit_cep" value="${escaparHtml(c.cep || "")}" placeholder="87501-000" />
+                </div>
+                <div class="auth-field">
+                  <label>Inscrição Estadual (se CNPJ)</label>
+                  <input type="text" name="edit_ie" value="${escaparHtml(c.inscricaoEstadual || "")}" placeholder="Nº da IE ou ISENTO" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
+                <div class="auth-field">
+                  <label>Endereço (Rua / Avenida) *</label>
+                  <input type="text" name="edit_logradouro" value="${escaparHtml(c.logradouro || "")}" placeholder="Ex: Av. Portugal" />
+                </div>
+                <div class="auth-field">
+                  <label>Número *</label>
+                  <input type="text" name="edit_numero" value="${escaparHtml(c.numero || "")}" placeholder="Ex: 6759" />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="auth-field">
+                  <label>Bairro *</label>
+                  <input type="text" name="edit_bairro" value="${escaparHtml(c.bairro || "")}" placeholder="Ex: Zona I-A" />
+                </div>
+                <div class="auth-field">
+                  <label>Complemento (Opcional)</label>
+                  <input type="text" name="edit_complemento" value="${escaparHtml(c.complemento || "")}" placeholder="Sala, Apto, Bloco..." />
+                </div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
+                <div class="auth-field">
+                  <label>Cidade *</label>
+                  <input type="text" name="edit_cidade_nome" value="${escaparHtml(c.cidade || "Umuarama")}" placeholder="Umuarama" />
+                </div>
+                <div class="auth-field">
+                  <label>UF (Estado) *</label>
+                  <input type="text" name="edit_uf" value="${escaparHtml(c.uf || "PR")}" placeholder="PR" maxlength="2" style="text-transform:uppercase;" />
+                </div>
+              </div>
             </div>
 
             <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
-              💾 Salvar Alterações
+              💾 Salvar &amp; Aprovar Meus Dados Fiscais
             </button>
           </form>
         </div>
@@ -1459,47 +2041,81 @@
       navegarParaCategoria("todos");
     });
 
-    // Formulário de Edição de Perfil
+    // Formulário de Edição de Perfil e Dados de Nota Fiscal
     const formEdit = container.querySelector("#form-client-edit-profile");
     if (formEdit) {
       aplicarMascaraTelefone(formEdit.querySelector('input[name="edit_whatsapp"]'));
       aplicarMascaraCpfCnpj(formEdit.querySelector('input[name="edit_cpf"]'));
+      aplicarMascaraCep(formEdit.querySelector('input[name="edit_cep"]'), (dadosCep) => {
+        const logInp = formEdit.querySelector('input[name="edit_logradouro"]');
+        const baiInp = formEdit.querySelector('input[name="edit_bairro"]');
+        const cidInp = formEdit.querySelector('input[name="edit_cidade_nome"]');
+        const ufInp = formEdit.querySelector('input[name="edit_uf"]');
+        if (logInp && dadosCep.logradouro) logInp.value = dadosCep.logradouro;
+        if (baiInp && dadosCep.bairro) baiInp.value = dadosCep.bairro;
+        if (cidInp && dadosCep.localidade) cidInp.value = dadosCep.localidade;
+        if (ufInp && dadosCep.uf) ufInp.value = dadosCep.uf;
+      });
 
       formEdit.addEventListener("submit", async (e) => {
         e.preventDefault();
         const nome = String(formEdit.querySelector('input[name="edit_nome"]')?.value || "").trim();
         const whatsapp = String(formEdit.querySelector('input[name="edit_whatsapp"]')?.value || "").trim();
         const cpf = String(formEdit.querySelector('input[name="edit_cpf"]')?.value || "").trim();
-        const cidadeUf = String(formEdit.querySelector('input[name="edit_cidade"]')?.value || "Umuarama / PR").trim();
-
-        if (!nome || !whatsapp) {
-          alert("Nome e WhatsApp são obrigatórios.");
-          return;
-        }
+        const precisaNotaFiscal = Boolean(formEdit.querySelector('input[name="edit_precisa_nf"]')?.checked);
+        const cep = String(formEdit.querySelector('input[name="edit_cep"]')?.value || "").trim();
+        const inscricaoEstadual = String(formEdit.querySelector('input[name="edit_ie"]')?.value || "").trim();
+        const logradouro = String(formEdit.querySelector('input[name="edit_logradouro"]')?.value || "").trim();
+        const numero = String(formEdit.querySelector('input[name="edit_numero"]')?.value || "").trim();
+        const bairro = String(formEdit.querySelector('input[name="edit_bairro"]')?.value || "").trim();
+        const complemento = String(formEdit.querySelector('input[name="edit_complemento"]')?.value || "").trim();
+        const cidade = String(formEdit.querySelector('input[name="edit_cidade_nome"]')?.value || "Umuarama").trim();
+        const uf = String(formEdit.querySelector('input[name="edit_uf"]')?.value || "PR").trim().toUpperCase();
 
         const atualizado = {
           ...state.clienteLogado,
           nome,
           whatsapp,
           cpf,
-          cidadeUf
+          cnpjCpf: cpf,
+          precisaNotaFiscal,
+          cep,
+          inscricaoEstadual,
+          logradouro,
+          numero,
+          bairro,
+          complemento,
+          cidade,
+          uf,
+          cidadeUf: `${cidade} / ${uf}`
         };
 
+        const validacao = validarDadosCliente(atualizado, precisaNotaFiscal);
+        if (!validacao.valido) {
+          alert(validacao.mensagem);
+          return;
+        }
+
+        atualizado.cadastroAprovado = true;
+        state.precisaNotaFiscalPedido = precisaNotaFiscal;
         salvarClienteLocal(atualizado);
 
         // Atualiza na nuvem
         if (window.SJ_SUPABASE?.clientes?.cadastrar) {
-          await window.SJ_SUPABASE.clientes.cadastrar({
-            id: atualizado.id,
-            nome,
-            cnpjCpf: cpf,
-            whatsapp,
-            email: atualizado.email,
-            bairroCidadeUf: cidadeUf
-          });
+          try {
+            await window.SJ_SUPABASE.clientes.cadastrar({
+              id: atualizado.id,
+              nome,
+              cnpjCpf: cpf,
+              whatsapp,
+              email: atualizado.email,
+              endereco: formatarEnderecoCompletoCliente(atualizado),
+              bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
+            });
+          } catch (_) {}
         }
 
-        mostrarToastNotificacao("Dados cadastrais atualizados com sucesso!", "sucesso");
+        mostrarToastNotificacao("✅ Dados cadastrais e fiscais aprovados e salvos com sucesso!", "sucesso");
         renderizarAreaCliente("dados");
       });
     }
@@ -4768,20 +5384,43 @@
 
     if (!u.ehEquipe) {
       // 1. USUÁRIO É CLIENTE (Login Google ou Cadastro Normal na Loja)
+      const salvoDb = buscarDadosClienteSalvoPorEmail(u.email) || {};
+      const atualLocal =
+        state.clienteLogado && String(state.clienteLogado.email || "").toLowerCase() === String(u.email || "").toLowerCase()
+          ? state.clienteLogado
+          : {};
+
       const clienteData = {
-        id: u.id,
-        nome: u.nome,
+        ...salvoDb,
+        ...atualLocal,
+        id: u.id || salvoDb.id || atualLocal.id || ("cli-" + Date.now()),
+        nome: atualLocal.nome || salvoDb.nome || u.nome,
         email: u.email,
-        foto: u.foto,
-        whatsapp: u.whatsapp || "",
+        foto: u.foto || atualLocal.foto || salvoDb.foto || null,
+        whatsapp: atualLocal.whatsapp || salvoDb.whatsapp || u.whatsapp || "",
+        cpf: atualLocal.cpf || salvoDb.cpf || salvoDb.cnpjCpf || "",
+        cnpjCpf: atualLocal.cnpjCpf || salvoDb.cnpjCpf || atualLocal.cpf || "",
         tipo: "cliente"
       };
+
+      const precisaNf = Boolean(state.precisaNotaFiscalPedido || clienteData.precisaNotaFiscal);
+      const validacao = validarDadosCliente(clienteData, precisaNf);
+      clienteData.cadastroAprovado = validacao.valido;
+
       salvarClienteLocal(clienteData);
 
       // Garante que o cliente NÃO tenha nenhum privilégio de administrador
       state.usuarioGoogle = null;
       atualizarBadgeUsuarioHeader();
-      fecharModalAuthCliente();
+
+      if (!validacao.valido) {
+        abrirModalAuthCliente("complete", {
+          preMarcarNf: precisaNf,
+          mensagemTopo: `✅ Conta Google conectada (${u.email})! Complete seu WhatsApp, CPF/CNPJ e dados de Nota Fiscal (se precisar) para aprovar seu cadastro.`
+        });
+      } else {
+        fecharModalAuthCliente();
+      }
     } else {
       // 2. USUÁRIO É EQUIPE / ADMINISTRADOR (Entrou pela Área Restrita)
       state.usuarioGoogle = u;
@@ -7830,10 +8469,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
-    // Inicializa o Sistema do Cliente (Minha Conta, Favoritos, Pop-up)
+    // Inicializa o Sistema do Cliente (Minha Conta, Favoritos, Pop-up e Nota Fiscal)
     configurarModalAuthCliente();
     atualizarBotaoHeaderConta();
     atualizarBadgeFavoritos();
+    sincronizarStatusNotaFiscalCarrinho();
 
     // Tecla ESC Global para fechar qualquer modal, gaveta ou busca aberta (UX Pro Max)
     document.addEventListener("keydown", (e) => {
