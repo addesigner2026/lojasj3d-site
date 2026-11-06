@@ -1,0 +1,6 @@
+local-server.js
+data/
+docs/
+supabase/
+.mcp.json
+skills-lock.json
