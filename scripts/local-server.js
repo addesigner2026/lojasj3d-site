@@ -12,7 +12,7 @@ const path = require("path");
 const { exec } = require("child_process");
 
 const PORT = process.env.PORT || 3000;
-const ROOT = __dirname;
+const ROOT = path.resolve(__dirname, "..");
 const DB_PATH = path.join(ROOT, "data", "db.json");
 
 const MIME_TYPES = {
