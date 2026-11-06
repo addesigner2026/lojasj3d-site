@@ -806,15 +806,20 @@
 
     // Login com Google (Oficial Supabase Auth)
     btnGoogle?.addEventListener("click", async () => {
-      if (window.SJ_SUPABASE?.auth?.loginComGoogle) {
-        const res = await window.SJ_SUPABASE.auth.loginComGoogle();
-        if (res && res.url) {
-          window.location.href = res.url;
-        } else if (res && !res.sucesso) {
-          alert("Não foi possível iniciar o login com Google: " + res.mensagem);
+      const loginFn = window.SJ_SUPABASE?.auth?.loginGoogle || window.SJ_SUPABASE?.auth?.loginComGoogle;
+      if (typeof loginFn === "function") {
+        try {
+          const res = await loginFn();
+          if (res && res.url) {
+            window.location.href = res.url;
+          } else if (res && !res.sucesso) {
+            alert("Não foi possível iniciar o login com Google: " + (res.mensagem || "Provedor Google não habilitado no Supabase."));
+          }
+        } catch (err) {
+          alert("Erro ao conectar com Google: " + (err.message || err));
         }
       } else {
-        alert("Serviço de autenticação não inicializado.");
+        alert("Aguarde a inicialização do serviço de autenticação ou recarregue a página.");
       }
     });
 
@@ -839,8 +844,9 @@
         let authOk = false;
         let userData = null;
 
-        if (window.SJ_SUPABASE?.auth?.loginComEmail) {
-          const res = await window.SJ_SUPABASE.auth.loginComEmail({ email, password });
+        const loginEmailFn = window.SJ_SUPABASE?.auth?.loginEmail || window.SJ_SUPABASE?.auth?.loginComEmail;
+        if (typeof loginEmailFn === "function") {
+          const res = await loginEmailFn({ email, password });
           if (res.sucesso && res.usuario) {
             authOk = true;
             userData = {

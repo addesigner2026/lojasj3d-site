@@ -161,16 +161,29 @@
     },
 
     // Login com E-mail e Senha
-    loginEmail: async function (email, password) {
+    loginEmail: async function (emailOrObj, passwordArg) {
       const client = inicializarCliente();
       if (!client) {
         return { sucesso: false, fallback: true, mensagem: "Supabase não configurado. Usando base local." };
       }
 
+      let rawEmail = "";
+      let rawPass = "";
+      if (typeof emailOrObj === "object" && emailOrObj !== null) {
+        rawEmail = emailOrObj.email || "";
+        rawPass = emailOrObj.password || "";
+      } else {
+        rawEmail = emailOrObj || "";
+        rawPass = passwordArg || "";
+      }
+
+      const email = String(rawEmail).trim().toLowerCase();
+      const password = String(rawPass).trim();
+
       try {
         const { data, error } = await client.auth.signInWithPassword({
-          email: email.trim().toLowerCase(),
-          password: password.trim()
+          email: email,
+          password: password
         });
 
         if (error) {
@@ -190,6 +203,11 @@
       } catch (err) {
         return { sucesso: false, mensagem: err.message || "Erro ao conectar com Supabase." };
       }
+    },
+
+    // Aliases para compatibilidade
+    loginComEmail: async function (arg1, arg2) {
+      return auth.loginEmail(arg1, arg2);
     },
 
     // Login com Google OAuth
@@ -219,6 +237,10 @@
       } catch (err) {
         return { sucesso: false, mensagem: err.message };
       }
+    },
+
+    loginComGoogle: async function () {
+      return auth.loginGoogle();
     },
 
     // Cadastro de Novo Vendedor
