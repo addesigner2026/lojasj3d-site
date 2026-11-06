@@ -2,11 +2,9 @@
   "name": "loja-sj-3d-site",
   "version": "1.0.0",
   "description": "Site Oficial Loja SJ 3D - Filamentos, Impressoras 3D, Peças e Manutenção em Umuarama - PR",
-  "main": "server.js",
   "scripts": {
-    "dev": "node server.js",
-    "start": "node server.js",
-    "build": "echo 'Site estático pronto para deploy na Vercel'"
+    "dev": "node local-server.js",
+    "start": "node local-server.js"
   },
   "keywords": [
     "loja-sj-3d",
