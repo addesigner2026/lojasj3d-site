@@ -4798,9 +4798,12 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 
 /* Card Principal do Modal CMS */
 .admin-cms-card {
+  position: relative;
   width: 100%;
-  max-width: 1020px;
-  max-height: 90vh;
+  max-width: 1080px;
+  height: 88vh;
+  min-height: 560px;
+  max-height: 92vh;
   background: #ffffff;
   border-radius: 16px;
   border: 1px solid #e4e4e7;
@@ -4812,39 +4815,42 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 }
 
 .admin-cms-header {
+  position: relative;
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 18px 24px;
+  padding: 16px 64px 16px 24px;
   background: #fafafa;
   border-bottom: 1px solid #e4e4e7;
 }
 
 .admin-cms-header h3 {
-  font-size: 1.15rem;
+  font-size: 1.12rem;
   font-weight: 800;
   color: #111111;
   margin: 0;
 }
 
 .admin-cms-tabs {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 24px;
+  flex-wrap: wrap;
+  gap: 6px;
+  padding: 10px 20px;
   background: #f4f4f5;
   border-bottom: 1px solid #e4e4e7;
-  overflow-x: auto;
 }
 
 .admin-cms-tab-btn {
   border: 1px solid transparent;
   background: transparent;
   color: #52525b;
-  font-size: 0.82rem;
+  font-size: 0.8rem;
   font-weight: 700;
-  padding: 8px 16px;
+  padding: 8px 13px;
   border-radius: 8px;
   cursor: pointer;
   white-space: nowrap;
@@ -4866,7 +4872,9 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 .admin-cms-body {
   padding: 20px 24px;
   overflow-y: auto;
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  background: #ffffff;
 }
 
 .admin-cms-pane {
@@ -4874,7 +4882,7 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 }
 
 .admin-cms-pane.active {
-  display: block;
+  display: block !important;
 }
 
 /* Barra de Filtro de Categorias + Busca + Botão Novo Produto */

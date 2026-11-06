@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_5" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_6" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1038,9 +1038,9 @@
        PAINEL ADMINISTRATIVO DE GESTÃO DO SITE (CMS: PRODUTOS, PREÇOS, FOTOS & BANNER)
        ==================================================================== -->
   <div class="modal-overlay" id="modal-admin-cms" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-cms-title">
-    <div class="admin-cms-card">
+    <div class="admin-cms-card" style="position:relative; width:100%; max-width:1080px; height:88vh; min-height:560px; max-height:92vh; display:flex; flex-direction:column; overflow:hidden; background:#fff;">
       <!-- Cabeçalho do Painel Admin -->
-      <div class="admin-cms-header">
+      <div class="admin-cms-header" style="flex-shrink:0; position:relative; padding-right:64px;">
         <div class="admin-cms-header-left">
           <span class="auth-portal-badge" style="margin-bottom:4px;">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -1055,18 +1055,18 @@
       </div>
 
       <!-- Abas Principais do CMS -->
-      <div class="admin-cms-tabs" role="tablist">
+      <div class="admin-cms-tabs" role="tablist" style="flex-shrink:0; display:flex; flex-wrap:wrap; gap:6px;">
         <button type="button" class="admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
-          📦 Produtos, Preços, Fotos & Descrições
+          📦 Produtos &amp; Estoque
         </button>
         <button type="button" class="admin-cms-tab-btn" data-cms-tab="banner" role="tab">
-          🎨 Banner de Promoções (Capa / Sorteio)
+          🎨 Banner de Promoções
         </button>
         <button type="button" class="admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
-          💾 Salvar Arquivo & Restaurar
+          💾 Salvar &amp; Restaurar
         </button>
         <button type="button" class="admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
-          ⚡ Supabase & Backend
+          ⚡ Supabase &amp; Nuvem
         </button>
         <button type="button" class="admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
           🔐 Administradores &amp; Senha <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; margin-left:5px; font-weight:700;">0</span>
@@ -1074,7 +1074,7 @@
       </div>
 
       <!-- CORPO ROLÁVEL DO PAINEL -->
-      <div class="admin-cms-body">
+      <div class="admin-cms-body" style="flex:1 1 auto; min-height:0; overflow-y:auto; padding:20px 24px; background:#fff;">
 
         <!-- ==============================================================
              ABA 1: PRODUTOS, PREÇOS, FOTOS, DESCRIÇÕES E CORES DE FILAMENTO
@@ -1586,10 +1586,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_5"></script>
-  <script src="js/dados.js?v=20261106_5"></script>
-  <script src="js/database.js?v=20261106_5"></script>
-  <script src="js/app.js?v=20261106_5"></script>
+  <script src="js/supabase-client.js?v=20261106_6"></script>
+  <script src="js/dados.js?v=20261106_6"></script>
+  <script src="js/database.js?v=20261106_6"></script>
+  <script src="js/app.js?v=20261106_6"></script>
 </body>
 
 </html>

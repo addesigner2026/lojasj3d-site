@@ -6000,7 +6000,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
     Object.entries(mapPanes).forEach(([key, id]) => {
       const el = document.getElementById(id);
-      if (el) el.classList.toggle("active", key === aba);
+      if (el) {
+        const ativo = key === aba;
+        el.classList.toggle("active", ativo);
+        el.style.display = ativo ? "block" : "none";
+      }
     });
     if (aba === "supabase") {
       atualizarStatusSupabaseNoCms();
@@ -6049,16 +6053,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     );
   }
 
-  async function renderizarPainelEquipeCms() {
+  async function renderizarPainelEquipeCms(pularSyncNuvem = false) {
     if (!window.SJ_DB || !window.SJ_DB.auth) return;
     const auth = window.SJ_DB.auth;
-    try {
-      await auth.sincronizarEquipeNuvem();
-    } catch (_) {}
     const lista = auth.listarUsuarios() || [];
     atualizarBadgesSolicitacoesPendentes(lista);
 
-    const ehMaster = usuarioLogadoEhMaster();
     const uAtual = state.usuarioGoogle || auth.getUsuarioAtual();
     const emailLogado = uAtual ? uAtual.email : "jt.designer21@gmail.com";
     const emailEl = document.getElementById("cms-admin-pwd-email");
@@ -6087,7 +6087,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           </div>
         `;
       } else {
-        pendentesEl.innerHTML = pendentes.map((u) => `
+        pendentesEl.innerHTML = pendentes.map((u) => {
+          const identificador = u.email || u.id || "";
+          const emailExibicao = u.email || `Registro sem e-mail (${u.id || "ID"})`;
+          return `
           <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1.5px solid #F59E0B; background:#FFFBEB; border-radius:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(245,158,11,0.08);">
             <div style="min-width:240px; flex:1;">
               <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
@@ -6095,25 +6098,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 <strong style="font-size:0.95rem; color:#111827;">${escaparHtmlEquipe(u.nome || "Solicitante")}</strong>
               </div>
               <div style="font-size:0.9rem; color:#1F2937; margin-bottom:3px;">
-                📧 E-mail solicitante: <strong style="color:#E84520; text-decoration:underline;">${escaparHtmlEquipe(u.email)}</strong>
+                📧 E-mail solicitante: <strong style="color:#E84520; text-decoration:underline;">${escaparHtmlEquipe(emailExibicao)}</strong>
               </div>
               <div style="font-size:0.78rem; color:#6B7280;">
                 ${u.motivo ? `💬 Motivo/Função: <strong>${escaparHtmlEquipe(u.motivo)}</strong> • ` : ""}Solicitado em: ${u.criadoEm ? new Date(u.criadoEm).toLocaleString("pt-BR") : "Recente"}
               </div>
             </div>
             <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>
+              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#16A34A")}>
                 ✅ Aprovar & Liberar
               </button>
-              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>
+              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#DC2626")}>
                 🚫 Negar / Bloquear
               </button>
-              <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#6B7280")}>
+              <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#6B7280")}>
                 🗑️ Excluir Pedido
               </button>
             </div>
           </div>
-        `).join("");
+        `;
+        }).join("");
       }
     }
 
@@ -6122,15 +6126,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (todosEl) {
       todosEl.innerHTML = lista.map((u) => {
         const master = u.isMaster || String(u.email || "").toLowerCase() === "jt.designer21@gmail.com";
+        const identificador = u.email || u.id || "";
+        const emailExibicao = u.email || u.id || "—";
         let acoes = "";
         if (master) {
           acoes = `<span style="font-size:0.76rem; background:#FEF3C7; color:#92400E; padding:5px 10px; border-radius:8px; font-weight:800;">👑 Administrador Oficial (Vitalício)</span>`;
         } else {
           acoes = `
-            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>✅ Aprovar / Liberar</button>` : ""}
-            ${u.status !== "pendente" ? `<button type="button" data-equipe-acao="pendente" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#D97706")}>⏳ Colocar Pendente</button>` : ""}
-            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>` : ""}
-            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#4B5563")}>🗑️ Excluir</button>
+            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#16A34A")}>✅ Aprovar / Liberar</button>` : ""}
+            ${u.status !== "pendente" ? `<button type="button" data-equipe-acao="pendente" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#D97706")}>⏳ Colocar Pendente</button>` : ""}
+            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>` : ""}
+            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#4B5563")}>🗑️ Excluir</button>
           `;
         }
         return `
@@ -6141,7 +6147,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 ${badge(u.status)}
               </div>
               <div style="font-size:0.84rem; color:#374151; margin-top:3px;">
-                📧 <strong>${escaparHtmlEquipe(u.email)}</strong> • <span style="color:#6B7280;">${escaparHtmlEquipe(u.cargo || "Administrador")}</span>
+                📧 <strong>${escaparHtmlEquipe(emailExibicao)}</strong> • <span style="color:#6B7280;">${escaparHtmlEquipe(u.cargo || "Administrador")}</span>
                 ${u.motivo ? ` • <span style="color:#6B7280;">Motivo: ${escaparHtmlEquipe(u.motivo)}</span>` : ""}
               </div>
             </div>
@@ -6165,9 +6171,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         if (res && res.mensagem) {
           mostrarToast(res.mensagem, res.sucesso ? "success" : "warning");
         }
-        renderizarPainelEquipeCms();
+        renderizarPainelEquipeCms(true);
       });
     });
+
+    if (!pularSyncNuvem) {
+      try {
+        await auth.sincronizarEquipeNuvem();
+        renderizarPainelEquipeCms(true);
+      } catch (_) {}
+    }
   }
 
   function configurarFormularioSenhaAdmin() {
