@@ -262,6 +262,101 @@
     } catch (_) {}
   }
 
+  // Validação Oficial Matemática de CPF (Receita Federal - Módulo 11)
+  function validarCpfOficial(cpfRaw) {
+    const cpf = String(cpfRaw || "").replace(/\D/g, "");
+    if (cpf.length !== 11) return false;
+    // Rejeita CPFs com todos os dígitos iguais (ex: 000.000.000-00, 111.111.111-11...)
+    if (/^(\d)\1{10}$/.test(cpf)) return false;
+
+    let soma = 0;
+    for (let i = 0; i < 9; i++) {
+      soma += parseInt(cpf.charAt(i), 10) * (10 - i);
+    }
+    let resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(9), 10)) return false;
+
+    soma = 0;
+    for (let i = 0; i < 10; i++) {
+      soma += parseInt(cpf.charAt(i), 10) * (11 - i);
+    }
+    resto = (soma * 10) % 11;
+    if (resto === 10 || resto === 11) resto = 0;
+    if (resto !== parseInt(cpf.charAt(10), 10)) return false;
+
+    return true;
+  }
+
+  // Validação Oficial Matemática de CNPJ (Receita Federal - Módulo 11)
+  function validarCnpjOficial(cnpjRaw) {
+    const cnpj = String(cnpjRaw || "").replace(/\D/g, "");
+    if (cnpj.length !== 14) return false;
+    // Rejeita CNPJs com todos os dígitos iguais (ex: 00.000.000/0000-00, 11.111.111/1111-11...)
+    if (/^(\d)\1{13}$/.test(cnpj)) return false;
+
+    const pesos1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const pesos2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+
+    let soma = 0;
+    for (let i = 0; i < 12; i++) {
+      soma += parseInt(cnpj.charAt(i), 10) * pesos1[i];
+    }
+    let resto = soma % 11;
+    const dv1 = resto < 2 ? 0 : 11 - resto;
+    if (dv1 !== parseInt(cnpj.charAt(12), 10)) return false;
+
+    soma = 0;
+    for (let i = 0; i < 13; i++) {
+      soma += parseInt(cnpj.charAt(i), 10) * pesos2[i];
+    }
+    resto = soma % 11;
+    const dv2 = resto < 2 ? 0 : 11 - resto;
+    if (dv2 !== parseInt(cnpj.charAt(13), 10)) return false;
+
+    return true;
+  }
+
+  // Valida se o documento digitado é um CPF válido (11 dígitos) ou CNPJ válido (14 dígitos)
+  function validarDocumentoCpfOuCnpj(valor) {
+    const digitos = String(valor || "").replace(/\D/g, "");
+    if (!digitos) {
+      return {
+        valido: false,
+        tipo: null,
+        digitos: "",
+        mensagem: "Informe um CPF ou CNPJ válido."
+      };
+    }
+    if (digitos.length === 11) {
+      const ok = validarCpfOficial(digitos);
+      return {
+        valido: ok,
+        tipo: "CPF",
+        digitos,
+        mensagem: ok ? "✓ CPF válido" : "❌ CPF inválido! Verifique os números digitados."
+      };
+    }
+    if (digitos.length === 14) {
+      const ok = validarCnpjOficial(digitos);
+      return {
+        valido: ok,
+        tipo: "CNPJ",
+        digitos,
+        mensagem: ok ? "✓ CNPJ válido" : "❌ CNPJ inválido! Verifique os números digitados."
+      };
+    }
+    return {
+      valido: false,
+      tipo: digitos.length > 11 ? "CNPJ" : "CPF",
+      digitos,
+      mensagem:
+        digitos.length > 11
+          ? "❌ CNPJ incompleto ou inválido (digite os 14 números)."
+          : "❌ CPF incompleto ou inválido (digite os 11 números do CPF ou 14 do CNPJ)."
+    };
+  }
+
   // Valida se o cadastro do cliente (e os dados de Nota Fiscal, quando solicitada) estão 100% preenchidos e aprovados
   function validarDadosCliente(cliente, exigirNotaFiscal = false) {
     if (!cliente) {
@@ -275,13 +370,19 @@
     const faltando = [];
     const nome = String(cliente.nome || "").trim();
     const whatsappDigitos = String(cliente.whatsapp || "").replace(/\D/g, "");
-    const cpfCnpjDigitos = String(cliente.cpf || cliente.cnpjCpf || "").replace(/\D/g, "");
+    const docCheck = validarDocumentoCpfOuCnpj(cliente.cpf || cliente.cnpjCpf || "");
     const email = String(cliente.email || "").trim();
 
     if (nome.length < 3) faltando.push("Nome Completo ou Razão Social");
     if (whatsappDigitos.length < 10) faltando.push("WhatsApp / Telefone com DDD");
-    if (cpfCnpjDigitos.length !== 11 && cpfCnpjDigitos.length !== 14) {
-      faltando.push("CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+    if (!docCheck.valido) {
+      if (docCheck.digitos.length === 11) {
+        faltando.push("CPF inválido (verifique os números digitados)");
+      } else if (docCheck.digitos.length === 14) {
+        faltando.push("CNPJ inválido (verifique os números digitados)");
+      } else {
+        faltando.push("CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+      }
     }
     if (!email || !email.includes("@")) faltando.push("E-mail válido");
 
@@ -304,11 +405,13 @@
 
     return {
       valido: faltando.length === 0,
+      docValido: docCheck.valido,
+      docMensagem: docCheck.mensagem,
       precisaNf,
       faltando,
       mensagem:
         faltando.length > 0
-          ? `Preencha os campos obrigatórios para aprovar seu cadastro${precisaNf ? " e emissão de Nota Fiscal" : ""}: ${faltando.join(", ")}.`
+          ? `Corrija ou preencha os seguintes dados para aprovar seu cadastro${precisaNf ? " e emissão de Nota Fiscal" : ""}: ${faltando.join(", ")}.`
           : "Cadastro aprovado e completo."
     };
   }
@@ -915,6 +1018,54 @@
     });
   }
 
+  function atualizarFeedbackVisualCpfCnpj(input, forcarExibicaoIncompleto = false) {
+    if (!input) return;
+    let feedbackEl = input.parentElement?.querySelector(".cpf-cnpj-live-feedback");
+    if (!feedbackEl && input.parentElement) {
+      feedbackEl = document.createElement("small");
+      feedbackEl.className = "cpf-cnpj-live-feedback";
+      feedbackEl.style.display = "none";
+      feedbackEl.style.fontSize = "0.75rem";
+      feedbackEl.style.fontWeight = "700";
+      feedbackEl.style.marginTop = "4px";
+      input.parentElement.appendChild(feedbackEl);
+    }
+
+    const digitos = String(input.value || "").replace(/\D/g, "");
+    if (!digitos) {
+      input.style.borderColor = "";
+      input.style.backgroundColor = "";
+      if (feedbackEl) feedbackEl.style.display = "none";
+      return;
+    }
+
+    // Valida imediatamente quando atingir 11 dígitos (CPF) ou 14 dígitos (CNPJ), ou ao sair do campo (blur)
+    if (digitos.length === 11 || digitos.length === 14 || forcarExibicaoIncompleto) {
+      const check = validarDocumentoCpfOuCnpj(digitos);
+      if (check.valido) {
+        input.style.borderColor = "#16a34a";
+        input.style.backgroundColor = "#f0fdf4";
+        if (feedbackEl) {
+          feedbackEl.style.display = "block";
+          feedbackEl.style.color = "#15803d";
+          feedbackEl.textContent = check.mensagem;
+        }
+      } else {
+        input.style.borderColor = "#dc2626";
+        input.style.backgroundColor = "#fef2f2";
+        if (feedbackEl) {
+          feedbackEl.style.display = "block";
+          feedbackEl.style.color = "#dc2626";
+          feedbackEl.textContent = check.mensagem;
+        }
+      }
+    } else {
+      input.style.borderColor = "";
+      input.style.backgroundColor = "";
+      if (feedbackEl) feedbackEl.style.display = "none";
+    }
+  }
+
   function aplicarMascaraCpfCnpj(input) {
     if (!input) return;
     input.addEventListener("input", () => {
@@ -933,6 +1084,11 @@
       } else {
         input.value = v;
       }
+      atualizarFeedbackVisualCpfCnpj(input, false);
+    });
+
+    input.addEventListener("blur", () => {
+      atualizarFeedbackVisualCpfCnpj(input, true);
     });
   }
 
@@ -1339,8 +1495,19 @@
         cidadeUf: `${cidade} / ${uf}`
       };
 
+      const checkDocSignup = validarDocumentoCpfOuCnpj(cpf);
+      if (!checkDocSignup.valido) {
+        const inpCpf = formSignup.querySelector('input[name="signup_cpf"]');
+        atualizarFeedbackVisualCpfCnpj(inpCpf, true);
+        inpCpf?.focus();
+        mostrarToast(checkDocSignup.mensagem, "error");
+        alert(checkDocSignup.mensagem);
+        return;
+      }
+
       const validacao = validarDadosCliente(candidatoCliente, precisaNotaFiscal);
       if (!validacao.valido) {
+        mostrarToast(validacao.mensagem, "error");
         alert(validacao.mensagem);
         return;
       }
@@ -1444,8 +1611,19 @@
         tipo: "cliente"
       };
 
+      const checkDocComp = validarDocumentoCpfOuCnpj(cpf);
+      if (!checkDocComp.valido) {
+        const inpCpf = formComplete.querySelector('input[name="comp_cpf"]');
+        atualizarFeedbackVisualCpfCnpj(inpCpf, true);
+        inpCpf?.focus();
+        mostrarToast(checkDocComp.mensagem, "error");
+        alert(checkDocComp.mensagem);
+        return;
+      }
+
       const validacao = validarDadosCliente(clienteAtualizado, precisaNotaFiscal);
       if (!validacao.valido) {
+        mostrarToast(validacao.mensagem, "error");
         alert(validacao.mensagem);
         return;
       }
@@ -2088,8 +2266,19 @@
           cidadeUf: `${cidade} / ${uf}`
         };
 
+        const checkDocEdit = validarDocumentoCpfOuCnpj(cpf);
+        if (!checkDocEdit.valido) {
+          const inpCpf = formEdit.querySelector('input[name="edit_cpf"]');
+          atualizarFeedbackVisualCpfCnpj(inpCpf, true);
+          inpCpf?.focus();
+          mostrarToast(checkDocEdit.mensagem, "error");
+          alert(checkDocEdit.mensagem);
+          return;
+        }
+
         const validacao = validarDadosCliente(atualizado, precisaNotaFiscal);
         if (!validacao.valido) {
+          mostrarToast(validacao.mensagem, "error");
           alert(validacao.mensagem);
           return;
         }
@@ -6011,6 +6200,8 @@
       { id: "client-email", key: "email" }
     ];
 
+    aplicarMascaraCpfCnpj(document.getElementById("client-cnpj-cpf"));
+
     outrosCamposCliente.forEach(({ id, key }) => {
       document.getElementById(id)?.addEventListener("input", (e) => {
         if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
@@ -7424,6 +7615,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       abrirModalHistoricoOrcamentos();
     });
 
+    aplicarMascaraCpfCnpj(document.getElementById("wiz-client-cpf"));
+    aplicarMascaraTelefone(document.getElementById("wiz-client-phone"));
+
     // Autocompletar cliente no Assistente ao digitar/escolher o nome
     document.getElementById("wiz-client-name")?.addEventListener("input", (e) => {
       const val = (e.target.value || "").trim().toLowerCase();
@@ -7477,6 +7671,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const nomeCliente = document.getElementById("wiz-client-name")?.value.trim() || "Cliente Balcão";
       const telefoneCliente = document.getElementById("wiz-client-phone")?.value.trim() || "";
       const cpfCliente = document.getElementById("wiz-client-cpf")?.value.trim() || "";
+
+      if (cpfCliente) {
+        const checkWizDoc = validarDocumentoCpfOuCnpj(cpfCliente);
+        if (!checkWizDoc.valido) {
+          const inpWizCpf = document.getElementById("wiz-client-cpf");
+          atualizarFeedbackVisualCpfCnpj(inpWizCpf, true);
+          inpWizCpf?.focus();
+          mostrarToast(checkWizDoc.mensagem, "error");
+          alert(checkWizDoc.mensagem);
+          return;
+        }
+      }
 
       // Procura dados adicionais se o cliente já existir no banco
       let clienteExistente = null;
