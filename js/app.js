@@ -132,17 +132,15 @@
     return state.itensCaixa.reduce((acc, item) => acc + item.qtd, 0);
   }
 
-  // 1. Controla a barra rápida de marcas e busca (exibe filtro de marca apenas em Filamentos ou Todos)
+  // 1. Controla a barra de busca do catálogo (mantém limpa, sem repetir filtro de marca)
   function atualizarControlesTopo() {
     const topControls = document.getElementById("filament-top-controls");
     if (!topControls) return;
     topControls.style.display = "flex";
+    topControls.classList.add("only-search");
     const brandLeft = topControls.querySelector(".brand-selector-left");
     if (brandLeft) {
-      const mostrarFiltroMarca =
-        state.categoriaMenu === "filamentos" || state.categoriaMenu === "todos";
-      brandLeft.style.display = mostrarFiltroMarca ? "flex" : "none";
-      topControls.classList.toggle("only-search", !mostrarFiltroMarca);
+      brandLeft.style.display = "none";
     }
   }
 
@@ -2552,6 +2550,18 @@
 
     const stockBadgeCardHtml = `<span class="card-stock-badge status-${statusInicial}" id="stock-badge-${item.id}" style="${statusInicial === "disponivel" ? "display:none;" : ""}">${ehEsgotado ? "🔴 ESGOTADO" : ehPoucas ? "🟠 POUCAS UNIDADES" : ""}</span>`;
 
+    const opcoesSelect2 = item.select2Opcoes || ["Padrão"];
+    const mostrarSel1 =
+      item.categoria !== "impressoras" &&
+      Array.isArray(opcoesSelect1) &&
+      opcoesSelect1.length > 1;
+    const mostrarSel2 =
+      Boolean(item.tipoFilamento) ||
+      (Array.isArray(opcoesSelect2) &&
+        opcoesSelect2.length > 1 &&
+        !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão"));
+    const ocultarLinhaSelects = !mostrarSel1 && !mostrarSel2;
+
     return `
       <article
         class="combo-filament-card ${ehEsgotado ? "is-out-of-stock" : ""}"
@@ -2566,7 +2576,7 @@
           ✏️ Editar
         </button>
 
-        <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver todas as cores e detalhes">
+        <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver detalhes">
           <button type="button" class="card-fav-btn ${isFavorito(item.id) ? "active" : ""}" data-toggle-fav="${item.id}" aria-label="Favoritar ${tituloCard}" title="Guardar nos Favoritos">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="${isFavorito(item.id) ? "#f04e23" : "none"}" stroke="${isFavorito(item.id) ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
@@ -2589,8 +2599,8 @@
         ${priceLineHtml}
         ${swatchesHtml}
 
-        <div class="combo-selects-row">
-          <select class="combo-select" id="sel1-${item.id}" data-type-select="${item.id}" aria-label="Primeira opção">
+        <div class="combo-selects-row ${mostrarSel1 && mostrarSel2 ? "" : "single-select-row"}" style="${ocultarLinhaSelects ? "display:none;" : ""}">
+          <select class="combo-select" id="sel1-${item.id}" data-type-select="${item.id}" aria-label="Primeira opção" style="${mostrarSel1 ? "" : "display:none;"}">
             ${select1Html}
           </select>
 
@@ -2599,22 +2609,41 @@
             id="sel2-${item.id}"
             ${item.tipoFilamento ? `data-color-select="${item.id}"` : ""}
             aria-label="Segunda opção ou cor"
+            style="${mostrarSel2 ? "" : "display:none;"}"
           >
             ${select2Html}
           </select>
         </div>
 
         <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao Pedido"}" ${ehEsgotado ? "disabled" : ""}>
-          ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "Adicionar ao Pedido")}
+          ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "+ Adicionar ao Pedido")}
         </button>
       </article>
     `;
   }
 
-  // 2.5 HUB INTERATIVO DE FILAMENTOS (SEPARAÇÃO DESTACADA MAXPRINT vs BAMBU LAB + EXTENSÃO COMPLETA)
+  // Limpa prefixos redundantes no nome da cor quando o cliente já selecionou a linha/material
+  function formatarNomeCorClean(nomeBruto, matId = "") {
+    let n = String(nomeBruto || "").replace(/\s*1kg$/i, "").trim();
+    if (matId === "fil-petg-maxprint") {
+      n = n.replace(/^PETG\s+/i, "");
+    } else if (matId === "fil-tpu-maxprint") {
+      n = n.replace(/^TPU(\s+Flex[íi]vel)?(\s+95A)?\s+/i, "");
+    } else if (matId === "fil-silk-maxprint") {
+      n = n.replace(/^PLA\s+Silk\s+/i, "Silk ");
+    } else if (matId === "fil-abs-especiais") {
+      n = n.replace(/^Filamento\s+/i, "");
+    } else if (matId === "bambu") {
+      n = n
+        .replace(/^Bambu\s+Lab\s+/i, "")
+        .replace(/\s*\(Refil\s*s\/?\s*Bobina\)/i, "")
+        .replace(/\s*Refil\s*RFID/i, "");
+    }
+    return n || nomeBruto || "Cor";
+  }
+
+  // 2.5 STUDIO CLEAN DE FILAMENTOS (BARRA UNIFICADA + GRADE DIRETA E SEM REPETIÇÕES)
   function gerarHubFilamentosHtml(contexto = "catalogo") {
-    const isHome = contexto === "home";
-    const extensaoAberta = isHome ? state.hubFilamentoAbertoHome : true;
     const marcaAtiva = state.hubFilamentoMarcaAtiva || "MaxPrint";
     const isBambuAtivo = marcaAtiva === "Bambu Lab";
 
@@ -2622,141 +2651,111 @@
       {
         id: "fil-pla-maxprint",
         curto: "PLA",
-        titulo: "PLA Tradicional & Especiais",
-        qtdCores: (window.SITE_DATA.coresMaxPrint || []).length,
-        preco: "R$ 79,90"
+        qtdCores: (window.SITE_DATA.coresMaxPrint || []).length
       },
       {
         id: "fil-silk-maxprint",
         curto: "PLA Silk",
-        titulo: "PLA Silk, Dual/Tri & Rainbow",
-        qtdCores: (window.SITE_DATA.coresPlaSilk || []).length,
-        preco: "R$ 99,90"
+        qtdCores: (window.SITE_DATA.coresPlaSilk || []).length
       },
       {
         id: "fil-petg-maxprint",
         curto: "PETG",
-        titulo: "PETG Alta Resistência",
-        qtdCores: (window.SITE_DATA.coresPetg || []).length,
-        preco: "A partir de R$ 59,90"
+        qtdCores: (window.SITE_DATA.coresPetg || []).length
       },
       {
         id: "fil-tpu-maxprint",
-        curto: "TPU 95A",
-        titulo: "TPU Flexível 95A",
-        qtdCores: (window.SITE_DATA.coresTpu || []).length,
-        preco: "R$ 109,90"
+        curto: "TPU Flex",
+        qtdCores: (window.SITE_DATA.coresTpu || []).length
       },
       {
         id: "fil-abs-especiais",
         curto: "ABS & Glitter",
-        titulo: "ABS & Especiais Glitter",
-        qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length,
-        preco: "A partir de R$ 69,90"
+        qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length
       }
     ];
 
+    const totalCoresMaxPrint = materiaisMaxPrint.reduce((acc, m) => acc + m.qtdCores, 0);
+    const totalCoresBambu = (window.SITE_DATA.coresBambuLab || []).length;
+
     const opcoesBambu = [
-      { id: "todos", label: "Todos Bambu Lab (13)" },
-      { id: "carretel", label: "Carretel c/ RFID (10)" },
-      { id: "refil", label: "Refil s/ Bobina RFID (3)" }
+      { id: "todos", curto: "Todos", qtd: totalCoresBambu },
+      { id: "carretel", curto: "Com Bobina RFID", qtd: 10 },
+      { id: "refil", curto: "Refil s/ Bobina", qtd: 3 }
     ];
 
-    // Conteúdo da Extensão Aberta (MaxPrint vs Bambu Lab)
-    let extensaoConteudoHtml = "";
-    if (extensaoAberta) {
-      if (!isBambuAtivo) {
-        const matAtivoId = state.hubFilamentoMaterialMaxPrint || "fil-pla-maxprint";
-        const mostrarTodosMax = matAtivoId === "todos";
-        const itemAtivo =
-          window.SITE_DATA.catalogo.find((i) => i.id === matAtivoId) ||
-          window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-maxprint");
+    let barraMateriaisHtml = "";
+    let gradeCoresHtml = "";
+    let idFichaTecnicaAtiva = "fil-pla-maxprint";
 
-        const paletaAtiva = itemAtivo
-          ? obterPaletaPorChave(itemAtivo.usaCoresDinamicas, false) || []
-          : [];
-        const termoBusca = (state.busca || "").trim().toLowerCase();
-        const coresFiltradas = paletaAtiva
-          .map((cor, originalIdx) => ({ ...cor, originalIdx }))
-          .filter((cor) => {
-            if (!termoBusca) return true;
-            return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod}`
-              .toLowerCase()
-              .includes(termoBusca);
-          });
+    if (!isBambuAtivo) {
+      const matAtivoId =
+        state.hubFilamentoMaterialMaxPrint && state.hubFilamentoMaterialMaxPrint !== "todos"
+          ? state.hubFilamentoMaterialMaxPrint
+          : "fil-pla-maxprint";
+      idFichaTecnicaAtiva = matAtivoId;
 
-        const todosCardsMaxPrint = (window.SITE_DATA.catalogo || []).filter(
-          (i) => i.tipoFilamento && (i.marca === "MaxPrint" || i.marca === "Masterprint")
-        );
+      const itemAtivo =
+        window.SITE_DATA.catalogo.find((i) => i.id === matAtivoId) ||
+        window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-maxprint");
 
-        extensaoConteudoHtml = `
-          <div class="filament-ext-materials-bar" role="tablist" aria-label="Escolher material Masterprint">
-            ${materiaisMaxPrint
-              .map(
-                (m) => `
-              <button
-                type="button"
-                class="filament-ext-mat-tab ${!mostrarTodosMax && matAtivoId === m.id ? "active" : ""}"
-                data-hub-max-mat="${m.id}"
-              >
-                <strong>${m.curto}</strong>
-                <span>${m.qtdCores} cores</span>
-              </button>
-            `
-              )
-              .join("")}
+      const paletaAtiva = itemAtivo
+        ? obterPaletaPorChave(itemAtivo.usaCoresDinamicas, false) || []
+        : [];
+      const termoBusca = (state.busca || "").trim().toLowerCase();
+      const coresFiltradas = paletaAtiva
+        .map((cor, originalIdx) => ({ ...cor, originalIdx }))
+        .filter((cor) => {
+          if (!termoBusca) return true;
+          return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod}`
+            .toLowerCase()
+            .includes(termoBusca);
+        });
+
+      barraMateriaisHtml = `
+        <div class="sj-fil-line-pills" role="tablist" aria-label="Linha de filamento Masterprint">
+          ${materiaisMaxPrint
+            .map(
+              (m) => `
             <button
               type="button"
-              class="filament-ext-mat-tab ${mostrarTodosMax ? "active" : ""}"
-              data-hub-max-mat="todos"
+              class="sj-fil-line-pill ${matAtivoId === m.id ? "active" : ""}"
+              data-hub-max-mat="${m.id}"
             >
-              <strong>Todas as Linhas</strong>
-              <span>Ver resumo</span>
+              <span class="pill-name">${m.curto}</span>
+              <span class="pill-count">${m.qtdCores}</span>
             </button>
-          </div>
-
-          ${
-            mostrarTodosMax
-              ? `
-            <div class="combo-products-row" data-hub-cards-grid="1">
-              ${todosCardsMaxPrint.map((it) => gerarCardHTML(it)).join("")}
-            </div>
           `
-              : `
-            <div class="filament-ext-selected-header">
-              <div>
-                <span class="filament-ext-eyebrow">PRODUTOS MASTERPRINT</span>
-                <h3>${itemAtivo ? itemAtivo.nome : "Filamento Masterprint"}</h3>
-                <p>Escolha a cor desejada abaixo para adicionar ao pedido ou clique na foto para ver detalhes.</p>
-              </div>
-              <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="${itemAtivo ? itemAtivo.id : "fil-pla-maxprint"}">
-                Ver Ficha Técnica & Detalhes →
-              </button>
-            </div>
+            )
+            .join("")}
+        </div>
+      `;
 
-            <div class="filament-ext-colors-grid">
-              ${coresFiltradas
-                .map((cor) => {
-                  const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
-                  const isEsg = stCor === "esgotado";
-                  const isPouc = stCor === "poucas_unidades";
-                  return `
-                <article class="filament-color-tile ${isEsg ? "tile-is-esgotado" : ""}">
+      gradeCoresHtml = `
+        <div class="sj-fil-clean-grid">
+          ${coresFiltradas
+            .map((cor) => {
+              const stCor =
+                cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
+              const isEsg = stCor === "esgotado";
+              const isPouc = stCor === "poucas_unidades";
+              const nomeLimpo = formatarNomeCorClean(cor.nome, matAtivoId);
+              return `
+                <article class="filament-color-tile sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
-                    class="filament-color-tile-img"
+                    class="filament-color-tile-img sj-fil-card-media"
                     data-hub-open-color-pdp="${itemAtivo.id}"
                     data-hub-color-idx="${cor.originalIdx}"
-                    title="Clique para ampliar ${cor.nome} (CÓD. ${cor.cod})"
+                    title="Ver detalhes de ${cor.nome} (#${cor.cod})"
                   >
-                    <span class="tile-cod-badge">CÓD. ${cor.cod}</span>
+                    <span class="sj-fil-code-tag">#${cor.cod}</span>
                     ${
                       isEsg
-                        ? `<span class="card-stock-badge status-esgotado" style="top:auto; bottom:8px; left:8px;">🔴 ESGOTADO</span>`
+                        ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
                         : isPouc
-                          ? `<span class="card-stock-badge status-poucas_unidades" style="top:auto; bottom:8px; left:8px;">🟠 POUCAS UNID.</span>`
+                          ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
                           : ""
                     }
-                    <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
                     <img
                       src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem}"
                       alt="${cor.nome}"
@@ -2764,250 +2763,184 @@
                       loading="lazy"
                     />
                   </div>
-                  <div class="filament-color-tile-body">
-                    <strong
-                      class="tile-color-name"
+                  <div class="filament-color-tile-body sj-fil-card-body">
+                    <div
+                      class="sj-fil-name-row"
                       data-hub-open-color-pdp="${itemAtivo.id}"
                       data-hub-color-idx="${cor.originalIdx}"
-                    >${(cor.nome || "").replace(/\s*1kg$/i, "")}</strong>
-                    <div class="tile-price-row">
-                      <span class="tile-weight-tag">1 KG • 1.75mm</span>
-                      <strong class="tile-price-val">${cor.preco}</strong>
-                    </div>
-                    <button
-                      type="button"
-                      class="tile-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
-                      data-hub-quick-add="${itemAtivo.id}"
-                      data-hub-color-idx="${cor.originalIdx}"
-                      data-hub-brand="MaxPrint"
-                      ${isEsg ? "disabled" : ""}
                     >
-                      ${isEsg ? "🔴 Esgotado" : "+ Adicionar ao Pedido"}
-                    </button>
+                      <span class="sj-fil-dot" style="background: ${cor.hex};"></span>
+                      <strong class="tile-color-name sj-fil-name">${nomeLimpo}</strong>
+                    </div>
+                    <div class="sj-fil-card-footer">
+                      <strong class="tile-price-val sj-fil-price">${cor.preco}</strong>
+                      <button
+                        type="button"
+                        class="tile-add-btn sj-fil-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
+                        data-hub-quick-add="${itemAtivo.id}"
+                        data-hub-color-idx="${cor.originalIdx}"
+                        data-hub-brand="MaxPrint"
+                        ${isEsg ? "disabled" : ""}
+                      >
+                        ${isEsg ? "Esgotado" : "+ Adicionar"}
+                      </button>
+                    </div>
                   </div>
                 </article>
               `;
-                })
-                .join("")}
-            </div>
-          `
+            })
+            .join("")}
+        </div>
+      `;
+    } else {
+      idFichaTecnicaAtiva = "fil-pla-bambulab";
+      const itemBambu =
+        window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
+        window.SITE_DATA.catalogo[0];
+      const paletaBambu = window.SITE_DATA.coresBambuLab || [];
+      const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
+      const termoBusca = (state.busca || "").trim().toLowerCase();
+
+      const coresBambuFiltradas = paletaBambu
+        .map((cor, originalIdx) => ({ ...cor, originalIdx }))
+        .filter((cor) => {
+          const ehRefil =
+            (cor.nome || "").toLowerCase().includes("refil") ||
+            (cor.tipo || "").toLowerCase().includes("refil");
+          if (filtroBambu === "carretel" && ehRefil) return false;
+          if (filtroBambu === "refil" && !ehRefil) return false;
+          if (termoBusca) {
+            return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} bambu`
+              .toLowerCase()
+              .includes(termoBusca);
           }
-        `;
-      } else {
-        // BAMBU LAB ATIVO: Mostra todas as opções da Bambu Lab!
-        const itemBambu =
-          window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
-          window.SITE_DATA.catalogo[0];
-        const paletaBambu = window.SITE_DATA.coresBambuLab || [];
-        const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
-        const termoBusca = (state.busca || "").trim().toLowerCase();
+          return true;
+        });
 
-        const coresBambuFiltradas = paletaBambu
-          .map((cor, originalIdx) => ({ ...cor, originalIdx }))
-          .filter((cor) => {
-            const ehRefil = (cor.nome || "").toLowerCase().includes("refil") || (cor.tipo || "").toLowerCase().includes("refil");
-            if (filtroBambu === "carretel" && ehRefil) return false;
-            if (filtroBambu === "refil" && !ehRefil) return false;
-            if (termoBusca) {
-              return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} bambu`
-                .toLowerCase()
-                .includes(termoBusca);
-            }
-            return true;
-          });
-
-        extensaoConteudoHtml = `
-          <div class="filament-ext-materials-bar bambu-mode" role="tablist" aria-label="Filtrar apresentação Bambu Lab">
-            ${opcoesBambu
-              .map(
-                (op) => `
-              <button
-                type="button"
-                class="filament-ext-mat-tab ${filtroBambu === op.id ? "active" : ""}"
-                data-hub-bambu-filter="${op.id}"
-              >
-                <strong>${op.label}</strong>
-              </button>
-            `
-              )
-              .join("")}
-          </div>
-
-          <div class="filament-ext-selected-header bambu-header">
-            <div>
-              <span class="filament-ext-eyebrow">PRODUTOS BAMBU LAB</span>
-              <h3>Filamentos Bambu Lab</h3>
-              <p>Escolha a cor desejada abaixo para adicionar ao pedido ou clique na foto para ver detalhes.</p>
-            </div>
-            <button type="button" class="btn-ext-open-pdp" data-hub-open-pdp="fil-pla-bambulab">
-              Ver Ficha Técnica Bambu Lab →
+      barraMateriaisHtml = `
+        <div class="sj-fil-line-pills" role="tablist" aria-label="Apresentação Bambu Lab">
+          ${opcoesBambu
+            .map(
+              (op) => `
+            <button
+              type="button"
+              class="sj-fil-line-pill ${filtroBambu === op.id ? "active" : ""}"
+              data-hub-bambu-filter="${op.id}"
+            >
+              <span class="pill-name">${op.curto}</span>
+              <span class="pill-count">${op.qtd}</span>
             </button>
-          </div>
+          `
+            )
+            .join("")}
+        </div>
+      `;
 
-          <div class="filament-ext-colors-grid">
-            ${coresBambuFiltradas
-              .map((cor) => {
-                const ehRefil =
-                  (cor.nome || "").toLowerCase().includes("refil") ||
-                  (cor.tipo || "").toLowerCase().includes("refil");
-                const stCor = cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
-                const isEsg = stCor === "esgotado";
-                const isPouc = stCor === "poucas_unidades";
-                return `
-                  <article class="filament-color-tile bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
+      gradeCoresHtml = `
+        <div class="sj-fil-clean-grid">
+          ${coresBambuFiltradas
+            .map((cor) => {
+              const ehRefil =
+                (cor.nome || "").toLowerCase().includes("refil") ||
+                (cor.tipo || "").toLowerCase().includes("refil");
+              const stCor =
+                cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
+              const isEsg = stCor === "esgotado";
+              const isPouc = stCor === "poucas_unidades";
+              const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
+              return `
+                <article class="filament-color-tile sj-fil-card bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
+                  <div
+                    class="filament-color-tile-img sj-fil-card-media"
+                    data-hub-open-color-pdp="fil-pla-bambulab"
+                    data-hub-color-idx="${cor.originalIdx}"
+                    title="Ver detalhes de ${cor.nome} (#${cor.cod})"
+                  >
+                    <span class="sj-fil-code-tag">#${cor.cod}</span>
+                    <span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${
+                      ehRefil ? "Refil" : "Bobina RFID"
+                    }</span>
+                    ${
+                      isEsg
+                        ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
+                        : isPouc
+                          ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
+                          : ""
+                    }
+                    <img
+                      src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
+                      alt="${cor.nome}"
+                      style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
+                      loading="lazy"
+                    />
+                  </div>
+                  <div class="filament-color-tile-body sj-fil-card-body">
                     <div
-                      class="filament-color-tile-img"
+                      class="sj-fil-name-row"
                       data-hub-open-color-pdp="fil-pla-bambulab"
                       data-hub-color-idx="${cor.originalIdx}"
-                      title="Clique para ampliar ${cor.nome} (CÓD. ${cor.cod})"
                     >
-                      <span class="tile-cod-badge">CÓD. ${cor.cod}</span>
-                      <span class="tile-rfid-badge ${ehRefil ? "is-refil" : ""}">${
-                  ehRefil ? "Refil RFID" : "Carretel RFID"
-                }</span>
-                      ${
-                        isEsg
-                          ? `<span class="card-stock-badge status-esgotado" style="top:auto; bottom:8px; left:8px;">🔴 ESGOTADO</span>`
-                          : isPouc
-                            ? `<span class="card-stock-badge status-poucas_unidades" style="top:auto; bottom:8px; left:8px;">🟠 POUCAS UNID.</span>`
-                            : ""
-                      }
-                      <span class="tile-hex-dot" style="background: ${cor.hex};"></span>
-                      <img
-                        src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
-                        alt="${cor.nome}"
-                        style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
-                        loading="lazy"
-                      />
+                      <span class="sj-fil-dot" style="background: ${cor.hex};"></span>
+                      <strong class="tile-color-name sj-fil-name">${nomeLimpo}</strong>
                     </div>
-                    <div class="filament-color-tile-body">
-                      <strong
-                        class="tile-color-name"
-                        data-hub-open-color-pdp="fil-pla-bambulab"
-                        data-hub-color-idx="${cor.originalIdx}"
-                      >${(cor.nome || "").replace(/\s*1kg$/i, "")}</strong>
-                      <div class="tile-price-row">
-                        <span class="tile-weight-tag">${ehRefil ? "1 KG Refil RFID" : "1 KG c/ Bobina"}</span>
-                        <strong class="tile-price-val">${cor.preco}</strong>
-                      </div>
+                    <div class="sj-fil-card-footer">
+                      <strong class="tile-price-val sj-fil-price">${cor.preco}</strong>
                       <button
                         type="button"
-                        class="tile-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
+                        class="tile-add-btn sj-fil-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
                         data-hub-quick-add="fil-pla-bambulab"
                         data-hub-color-idx="${cor.originalIdx}"
                         data-hub-brand="Bambu Lab"
                         ${isEsg ? "disabled" : ""}
                       >
-                        ${isEsg ? "🔴 Esgotado" : "+ Adicionar ao Pedido"}
+                        ${isEsg ? "Esgotado" : "+ Adicionar"}
                       </button>
                     </div>
-                  </article>
-                `;
-              })
-              .join("")}
-          </div>
-        `;
-      }
+                  </div>
+                </article>
+              `;
+            })
+            .join("")}
+        </div>
+      `;
     }
 
     return `
-      <div class="filament-brand-hub-wrapper" data-filament-hub="${contexto}">
-        <!-- 1. DOIS CARDS LIMPOS DE ESCOLHA DA MARCA (MASTERPRINT vs BAMBU LAB) -->
-        <div class="filament-brand-portals-grid">
-          <!-- CARD MARCA 1: MASTERPRINT -->
-          <div
-            class="filament-brand-portal-card portal-maxprint ${extensaoAberta && !isBambuAtivo ? "active-portal" : ""}"
-            data-hub-select-brand="MaxPrint"
-          >
-            <div class="portal-card-top">
-              <div class="portal-img-box">
-                <img src="assets/produtos/pla-maxprint.jpg" alt="Produtos Masterprint" loading="lazy" />
-              </div>
-              <div class="portal-head-info">
-                <span class="portal-eyebrow-pill">PRODUTOS MASTERPRINT</span>
-                <h3>Masterprint</h3>
-                <p>Ver todos os filamentos e cores da marca Masterprint.</p>
-              </div>
+      <div class="filament-brand-hub-wrapper sj-fil-studio" data-filament-hub="${contexto}" id="filament-ext-box-${contexto}">
+        <div class="sj-fil-studio-bar">
+          <div class="sj-fil-bar-top">
+            <div class="sj-fil-brand-segmented" role="tablist" aria-label="Marca de filamento">
+              <button
+                type="button"
+                class="sj-fil-brand-btn ${!isBambuAtivo ? "active" : ""}"
+                data-hub-select-brand="MaxPrint"
+              >
+                <strong>Masterprint</strong>
+                <span>${totalCoresMaxPrint} cores</span>
+              </button>
+              <button
+                type="button"
+                class="sj-fil-brand-btn is-bambu ${isBambuAtivo ? "active" : ""}"
+                data-hub-select-brand="Bambu Lab"
+              >
+                <span class="sj-rfid-tag">RFID</span>
+                <strong>Bambu Lab</strong>
+                <span>${totalCoresBambu} cores</span>
+              </button>
             </div>
 
-            <div class="portal-card-footer">
-              <button type="button" class="portal-cta-btn" data-hub-select-brand="MaxPrint">
-                ${
-                  extensaoAberta && !isBambuAtivo
-                    ? "✓ Visualizando Produtos Masterprint"
-                    : "Escolher Masterprint →"
-                }
+            <div class="sj-fil-bar-meta">
+              <span class="sj-fil-spec-pill">Bobina 1 kg • 1.75 mm</span>
+              <button type="button" class="sj-fil-pdp-link" data-hub-open-pdp="${idFichaTecnicaAtiva}">
+                📄 Ficha Técnica →
               </button>
             </div>
           </div>
 
-          <!-- CARD MARCA 2: BAMBU LAB -->
-          <div
-            class="filament-brand-portal-card portal-bambu ${extensaoAberta && isBambuAtivo ? "active-portal" : ""}"
-            data-hub-select-brand="Bambu Lab"
-          >
-            <div class="portal-card-top">
-              <div class="portal-img-box">
-                <img src="assets/produtos/pla-bambulab.jpg" alt="Produtos Bambu Lab" loading="lazy" />
-              </div>
-              <div class="portal-head-info">
-                <span class="portal-eyebrow-pill bambu-pill">PRODUTOS BAMBU LAB</span>
-                <h3>Bambu Lab</h3>
-                <p>Ver todos os filamentos e cores originais da marca Bambu Lab.</p>
-              </div>
-            </div>
-
-            <div class="portal-card-footer">
-              <button type="button" class="portal-cta-btn bambu-cta" data-hub-select-brand="Bambu Lab">
-                ${
-                  extensaoAberta && isBambuAtivo
-                    ? "✓ Visualizando Produtos Bambu Lab"
-                    : "Escolher Bambu Lab →"
-                }
-              </button>
-            </div>
-          </div>
+          ${barraMateriaisHtml}
         </div>
 
-        <!-- 2. EXTENSÃO COMPLETA (ABRE AO CLICAR EM MASTERPRINT OU BAMBU LAB) -->
-        ${
-          extensaoAberta
-            ? `
-          <div class="filament-brand-extension-box" id="filament-ext-box-${contexto}">
-            <div class="filament-ext-top-switcher">
-              <div class="filament-ext-brand-tabs">
-                <span class="filament-ext-switch-label">Marca selecionada:</span>
-                <button
-                  type="button"
-                  class="ext-brand-switch-btn ${!isBambuAtivo ? "active" : ""}"
-                  data-hub-select-brand="MaxPrint"
-                >
-                  Produtos Masterprint
-                </button>
-                <button
-                  type="button"
-                  class="ext-brand-switch-btn ${isBambuAtivo ? "active" : ""}"
-                  data-hub-select-brand="Bambu Lab"
-                >
-                  Produtos Bambu Lab
-                </button>
-              </div>
-              ${
-                isHome
-                  ? `
-                <button type="button" class="ext-collapse-btn" data-hub-collapse-home="1">
-                  ✕ Fechar
-                </button>
-              `
-                  : ""
-              }
-            </div>
-
-            ${extensaoConteudoHtml}
-          </div>
-        `
-            : ""
-        }
+        ${gradeCoresHtml}
       </div>
     `;
   }
@@ -3181,23 +3114,18 @@
 
         if (itensSecao.length === 0) return "";
 
-        // Se for a seção de Filamentos, renderiza o Hub Organizado por Marca (Masterprint vs Bambu Lab + Extensão Completa)
+        // Se for a seção de Filamentos, renderiza o Studio Clean de Filamentos
         if (sec.id === "filamentos") {
           return `
             <section class="category-section-block" id="sec-filamentos">
               <div class="category-section-header">
                 <h2>${sec.titulo}</h2>
-                <div class="category-header-right">
-                  <span>Escolha a marca: Masterprint ou Bambu Lab</span>
-                </div>
               </div>
               ${gerarHubFilamentosHtml("catalogo")}
             </section>
           `;
         }
 
-        const sorteioBannerHtml =
-          sec.id === "impressoras" ? gerarBannerPromocionalSecaoHtml() : "";
         const btnCompararHtml =
           sec.id === "impressoras"
             ? `<button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
@@ -3215,7 +3143,6 @@
             <div class="combo-products-row">
               ${itensSecao.map((item) => gerarCardHTML(item)).join("")}
             </div>
-            ${sorteioBannerHtml}
           </section>
         `;
       })
@@ -4108,21 +4035,18 @@
         </div>
       </div>
 
-      <!-- 5. VITRINE ORGANIZADA DE FILAMENTOS: SEPARAÇÃO DESTACADA MASTERPRINT vs BAMBU LAB + EXTENSÃO COMPLETA -->
+      <!-- 5. STUDIO CLEAN DE FILAMENTOS (MASTERPRINT & BAMBU LAB RFID) -->
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
             <span class="home-eyebrow">FILAMENTOS 3D</span>
-            <h2>Escolha a Marca: Masterprint ou Bambu Lab</h2>
+            <h2>Catálogo de Cores & Linhas</h2>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Abrir Catálogo de Filamentos →</button>
+          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Ver em Tela Cheia →</button>
         </div>
 
         ${gerarHubFilamentosHtml("home")}
       </div>
-
-      <!-- 6. BANNER ÚNICO E CLEAN DO SORTEIO / PROMOÇÃO NO FECHAMENTO DA CAPA -->
-      ${gerarBannerPromocionalSecaoHtml()}
     `;
 
     // Botão Admin Rápido nos banners da Home
@@ -4436,8 +4360,7 @@
       const seletorMarcaHtml = `
         <div class="pdp-option-group">
           <div class="pdp-option-header">
-            <span>Marca do Filamento:</span>
-            <strong>${isBambu ? "Bambu Lab (RFID Original)" : "Masterprint"}</strong>
+            <span>Marca:</span>
           </div>
           <div class="pdp-pills-wrap pdp-brand-switch-row">
             <button type="button" class="pdp-pill-btn ${!isBambu ? "active" : ""}" data-pdp-switch-brand="MaxPrint" title="Filamentos Masterprint">
@@ -4457,94 +4380,57 @@
         seletorMaterialHtml = `
           <div class="pdp-option-group">
             <div class="pdp-option-header">
-              <span>Tipo / Material (Masterprint):</span>
-              <strong>${
-                item.id === "fil-pla-maxprint"
-                  ? "PLA (40 Cores)"
-                  : item.id === "fil-silk-maxprint"
-                  ? "PLA Silk Metalizado (21 Cores)"
-                  : item.id === "fil-petg-maxprint"
-                  ? "PETG Alta Resistência (19 Cores)"
-                  : item.id === "fil-tpu-maxprint"
-                  ? "TPU Flexível 95A (5 Cores)"
-                  : "ABS & Especiais Glitter (6 Cores)"
-              }</strong>
+              <span>Material:</span>
             </div>
             <div class="pdp-pills-wrap pdp-material-switch-row">
               <button type="button" class="pdp-pill-btn ${item.id === "fil-pla-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-pla-maxprint" title="Filamento PLA 1kg">
-                <span>PLA (40 Cores)</span>
+                <span>PLA (40)</span>
               </button>
               <button type="button" class="pdp-pill-btn ${item.id === "fil-silk-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-silk-maxprint" title="Filamento PLA Silk Metalizado 1kg">
-                <span>PLA Silk (21 Cores)</span>
+                <span>PLA Silk (21)</span>
               </button>
               <button type="button" class="pdp-pill-btn ${item.id === "fil-petg-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-petg-maxprint" title="Filamento PETG 1kg">
-                <span>PETG (19 Cores)</span>
+                <span>PETG (19)</span>
               </button>
               <button type="button" class="pdp-pill-btn ${item.id === "fil-tpu-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-tpu-maxprint" title="Filamento TPU Flexível 95A 1kg">
-                <span>TPU 95A (5 Cores)</span>
+                <span>TPU Flex (5)</span>
               </button>
               <button type="button" class="pdp-pill-btn ${item.id === "fil-abs-especiais" ? "active" : ""}" data-pdp-switch-item="fil-abs-especiais" title="Filamento ABS e Glitter 1kg">
-                <span>ABS & Glitter (6 Cores)</span>
+                <span>ABS & Glitter (6)</span>
               </button>
             </div>
           </div>
         `;
       } else {
-        seletorMaterialHtml = `
-          <div class="pdp-option-group">
-            <div class="pdp-option-header">
-              <span>Tipo / Linha (Bambu Lab):</span>
-              <strong>PLA Basic & Matte RFID (13 Cores)</strong>
-            </div>
-            <div class="pdp-pills-wrap pdp-material-switch-row">
-              <button type="button" class="pdp-pill-btn active" data-pdp-switch-item="fil-pla-bambulab" title="PLA Bambu Lab Original">
-                <span class="brand-pill-badge">RFID</span>
-                <span>PLA Bambu Lab (13 Opções)</span>
-              </button>
-            </div>
-          </div>
-        `;
+        seletorMaterialHtml = "";
       }
 
       seletorLinhasFilamentoHtml = seletorMarcaHtml + seletorMaterialHtml;
 
-      // Grupo C: Apresentação (Padrão 1KG para MaxPrint, Carretel/Refil para Bambu Lab)
+      // Grupo C: Apresentação (Somente para Bambu Lab que possui Carretel vs Refil)
       if (!isBambu) {
-        seletor1Html = `
-          <div class="pdp-option-group">
-            <div class="pdp-option-header">
-              <span>Apresentação / Peso:</span>
-              <strong id="pdp-sel1-label">1KG Carretel Padrão (1.75 mm)</strong>
-            </div>
-            <div class="pdp-pills-wrap">
-              <button type="button" class="pdp-pill-btn active pdp-pill-static">
-                ✓ 1KG Carretel Padrão (1.75 mm)
-              </button>
-            </div>
-          </div>
-        `;
+        seletor1Html = "";
       } else {
         seletor1Html = `
           <div class="pdp-option-group">
             <div class="pdp-option-header">
               <span>Apresentação RFID:</span>
-              <strong id="pdp-sel1-label">${opcao1Ativa}</strong>
             </div>
             <div class="pdp-pills-wrap" id="pdp-sel1-pills">
               <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
-                1KG Carretel RFID (R$ 99,90)
+                Com Bobina RFID (R$ 99,90)
               </button>
               <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Refil") ? "active" : ""}" data-pdp-sel1="1KG Refil RFID">
-                1KG Refil RFID (R$ 79,90)
+                Refil s/ Bobina (R$ 79,90)
               </button>
             </div>
           </div>
         `;
       }
     } else {
-      // Para produtos normais (impressoras, peças, etc.)
+      // Para produtos normais (impressoras, peças, etc.) — oculta se tiver apenas 1 opção "Padrão"
       seletor1Html =
-        opcoesSelect1 && opcoesSelect1.length > 0
+        opcoesSelect1 && opcoesSelect1.length > 1
           ? `
             <div class="pdp-option-group">
               <div class="pdp-option-header">
@@ -4567,14 +4453,14 @@
           : "";
     }
 
-    // Seletor 2 (Paleta de Cores Circular com Nome Instantâneo no Hover OU Opções do Produto)
+    // Seletor 2 (Paleta de Cores Circular Clean sem repetir dropdown abaixo)
     const seletor2Html =
       item.tipoFilamento && listaCores
         ? `
           <div class="pdp-option-group">
             <div class="pdp-option-header pdp-color-option-header">
               <div class="pdp-color-label-left">
-                <span>Cores ${item.nome.replace("Filamento ", "").replace(" — 1.75mm (1 kg)", "")} (${listaCores.length} opções):</span>
+                <span>Escolha a Cor (${listaCores.length}):</span>
               </div>
               <div class="pdp-color-name-highlight" id="pdp-color-name-highlight">
                 <span class="pdp-color-dot-indicator" id="pdp-color-dot-indicator" style="background-color: ${corAtiva.hex};"></span>
@@ -4591,20 +4477,20 @@
                     class="pdp-swatch-circle ${idx === idxCorAtiva ? "active" : ""}"
                     style="background-color: ${cor.hex};"
                     data-pdp-color-idx="${idx}"
-                    data-tooltip="${cor.nome} • CÓD. ${cor.cod} (${cor.preco})"
+                    data-tooltip="${cor.nome} • #${cor.cod} (${cor.preco})"
                     data-nome="${cor.nome}"
                     data-cod="${cor.cod}"
                     data-preco="${cor.preco}"
                     data-hex="${cor.hex}"
-                    title="${cor.nome} — CÓD. ${cor.cod} (${cor.preco})"
-                    aria-label="${cor.nome} — CÓD. ${cor.cod}"
+                    title="${cor.nome} — #${cor.cod} (${cor.preco})"
+                    aria-label="${cor.nome} — #${cor.cod}"
                   ></button>
                 `
           )
           .join("")}
             </div>
 
-            <select class="pdp-color-dropdown" id="pdp-color-dropdown" aria-label="Lista completa de cores e códigos">
+            <select class="pdp-color-dropdown" id="pdp-color-dropdown" aria-label="Lista completa de cores e códigos" style="display: none;">
               ${listaCores
           .map(
             (cor, idx) => `
@@ -4617,7 +4503,7 @@
             </select>
           </div>
         `
-        : item.select2Opcoes
+        : item.select2Opcoes && item.select2Opcoes.length > 1
           ? `
           <div class="pdp-option-group">
             <div class="pdp-option-header">

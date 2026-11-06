@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_8" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_9" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -241,26 +241,13 @@
 
       <!-- COLUNA ESQUERDA: BARRA DE FILTROS + SEÇÕES DO CATÁLOGO -->
       <div>
-        <!-- Barra de Controle Unificada de Filamentos & Busca Inteligente (UI/UX Pro Max) -->
-        <div id="filament-top-controls" class="catalog-ux-toolbar" role="region" aria-label="Filtros e Busca do Catálogo">
-          <div class="brand-selector-left">
-            <div class="brand-selector-label-wrap">
-              <svg class="brand-filter-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon>
-              </svg>
-              <span class="brand-selector-label">Marca de Filamento:</span>
-            </div>
+        <!-- Barra de Busca Rápida do Catálogo (Clean UX) -->
+        <div id="filament-top-controls" class="catalog-ux-toolbar only-search" role="region" aria-label="Busca do Catálogo">
+          <div class="brand-selector-left" style="display: none;">
             <div class="brand-buttons-group" role="group" aria-label="Filtrar marca de filamento">
-              <button type="button" class="brand-filter-btn active" data-filament-brand="todos" title="Mostrar todas as marcas">
-                <span>Todas<span class="hide-mobile"> as Marcas</span></span>
-              </button>
-              <button type="button" class="brand-filter-btn" data-filament-brand="Bambu Lab" title="Filtrar apenas filamentos Bambu Lab com chip RFID">
-                <span class="brand-pill-badge">RFID</span>
-                <span>Bambu Lab</span>
-              </button>
-              <button type="button" class="brand-filter-btn" data-filament-brand="MaxPrint" title="Filtrar filamentos Masterprint">
-                <span>Masterprint</span>
-              </button>
+              <button type="button" class="brand-filter-btn active" data-filament-brand="todos">Todas</button>
+              <button type="button" class="brand-filter-btn" data-filament-brand="Bambu Lab">Bambu Lab</button>
+              <button type="button" class="brand-filter-btn" data-filament-brand="MaxPrint">Masterprint</button>
             </div>
           </div>
 
@@ -269,7 +256,7 @@
               <circle cx="11" cy="11" r="8"></circle>
               <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
             </svg>
-            <input type="search" id="inline-search-input" placeholder="Filtrar cor (ex: Preto, Silk), CÓD. ou modelo..." aria-label="Filtrar produtos do catálogo" autocomplete="off" />
+            <input type="search" id="inline-search-input" placeholder="Buscar por cor (ex: Preto, Silk), código (#34) ou modelo..." aria-label="Filtrar produtos do catálogo" autocomplete="off" />
             <button type="button" id="inline-search-clear-btn" class="inline-search-clear-btn" aria-label="Limpar busca" title="Limpar busca" style="display: none;">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
                 <line x1="18" y1="6" x2="6" y2="18"></line>
@@ -2056,10 +2043,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_8"></script>
-  <script src="js/dados.js?v=20261106_8"></script>
-  <script src="js/database.js?v=20261106_8"></script>
-  <script src="js/app.js?v=20261106_8"></script>
+  <script src="js/supabase-client.js?v=20261106_9"></script>
+  <script src="js/dados.js?v=20261106_9"></script>
+  <script src="js/database.js?v=20261106_9"></script>
+  <script src="js/app.js?v=20261106_9"></script>
 </body>
 
 </html>
