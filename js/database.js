@@ -37,17 +37,21 @@
       ? JSON.parse(JSON.stringify(window.SITE_DATA))
       : null;
 
-  // Usuário padrão inicial caso a base local esteja vazia
+  const ADMIN_MASTER_EMAIL = "jt.designer21@gmail.com";
+
+  // Administrador Oficial Master da Loja SJ 3D
   const USUARIO_PADRAO = {
-    id: "usr-admin-1",
-    nome: "Thiago Novais",
-    email: "contato@gruposj.com.br",
-    senhaHash: "123456",
-    cargo: "Administrador / Vendedor",
+    id: "usr-admin-master",
+    nome: "Thiago Novais (Admin Oficial)",
+    email: ADMIN_MASTER_EMAIL,
+    senhaHash: "@Metallica1984",
+    cargo: "Administrador Oficial",
     tipo: "operador",
+    status: "aprovado",
+    isMaster: true,
     foto: null,
     ativo: true,
-    criadoEm: "2026-11-04T12:00:00.000Z"
+    criadoEm: "2026-11-06T00:00:00.000Z"
   };
 
   const CLIENTES_PADRAO = [
@@ -58,7 +62,7 @@
       endereco: "Avenida Portugal, 6759",
       bairroCidadeUf: "Zona 1A - Umuarama/PR",
       cepTelefone: "(44) 99135-1318",
-      email: "contato@gruposj.com.br"
+      email: "jt.designer21@gmail.com"
     }
   ];
 
@@ -94,12 +98,48 @@
     return false;
   }
 
+  function normalizarListaUsuarios(lista) {
+    let usuarios = Array.isArray(lista) ? lista : [];
+    // Remove o antigo usuário padrão de demonstração (contato@gruposj.com.br / 123456)
+    usuarios = usuarios.filter(
+      (u) => u && u.id !== "usr-admin-1" && String(u.email || "").toLowerCase() !== "contato@gruposj.com.br"
+    );
+
+    const idxMaster = usuarios.findIndex(
+      (u) => String(u.email || "").toLowerCase() === ADMIN_MASTER_EMAIL
+    );
+
+    if (idxMaster === -1) {
+      usuarios.unshift({ ...USUARIO_PADRAO });
+    } else {
+      usuarios[idxMaster] = {
+        ...USUARIO_PADRAO,
+        ...usuarios[idxMaster],
+        email: ADMIN_MASTER_EMAIL,
+        senhaHash: usuarios[idxMaster].senhaHash || USUARIO_PADRAO.senhaHash,
+        status: "aprovado",
+        isMaster: true,
+        ativo: true
+      };
+    }
+
+    return usuarios.map((u) => {
+      const ehMaster = String(u.email || "").toLowerCase() === ADMIN_MASTER_EMAIL;
+      const status = ehMaster ? "aprovado" : (u.status || (u.ativo ? "aprovado" : "pendente"));
+      return {
+        ...u,
+        status,
+        isMaster: ehMaster,
+        ativo: status === "aprovado"
+      };
+    });
+  }
+
   // Inicializa tabelas locais se estiverem vazias
   function inicializarTabelas() {
-    const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, null);
-    if (!usuarios || !Array.isArray(usuarios) || usuarios.length === 0) {
-      gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]);
-    }
+    const usuariosBrutos = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, null);
+    const usuariosNormalizados = normalizarListaUsuarios(usuariosBrutos);
+    gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, usuariosNormalizados);
 
     const clientes = lerLocal(STORAGE_KEYS.CLIENTES_TABELA, null);
     if (!clientes || !Array.isArray(clientes)) {
@@ -111,8 +151,29 @@
       gravarLocal(STORAGE_KEYS.ORCAMENTOS_TABELA, []);
     }
 
-    // Carrega sessão ativa
-    state.usuarioAtual = lerLocal(STORAGE_KEYS.USUARIO_ATIVO, null);
+    // Carrega sessão ativa e valida se ainda é um administrador aprovado
+    const sessaoSalva = lerLocal(STORAGE_KEYS.USUARIO_ATIVO, null);
+    if (sessaoSalva && sessaoSalva.email) {
+      const emailSessao = String(sessaoSalva.email).toLowerCase();
+      const encontrado = usuariosNormalizados.find(
+        (u) => String(u.email || "").toLowerCase() === emailSessao
+      );
+      if (encontrado && encontrado.status === "aprovado" && encontrado.ativo) {
+        state.usuarioAtual = {
+          ...sessaoSalva,
+          status: "aprovado",
+          isMaster: encontrado.isMaster,
+          ehEquipe: true
+        };
+      } else {
+        state.usuarioAtual = null;
+        if (typeof window !== "undefined" && window.localStorage) {
+          window.localStorage.removeItem(STORAGE_KEYS.USUARIO_ATIVO);
+        }
+      }
+    } else {
+      state.usuarioAtual = null;
+    }
   }
 
   // Notifica ouvintes de mudança na autenticação
@@ -249,50 +310,105 @@
       return { sucesso: true, usuario: state.usuarioAtual };
     },
 
-    // Login corporativo com E-mail e Senha (Supabase Auth com fallback local)
+    // Sincronização em nuvem da lista de administradores/solicitações via Supabase (quando conectado)
+    sincronizarEquipeNuvem: async function (listaSalvar = null) {
+      try {
+        if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
+          return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+        }
+        const supa = window.SJ_SUPABASE.getClient();
+        if (!supa) return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+
+        if (Array.isArray(listaSalvar)) {
+          const norm = normalizarListaUsuarios(listaSalvar);
+          gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, norm);
+          await supa.from("configuracoes_site").upsert(
+            {
+              chave: "equipe_admin_v1",
+              valor: { usuarios: norm },
+              atualizado_em: new Date().toISOString()
+            },
+            { onConflict: "chave" }
+          );
+          return norm;
+        } else {
+          const { data, error } = await supa
+            .from("configuracoes_site")
+            .select("valor")
+            .eq("chave", "equipe_admin_v1")
+            .maybeSingle();
+
+          const local = normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+          if (!error && data && data.valor && Array.isArray(data.valor.usuarios)) {
+            const nuvem = data.valor.usuarios;
+            // Mescla usuários da nuvem com os locais preservando todos os registros
+            const mapa = new Map();
+            local.forEach((u) => mapa.set(String(u.email || "").toLowerCase(), u));
+            nuvem.forEach((u) => {
+              const em = String(u.email || "").toLowerCase();
+              if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...u });
+            });
+            const mesclado = normalizarListaUsuarios(Array.from(mapa.values()));
+            gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, mesclado);
+            return mesclado;
+          }
+          return local;
+        }
+      } catch (_) {
+        return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+      }
+    },
+
+    // Login Administrativo Exclusivo na Área Restrita (E-mail e Senha)
     loginEmail: async function (email, senha) {
       const emailLimpo = (email || "").toLowerCase().trim();
       const senhaLimpa = (senha || "").trim();
 
       if (!emailLimpo || !senhaLimpa) {
-        return { sucesso: false, mensagem: "Informe o e-mail e a senha de acesso." };
+        return { sucesso: false, mensagem: "Informe o e-mail e a senha de acesso administrativo." };
       }
 
-      // 1. Tenta autenticar primeiro no Supabase se configurado
-      if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
-        const resSupa = await window.SJ_SUPABASE.auth.loginEmail(emailLimpo, senhaLimpa);
-        if (resSupa.sucesso) {
-          state.usuarioAtual = resSupa.usuario;
-          gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
-          notificarAuth();
-          return resSupa;
-        }
-        if (!resSupa.fallback) {
-          return resSupa;
-        }
-      }
-
-      // 2. Validação local / Fallback
-      const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]);
-      const user = usuarios.find((u) => u.email.toLowerCase() === emailLimpo);
+      const usuarios = await auth.sincronizarEquipeNuvem();
+      const user = usuarios.find((u) => String(u.email || "").toLowerCase() === emailLimpo);
 
       if (!user) {
-        return { sucesso: false, mensagem: "E-mail ou senha incorretos." };
+        return {
+          sucesso: false,
+          mensagem: "Este e-mail não possui acesso à Área Restrita. Use a aba 'Solicitar Autorização' para enviar um pedido ao Administrador Oficial."
+        };
       }
 
-      if (user.senhaHash && user.senhaHash !== senhaLimpa) {
-        return { sucesso: false, mensagem: "E-mail ou senha incorretos." };
+      if (user.status === "pendente") {
+        return {
+          sucesso: false,
+          mensagem: `⏳ Solicitação em análise! O e-mail ${emailLimpo} aguarda liberação do Administrador Oficial (${ADMIN_MASTER_EMAIL}).`
+        };
+      }
+
+      if (user.status === "bloqueado" || user.ativo === false) {
+        return {
+          sucesso: false,
+          mensagem: "🚫 Acesso bloqueado pelo Administrador Oficial da Loja SJ 3D."
+        };
+      }
+
+      if (user.senhaHash !== senhaLimpa) {
+        return { sucesso: false, mensagem: "Senha administrativa incorreta." };
       }
 
       user.ultimoLogin = new Date().toISOString();
-      gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, usuarios);
+      await auth.sincronizarEquipeNuvem(usuarios);
 
+      const ehMaster = emailLimpo === ADMIN_MASTER_EMAIL;
       state.usuarioAtual = {
         id: user.id,
         nome: user.nome,
         email: user.email,
-        cargo: user.cargo || "Vendedor",
-        tipo: user.tipo || "operador",
+        cargo: ehMaster ? "Administrador Oficial" : (user.cargo || "Administrador Autorizado"),
+        tipo: "operador",
+        status: "aprovado",
+        isMaster: ehMaster,
+        ehEquipe: true,
         foto: user.foto || null,
         ultimoLogin: user.ultimoLogin
       };
@@ -300,99 +416,165 @@
       gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
       notificarAuth();
 
-      // Notifica server se conectado
-      chamarApiOuLocal("/api/auth/login", {
-        method: "POST",
-        body: JSON.stringify({ email: emailLimpo, senha: senhaLimpa })
-      }, () => state.usuarioAtual);
-
       return { sucesso: true, usuario: state.usuarioAtual };
     },
 
-    // Cadastro de Novo Vendedor / Operador (Supabase Auth com fallback local)
-    registrar: async function ({ nome, email, senha, cargo = "Vendedor" }) {
+    // Solicitação de Autorização para ser Administrador (Fica PENDENTE até o Admin Master liberar)
+    registrar: async function ({ nome, email, senha, cargo = "Administrador Autorizado", motivo = "" }) {
       const nomeLimpo = (nome || "").trim();
       const emailLimpo = (email || "").toLowerCase().trim();
       const senhaLimpa = (senha || "").trim();
 
       if (!nomeLimpo || !emailLimpo || !senhaLimpa) {
-        return { sucesso: false, mensagem: "Preencha todos os campos obrigatórios." };
+        return { sucesso: false, mensagem: "Preencha nome, e-mail e a senha desejada." };
       }
 
-      if (senhaLimpa.length < 6) {
-        return { sucesso: false, mensagem: "A senha deve ter no mínimo 6 caracteres." };
+      if (senhaLimpa.length < 4) {
+        return { sucesso: false, mensagem: "A senha deve ter no mínimo 4 caracteres." };
       }
 
-      // 1. Tenta cadastrar no Supabase se configurado
-      if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
-        const resSupa = await window.SJ_SUPABASE.auth.registrar({
-          nome: nomeLimpo,
-          email: emailLimpo,
-          password: senhaLimpa,
-          cargo: cargo
-        });
-        if (resSupa.sucesso) {
-          if (resSupa.usuario) {
-            state.usuarioAtual = resSupa.usuario;
-            gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
-            notificarAuth();
-          }
-          return resSupa;
-        }
-        if (!resSupa.fallback) {
-          return resSupa;
-        }
-      }
+      const usuarios = await auth.sincronizarEquipeNuvem();
+      const existente = usuarios.find((u) => String(u.email || "").toLowerCase() === emailLimpo);
 
-      // 2. Fallback Local
-      const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, []);
-      const existente = usuarios.find((u) => u.email.toLowerCase() === emailLimpo);
       if (existente) {
-        return { sucesso: false, mensagem: "Já existe um vendedor cadastrado com este e-mail." };
+        if (existente.status === "pendente") {
+          return {
+            sucesso: false,
+            mensagem: "Já existe uma solicitação pendente para este e-mail. Aguarde a liberação do Administrador Oficial."
+          };
+        }
+        if (existente.status === "bloqueado") {
+          return {
+            sucesso: false,
+            mensagem: "Este e-mail foi bloqueado pelo Administrador Oficial."
+          };
+        }
+        return {
+          sucesso: false,
+          mensagem: "Este e-mail já está autorizado! Utilize a aba 'Login Administrador' para entrar."
+        };
       }
 
-      const novoUsuario = {
-        id: "usr-" + Date.now(),
+      const novaSolicitacao = {
+        id: "usr-req-" + Date.now(),
         nome: nomeLimpo,
         email: emailLimpo,
         senhaHash: senhaLimpa,
-        cargo: cargo,
+        cargo: cargo || "Administrador Autorizado",
+        motivo: (motivo || "").trim(),
         tipo: "operador",
+        status: "pendente",
+        isMaster: false,
         foto: null,
-        ativo: true,
+        ativo: false,
         criadoEm: new Date().toISOString(),
-        ultimoLogin: new Date().toISOString()
+        ultimoLogin: null
       };
 
-      usuarios.push(novoUsuario);
-      gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, usuarios);
+      usuarios.push(novaSolicitacao);
+      await auth.sincronizarEquipeNuvem(usuarios);
 
-      state.usuarioAtual = {
-        id: novoUsuario.id,
-        nome: novoUsuario.nome,
-        email: novoUsuario.email,
-        cargo: novoUsuario.cargo,
-        tipo: novoUsuario.tipo,
-        foto: null,
-        ultimoLogin: novoUsuario.ultimoLogin
+      return {
+        sucesso: true,
+        pendente: true,
+        usuario: {
+          id: novaSolicitacao.id,
+          nome: novaSolicitacao.nome,
+          email: novaSolicitacao.email,
+          cargo: novaSolicitacao.cargo,
+          status: "pendente"
+        },
+        mensagem: `✅ Solicitação enviada com sucesso! O Administrador Oficial (${ADMIN_MASTER_EMAIL}) receberá o aviso no painel da Área Restrita para liberar seu acesso.`
       };
-
-      gravarLocal(STORAGE_KEYS.USUARIO_ATIVO, state.usuarioAtual);
-      notificarAuth();
-
-      chamarApiOuLocal("/api/auth/register", {
-        method: "POST",
-        body: JSON.stringify(novoUsuario)
-      }, () => state.usuarioAtual);
-
-      return { sucesso: true, usuario: state.usuarioAtual };
     },
 
-    // Encerra a sessão
-    logout: async function () {
-      if (typeof window !== "undefined" && window.SJ_SUPABASE) {
-        await window.SJ_SUPABASE.auth.logout();
+    // Aprovar (Liberar) ou Bloquear um usuário no painel do Administrador
+    alterarStatusUsuario: async function (idOuEmail, novoStatus) {
+      const alvo = String(idOuEmail || "").toLowerCase().trim();
+      const usuarios = await auth.sincronizarEquipeNuvem();
+      const idx = usuarios.findIndex(
+        (u) => String(u.id || "").toLowerCase() === alvo || String(u.email || "").toLowerCase() === alvo
+      );
+
+      if (idx === -1) {
+        return { sucesso: false, mensagem: "Usuário não encontrado." };
       }
+
+      if (String(usuarios[idx].email || "").toLowerCase() === ADMIN_MASTER_EMAIL) {
+        return { sucesso: false, mensagem: "O Administrador Oficial Master não pode ser bloqueado." };
+      }
+
+      usuarios[idx].status = novoStatus;
+      usuarios[idx].ativo = novoStatus === "aprovado";
+      usuarios[idx].atualizadoEm = new Date().toISOString();
+
+      await auth.sincronizarEquipeNuvem(usuarios);
+      return {
+        sucesso: true,
+        usuario: usuarios[idx],
+        mensagem:
+          novoStatus === "aprovado"
+            ? `✅ Acesso administrativo LIBERADO para ${usuarios[idx].email}!`
+            : `🚫 Acesso administrativo BLOQUEADO para ${usuarios[idx].email}.`
+      };
+    },
+
+    // Excluir solicitação ou usuário (exceto Admin Master)
+    removerUsuario: async function (idOuEmail) {
+      const alvo = String(idOuEmail || "").toLowerCase().trim();
+      const usuarios = await auth.sincronizarEquipeNuvem();
+      const user = usuarios.find(
+        (u) => String(u.id || "").toLowerCase() === alvo || String(u.email || "").toLowerCase() === alvo
+      );
+
+      if (!user) {
+        return { sucesso: false, mensagem: "Registro não encontrado." };
+      }
+
+      if (String(user.email || "").toLowerCase() === ADMIN_MASTER_EMAIL) {
+        return { sucesso: false, mensagem: "O Administrador Oficial Master não pode ser removido." };
+      }
+
+      const filtrados = usuarios.filter(
+        (u) => String(u.id || "").toLowerCase() !== alvo && String(u.email || "").toLowerCase() !== alvo
+      );
+      await auth.sincronizarEquipeNuvem(filtrados);
+      return { sucesso: true, mensagem: `Registro de ${user.email} removido com sucesso.` };
+    },
+
+    // Alterar senha do Administrador logado
+    alterarSenhaAdmin: async function (email, senhaAtual, novaSenha) {
+      const emailLimpo = String(email || "").toLowerCase().trim();
+      const sAtual = String(senhaAtual || "").trim();
+      const sNova = String(novaSenha || "").trim();
+
+      if (!sAtual || !sNova) {
+        return { sucesso: false, mensagem: "Preencha a senha atual e a nova senha." };
+      }
+      if (sNova.length < 4) {
+        return { sucesso: false, mensagem: "A nova senha deve ter pelo menos 4 caracteres." };
+      }
+
+      const usuarios = await auth.sincronizarEquipeNuvem();
+      const idx = usuarios.findIndex((u) => String(u.email || "").toLowerCase() === emailLimpo);
+
+      if (idx === -1) {
+        return { sucesso: false, mensagem: "Administrador não localizado." };
+      }
+
+      if (usuarios[idx].senhaHash !== sAtual) {
+        return { sucesso: false, mensagem: "A senha atual informada está incorreta." };
+      }
+
+      usuarios[idx].senhaHash = sNova;
+      usuarios[idx].atualizadoEm = new Date().toISOString();
+      await auth.sincronizarEquipeNuvem(usuarios);
+
+      return { sucesso: true, mensagem: "✅ Senha administrativa alterada com sucesso!" };
+    },
+
+    // Encerra a sessão administrativa
+    logout: async function () {
       state.usuarioAtual = null;
       if (typeof window !== "undefined" && window.localStorage) {
         window.localStorage.removeItem(STORAGE_KEYS.USUARIO_ATIVO);
@@ -401,17 +583,21 @@
       return true;
     },
 
-    // Lista todos os usuários cadastrados (sem as senhas)
+    // Lista todos os usuários e solicitações (sem expor senhaHash)
     listarUsuarios: function () {
-      const usuarios = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, []);
+      const usuarios = normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
       return usuarios.map((u) => ({
         id: u.id,
         nome: u.nome,
         email: u.email,
         cargo: u.cargo,
+        motivo: u.motivo || "",
         tipo: u.tipo,
+        status: u.status || (u.ativo ? "aprovado" : "pendente"),
+        isMaster: Boolean(u.isMaster || String(u.email || "").toLowerCase() === ADMIN_MASTER_EMAIL),
         foto: u.foto,
-        ativo: u.ativo,
+        ativo: u.status === "aprovado",
+        criadoEm: u.criadoEm,
         ultimoLogin: u.ultimoLogin
       }));
     }

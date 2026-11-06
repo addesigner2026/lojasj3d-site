@@ -4502,7 +4502,17 @@
     const tipo = String(u.tipo || "").toLowerCase();
     const email = String(u.email || "").toLowerCase();
     if (tipo === "cliente" || cargo === "cliente") return false;
-    return cargo.includes("admin") || cargo.includes("vendedor") || email === "contato@gruposj.com.br";
+    if (!email) return false;
+    // Só é equipe quem está APROVADO na tabela administrativa (SJ_DB.auth)
+    if (u.status && u.status !== "aprovado") return false;
+    if (u.ativo === false) return false;
+    if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.listarUsuarios === "function") {
+      const registro = (window.SJ_DB.auth.listarUsuarios() || []).find(
+        (r) => String(r.email || "").toLowerCase() === email
+      );
+      return Boolean(registro && registro.status === "aprovado");
+    }
+    return email === "jt.designer21@gmail.com";
   }
 
   // Carrega operador / vendedor salvo localmente ou via Banco de Dados
@@ -4607,6 +4617,12 @@
       if (drawerQuoteBtn) drawerQuoteBtn.style.display = "flex";
       if (nameEl) nameEl.textContent = u.nome || "Administrador";
       if (roleEl) roleEl.textContent = u.cargo || "Administrador";
+      // Atualiza aviso de solicitações pendentes (sincroniza com a nuvem)
+      if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.sincronizarEquipeNuvem === "function") {
+        window.SJ_DB.auth.sincronizarEquipeNuvem()
+          .then((lista) => atualizarBadgesSolicitacoesPendentes(lista))
+          .catch(() => {});
+      }
     }
   }
 
@@ -4640,7 +4656,11 @@
   });
 
   function renderizarChipsVendedoresRapidos() {
+    // Acesso rápido sem senha foi desativado por segurança (somente login com senha na Área Restrita)
     const container = document.getElementById("quick-saved-operators");
+    if (container) container.innerHTML = "";
+    return;
+    // eslint-disable-next-line no-unreachable
     if (!container || !window.SJ_DB || !window.SJ_DB.auth) return;
 
     const usuarios = window.SJ_DB.auth.listarUsuarios() || [];
@@ -4725,28 +4745,9 @@
   }
 
   // Hook global chamado pelo Google Identity Services
-  window.onGoogleSignInSuccess = function(response) {
-    try {
-      const base64Url = response.credential.split('.')[1];
-      const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
-      const jsonPayload = decodeURIComponent(atob(base64).split('').map(function(c) {
-        return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
-      }).join(''));
-      const payload = JSON.parse(jsonPayload);
-      salvarLoginUsuario({
-        nome: payload.name || "Vendedor Google",
-        email: payload.email || "vendedor@lojasj.com.br",
-        foto: payload.picture || null,
-        tipo: "google"
-      });
-    } catch (_) {
-      salvarLoginUsuario({
-        nome: "Thiago Novais (Loja SJ)",
-        email: "contato@gruposj.com.br",
-        foto: null,
-        tipo: "operador"
-      });
-    }
+  // Login Google NUNCA concede acesso administrativo (Área Restrita exige e-mail + senha aprovados)
+  window.onGoogleSignInSuccess = function() {
+    mostrarFeedbackAuth("error", "A Área Restrita aceita apenas login com e-mail e senha de administrador autorizado.");
   };
 
   // Estado temporário do Assistente de Orçamento (Wizard)
@@ -5859,7 +5860,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       produtos: "cms-pane-produtos",
       banner: "cms-pane-banner",
       exportar: "cms-pane-exportar",
-      supabase: "cms-pane-supabase"
+      supabase: "cms-pane-supabase",
+      equipe: "cms-pane-equipe"
     };
     Object.entries(mapPanes).forEach(([key, id]) => {
       const el = document.getElementById(id);
@@ -5868,6 +5870,171 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (aba === "supabase") {
       atualizarStatusSupabaseNoCms();
     }
+    if (aba === "equipe") {
+      renderizarPainelEquipeCms();
+    }
+  }
+
+  // =====================================================================
+  // PAINEL: ADMINISTRADORES & SENHA (aprovação / bloqueio / troca de senha)
+  // =====================================================================
+  function escaparHtmlEquipe(txt) {
+    return String(txt == null ? "" : txt)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;")
+      .replace(/'/g, "&#39;");
+  }
+
+  function atualizarBadgesSolicitacoesPendentes(listaOpcional = null) {
+    let lista = listaOpcional;
+    if (!lista && window.SJ_DB && window.SJ_DB.auth) {
+      lista = window.SJ_DB.auth.listarUsuarios() || [];
+    }
+    const qtd = (lista || []).filter((u) => u.status === "pendente").length;
+    ["cms-pending-badge", "topbar-pending-badge"].forEach((id) => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.textContent = String(qtd);
+      el.style.display = qtd > 0 ? "inline-block" : "none";
+    });
+    return qtd;
+  }
+
+  function usuarioLogadoEhMaster() {
+    const u = state.usuarioGoogle;
+    return Boolean(u && String(u.email || "").toLowerCase() === "jt.designer21@gmail.com");
+  }
+
+  async function renderizarPainelEquipeCms() {
+    if (!window.SJ_DB || !window.SJ_DB.auth) return;
+    const auth = window.SJ_DB.auth;
+    try {
+      await auth.sincronizarEquipeNuvem();
+    } catch (_) {}
+    const lista = auth.listarUsuarios() || [];
+    atualizarBadgesSolicitacoesPendentes(lista);
+
+    const ehMaster = usuarioLogadoEhMaster();
+    const emailLogado = state.usuarioGoogle ? state.usuarioGoogle.email : "";
+    const emailEl = document.getElementById("cms-admin-pwd-email");
+    if (emailEl) emailEl.textContent = emailLogado || "—";
+
+    const btnStyle = (bg) =>
+      `style="background:${bg}; color:#fff; border:none; border-radius:8px; padding:6px 12px; font-size:0.8rem; font-weight:600; cursor:pointer;"`;
+    const badge = (status) => {
+      const map = {
+        aprovado: ["#DCFCE7", "#166534", "Aprovado"],
+        pendente: ["#FEF3C7", "#92400E", "Pendente"],
+        bloqueado: ["#FEE2E2", "#991B1B", "Bloqueado"]
+      };
+      const [bg, fg, label] = map[status] || map.pendente;
+      return `<span style="background:${bg}; color:${fg}; font-size:0.72rem; font-weight:700; padding:2px 8px; border-radius:999px;">${label}</span>`;
+    };
+    const avisoSomenteMaster = `<p style="margin:0; color:#6B7280; font-size:0.85rem;">🔒 Apenas o Administrador Oficial pode liberar ou bloquear acessos.</p>`;
+
+    // 1) Solicitações pendentes
+    const pendentesEl = document.getElementById("cms-pending-requests-list");
+    if (pendentesEl) {
+      const pendentes = lista.filter((u) => u.status === "pendente");
+      if (pendentes.length === 0) {
+        pendentesEl.innerHTML = `<p style="margin:0; color:#6B7280; font-size:0.85rem;">Nenhuma solicitação pendente no momento. ✅</p>`;
+      } else {
+        pendentesEl.innerHTML = pendentes.map((u) => `
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:12px; border:1px solid #FDE68A; background:#FFFBEB; border-radius:10px; margin-bottom:8px;">
+            <div style="min-width:220px;">
+              <div style="font-size:0.9rem;">📧 O e-mail <strong>${escaparHtmlEquipe(u.email)}</strong> solicitou autorização para ser administrador.</div>
+              <div style="font-size:0.8rem; color:#6B7280; margin-top:2px;">
+                ${escaparHtmlEquipe(u.nome)}${u.motivo ? " • " + escaparHtmlEquipe(u.motivo) : ""}${u.criadoEm ? " • " + new Date(u.criadoEm).toLocaleString("pt-BR") : ""}
+              </div>
+            </div>
+            ${ehMaster ? `
+            <div style="display:flex; gap:6px;">
+              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>✅ Liberar Acesso</button>
+              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>
+            </div>` : ""}
+          </div>
+        `).join("") + (ehMaster ? "" : avisoSomenteMaster);
+      }
+    }
+
+    // 2) Todos os administradores
+    const todosEl = document.getElementById("cms-all-admins-list");
+    if (todosEl) {
+      todosEl.innerHTML = lista.map((u) => {
+        const master = u.isMaster;
+        let acoes = "";
+        if (master) {
+          acoes = `<span style="font-size:0.75rem; color:#6B7280; font-weight:600;">👑 Administrador Oficial (protegido)</span>`;
+        } else if (ehMaster) {
+          acoes = `
+            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#16A34A")}>Liberar</button>` : ""}
+            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#F59E0B")}>Bloquear</button>` : ""}
+            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(u.email)}" ${btnStyle("#6B7280")}>Excluir</button>`;
+        }
+        return `
+          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding:10px 12px; border:1px solid #E5E7EB; border-radius:10px; margin-bottom:8px;">
+            <div style="min-width:220px;">
+              <div style="font-size:0.9rem; font-weight:600;">${escaparHtmlEquipe(u.nome || u.email)} ${badge(u.status)}</div>
+              <div style="font-size:0.8rem; color:#6B7280;">${escaparHtmlEquipe(u.email)} • ${escaparHtmlEquipe(u.cargo || "")}</div>
+            </div>
+            <div style="display:flex; gap:6px; flex-wrap:wrap;">${acoes}</div>
+          </div>`;
+      }).join("");
+    }
+
+    // Ações (delegação)
+    document.querySelectorAll("#cms-pane-equipe [data-equipe-acao]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        if (!usuarioLogadoEhMaster()) {
+          alert("Apenas o Administrador Oficial pode realizar esta ação.");
+          return;
+        }
+        const acao = btn.dataset.equipeAcao;
+        const email = btn.dataset.equipeEmail;
+        let res;
+        if (acao === "remover") {
+          if (!confirm(`Excluir definitivamente o acesso de ${email}?`)) return;
+          res = await auth.removerUsuario(email);
+        } else {
+          res = await auth.alterarStatusUsuario(email, acao);
+        }
+        if (res && res.mensagem) alert(res.mensagem);
+        renderizarPainelEquipeCms();
+      });
+    });
+  }
+
+  function configurarFormularioSenhaAdmin() {
+    const form = document.getElementById("form-cms-change-admin-pwd");
+    if (!form || form.dataset.bound === "1") return;
+    form.dataset.bound = "1";
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const fb = document.getElementById("cms-admin-pwd-feedback");
+      const mostrar = (ok, msg) => {
+        if (!fb) return alert(msg);
+        fb.style.display = "block";
+        fb.style.background = ok ? "#DCFCE7" : "#FEE2E2";
+        fb.style.color = ok ? "#166534" : "#991B1B";
+        fb.textContent = msg;
+      };
+      const atual = document.getElementById("cms-admin-pwd-current")?.value.trim();
+      const nova = document.getElementById("cms-admin-pwd-new")?.value.trim();
+      const conf = document.getElementById("cms-admin-pwd-confirm")?.value.trim();
+      if (!state.usuarioGoogle || !state.usuarioGoogle.email) {
+        mostrar(false, "Sessão administrativa não encontrada. Entre novamente.");
+        return;
+      }
+      if (nova !== conf) {
+        mostrar(false, "A confirmação não confere com a nova senha.");
+        return;
+      }
+      const res = await window.SJ_DB.auth.alterarSenhaAdmin(state.usuarioGoogle.email, atual, nova);
+      mostrar(res.sucesso, res.mensagem);
+      if (res.sucesso) form.reset();
+    });
   }
 
   function abrirPainelAdminCms(abaInicial = "produtos", produtoIdParaEditar = null) {
@@ -5877,6 +6044,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       modal.style.display = "flex";
 
       selecionarAbaCms(abaInicial || "produtos");
+      configurarFormularioSenhaAdmin();
+      atualizarBadgesSolicitacoesPendentes();
       renderizarListaProdutosCms();
       preencherFormularioBannerCms();
       atualizarStatusSupabaseNoCms();
@@ -6278,32 +6447,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
     });
 
-    document.getElementById("btn-google-direct-login")?.addEventListener("click", () => {
-      if (window.google && window.google.accounts && window.google.accounts.id) {
-        try {
-          window.google.accounts.id.prompt();
-          return;
-        } catch (_) {}
-      }
-      salvarLoginUsuario({
-        nome: "Thiago Novais (Google Workspace)",
-        email: "contato@gruposj.com.br",
-        foto: null,
-        tipo: "google"
-      });
-    });
-
-    document.getElementById("form-operator-auth")?.addEventListener("submit", (e) => {
-      e.preventDefault();
-      const nome = document.getElementById("operator-name-input")?.value.trim() || "Thiago Novais (Loja SJ)";
-      const email = document.getElementById("operator-email-input")?.value.trim() || "contato@gruposj.com.br";
-      salvarLoginUsuario({
-        nome,
-        email,
-        foto: null,
-        tipo: "operador"
-      });
-    });
+    // (Removido) Login Google / "Balcão Rápido" sem senha na Área Restrita — apenas e-mail + senha aprovados.
 
     // =====================================================================
     // SISTEMA DE ABAS DE AUTENTICAÇÃO (Google | E-mail & Senha | Cadastrar)
@@ -6367,23 +6511,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           mostrarFeedbackAuth("error", result.mensagem);
         }
       } else {
-        // Fallback sem SJ_DB — login direto como operador
-        salvarLoginUsuario({
-          nome: email.split("@")[0] || "Vendedor",
-          email: email,
-          foto: null,
-          tipo: "operador"
-        });
+        mostrarFeedbackAuth("error", "Sistema de autenticação indisponível. Recarregue a página.");
       }
     });
 
-    // CADASTRAR NOVO VENDEDOR
+    // SOLICITAR AUTORIZAÇÃO PARA SER ADMINISTRADOR (fica pendente até o Admin Oficial liberar)
     document.getElementById("form-register-auth")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = document.getElementById("reg-name-input")?.value.trim();
       const email = document.getElementById("reg-email-input")?.value.trim();
       const senha = document.getElementById("reg-senha-input")?.value.trim();
-      const cargo = document.getElementById("reg-cargo-input")?.value.trim() || "Vendedor";
+      const motivo = document.getElementById("reg-cargo-input")?.value.trim() || "";
 
       if (!nome || !email || !senha) {
         mostrarFeedbackAuth("error", "Preencha todos os campos obrigatórios.");
@@ -6391,13 +6529,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
 
       if (window.SJ_DB && window.SJ_DB.auth) {
-        const result = await window.SJ_DB.auth.registrar({ nome, email, senha, cargo });
+        const result = await window.SJ_DB.auth.registrar({
+          nome,
+          email,
+          senha,
+          cargo: "Administrador Autorizado",
+          motivo
+        });
         if (result.sucesso) {
-          mostrarFeedbackAuth("success", `Vendedor "${result.usuario.nome}" cadastrado com sucesso!`);
-          renderizarChipsVendedoresRapidos();
-          setTimeout(() => {
-            salvarLoginUsuario(result.usuario);
-          }, 900);
+          mostrarFeedbackAuth("success", result.mensagem || "Solicitação enviada! Aguarde a liberação do Administrador Oficial.");
+          e.target.reset();
+          atualizarBadgesSolicitacoesPendentes();
+          // NÃO faz login: o acesso só é liberado após aprovação
         } else {
           mostrarFeedbackAuth("error", result.mensagem);
         }
@@ -6586,9 +6729,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
 
     document.getElementById("admin-bar-btn-users")?.addEventListener("click", () => {
-      abrirModalAuthGoogle(() => {
-        if (state.emissorAberto) renderizarTelaOrcamento();
-      });
+      abrirPainelAdminCms("equipe");
     });
 
     document.getElementById("admin-bar-btn-logout")?.addEventListener("click", () => {

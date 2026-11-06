@@ -43,7 +43,7 @@
           }
         }
       }
-    } catch (_) {}
+    } catch (_) { }
     return DEFAULT_CONFIG;
   }
 
@@ -86,9 +86,6 @@
         console.log(`[SJ_SUPABASE Auth] Evento: ${event}`, session?.user?.email || "sem usuário");
 
         if (!session?.user) {
-          if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.definirUsuarioAtivo === "function") {
-            window.SJ_DB.auth.definirUsuarioAtivo(null);
-          }
           if (typeof window !== "undefined") {
             window.dispatchEvent(
               new CustomEvent("sj-auth-state-changed", {
@@ -101,18 +98,11 @@
 
         const userMeta = session.user.user_metadata || {};
         const email = (session.user.email || "").toLowerCase().trim();
-        const cargoMeta = (userMeta.cargo || "").toLowerCase().trim();
-        const ehGoogle = session.user.app_metadata?.provider === "google";
 
         // REGRA DE SEGURANÇA ESTRITA:
-        // 1. Quem entra por Google OAuth na loja é SEMPRE CLIENTE (sem poderes administrativos).
-        // 2. Apenas credenciais diretas da equipe com cargo explícito de Administrador/Vendedor são equipe.
-        const ehEquipe = !ehGoogle && (
-          cargoMeta.includes("admin") ||
-          cargoMeta.includes("vendedor") ||
-          email === "contato@gruposj.com.br"
-        );
-
+        // Qualquer autenticação via Supabase Auth no front-end da loja (Google OAuth ou Cadastro de Cliente)
+        // é SEMPRE tratada exclusivamente como CLIENTE.
+        // O login de Administrador ocorre estritamente pela Área Restrita com aprovação do Admin Oficial (jt.designer21@gmail.com).
         const usuarioFormatado = {
           id: session.user.id,
           nome:
@@ -120,18 +110,12 @@
             userMeta.nome ||
             email.split("@")[0],
           email: session.user.email,
-          cargo: ehEquipe ? (userMeta.cargo || "Administrador") : "Cliente",
+          cargo: "Cliente",
           foto: userMeta.avatar_url || null,
-          tipo: ehEquipe ? "operador" : "cliente",
-          ehEquipe: ehEquipe,
+          tipo: "cliente",
+          ehEquipe: false,
           supabaseSession: session
         };
-
-        // Atualiza estado no window.SJ_DB SOMENTE para a equipe (operadores/vendedores da Área Restrita)
-        // Clientes da loja NUNCA são definidos como operador/vendedor ativo
-        if (ehEquipe && window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.definirUsuarioAtivo === "function") {
-          window.SJ_DB.auth.definirUsuarioAtivo(usuarioFormatado);
-        }
 
         // Dispara evento customizado no navegador para o portal do cliente
         if (typeof window !== "undefined") {
@@ -299,11 +283,11 @@
           requerConfirmacaoEmail: !data.session,
           usuario: data.user
             ? {
-                id: data.user.id,
-                nome: nome.trim(),
-                email: data.user.email,
-                cargo: cargo.trim()
-              }
+              id: data.user.id,
+              nome: nome.trim(),
+              email: data.user.email,
+              cargo: cargo.trim()
+            }
             : null
         };
       } catch (err) {
@@ -317,7 +301,7 @@
       if (client) {
         try {
           await client.auth.signOut();
-        } catch (_) {}
+        } catch (_) { }
       }
       return true;
     }
@@ -345,31 +329,18 @@
         return true;
       }
 
-      // Verifica se há usuário administrador/vendedor legítimo ativo
-      // Usuários que entraram via Google na loja são CLIENTES e NUNCA têm acesso à Área Restrita
+      // Verifica se há usuário administrador aprovado ativo no SJ_DB (Área Restrita)
       let usuarioAdmin = null;
-      if (inicializarCliente()) {
-        const sessao = await auth.obterSessao();
-        if (sessao?.user) {
-          const userMeta = sessao.user.user_metadata || {};
-          const cargo = String(userMeta.cargo || "").toLowerCase();
-          const email = String(sessao.user.email || "").toLowerCase();
-          const ehGoogle = sessao.user.app_metadata?.provider === "google";
-
-          if (!ehGoogle && (cargo.includes("admin") || cargo.includes("vendedor") || email === "contato@gruposj.com.br")) {
-            usuarioAdmin = sessao.user;
-          }
-        }
-      }
-
-      if (!usuarioAdmin && window.SJ_DB?.auth) {
+      if (window.SJ_DB?.auth) {
         const uLocal = window.SJ_DB.auth.getUsuarioAtual();
         if (uLocal) {
-          const cargo = String(uLocal.cargo || "").toLowerCase();
           const email = String(uLocal.email || "").toLowerCase();
+          const status = String(uLocal.status || "").toLowerCase();
           const tipo = String(uLocal.tipo || "").toLowerCase();
 
-          if (tipo !== "cliente" && cargo !== "cliente" && (cargo.includes("admin") || cargo.includes("vendedor") || email === "contato@gruposj.com.br")) {
+          if (tipo !== "cliente" && status === "aprovado" && uLocal.ativo !== false) {
+            usuarioAdmin = uLocal;
+          } else if (email === "jt.designer21@gmail.com" && status === "aprovado") {
             usuarioAdmin = uLocal;
           }
         }

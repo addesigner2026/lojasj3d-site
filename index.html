@@ -78,9 +78,9 @@
     <div class="container admin-topbar-inner">
       <div class="admin-topbar-left">
         <span class="status-pulse-dot" aria-hidden="true"></span>
-        <span class="admin-topbar-label">Modo Vendedor:</span>
-        <strong id="admin-topbar-user-name">Thiago Novais</strong>
-        <span class="admin-topbar-role" id="admin-topbar-user-role">Administrador</span>
+        <span class="admin-topbar-label">Área Restrita:</span>
+        <strong id="admin-topbar-user-name">jt.designer21@gmail.com</strong>
+        <span class="admin-topbar-role" id="admin-topbar-user-role">Administrador Oficial</span>
       </div>
 
       <div class="admin-topbar-actions">
@@ -110,12 +110,12 @@
           <span>Histórico</span>
         </button>
 
-        <button type="button" class="admin-bar-btn" id="admin-bar-btn-users" title="Trocar de conta ou cadastrar novo vendedor">
+        <button type="button" class="admin-bar-btn" id="admin-bar-btn-users" title="Gerenciar solicitações de administradores e alterar sua senha">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
-          <span>Conta / Equipe</span>
+          <span>Acessos & Senha</span>
+          <span id="topbar-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">0</span>
         </button>
 
         <button type="button" class="admin-bar-btn btn-logout" id="admin-bar-btn-logout" title="Sair do modo vendedor e voltar ao site público">
@@ -726,30 +726,15 @@
         <p class="google-auth-sub">Área exclusiva para a equipe e administração da Loja SJ 3D gerenciar produtos, preços e pedidos.</p>
       </div>
 
-      <!-- Abas de Autenticação (Segmented Pill Control) -->
-      <div class="auth-tabs-bar" role="tablist" aria-label="Métodos de autenticação">
+      <!-- Abas de Autenticação (Somente Login Administrador | Solicitar Autorização) -->
+      <div class="auth-tabs-bar" role="tablist" aria-label="Acesso à Área Restrita">
         <button type="button" class="auth-tab-btn active" id="tab-auth-email" data-auth-tab="email" role="tab" aria-selected="true">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-          </svg>
-          <span>E-mail & Senha</span>
-        </button>
-        <button type="button" class="auth-tab-btn" id="tab-auth-google" data-auth-tab="google" role="tab" aria-selected="false">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-            <circle cx="12" cy="7" r="4"></circle>
-          </svg>
-          <span>Balcão Rápido</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>🔑 Login Administrador</span>
         </button>
         <button type="button" class="auth-tab-btn" id="tab-auth-register" data-auth-tab="register" role="tab" aria-selected="false">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
-            <circle cx="8.5" cy="7" r="4"></circle>
-            <line x1="20" y1="8" x2="20" y2="14"></line>
-            <line x1="23" y1="11" x2="17" y2="11"></line>
-          </svg>
-          <span>Novo Vendedor</span>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>📩 Solicitar Autorização</span>
         </button>
       </div>
 
@@ -757,179 +742,79 @@
       <div id="auth-feedback-box" class="auth-feedback-box" style="display: none;" role="alert"></div>
 
       <div class="google-auth-body">
-        
-        <!-- ABA 1: CONTA GOOGLE & ACESSO RÁPIDO DE BALCÃO -->
-        <div class="auth-pane-content" id="pane-auth-google" style="display: none;">
-          <div id="g_id_onload"
-               data-client_id=""
-               data-context="signin"
-               data-ux_mode="popup"
-               data-callback="onGoogleSignInSuccess"
-               data-auto_prompt="false">
-          </div>
-          <!-- Container técnico GIS oculto para evitar botão duplicado desalinhado -->
-          <div id="google-gis-btn-container" class="google-gis-btn-wrap" style="display: none;"></div>
 
-          <button type="button" class="btn-google-sign-in" id="btn-google-direct-login">
-            <span class="btn-google-left">
-              <svg class="google-color-icon" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
-                <path fill="#4285F4" d="M23.745 12.27c0-.7-.06-1.4-.19-2.07H12v4.51h6.6c-.29 1.52-1.14 2.8-2.4 3.65v3.03h3.88c2.27-2.09 3.66-5.17 3.66-9.12z"/>
-                <path fill="#34A853" d="M12 24c3.24 0 5.95-1.08 7.93-2.91l-3.88-3.03c-1.08.72-2.45 1.16-4.05 1.16-3.12 0-5.77-2.1-6.72-4.93H1.24v3.13C3.26 21.36 7.33 24 12 24z"/>
-                <path fill="#FBBC05" d="M5.28 14.29c-.25-.72-.38-1.49-.38-2.29s.13-1.57.38-2.29V6.57H1.24C.45 8.14 0 9.9 0 12s.45 3.86 1.24 5.43l4.04-3.14z"/>
-                <path fill="#EA4335" d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.33 0 3.26 2.64 1.24 6.57l4.04 3.14c.95-2.83 3.6-4.96 6.72-4.96z"/>
-              </svg>
-              <span>Continuar com Conta Google</span>
-            </span>
-            <span class="btn-google-tag">Workspace</span>
-          </button>
-
-          <div class="google-auth-divider">
-            <span>Acesso Rápido de Balcão</span>
-          </div>
-
-          <!-- Chips de Vendedores Salvos (Preenchimento em 1 clique) -->
-          <div id="quick-saved-operators" class="quick-operators-bar"></div>
-
-          <form id="form-operator-auth" class="operator-quick-form">
-            <div class="operator-field">
-              <label for="operator-name-input">Nome do Vendedor / Atendente</label>
-              <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
-                <input type="text" id="operator-name-input" placeholder="Ex: Thiago Novais" value="Thiago Novais (Loja SJ)" autocomplete="name" required />
-              </div>
-            </div>
-            <div class="operator-field">
-              <label for="operator-email-input">E-mail Corporativo</label>
-              <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                <input type="email" id="operator-email-input" placeholder="contato@gruposj.com.br" value="contato@gruposj.com.br" autocomplete="email" required />
-              </div>
-            </div>
-            <button type="submit" class="btn-operator-submit">
-              <span>Entrar e Abrir Orçamentos</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </button>
-          </form>
-        </div>
-
-        <!-- ABA 2: E-MAIL E SENHA (PADRÃO NA ÁREA RESTRITA) -->
+        <!-- ABA 1: LOGIN ADMINISTRATIVO (E-MAIL E SENHA) -->
         <div class="auth-pane-content" id="pane-auth-email" style="display: block;">
-          <form id="form-email-auth" class="operator-quick-form">
+          <form id="form-email-auth" class="operator-quick-form" autocomplete="on">
             <div class="operator-field">
-              <label for="email-login-input">E-mail Corporativo</label>
+              <label for="email-login-input">E-mail do Administrador</label>
               <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                <input type="email" id="email-login-input" placeholder="contato@gruposj.com.br" value="contato@gruposj.com.br" autocomplete="username" required />
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <input type="email" id="email-login-input" placeholder="Ex: jt.designer21@gmail.com" value="" autocomplete="username" required />
               </div>
             </div>
             <div class="operator-field">
-              <label for="senha-login-input">Senha de Acesso</label>
+              <label for="senha-login-input">Senha Administrativa</label>
               <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                  <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                </svg>
-                <input type="password" id="senha-login-input" placeholder="Digite sua senha" value="123456" autocomplete="current-password" required />
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input type="password" id="senha-login-input" placeholder="Digite sua senha administrativa" value="" autocomplete="current-password" required />
                 <button type="button" class="auth-toggle-pwd" data-toggle-pwd="senha-login-input" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                    <circle cx="12" cy="12" r="3"></circle>
-                  </svg>
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
                 </button>
               </div>
             </div>
             <button type="submit" class="btn-operator-submit">
-              <span>Autenticar com Credenciais</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
+              <span>Entrar na Área Restrita</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
             <div class="auth-credential-hint">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <circle cx="12" cy="12" r="10"></circle>
-                <line x1="12" y1="16" x2="12" y2="12"></line>
-                <line x1="12" y1="8" x2="12.01" y2="8"></line>
-              </svg>
-              <span>Padrão Admin: <strong>contato@gruposj.com.br</strong> • Senha: <strong>123456</strong></span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              <span>🔒 Acesso exclusivo do Administrador Oficial. Outros usuários devem pedir permissão na aba "Solicitar Autorização".</span>
             </div>
           </form>
         </div>
 
-        <!-- ABA 3: NOVO CADASTRO DE VENDEDOR -->
+        <!-- ABA 2: SOLICITAR AUTORIZAÇÃO PARA SER ADMINISTRADOR -->
         <div class="auth-pane-content" id="pane-auth-register" style="display: none;">
           <form id="form-register-auth" class="operator-quick-form">
             <div class="operator-field">
-              <label for="reg-name-input">Nome Completo do Vendedor</label>
+              <label for="reg-name-input">Seu Nome Completo</label>
               <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                  <circle cx="12" cy="7" r="4"></circle>
-                </svg>
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                 <input type="text" id="reg-name-input" placeholder="Ex: Lucas Silva" autocomplete="name" required />
               </div>
             </div>
             <div class="operator-field">
-              <label for="reg-email-input">E-mail Profissional</label>
+              <label for="reg-email-input">Seu E-mail (que será autorizado)</label>
               <div class="auth-input-group">
-                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                  <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
-                  <polyline points="22,6 12,13 2,6"></polyline>
-                </svg>
-                <input type="email" id="reg-email-input" placeholder="vendedor@gruposj.com.br" autocomplete="email" required />
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <input type="email" id="reg-email-input" placeholder="seuemail@exemplo.com" autocomplete="email" required />
               </div>
             </div>
-            <div class="operator-form-row-2col">
-              <div class="operator-field">
-                <label for="reg-senha-input">Criar Senha</label>
-                <div class="auth-input-group">
-                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                  </svg>
-                  <input type="password" id="reg-senha-input" placeholder="Mín. 4 dígitos" minlength="4" autocomplete="new-password" required />
-                  <button type="button" class="auth-toggle-pwd" data-toggle-pwd="reg-senha-input" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha">
-                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                      <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
-                      <circle cx="12" cy="12" r="3"></circle>
-                    </svg>
-                  </button>
-                </div>
+            <div class="operator-field">
+              <label for="reg-senha-input">Criar Senha de Acesso</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input type="password" id="reg-senha-input" placeholder="Mín. 4 caracteres" minlength="4" autocomplete="new-password" required />
+                <button type="button" class="auth-toggle-pwd" data-toggle-pwd="reg-senha-input" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
               </div>
-              <div class="operator-field">
-                <label for="reg-cargo-input">Cargo / Função</label>
-                <div class="auth-input-group">
-                  <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                    <rect x="2" y="7" width="20" height="14" rx="2" ry="2"></rect>
-                    <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16"></path>
-                  </svg>
-                  <select id="reg-cargo-input" class="auth-select-field">
-                    <option value="Vendedor">Vendedor</option>
-                    <option value="Consultor Técnico">Consultor Técnico</option>
-                    <option value="Gerente Comercial">Gerente Comercial</option>
-                    <option value="Administrador">Administrador</option>
-                  </select>
-                </div>
+            </div>
+            <div class="operator-field">
+              <label for="reg-cargo-input">Função / Motivo da Solicitação</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <input type="text" id="reg-cargo-input" placeholder="Ex: Vendedor do balcão, gerente..." maxlength="120" />
               </div>
             </div>
             <button type="submit" class="btn-operator-submit">
-              <span>Salvar Vendedor & Entrar</span>
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <polyline points="20 6 9 17 4 12"></polyline>
-              </svg>
+              <span>📩 Solicitar Autorização ao Administrador</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
             </button>
+            <div class="auth-credential-hint">
+              <span>Sua solicitação ficará pendente até o Administrador Oficial liberar o acesso no painel.</span>
+            </div>
           </form>
         </div>
 
@@ -1182,6 +1067,9 @@
         </button>
         <button type="button" class="admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
           ⚡ Supabase & Backend
+        </button>
+        <button type="button" class="admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
+          🔐 Administradores &amp; Senha <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; margin-left:5px; font-weight:700;">0</span>
         </button>
       </div>
 
@@ -1611,15 +1499,42 @@
           </div>
         </div>
 
+        <!-- ABA: ADMINISTRADORES & SENHA (Somente Administrador Oficial gerencia) -->
+        <div class="admin-cms-pane" id="cms-pane-equipe">
+          <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
+            <h4 style="margin:0 0 4px; font-size:1rem;">📩 Solicitações Pendentes de Acesso Administrativo</h4>
+            <p style="margin:0 0 12px; color:#6B7280; font-size:0.85rem;">Pessoas que pediram para ser administradoras. Libere ou bloqueie cada pedido.</p>
+            <div id="cms-pending-requests-list"></div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
+            <h4 style="margin:0 0 4px; font-size:1rem;">👥 Administradores &amp; Equipe Cadastrados</h4>
+            <p style="margin:0 0 12px; color:#6B7280; font-size:0.85rem;">Gerencie quem pode entrar na Área Restrita. O Administrador Oficial é protegido.</p>
+            <div id="cms-all-admins-list"></div>
+          </div>
+
+          <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
+            <h4 style="margin:0 0 4px; font-size:1rem;">🔑 Alterar Minha Senha</h4>
+            <p style="margin:0 0 12px; color:#6B7280; font-size:0.85rem;">Logado como <strong id="cms-admin-pwd-email">—</strong></p>
+            <form id="form-cms-change-admin-pwd" style="display:grid; gap:10px; max-width:420px;">
+              <input type="password" id="cms-admin-pwd-current" placeholder="Senha atual" autocomplete="current-password" required style="padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px;" />
+              <input type="password" id="cms-admin-pwd-new" placeholder="Nova senha (mín. 4 caracteres)" minlength="4" autocomplete="new-password" required style="padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px;" />
+              <input type="password" id="cms-admin-pwd-confirm" placeholder="Confirmar nova senha" minlength="4" autocomplete="new-password" required style="padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px;" />
+              <button type="submit" class="btn-operator-submit" style="justify-content:center;">💾 Atualizar Minha Senha</button>
+              <div id="cms-admin-pwd-feedback" style="display:none; font-size:0.85rem; padding:8px 10px; border-radius:8px;"></div>
+            </form>
+          </div>
+        </div>
+
       </div>
     </div>
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_3"></script>
-  <script src="js/dados.js?v=20261106_3"></script>
-  <script src="js/database.js?v=20261106_3"></script>
-  <script src="js/app.js?v=20261106_3"></script>
+  <script src="js/supabase-client.js?v=20261106_4"></script>
+  <script src="js/dados.js?v=20261106_4"></script>
+  <script src="js/database.js?v=20261106_4"></script>
+  <script src="js/app.js?v=20261106_4"></script>
 </body>
 
 </html>
