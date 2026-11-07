@@ -997,7 +997,7 @@
       btn.classList.add("logged-in");
       btn.title = `Minha Conta (${state.clienteLogado.nome})`;
     } else {
-      btnText.textContent = "Entrar / Cadastrar";
+      btnText.textContent = "Entrar / Conta";
       btn.classList.remove("logged-in");
       btn.title = "Acessar Minha Conta / Cadastrar";
     }
@@ -1677,13 +1677,16 @@
 
     state.abaClienteAtiva = abaAtiva;
 
-    // Se não estiver logado, exibe prompt para entrar/cadastrar
+    // Se não estiver logado, exibe painel de acesso + lista de favoritos já marcados no navegador
     if (!state.clienteLogado) {
+      const favsVisitante = (window.SITE_DATA.catalogo || []).filter((p) =>
+        (state.favoritos || []).includes(p.id)
+      );
       container.innerHTML = `
-        <div class="client-empty-box" style="margin: 40px auto 60px;">
+        <div class="client-empty-box" style="margin: 24px auto 32px; max-width: 680px;">
           <div class="client-empty-icon">👤</div>
           <h4>Área do Cliente • Clube Loja SJ 3D</h4>
-          <p>Faça login ou crie sua conta gratuitamente para guardar seus produtos favoritos, consultar seus pedidos e acompanhar seus cupons no Sorteio da Bambu Lab A1 Mini.</p>
+          <p>Faça login ou crie sua conta gratuitamente para salvar seus pedidos, sincronizar seus favoritos e acompanhar seus cupons no Sorteio da Bambu Lab A1 Mini.</p>
           <div style="display:flex; justify-content:center; gap:12px; flex-wrap:wrap;">
             <button type="button" class="btn-client-explore" id="btn-login-prompt-area">
               🔑 Entrar na Minha Conta
@@ -1691,12 +1694,57 @@
             <button type="button" class="btn-client-explore" id="btn-signup-prompt-area" style="background:var(--sj-orange);">
               ✨ Criar Nova Conta
             </button>
+            <button type="button" class="btn-client-explore" id="btn-back-home-prompt" style="background:#f4f4f5; color:#18181b; border:1px solid #e4e4e7;">
+              ← Voltar para a Loja
+            </button>
           </div>
         </div>
+        ${
+          favsVisitante.length > 0
+            ? `
+          <div style="margin-bottom: 48px;">
+            <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:14px; color:#18181b;">❤️ Seus Produtos Favoritos (${favsVisitante.length})</h3>
+            <div class="client-favorites-grid">
+              ${favsVisitante
+                .map(
+                  (item) => `
+                <div class="client-fav-item-card" data-fav-card="${item.id}">
+                  <button type="button" class="btn-remove-fav" data-del-fav="${item.id}" title="Remover dos favoritos">✕</button>
+                  <div class="client-fav-img-wrap" data-open-modal="${item.id}" style="cursor:pointer;">
+                    <img src="${item.imagem}" alt="${item.nome}" loading="lazy" />
+                  </div>
+                  <div class="client-fav-info">
+                    <span class="client-fav-brand">${item.marca}</span>
+                    <h4 class="client-fav-title" data-open-modal="${item.id}" style="cursor:pointer;">${item.nome}</h4>
+                    <div class="client-fav-prices">
+                      <strong>${item.precoVista}</strong>
+                      ${item.precoParcelado ? `<small>${item.precoParcelado}</small>` : ""}
+                    </div>
+                    <button type="button" class="btn-fav-add-cart" data-add-item="${item.id}">
+                      🛍️ Adicionar ao Pedido
+                    </button>
+                  </div>
+                </div>
+              `
+                )
+                .join("")}
+            </div>
+          </div>
+        `
+            : ""
+        }
       `;
 
       container.querySelector("#btn-login-prompt-area")?.addEventListener("click", () => abrirModalAuthCliente("login"));
       container.querySelector("#btn-signup-prompt-area")?.addEventListener("click", () => abrirModalAuthCliente("signup"));
+      container.querySelector("#btn-back-home-prompt")?.addEventListener("click", () => navegarParaCategoria("home"));
+      container.querySelectorAll("[data-del-fav]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          toggleFavorito(btn.dataset.delFav);
+          renderizarAreaCliente("favoritos");
+        });
+      });
       return;
     }
 
