@@ -9123,6 +9123,287 @@ button.color-swatch-more:hover {
   }
 }
 
+/* ==========================================================================
+   HOME PAGE UX PRO MAX — FAIXA DE DIFERENCIAIS, VITRINE CLEAN DE FILAMENTOS & BENTO
+   ========================================================================== */
+.home-benefit-card {
+  display: flex !important;
+  flex-direction: row !important;
+  align-items: center !important;
+  gap: 12px !important;
+  padding: 16px 18px !important;
+  border-radius: 14px !important;
+  background: #ffffff !important;
+  border: 1.5px solid #e4e4e7 !important;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.025) !important;
+}
+
+.sj-benefit-icon-box {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #fff7ed;
+  border: 1px solid #fed7aa;
+  color: var(--sj-orange);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Vitrine Clean de Filamentos na Capa (2 Portais de Marca Sem Poluir) */
+.sj-home-fil-showcase-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.sj-home-fil-brand-card {
+  display: grid;
+  grid-template-columns: 200px 1fr;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 18px;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+}
+
+.sj-home-fil-brand-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--sj-orange);
+  box-shadow: 0 14px 32px rgba(240, 78, 35, 0.1);
+}
+
+.sj-home-fil-brand-card.is-bambu:hover {
+  border-color: #16a34a;
+  box-shadow: 0 14px 32px rgba(22, 163, 74, 0.12);
+}
+
+.sj-home-fil-card-visual {
+  position: relative;
+  background: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  border-right: 1px solid #f1f5f9;
+}
+
+.sj-home-fil-card-visual img {
+  width: 100%;
+  max-width: 155px;
+  height: 155px;
+  object-fit: contain;
+  transition: transform 0.22s ease;
+}
+
+.sj-home-fil-brand-card:hover .sj-home-fil-card-visual img {
+  transform: scale(1.05);
+}
+
+.sj-home-fil-badge {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  background: #18181b;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.sj-home-fil-badge.bambu {
+  background: #16a34a;
+}
+
+.sj-home-fil-card-content {
+  padding: 20px 22px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.sj-home-fil-card-top h3 {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #18181b;
+  margin: 0 0 6px;
+}
+
+.sj-home-fil-card-top p {
+  font-size: 0.82rem;
+  color: #52525b;
+  line-height: 1.45;
+  margin: 0;
+}
+
+.sj-home-fil-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.sj-home-fil-chip {
+  padding: 5px 10px;
+  border-radius: 999px;
+  border: 1px solid #e4e4e7;
+  background: #fafafa;
+  color: #27272a;
+  font-size: 0.74rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.sj-home-fil-chip:hover {
+  background: var(--sj-orange);
+  border-color: var(--sj-orange);
+  color: #ffffff;
+}
+
+.sj-home-fil-chip.bambu:hover {
+  background: #16a34a;
+  border-color: #16a34a;
+  color: #ffffff;
+}
+
+.sj-home-fil-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid #f4f4f5;
+}
+
+.sj-home-fil-price-box small {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 700;
+  color: #71717a;
+  text-transform: uppercase;
+}
+
+.sj-home-fil-price-box strong {
+  font-size: 1.08rem;
+  font-weight: 900;
+  color: #18181b;
+}
+
+.sj-home-fil-price-box strong span {
+  font-size: 0.76rem;
+  font-weight: 600;
+  color: #71717a;
+}
+
+.sj-home-fil-cta {
+  display: inline-flex;
+  align-items: center;
+  padding: 9px 14px;
+  border-radius: 10px;
+  background: var(--sj-orange);
+  color: #ffffff;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+  transition: background 0.16s ease;
+}
+
+.sj-home-fil-cta.bambu {
+  background: #16a34a;
+}
+
+/* Bento 2 Colunas para Peças & Manutenção na Capa */
+.sj-home-bento-2col {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 20px;
+}
+
+.sj-home-bento-card {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 18px;
+  padding: 18px 20px;
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sj-home-bento-card:hover {
+  transform: translateY(-3px);
+  border-color: var(--sj-orange);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.06);
+}
+
+.sj-home-bento-img {
+  width: 110px;
+  height: 110px;
+  border-radius: 14px;
+  background: #f8fafc;
+  border: 1px solid #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.sj-home-bento-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+.sj-home-bento-body h3 {
+  font-size: 1.05rem;
+  font-weight: 900;
+  color: #18181b;
+  margin: 2px 0 6px;
+}
+
+.sj-home-bento-body p {
+  font-size: 0.81rem;
+  color: #52525b;
+  line-height: 1.45;
+  margin: 0 0 8px;
+}
+
+@media (max-width: 960px) {
+  .sj-home-fil-showcase-grid,
+  .sj-home-bento-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 600px) {
+  .sj-home-fil-brand-card {
+    grid-template-columns: 1fr;
+  }
+  .sj-home-fil-card-visual {
+    border-right: none;
+    border-bottom: 1px solid #f1f5f9;
+    height: 160px;
+  }
+  .sj-home-bento-card {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .sj-home-bento-img {
+    width: 100%;
+    height: 140px;
+  }
+}
+
+
 
 
 

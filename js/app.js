@@ -4165,96 +4165,59 @@
         </div>
       </div>
 
-      <!-- 2. FAIXA DE DIFERENCIAIS LOJA SJ 3D (ESTILO ANYCUBIC) -->
+      <!-- 2. FAIXA DE DIFERENCIAIS LOJA SJ 3D (UI/UX PRO MAX — ÍCONES SVG VETORIAIS) -->
       <div class="home-benefits-strip">
         <div class="home-benefit-card">
-          <strong>Pronta Entrega em Umuarama</strong>
-          <span>Av. Portugal, 6759 — retire na hora ou receba rápido</span>
-        </div>
-        <div class="home-benefit-card">
-          <strong>Até 10x ou Desconto à Vista</strong>
-          <span>Condições oficiais em impressoras Bambu Lab & Snapmaker</span>
-        </div>
-        <div class="home-benefit-card">
-          <strong>+80 Cores de Filamentos</strong>
-          <span>Bambu Lab RFID e Masterprint 1.75 mm lacrados a vácuo</span>
-        </div>
-        <div class="home-benefit-card">
-          <strong>Assistência Técnica Própria</strong>
-          <span>Manutenção preventiva, corretiva e upgrades em Umuarama</span>
-        </div>
-      </div>
-
-      <!-- 3. NAVEGUE POR CATEGORIA (4 CARDS VISUAIS ESTILO ANYCUBIC) -->
-      <div class="home-section-block">
-        <div class="home-section-head">
+          <div class="sj-benefit-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+          </div>
           <div>
-            <span class="home-eyebrow">ECOSISTEMA LOJA SJ 3D</span>
-            <h2>Explore por Categoria</h2>
+            <strong>Revendedor Autorizado</strong>
+            <span>Bambu Lab &amp; Masterprint oficiais</span>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="todos">Ver Catálogo Completo →</button>
         </div>
-
-        <div class="home-categories-grid">
-          <div class="home-cat-card" data-home-go-cat="impressoras">
-            <div class="home-cat-img-wrap">
-              <img src="assets/produtos/impressora-a1_combo.jpg" alt="Impressoras 3D" loading="lazy" />
-            </div>
-            <div class="home-cat-info">
-              <h3>Impressoras 3D</h3>
-              <p>Bambu Lab A1 Mini, A1, P2S Combo & Snapmaker U1</p>
-              <span class="home-cat-cta">Explorar Impressoras →</span>
-            </div>
+        <div class="home-benefit-card">
+          <div class="sj-benefit-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           </div>
-
-          <div class="home-cat-card" data-home-go-cat="filamentos">
-            <div class="home-cat-img-wrap">
-              <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos 3D" loading="lazy" />
-            </div>
-            <div class="home-cat-info">
-              <h3>Filamentos 3D</h3>
-              <p>Bambu Lab RFID & Masterprint (PLA, Silk, PETG, TPU, ABS)</p>
-              <span class="home-cat-cta">Explorar Filamentos →</span>
-            </div>
+          <div>
+            <strong>Pronta Entrega em Umuarama</strong>
+            <span>Av. Portugal, 6759 — retire na hora</span>
           </div>
-
-          <div class="home-cat-card" data-home-go-cat="pecas">
-            <div class="home-cat-img-wrap">
-              <img src="assets/produtos/peca-hotend.jpg" alt="Peças e Acessórios" loading="lazy" />
-            </div>
-            <div class="home-cat-info">
-              <h3>Peças & Acessórios</h3>
-              <p>Hotends Quick-Swap, Placas PEI Dupla Face e Tubos PTFE</p>
-              <span class="home-cat-cta">Explorar Peças →</span>
-            </div>
+        </div>
+        <div class="home-benefit-card">
+          <div class="sj-benefit-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
           </div>
-
-          <div class="home-cat-card" data-home-go-cat="manutencao">
-            <div class="home-cat-img-wrap">
-              <img src="assets/produtos/impressora-p2s_combo.jpg" alt="Serviços e Manutenção" loading="lazy" />
-            </div>
-            <div class="home-cat-info">
-              <h3>Serviços & Manutenção</h3>
-              <p>Revisão preventiva, reparo de AMS, calibração e upgrades</p>
-              <span class="home-cat-cta">Ver Serviços →</span>
-            </div>
+          <div>
+            <strong>Até 10x ou Desconto à Vista</strong>
+            <span>Condições especiais em impressoras 3D</span>
+          </div>
+        </div>
+        <div class="home-benefit-card">
+          <div class="sj-benefit-icon-box">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          </div>
+          <div>
+            <strong>Assistência Técnica Própria</strong>
+            <span>Manutenção, revisão e peças originais</span>
           </div>
         </div>
       </div>
 
-      <!-- 4. IMPRESSORAS EM DESTAQUE (COM ABAS ESTILO ANYCUBIC) -->
+      <!-- 3. IMPRESSORAS EM DESTAQUE (COM ABAS LIMPAS) -->
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
-            <span class="home-eyebrow">CATÁLOGO DE IMPRESSORAS</span>
-            <h2>As Melhores Impressoras 3D do Mercado</h2>
+            <span class="home-eyebrow">IMPRESSORAS 3D EM ESTOQUE</span>
+            <h2>Bambu Lab &amp; Snapmaker</h2>
           </div>
           <div class="home-tabs-row" id="home-printer-tabs">
             <button type="button" class="home-tab-btn active" data-printer-tab="todas">Todas (6)</button>
-            <button type="button" class="home-tab-btn" data-printer-tab="COMECE A CRIAR">Comece a Criar</button>
-            <button type="button" class="home-tab-btn" data-printer-tab="EVOLUA SUA PRODUÇÃO">Evolua sua Produção</button>
+            <button type="button" class="home-tab-btn" data-printer-tab="COMECE A CRIAR">Iniciantes &amp; Multicolor</button>
+            <button type="button" class="home-tab-btn" data-printer-tab="EVOLUA SUA PRODUÇÃO">Produção</button>
             <button type="button" class="home-tab-btn" data-printer-tab="ALTA PERFORMANCE">Alta Performance</button>
-            <button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Modelos</button>
+            <button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">Comparar Modelos</button>
           </div>
         </div>
 
@@ -4263,17 +4226,100 @@
         </div>
       </div>
 
-      <!-- 5. STUDIO CLEAN DE FILAMENTOS (MASTERPRINT & BAMBU LAB RFID) -->
+      <!-- 4. VITRINE CLEAN DE FILAMENTOS (SEM POLUIÇÃO NA CAPA — 2 PORTAIS DE MARCA + ATALHOS RÁPIDOS) -->
       <div class="home-section-block">
         <div class="home-section-head">
           <div>
-            <span class="home-eyebrow">FILAMENTOS 3D</span>
-            <h2>Catálogo de Cores & Linhas</h2>
+            <span class="home-eyebrow">FILAMENTOS 1.75 MM LACRADOS A VÁCUO</span>
+            <h2>Filamentos Bambu Lab &amp; Masterprint</h2>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Ver em Tela Cheia →</button>
+          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Explorar Todas as +80 Cores →</button>
         </div>
 
-        ${gerarHubFilamentosHtml("home")}
+        <div class="sj-home-fil-showcase-grid">
+          <!-- Card 1: Masterprint -->
+          <div class="sj-home-fil-brand-card" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint">
+            <div class="sj-home-fil-card-visual">
+              <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint" loading="lazy" />
+              <span class="sj-home-fil-badge">REVENDEDOR AUTORIZADO • 68 CORES</span>
+            </div>
+            <div class="sj-home-fil-card-content">
+              <div class="sj-home-fil-card-top">
+                <h3>Filamentos Masterprint</h3>
+                <p>Alta precisão dimensional (±0.02 mm), excelente aderência e zero bolhas para qualquer impressora 3D.</p>
+              </div>
+              <div class="sj-home-fil-chips" role="group" aria-label="Linhas Masterprint">
+                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint">PLA (25)</button>
+                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-silk-maxprint">PLA Silk (17)</button>
+                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-petg-maxprint">PETG (9)</button>
+                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-tpu-maxprint">TPU Flex (7)</button>
+                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-abs-especiais">ABS &amp; Glitter (10)</button>
+              </div>
+              <div class="sj-home-fil-card-footer">
+                <div class="sj-home-fil-price-box">
+                  <small>A partir de</small>
+                  <strong>R$ 104,90 <span>/ 1 kg</span></strong>
+                </div>
+                <span class="sj-home-fil-cta">Escolher Cores Masterprint →</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Card 2: Bambu Lab RFID -->
+          <div class="sj-home-fil-brand-card is-bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos">
+            <div class="sj-home-fil-card-visual">
+              <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID" loading="lazy" />
+              <span class="sj-home-fil-badge bambu">CHIP RFID ORIGINAL • 13 CORES</span>
+            </div>
+            <div class="sj-home-fil-card-content">
+              <div class="sj-home-fil-card-top">
+                <h3>Filamentos Bambu Lab RFID</h3>
+                <p>Reconhecimento automático de cor e parâmetros no AMS e AMS Lite. Disponível com bobina reutilizável ou Refil.</p>
+              </div>
+              <div class="sj-home-fil-chips" role="group" aria-label="Opções Bambu Lab">
+                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="carretel">Com Bobina RFID (10)</button>
+                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="refil">Refil s/ Bobina (3)</button>
+                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos">Ver Todos (13)</button>
+              </div>
+              <div class="sj-home-fil-card-footer">
+                <div class="sj-home-fil-price-box">
+                  <small>A partir de</small>
+                  <strong>R$ 159,90 <span>/ 1 kg</span></strong>
+                </div>
+                <span class="sj-home-fil-cta bambu">Escolher Cores Bambu Lab →</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. PEÇAS DE REPOSIÇÃO & MANUTENÇÃO ESPECIALIZADA (BENTO CLEAN 2 COLUNAS) -->
+      <div class="home-section-block">
+        <div class="sj-home-bento-2col">
+          <div class="sj-home-bento-card" data-home-go-cat="pecas">
+            <div class="sj-home-bento-img">
+              <img src="assets/produtos/peca-hotend.jpg" alt="Peças de Reposição e Upgrades" loading="lazy" />
+            </div>
+            <div class="sj-home-bento-body">
+              <span class="home-eyebrow">COMPONENTES ORIGINAIS</span>
+              <h3>Peças de Reposição &amp; Upgrades</h3>
+              <p>Hotends Quick-Swap completos, Placas PEI Texturizadas Dupla Face e Tubos PTFE para linha Bambu Lab.</p>
+              <span class="home-cat-cta">Ver Peças &amp; Acessórios →</span>
+            </div>
+          </div>
+
+          <div class="sj-home-bento-card" data-home-go-cat="manutencao">
+            <div class="sj-home-bento-img">
+              <img src="assets/produtos/impressora-p2s_combo.jpg" alt="Serviços e Manutenção Especializada" loading="lazy" />
+            </div>
+            <div class="sj-home-bento-body">
+              <span class="home-eyebrow">LABORATÓRIO TÉCNICO EM UMUARAMA</span>
+              <h3>Serviços &amp; Manutenção 3D</h3>
+              <p>Revisão preventiva, limpeza de extrusora, reparo de AMS/AMS Lite e calibração completa com garantia local.</p>
+              <span class="home-cat-cta">Ver Serviços de Manutenção →</span>
+            </div>
+          </div>
+        </div>
       </div>
     `;
 
@@ -4365,12 +4411,17 @@
       });
     });
 
-    // Clique nos cards visuais dos Filamentos Mais Bonitos -> abre a página já naquela cor!
-    homeEl.querySelectorAll("[data-pretty-item]").forEach((card) => {
-      card.addEventListener("click", () => {
-        const itemId = card.dataset.prettyItem;
-        const corIdx = Number(card.dataset.prettyCor);
-        abrirPaginaProduto(itemId, { corIdxInicial: corIdx });
+    // Clique nos cards e pílulas da Vitrine Clean de Filamentos na Capa -> abre direto a aba Filamentos naquela marca/material
+    homeEl.querySelectorAll("[data-home-fil-jump-brand]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const marca = el.getAttribute("data-home-fil-jump-brand");
+        const matMax = el.getAttribute("data-home-fil-jump-mat");
+        const filtroBambu = el.getAttribute("data-home-fil-jump-bambu");
+        if (marca) state.hubFilamentoMarcaAtiva = marca;
+        if (matMax) state.hubFilamentoMaterialMaxPrint = matMax;
+        if (filtroBambu) state.hubFilamentoFiltroBambu = filtroBambu;
+        navegarParaCategoria("filamentos");
       });
     });
 
@@ -4391,10 +4442,9 @@
       });
     });
 
-    // Vincula eventos dos cards de impressoras e do Hub de Filamentos na Home
+    // Vincula eventos dos cards de impressoras na Home
     const printersGrid = document.getElementById("home-printers-grid");
     if (printersGrid) vincularEventosDosCards(printersGrid);
-    vincularEventosHubFilamentos(homeEl, "home");
   }
 
   function atualizarVisaoPrincipal() {
