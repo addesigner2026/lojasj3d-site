@@ -4295,7 +4295,7 @@
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
-                  <strong>R$ 104,90 <span>/ 1 kg</span></strong>
+                  <strong>R$ 79,90 <span>/ 1 kg</span></strong>
                 </div>
                 <span class="sj-home-fil-cta">Escolher Cores Masterprint →</span>
               </div>
@@ -4321,7 +4321,7 @@
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
-                  <strong>R$ 159,90 <span>/ 1 kg</span></strong>
+                  <strong>R$ 79,90 <span>/ 1 kg</span></strong>
                 </div>
                 <span class="sj-home-fil-cta bambu">Escolher Cores Bambu Lab →</span>
               </div>
