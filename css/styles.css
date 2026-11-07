@@ -8894,5 +8894,235 @@ button.color-swatch-more:hover {
   color: #ffffff !important;
 }
 
+/* ==========================================================================
+   SELO DE REVENDEDOR AUTORIZADO OFICIAL (TOPO & RODAPÉ)
+   ========================================================================== */
+.sj-authorized-top-bar {
+  background: linear-gradient(90deg, #111116 0%, #1c1c24 50%, #111116 100%);
+  color: #f4f4f5;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 6px 0;
+  font-size: 0.76rem;
+}
+
+.sj-authorized-top-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sj-auth-reseller-Main {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  flex-wrap: wrap;
+}
+
+.sj-verified-shield-icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  color: #22c55e;
+}
+
+.sj-auth-reseller-label {
+  font-weight: 700;
+  color: #e4e4e7;
+  letter-spacing: 0.2px;
+}
+
+.sj-auth-reseller-sep {
+  color: #71717a;
+  font-weight: 700;
+}
+
+.sj-brand-auth-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  font-size: 0.73rem;
+  font-weight: 800;
+  cursor: pointer;
+  border: 1px solid rgba(255, 255, 255, 0.16);
+  background: rgba(255, 255, 255, 0.07);
+  color: #ffffff;
+  transition: all 0.16s ease;
+}
+
+.sj-brand-auth-pill .brand-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.sj-brand-auth-pill.bambu .brand-dot {
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.sj-brand-auth-pill.maxprint .brand-dot {
+  background: var(--sj-orange);
+  box-shadow: 0 0 6px var(--sj-orange);
+}
+
+.sj-brand-auth-pill:hover {
+  background: var(--sj-orange);
+  border-color: var(--sj-orange);
+  transform: translateY(-1px);
+}
+
+.sj-auth-reseller-right {
+  font-size: 0.73rem;
+  color: #a1a1aa;
+  font-weight: 600;
+}
+
+/* Banner de Revendedor Autorizado no Rodapé */
+.sj-footer-authorized-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  flex-wrap: wrap;
+  background: #ffffff;
+  border: 1.5px solid #e4e4e7;
+  border-radius: 16px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.03);
+}
+
+.sj-footer-auth-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: 1;
+  min-width: 260px;
+}
+
+.sj-footer-auth-shield {
+  width: 48px;
+  height: 48px;
+  border-radius: 13px;
+  background: #ecfdf5;
+  border: 1.5px solid #a7f3d0;
+  color: #16a34a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sj-footer-auth-eyebrow {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.7px;
+  color: #16a34a;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.sj-footer-auth-title {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #18181b;
+  margin: 0 0 3px;
+  line-height: 1.25;
+}
+
+.sj-footer-auth-title span {
+  color: var(--sj-orange);
+}
+
+.sj-footer-auth-desc {
+  font-size: 0.79rem;
+  color: #52525b;
+  margin: 0;
+  line-height: 1.4;
+}
+
+.sj-footer-auth-badges {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.sj-footer-brand-seal {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: #fafafa;
+  border: 1.5px solid #e4e4e7;
+  text-decoration: none !important;
+  transition: all 0.16s ease;
+}
+
+.sj-footer-brand-seal:hover {
+  border-color: var(--sj-orange);
+  background: #fff7ed;
+  transform: translateY(-2px);
+}
+
+.sj-footer-brand-seal .seal-check {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: #16a34a;
+  color: #ffffff;
+  font-size: 0.76rem;
+  font-weight: 900;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.sj-footer-brand-seal.maxprint .seal-check {
+  background: var(--sj-orange);
+}
+
+.sj-footer-brand-seal strong {
+  display: block;
+  font-size: 0.8rem;
+  font-weight: 900;
+  color: #18181b;
+  line-height: 1.15;
+}
+
+.sj-footer-brand-seal small {
+  display: block;
+  font-size: 0.69rem;
+  font-weight: 700;
+  color: #71717a;
+}
+
+@media (max-width: 768px) {
+  .sj-auth-reseller-right {
+    display: none;
+  }
+  .sj-authorized-top-inner {
+    justify-content: center;
+  }
+  .sj-footer-authorized-banner {
+    padding: 14px 16px;
+  }
+  .sj-footer-auth-badges {
+    width: 100%;
+  }
+  .sj-footer-brand-seal {
+    flex: 1;
+  }
+}
+
+
 
 

@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_12" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_13" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -134,13 +134,39 @@
        1. ÚNICO MENU / HEADER COM IDENTIDADE FORTE LOJA SJ 3D (100% LIMPO)
        ==================================================================== -->
   <header class="site-header">
+    <!-- Faixa Oficial de Revendedor Autorizado (Parte de Cima) -->
+    <div class="sj-authorized-top-bar" role="region" aria-label="Revendedor Autorizado Oficial">
+      <div class="container sj-authorized-top-inner">
+        <div class="sj-auth-reseller-Main">
+          <span class="sj-verified-shield-icon" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.45 14.54L6.8 11.8l1.41-1.41 2.34 2.34 5.24-5.24 1.41 1.41-6.65 6.64z"/>
+            </svg>
+          </span>
+          <span class="sj-auth-reseller-label">Revendedor Autorizado Oficial:</span>
+          <button type="button" class="sj-brand-auth-pill bambu" data-nav-cat="impressoras" title="Ver produtos oficiais Bambu Lab">
+            <span class="brand-dot"></span>
+            <strong>Bambu Lab</strong>
+          </button>
+          <span class="sj-auth-reseller-sep">&amp;</span>
+          <button type="button" class="sj-brand-auth-pill maxprint" data-nav-cat="filamentos" title="Ver filamentos oficiais Masterprint / Maxprint">
+            <span class="brand-dot"></span>
+            <strong>Masterprint / Maxprint</strong>
+          </button>
+        </div>
+        <div class="sj-auth-reseller-right">
+          <span>📍 Loja Física em Umuarama - PR • Pronta Entrega &amp; Nota Fiscal</span>
+        </div>
+      </div>
+    </div>
+
     <div class="container header-inner">
       <a href="#" class="header-logo" data-nav-cat="home" aria-label="Loja SJ 3D — Impressão 3D em Umuarama">
         <img src="assets/img/logo-horizontal.png" alt="Loja SJ" class="header-logo-img" />
         <span class="header-logo-divider" aria-hidden="true"></span>
         <span class="header-logo-tagline">
           <strong>IMPRESSÃO 3D</strong>
-          <small>Umuarama • PR</small>
+          <small>Revenda Autorizada • Umuarama PR</small>
         </span>
       </a>
 
@@ -508,13 +534,44 @@
        ==================================================================== -->
   <footer class="site-footer" id="rodape-ajuda">
     <div class="container">
+      <!-- Selo Oficial de Revendedor Autorizado na Parte de Baixo (Rodapé) -->
+      <div class="sj-footer-authorized-banner" role="region" aria-label="Selo de Revendedor Autorizado Bambu Lab e Masterprint / Maxprint">
+        <div class="sj-footer-auth-left">
+          <div class="sj-footer-auth-shield">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.45 14.54L6.8 11.8l1.41-1.41 2.34 2.34 5.24-5.24 1.41 1.41-6.65 6.64z"/>
+            </svg>
+          </div>
+          <div>
+            <span class="sj-footer-auth-eyebrow">GARANTIA DE PROCEDÊNCIA &amp; ORIGINALIDADE</span>
+            <h3 class="sj-footer-auth-title">Revendedor Autorizado Oficial <span>Bambu Lab</span> &amp; <span>Masterprint / Maxprint</span></h3>
+            <p class="sj-footer-auth-desc">Produtos 100% originais, lacrados de fábrica, com emissão de Nota Fiscal (NF-e), suporte técnico local e pronta entrega em Umuarama - PR.</p>
+          </div>
+        </div>
+        <div class="sj-footer-auth-badges">
+          <a href="#catalogo-topo" data-nav-cat="impressoras" class="sj-footer-brand-seal bambu">
+            <span class="seal-check">✓</span>
+            <div>
+              <strong>BAMBU LAB</strong>
+              <small>Revendedor Autorizado</small>
+            </div>
+          </a>
+          <a href="#catalogo-topo" data-nav-cat="filamentos" class="sj-footer-brand-seal maxprint">
+            <span class="seal-check">✓</span>
+            <div>
+              <strong>MASTERPRINT / MAXPRINT</strong>
+              <small>Revendedor Autorizado</small>
+            </div>
+          </a>
+        </div>
+      </div>
+
       <div class="footer-grid">
         <div class="footer-col">
           <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D"
             style="height:32px; width:auto; margin-bottom:12px;" />
           <p style="font-size:0.84rem; color:var(--text-body); margin-bottom:8px;">
-            Filamentos Bambu Lab e Masterprint, Impressoras 3D, Peças de Reposição e Manutenção Especializada em Umuarama e
-            Região.
+            <strong>Revendedor Autorizado Bambu Lab e Masterprint / Maxprint.</strong> Impressoras 3D, Filamentos, Peças de Reposição e Manutenção Especializada em Umuarama e Região.
           </p>
           <p style="font-size:0.82rem; color:var(--text-muted);">
             Av. Portugal, 6759 — Zona I-A, Umuarama - PR<br />
@@ -575,7 +632,7 @@
       </div>
 
       <div class="footer-bottom">
-        <span>© 2026 Loja SJ 3D — CNPJ: 66.275.129/0001-10 — Umuarama / Paraná.</span>
+        <span>© 2026 Loja SJ 3D — CNPJ: 66.275.129/0001-10 — Revendedor Autorizado Bambu Lab &amp; Masterprint / Maxprint — Umuarama / PR.</span>
         <span>Atendimento para Umuarama e toda a Região Noroeste do PR • <a href="#admin" id="footer-admin-link" style="color:inherit; opacity:0.55; text-decoration:none;" title="Acesso Administrativo (/admin)">Área Restrita</a></span>
       </div>
     </div>
@@ -2055,10 +2112,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_12"></script>
-  <script src="js/dados.js?v=20261106_12"></script>
-  <script src="js/database.js?v=20261106_12"></script>
-  <script src="js/app.js?v=20261106_12"></script>
+  <script src="js/supabase-client.js?v=20261106_13"></script>
+  <script src="js/dados.js?v=20261106_13"></script>
+  <script src="js/database.js?v=20261106_13"></script>
+  <script src="js/app.js?v=20261106_13"></script>
 </body>
 
 </html>
