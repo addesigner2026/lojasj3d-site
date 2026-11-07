@@ -395,7 +395,7 @@
       const cidade = String(cliente.cidade || "").trim();
       const uf = String(cliente.uf || "").trim();
 
-      if (cepDigitos.length !== 8) faltando.push("CEP Fiscal (8 dígitos)");
+      if (cepDigitos.length !== 8) faltando.push("CEP (8 dígitos)");
       if (!logradouro) faltando.push("Endereço (Rua / Avenida)");
       if (!numero) faltando.push("Número do Endereço");
       if (!bairro) faltando.push("Bairro");
@@ -411,7 +411,7 @@
       faltando,
       mensagem:
         faltando.length > 0
-          ? `Corrija ou preencha os seguintes dados para aprovar seu cadastro${precisaNf ? " e emissão de Nota Fiscal" : ""}: ${faltando.join(", ")}.`
+          ? `Corrija ou preencha os seguintes dados para aprovar seu cadastro: ${faltando.join(", ")}.`
           : "Cadastro aprovado e completo."
     };
   }
@@ -600,9 +600,7 @@
       fecharGavetaPedido();
       abrirModalAuthCliente("signup", { preMarcarNf: precisaNf });
       mostrarToastNotificacao(
-        precisaNf
-          ? "🧾 Para emitir sua Nota Fiscal e enviar no WhatsApp, crie ou acesse sua conta e preencha seus dados fiscais completos!"
-          : "👤 Crie sua conta ou faça login rapidamente para enviar seu pedido com seus dados completos no WhatsApp!",
+        "👤 Crie sua conta ou faça login rapidamente para enviar seu pedido com seus dados completos no WhatsApp!",
         "info"
       );
       return;
@@ -617,7 +615,7 @@
       fecharGavetaPedido();
       abrirModalAuthCliente("complete", {
         preMarcarNf: precisaNf,
-        mensagemTopo: `⚠️ Para finalizar seu pedido${precisaNf ? " com emissão de Nota Fiscal (NF-e)" : ""}, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
+        mensagemTopo: `⚠️ Para finalizar seu pedido, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
       });
       mostrarToast(validacao.mensagem, "warning");
       return;
@@ -1189,14 +1187,10 @@
       );
 
       if (title) {
-        title.textContent = precisaNf
-          ? "Completar Dados & Nota Fiscal (NF-e)"
-          : "Completar Meu Cadastro de Cliente";
+        title.textContent = "Completar Meu Cadastro de Cliente";
       }
       if (desc) {
-        desc.textContent = precisaNf
-          ? "Preencha todos os dados fiscais obrigatórios (CPF/CNPJ e endereço) para emitirmos sua Nota Fiscal e enviarmos seu pedido no WhatsApp."
-          : "Preencha seus dados obrigatórios para aprovar seu cadastro e finalizar seus pedidos.";
+        desc.textContent = "Preencha seus dados obrigatórios para aprovar seu cadastro e finalizar seus pedidos.";
       }
 
       const banner = document.getElementById("complete-profile-banner");
@@ -1251,7 +1245,7 @@
       if (formSignup) formSignup.style.display = "flex";
       if (formLogin) formLogin.style.display = "none";
       if (title) title.textContent = "Criar Minha Conta no Clube SJ";
-      if (desc) desc.textContent = "Preencha seus dados completos. Se precisar de Nota Fiscal (NF-e), marque a opção abaixo.";
+      if (desc) desc.textContent = "Preencha seus dados abaixo para criar sua conta e acompanhar seus pedidos.";
 
       const chkSignupNf = document.getElementById("chk-signup-precisa-nf");
       const wrapSignupNf = document.getElementById("signup-nf-fields-wrap");
@@ -1268,7 +1262,7 @@
       if (formLogin) formLogin.style.display = "flex";
       if (formSignup) formSignup.style.display = "none";
       if (title) title.textContent = "Entrar na Minha Conta";
-      if (desc) desc.textContent = "Acesse seus favoritos, dados fiscais, histórico de compras e seus cupons.";
+      if (desc) desc.textContent = "Acesse seus favoritos, histórico de compras e seus cupons.";
     }
   }
 
@@ -1663,9 +1657,7 @@
       salvarClienteLocal(clienteAtualizado);
       fecharModalAuthCliente();
       mostrarToastNotificacao(
-        precisaNotaFiscal
-          ? "✅ Cadastro e dados de Nota Fiscal (NF-e) aprovados com sucesso!"
-          : "✅ Cadastro completo e aprovado com sucesso!",
+        "✅ Cadastro completo e aprovado com sucesso!",
         "sucesso"
       );
 
@@ -2082,13 +2074,13 @@
             <div style="padding:4px 2px; margin:2px 0;">
               <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.8rem; font-weight:600; color:#71717a; margin:0;">
                 <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${c.precisaNotaFiscal ? "checked" : ""} style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
-                <span>Desejo preencher endereço completo (para entrega / Nota Fiscal)</span>
+                <span>Adicionar endereço completo para entrega (opcional)</span>
               </label>
             </div>
 
             <div id="edit-nf-fields-wrap" style="display:grid; gap:10px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:14px;">
               <div style="font-size:0.76rem; font-weight:700; color:#374151; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
-                Endereço Completo
+                Endereço de Entrega
               </div>
 
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
@@ -2137,7 +2129,7 @@
             </div>
 
             <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
-              💾 Salvar &amp; Aprovar Meus Dados Fiscais
+              💾 Salvar Meus Dados Cadastrais
             </button>
           </form>
         </div>
@@ -3788,28 +3780,25 @@
     if (drawerTotalEl) drawerTotalEl.textContent = textoTotalCaixa;
 
     if (mobileBar && mobileCount && mobileTotal) {
-      const estaEmTelaSemColunaLateral =
-        (state.categoriaMenu === "home" && state.busca.trim() === "") ||
-        Boolean(state.produtoDetalheAtivo);
-      mobileBar.classList.toggle("visible", totalItens > 0 && !state.emissorAberto);
-      mobileBar.classList.toggle(
-        "visible-any-screen",
-        totalItens > 0 && estaEmTelaSemColunaLateral && !state.emissorAberto
-      );
-      mobileBar.style.display =
-        totalItens > 0 && (estaEmTelaSemColunaLateral || window.innerWidth <= 1120) && !state.emissorAberto
-          ? "flex"
-          : "";
+      const mostrarBarra = !state.emissorAberto;
+      mobileBar.classList.toggle("visible", mostrarBarra);
+      mobileBar.classList.toggle("visible-any-screen", mostrarBarra);
+      mobileBar.style.display = mostrarBarra ? "flex" : "none";
 
-      mobileCount.textContent = `${totalItens} ${
-        totalItens === 1 ? "item" : "itens"
-      }`;
-      mobileTotal.textContent =
-        valorTotalEstimado > 0
-          ? formatarMoedaBR(valorTotalEstimado)
-          : temItensSobConsulta
-            ? "Sob consulta"
-            : "";
+      if (totalItens > 0) {
+        mobileCount.textContent = `${totalItens} ${
+          totalItens === 1 ? "item no carrinho" : "itens no carrinho"
+        }`;
+        mobileTotal.textContent =
+          valorTotalEstimado > 0
+            ? formatarMoedaBR(valorTotalEstimado)
+            : temItensSobConsulta
+              ? "Sob consulta"
+              : "Clique para abrir seu pedido";
+      } else {
+        mobileCount.textContent = "Seu Carrinho (0 itens)";
+        mobileTotal.textContent = "Clique para ver seu pedido";
+      }
     }
 
     const htmlVazio = `
@@ -4506,14 +4495,8 @@
     state.produtoDetalheAtivo = null;
 
     if (irParaCaixa) {
-      if (state.categoriaMenu === "home") {
-        state.categoriaMenu = "todos";
-        document.querySelectorAll(".header-nav-link[data-nav-cat]").forEach((l) => {
-          l.classList.toggle("active", l.dataset.navCat === "todos");
-        });
-      }
       atualizarVisaoPrincipal();
-      document.getElementById("side-cart-box")?.scrollIntoView({ behavior: "smooth" });
+      abrirGavetaPedido();
     } else {
       atualizarVisaoPrincipal();
       window.scrollTo({ top: 0, behavior: "smooth" });
@@ -8685,7 +8668,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       abrirGavetaPedido();
     });
 
-    document.getElementById("mobile-cart-jump-btn")?.addEventListener("click", () => {
+    document.getElementById("mobile-cart-jump-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      abrirGavetaPedido();
+    });
+
+    document.getElementById("mobile-floating-cart")?.addEventListener("click", () => {
       abrirGavetaPedido();
     });
 
