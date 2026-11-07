@@ -4667,7 +4667,7 @@
     if (item.tipoFilamento) {
       // Grupo A: Marca (Masterprint vs Bambu Lab)
       const seletorMarcaHtml = `
-        <div class="pdp-option-group">
+        <div class="pdp-option-group pdp-filament-brand-group">
           <div class="pdp-option-header">
             <span>Marca:</span>
           </div>
@@ -4687,7 +4687,7 @@
       let seletorMaterialHtml = "";
       if (!isBambu) {
         seletorMaterialHtml = `
-          <div class="pdp-option-group">
+          <div class="pdp-option-group pdp-filament-material-group">
             <div class="pdp-option-header">
               <span>Material:</span>
             </div>
@@ -4721,7 +4721,7 @@
         seletor1Html = "";
       } else {
         seletor1Html = `
-          <div class="pdp-option-group">
+          <div class="pdp-option-group pdp-filament-rfid-group">
             <div class="pdp-option-header">
               <span>Apresentação RFID:</span>
             </div>
@@ -4766,7 +4766,7 @@
     const seletor2Html =
       item.tipoFilamento && listaCores
         ? `
-          <div class="pdp-option-group">
+          <div class="pdp-option-group pdp-filament-color-group">
             <div class="pdp-option-header pdp-color-option-header">
               <div class="pdp-color-label-left">
                 <span>Escolha a Cor (${listaCores.length}):</span>
@@ -4908,7 +4908,7 @@
       </div>
 
       <!-- Grade Principal de 2 Colunas (Galeria Esquerda + Configurador Direita) -->
-      <div class="pdp-main-grid">
+      <div class="pdp-main-grid ${item.tipoFilamento ? "is-filament-pdp" : ""}">
 
         <!-- COLUNA ESQUERDA: GALERIA CLEAN -->
         <div class="pdp-gallery-col">
@@ -4952,7 +4952,7 @@
         <!-- COLUNA DIREITA: CONFIGURADOR ESTILO ANYCUBIC -->
         <div class="pdp-info-col">
           <div class="pdp-meta-row">
-            <span class="pdp-brand-badge">${marcaAtual}</span>
+            <span class="pdp-brand-badge">${marcaAtual === "MaxPrint" ? "Masterprint" : marcaAtual}</span>
             <span class="pdp-stock-status" id="pdp-stock-status-badge">● Em estoque para envio / retirada</span>
           </div>
 
