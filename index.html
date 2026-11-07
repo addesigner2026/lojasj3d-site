@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261106_14" />
+  <link rel="stylesheet" href="css/styles.css?v=20261106_15" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -155,7 +155,7 @@
           </button>
         </div>
         <div class="sj-auth-reseller-right">
-          <span>📍 Loja Física em Umuarama - PR • Pronta Entrega &amp; Nota Fiscal</span>
+          <span>📍 Loja Física em Umuarama - PR • Pronta Entrega &amp; Garantia Oficial</span>
         </div>
       </div>
     </div>
@@ -324,15 +324,13 @@
 
           <div class="side-box-total" id="side-box-total">Total: R$ 0,00</div>
 
-          <!-- Opção de Emissão de Nota Fiscal (NF-e) no Pedido -->
-          <div class="cart-nf-toggle-box" id="side-box-nf-wrap" style="margin: 8px 0 10px; padding: 10px 12px; background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 10px;">
-            <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#9A3412; margin:0;">
-              <input type="checkbox" id="chk-cart-precisa-nf" style="margin-top:2px; width:16px; height:16px; accent-color:#F04E23; cursor:pointer;" />
-              <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+          <!-- Opção discreta de Nota Fiscal (oculta no carrinho por padrão para não poluir) -->
+          <div class="cart-nf-toggle-box" id="side-box-nf-wrap" style="display: none;">
+            <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.76rem; font-weight:500; color:#71717a; margin:4px 0;">
+              <input type="checkbox" id="chk-cart-precisa-nf" style="width:14px; height:14px; accent-color:#F04E23; cursor:pointer;" />
+              <span>Solicitar Nota Fiscal neste pedido</span>
             </label>
-            <div id="side-box-nf-status" style="font-size:0.74rem; color:#7C2D12; margin-top:4px; padding-left:24px; line-height:1.35;">
-              Se marcado, seus dados completos de CPF/CNPJ e endereço fiscal serão incluídos no pedido.
-            </div>
+            <div id="side-box-nf-status" style="display:none;"></div>
           </div>
 
           <button type="button" class="btn-submit-box" id="btn-submit-box">
@@ -426,15 +424,13 @@
         <div class="raffle-coupons-tracker" id="drawer-raffle-coupons-tracker" style="display: none;"></div>
         <div class="side-box-total" id="drawer-box-total">Total: R$ 0,00</div>
 
-        <!-- Opção de Emissão de Nota Fiscal (NF-e) na Gaveta do Pedido -->
-        <div class="cart-nf-toggle-box" id="drawer-box-nf-wrap" style="margin: 8px 0 8px; padding: 10px 12px; background: #FFF7ED; border: 1px solid #FDBA74; border-radius: 10px;">
-          <label style="display:flex; align-items:flex-start; gap:8px; cursor:pointer; font-size:0.82rem; font-weight:700; color:#9A3412; margin:0;">
-            <input type="checkbox" id="chk-drawer-precisa-nf" style="margin-top:2px; width:16px; height:16px; accent-color:#F04E23; cursor:pointer;" />
-            <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+        <!-- Opção discreta de Nota Fiscal (oculta na gaveta por padrão para não poluir) -->
+        <div class="cart-nf-toggle-box" id="drawer-box-nf-wrap" style="display: none;">
+          <label style="display:flex; align-items:center; gap:6px; cursor:pointer; font-size:0.76rem; font-weight:500; color:#71717a; margin:4px 0;">
+            <input type="checkbox" id="chk-drawer-precisa-nf" style="width:14px; height:14px; accent-color:#F04E23; cursor:pointer;" />
+            <span>Solicitar Nota Fiscal neste pedido</span>
           </label>
-          <div id="drawer-box-nf-status" style="font-size:0.74rem; color:#7C2D12; margin-top:4px; padding-left:24px; line-height:1.35;">
-            Se marcado, seus dados completos de CPF/CNPJ e endereço fiscal serão incluídos no pedido.
-          </div>
+          <div id="drawer-box-nf-status" style="display:none;"></div>
         </div>
 
         <div class="drawer-client-club-link-wrap" id="drawer-client-club-link-wrap" style="margin: 6px 0 10px;">
@@ -545,7 +541,7 @@
           <div>
             <span class="sj-footer-auth-eyebrow">GARANTIA DE PROCEDÊNCIA &amp; ORIGINALIDADE</span>
             <h3 class="sj-footer-auth-title">Revendedor Autorizado Oficial <span>Bambu Lab</span> &amp; <span>Masterprint</span></h3>
-            <p class="sj-footer-auth-desc">Produtos 100% originais, lacrados de fábrica, com emissão de Nota Fiscal (NF-e), suporte técnico local e pronta entrega em Umuarama - PR.</p>
+            <p class="sj-footer-auth-desc">Produtos 100% originais, lacrados de fábrica, com suporte técnico especializado e pronta entrega em Umuarama - PR.</p>
           </div>
         </div>
         <div class="sj-footer-auth-badges">
@@ -773,21 +769,18 @@
           </div>
         </div>
 
-        <!-- Opção de Nota Fiscal no Cadastro -->
-        <div style="padding:11px 13px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px; margin-top:2px;">
-          <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.84rem; font-weight:800; color:#9A3412; margin:0;">
-            <input type="checkbox" name="signup_precisa_nf" id="chk-signup-precisa-nf" style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
-            <span>🧾 Preciso de Nota Fiscal (NF-e) nas minhas compras</span>
+        <!-- Opção discreta de Nota Fiscal no Cadastro -->
+        <div style="padding:4px 2px; margin-top:2px;">
+          <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.78rem; font-weight:600; color:#71717a; margin:0;">
+            <input type="checkbox" name="signup_precisa_nf" id="chk-signup-precisa-nf" style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
+            <span>Desejo preencher endereço completo (para Nota Fiscal / entrega)</span>
           </label>
-          <p style="margin:4px 0 0 26px; font-size:0.75rem; color:#7C2D12; line-height:1.35;">
-            Marque esta opção para preencher os dados fiscais completos (CPF/CNPJ e endereço de faturamento).
-          </p>
         </div>
 
-        <!-- Campos Obrigatórios da Nota Fiscal (NF-e) -->
+        <!-- Campos Opcionais de Endereço / Dados Completos -->
         <div id="signup-nf-fields-wrap" style="display:none; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:12px; margin-top:2px; gap:10px; flex-direction:column;">
-          <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
-            📋 Dados Obrigatórios para Emissão de Nota Fiscal (NF-e)
+          <div style="font-size:0.76rem; font-weight:700; color:#374151; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+            Endereço Completo
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -885,27 +878,24 @@
         </div>
 
         <div class="auth-field">
-          <label>E-mail (p/ contato e envio da Nota Fiscal) *</label>
+          <label>Seu E-mail *</label>
           <div class="auth-input-wrap">
             <input type="email" name="comp_email" placeholder="seuemail@exemplo.com" required />
           </div>
         </div>
 
-        <!-- Opção de Nota Fiscal -->
-        <div style="padding:11px 13px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px;">
-          <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.84rem; font-weight:800; color:#9A3412; margin:0;">
-            <input type="checkbox" name="comp_precisa_nf" id="chk-complete-precisa-nf" style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
-            <span>🧾 Preciso de Nota Fiscal (NF-e) neste pedido</span>
+        <!-- Opção discreta de Nota Fiscal -->
+        <div style="padding:4px 2px;">
+          <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.78rem; font-weight:600; color:#71717a; margin:0;">
+            <input type="checkbox" name="comp_precisa_nf" id="chk-complete-precisa-nf" style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
+            <span>Desejo preencher endereço completo (para Nota Fiscal / entrega)</span>
           </label>
-          <p style="margin:4px 0 0 26px; font-size:0.75rem; color:#7C2D12; line-height:1.35;">
-            Se marcado, preencha todos os campos de endereço fiscal abaixo para emissão da NF-e.
-          </p>
         </div>
 
-        <!-- Campos Fiscais Completos -->
+        <!-- Campos de Endereço Completo -->
         <div id="complete-nf-fields-wrap" style="display:none; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:12px; gap:10px; flex-direction:column;">
-          <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
-            📋 Dados Obrigatórios para Nota Fiscal (NF-e)
+          <div style="font-size:0.76rem; font-weight:700; color:#374151; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+            Endereço Completo
           </div>
 
           <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
@@ -2112,10 +2102,10 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261106_14"></script>
-  <script src="js/dados.js?v=20261106_14"></script>
-  <script src="js/database.js?v=20261106_14"></script>
-  <script src="js/app.js?v=20261106_14"></script>
+  <script src="js/supabase-client.js?v=20261106_15"></script>
+  <script src="js/dados.js?v=20261106_15"></script>
+  <script src="js/database.js?v=20261106_15"></script>
+  <script src="js/app.js?v=20261106_15"></script>
 </body>
 
 </html>

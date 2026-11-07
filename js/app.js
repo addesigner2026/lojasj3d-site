@@ -675,8 +675,8 @@
     ].filter(Boolean);
 
     const fraseNotaFiscal = precisaNf
-      ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados fiscais completos informados acima.`
-      : `\n\n✅ *Nota Fiscal:* Não solicitada neste pedido.`;
+      ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados informados acima.`
+      : "";
 
     const msg = encodeURIComponent(
       `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
@@ -2037,19 +2037,19 @@
         </div>
       </div>
 
-      <!-- ABA D: MEUS DADOS CADASTRAIS & NOTA FISCAL (NF-E) -->
+      <!-- ABA D: MEUS DADOS CADASTRAIS -->
       <div class="client-tab-pane ${abaAtiva === "dados" ? "active" : ""}" id="pane-client-dados">
         <div class="client-reg-card-wrap" style="max-width: 720px; margin: 0 auto; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
           <div class="client-reg-card-head">
-            <h3>Meus Dados Cadastrais &amp; Nota Fiscal (NF-e)</h3>
-            <p>Mantenha seu CPF/CNPJ e endereço fiscal completos para aprovação automática e envio imediato dos seus pedidos no WhatsApp.</p>
+            <h3>Meus Dados Cadastrais</h3>
+            <p>Mantenha seus dados atualizados para envio rápido dos seus pedidos no WhatsApp.</p>
           </div>
 
           ${(() => {
             const valAtual = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
             return valAtual.valido
               ? `<div style="margin:0 0 14px; padding:10px 14px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; color:#065F46; font-size:0.82rem; font-weight:700;">
-                   ✅ Cadastro Aprovado! Seus dados completos${c.precisaNotaFiscal ? " e dados de Nota Fiscal (NF-e)" : ""} já vão prontos quando você finalizar no WhatsApp.
+                   ✅ Cadastro Aprovado! Seus dados completos já vão prontos quando você finalizar no WhatsApp.
                  </div>`
               : `<div style="margin:0 0 14px; padding:10px 14px; background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; color:#991B1B; font-size:0.82rem; font-weight:700;">
                    ⚠️ Cadastro Pendente: preencha ${escaparHtml(valAtual.faltando.join(", "))} abaixo para aprovar seu cadastro.
@@ -2075,23 +2075,20 @@
             </div>
 
             <div class="auth-field">
-              <label>E-mail (para Nota Fiscal e contato) *</label>
+              <label>E-mail *</label>
               <input type="email" name="edit_email" value="${emailSeguro}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
             </div>
 
-            <div style="padding:12px 14px; background:#FFF7ED; border:1.5px solid #FDBA74; border-radius:10px; margin:4px 0;">
-              <label style="display:flex; align-items:center; gap:9px; cursor:pointer; font-size:0.86rem; font-weight:800; color:#9A3412; margin:0;">
-                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${c.precisaNotaFiscal ? "checked" : ""} style="width:17px; height:17px; accent-color:#F04E23; cursor:pointer;" />
-                <span>🧾 Preciso de emissão de Nota Fiscal (NF-e) nas minhas compras</span>
+            <div style="padding:4px 2px; margin:2px 0;">
+              <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.8rem; font-weight:600; color:#71717a; margin:0;">
+                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${c.precisaNotaFiscal ? "checked" : ""} style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
+                <span>Desejo preencher endereço completo (para entrega / Nota Fiscal)</span>
               </label>
-              <p style="margin:4px 0 0 26px; font-size:0.76rem; color:#7C2D12;">
-                Quando ativo, todos os dados fiscais abaixo são enviados automaticamente junto com os itens no WhatsApp.
-              </p>
             </div>
 
             <div id="edit-nf-fields-wrap" style="display:grid; gap:10px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:14px;">
-              <div style="font-size:0.78rem; font-weight:800; color:#111827; text-transform:uppercase; letter-spacing:0.4px; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
-                📋 Endereço &amp; Dados Fiscais (Obrigatórios para Nota Fiscal)
+              <div style="font-size:0.76rem; font-weight:700; color:#374151; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
+                Endereço Completo
               </div>
 
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
