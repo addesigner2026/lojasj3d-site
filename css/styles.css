@@ -446,9 +446,21 @@ button, select, input {
 
 .combo-layout-grid {
   display: grid;
-  grid-template-columns: 1fr !important;
+  grid-template-columns: minmax(0, 1fr) !important;
   gap: 24px;
   align-items: start;
+  width: 100%;
+  max-width: 100%;
+}
+
+.combo-layout-grid > div,
+#catalog-sections-container,
+.category-section-block,
+.sj-fil-studio,
+.sj-fil-studio-bar,
+.home-landing-section {
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Barra Rápida de Filtro de Marca + Busca Inline (UI/UX Pro Max) */
@@ -9569,6 +9581,8 @@ button.color-swatch-more:hover {
     -webkit-overflow-scrolling: touch;
     scrollbar-width: none;
     padding-bottom: 2px;
+    width: 100%;
+    max-width: 100%;
   }
 
   .sj-fil-line-pills::-webkit-scrollbar {
@@ -9578,6 +9592,23 @@ button.color-swatch-more:hover {
   .sj-fil-line-pill {
     flex-shrink: 0;
     white-space: nowrap;
+  }
+
+  /* Imagens dos filamentos 100% encaixadas (sem corte no topo ou na base) no Tablet e Mobile */
+  .sj-fil-card-media,
+  .filament-color-tile-img {
+    aspect-ratio: 1 / 1 !important;
+    height: auto !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9;
+  }
+
+  .sj-fil-card-media img,
+  .filament-color-tile-img img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
   }
 
   /* Botão flutuante do WhatsApp posicionado acima da barra inferior do carrinho */
@@ -9999,6 +10030,206 @@ button.color-swatch-more:hover {
     -webkit-line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
+  }
+
+  /* 2.9.1 Catálogo Completo de Filamentos Mobile: Grade 2x2 Exata (Sem Cortar a Coluna Direita nem as Fotos) */
+  .catalog-ux-toolbar {
+    padding: 10px 12px !important;
+    margin-bottom: 12px !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .inline-catalog-search {
+    min-width: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    flex: 1 1 100% !important;
+    height: 38px !important;
+  }
+
+  .category-section-block {
+    margin-bottom: 24px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .category-section-header {
+    padding: 12px 14px !important;
+    border-radius: 12px !important;
+    margin-bottom: 12px !important;
+    gap: 6px !important;
+  }
+
+  .category-section-header h2 {
+    font-size: 1.05rem !important;
+    line-height: 1.22 !important;
+  }
+
+  .category-section-header p {
+    font-size: 0.75rem !important;
+    line-height: 1.35 !important;
+  }
+
+  .sj-fil-studio {
+    gap: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .sj-fil-studio-bar {
+    padding: 10px 12px !important;
+    gap: 10px !important;
+    border-radius: 12px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow: hidden !important;
+  }
+
+  .sj-fil-studio-top {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 8px !important;
+    width: 100% !important;
+  }
+
+  .sj-fil-brand-segmented {
+    display: grid !important;
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    width: 100% !important;
+    padding: 3px !important;
+  }
+
+  .sj-fil-brand-btn {
+    width: 100% !important;
+    justify-content: center !important;
+    padding: 8px 6px !important;
+    font-size: 0.75rem !important;
+    gap: 5px !important;
+  }
+
+  .sj-fil-studio-meta {
+    width: 100% !important;
+    justify-content: space-between !important;
+    gap: 6px !important;
+  }
+
+  .sj-fil-count-badge,
+  .sj-fil-price-badge {
+    font-size: 0.7rem !important;
+    padding: 4px 8px !important;
+  }
+
+  .sj-fil-line-pills {
+    display: flex !important;
+    flex-wrap: nowrap !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    overflow-x: auto !important;
+    gap: 6px !important;
+    padding-bottom: 2px !important;
+  }
+
+  .sj-fil-line-pill {
+    padding: 6px 10px !important;
+    font-size: 0.73rem !important;
+    flex-shrink: 0 !important;
+  }
+
+  .sj-fil-clean-grid,
+  .filament-ext-colors-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+    gap: 10px !important;
+    width: 100% !important;
+    max-width: 100% !important;
+  }
+
+  .sj-fil-card,
+  .filament-color-tile {
+    min-width: 0 !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    border-radius: 12px !important;
+  }
+
+  .sj-fil-card-media,
+  .filament-color-tile-img {
+    aspect-ratio: 1 / 1 !important;
+    height: auto !important;
+    padding: 10px !important;
+    background: #ffffff !important;
+    border-bottom: 1px solid #f1f5f9 !important;
+  }
+
+  .sj-fil-card-media img,
+  .filament-color-tile-img img {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain !important;
+  }
+
+  .sj-fil-code-tag {
+    top: 6px !important;
+    left: 6px !important;
+    font-size: 0.64rem !important;
+    padding: 2px 6px !important;
+  }
+
+  .sj-fil-rfid-mini {
+    top: 6px !important;
+    right: 6px !important;
+    font-size: 0.6rem !important;
+    padding: 2px 6px !important;
+  }
+
+  .sj-fil-card-body,
+  .filament-color-tile-body {
+    padding: 10px !important;
+    gap: 7px !important;
+    min-width: 0 !important;
+  }
+
+  .sj-fil-name-row {
+    min-width: 0 !important;
+    gap: 6px !important;
+  }
+
+  .sj-fil-dot {
+    width: 10px !important;
+    height: 10px !important;
+  }
+
+  .sj-fil-name,
+  .tile-color-name {
+    font-size: 0.77rem !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+    display: block !important;
+    min-width: 0 !important;
+  }
+
+  .sj-fil-card-footer {
+    flex-direction: column !important;
+    align-items: stretch !important;
+    gap: 6px !important;
+    padding-top: 6px !important;
+  }
+
+  .sj-fil-price {
+    font-size: 0.86rem !important;
+    line-height: 1.15 !important;
+  }
+
+  .sj-fil-add-btn {
+    width: 100% !important;
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    padding: 8px 10px !important;
+    font-size: 0.75rem !important;
+    border-radius: 8px !important;
   }
 
   /* 2.10 Barra Inferior do Carrinho e Rodapé Mobile Organizado */
