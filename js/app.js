@@ -1020,39 +1020,46 @@
 
   function atualizarFeedbackVisualCpfCnpj(input, forcarExibicaoIncompleto = false) {
     if (!input) return;
-    let feedbackEl = input.parentElement?.querySelector(".cpf-cnpj-live-feedback");
-    if (!feedbackEl && input.parentElement) {
+    const containerField = input.closest(".auth-field") || input.parentElement;
+    const visualBox = input.closest(".auth-input-wrap") || input;
+
+    let feedbackEl = containerField?.querySelector(".cpf-cnpj-live-feedback");
+    if (!feedbackEl && containerField) {
       feedbackEl = document.createElement("small");
       feedbackEl.className = "cpf-cnpj-live-feedback";
       feedbackEl.style.display = "none";
       feedbackEl.style.fontSize = "0.75rem";
       feedbackEl.style.fontWeight = "700";
-      feedbackEl.style.marginTop = "4px";
-      input.parentElement.appendChild(feedbackEl);
+      feedbackEl.style.marginTop = "5px";
+      feedbackEl.style.lineHeight = "1.3";
+      containerField.appendChild(feedbackEl);
     }
 
     const digitos = String(input.value || "").replace(/\D/g, "");
     if (!digitos) {
-      input.style.borderColor = "";
-      input.style.backgroundColor = "";
+      visualBox.style.borderColor = "";
+      visualBox.style.backgroundColor = "";
+      input.setCustomValidity?.("");
       if (feedbackEl) feedbackEl.style.display = "none";
       return;
     }
 
-    // Valida imediatamente quando atingir 11 dígitos (CPF) ou 14 dígitos (CNPJ), ou ao sair do campo (blur)
-    if (digitos.length === 11 || digitos.length === 14 || forcarExibicaoIncompleto) {
+    // Valida imediatamente a partir de 11 dígitos (CPF ou CNPJ) ou quando o usuário sai do campo (blur/submit)
+    if (digitos.length >= 11 || forcarExibicaoIncompleto) {
       const check = validarDocumentoCpfOuCnpj(digitos);
       if (check.valido) {
-        input.style.borderColor = "#16a34a";
-        input.style.backgroundColor = "#f0fdf4";
+        visualBox.style.borderColor = "#16a34a";
+        visualBox.style.backgroundColor = "#f0fdf4";
+        input.setCustomValidity?.("");
         if (feedbackEl) {
           feedbackEl.style.display = "block";
           feedbackEl.style.color = "#15803d";
           feedbackEl.textContent = check.mensagem;
         }
       } else {
-        input.style.borderColor = "#dc2626";
-        input.style.backgroundColor = "#fef2f2";
+        visualBox.style.borderColor = "#dc2626";
+        visualBox.style.backgroundColor = "#fef2f2";
+        input.setCustomValidity?.(check.mensagem.replace(/^❌\s*/, ""));
         if (feedbackEl) {
           feedbackEl.style.display = "block";
           feedbackEl.style.color = "#dc2626";
@@ -1060,8 +1067,9 @@
         }
       }
     } else {
-      input.style.borderColor = "";
-      input.style.backgroundColor = "";
+      visualBox.style.borderColor = "";
+      visualBox.style.backgroundColor = "";
+      input.setCustomValidity?.("");
       if (feedbackEl) feedbackEl.style.display = "none";
     }
   }
@@ -2400,7 +2408,21 @@
           </div>
 
           <div class="raffle-clean-store-footnote">
-            📍 Loja Física em Umuarama - PR: Av. Portugal, 6759 — Zona I-A • <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">@lojasj3d</a>
+            <span>📍 Av. Portugal, 6759 — Umuarama - PR</span>
+            <span class="sj-inline-social-logos">
+              <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="sj-social-mini-icon insta" title="Instagram @lojasj3d" aria-label="Instagram Loja SJ 3D">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+              </a>
+              <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-mini-icon fb" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+              </a>
+              <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="sj-social-mini-icon wa" title="WhatsApp (44) 99135-1318" aria-label="WhatsApp Loja SJ 3D">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+              </a>
+              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="sj-social-mini-icon maps" title="Localização no Google Maps" aria-label="Google Maps Loja SJ 3D">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+              </a>
+            </span>
           </div>
         </div>
         <div class="hero-raffle-art-spacer" aria-hidden="true"></div>
@@ -4067,7 +4089,21 @@
                   ${s.fullBleedRaffle
               ? `
                         <div class="raffle-clean-store-footnote">
-                          📍 Loja Física em Umuarama - PR: Av. Portugal, 6759 — Zona I-A • <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">@lojasj3d</a>
+                          <span>📍 Av. Portugal, 6759 — Umuarama - PR</span>
+                          <span class="sj-inline-social-logos">
+                            <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="sj-social-mini-icon insta" title="Instagram @lojasj3d" aria-label="Instagram Loja SJ 3D">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+                            </a>
+                            <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-mini-icon fb" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+                            </a>
+                            <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="sj-social-mini-icon wa" title="WhatsApp (44) 99135-1318" aria-label="WhatsApp Loja SJ 3D">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.38 8.38 0 0 1-3.8-.9L3 21l1.9-5.7a8.38 8.38 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.38 8.38 0 0 1 3.8-.9h.5a8.48 8.48 0 0 1 8 8v.5z"></path></svg>
+                            </a>
+                            <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="sj-social-mini-icon maps" title="Localização no Google Maps" aria-label="Google Maps Loja SJ 3D">
+                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+                            </a>
+                          </span>
                         </div>
                       `
               : ""
