@@ -4665,31 +4665,13 @@
     let seletor1Html = "";
 
     if (item.tipoFilamento) {
-      // Grupo A: Marca (Masterprint vs Bambu Lab)
-      const seletorMarcaHtml = `
-        <div class="pdp-option-group pdp-filament-brand-group">
-          <div class="pdp-option-header">
-            <span>Marca:</span>
-          </div>
-          <div class="pdp-pills-wrap pdp-brand-switch-row">
-            <button type="button" class="pdp-pill-btn ${!isBambu ? "active" : ""}" data-pdp-switch-brand="MaxPrint" title="Filamentos Masterprint">
-              <span>Masterprint</span>
-            </button>
-            <button type="button" class="pdp-pill-btn ${isBambu ? "active" : ""}" data-pdp-switch-brand="Bambu Lab" title="Filamentos Bambu Lab com chip RFID">
-              <span class="brand-pill-badge">RFID</span>
-              <span>Bambu Lab</span>
-            </button>
-          </div>
-        </div>
-      `;
-
-      // Grupo B: Material / Tipo (Exibe apenas as opções da marca escolhida)
+      // Exibe APENAS os seletores da marca atual (sem misturar as duas marcas dentro da página do filamento)
       let seletorMaterialHtml = "";
       if (!isBambu) {
         seletorMaterialHtml = `
           <div class="pdp-option-group pdp-filament-material-group">
             <div class="pdp-option-header">
-              <span>Material:</span>
+              <span>Material Masterprint:</span>
             </div>
             <div class="pdp-pills-wrap pdp-material-switch-row">
               <button type="button" class="pdp-pill-btn ${item.id === "fil-pla-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-pla-maxprint" title="Filamento PLA 1kg">
@@ -4710,20 +4692,18 @@
             </div>
           </div>
         `;
-      } else {
-        seletorMaterialHtml = "";
       }
 
-      seletorLinhasFilamentoHtml = seletorMarcaHtml + seletorMaterialHtml;
+      seletorLinhasFilamentoHtml = seletorMaterialHtml;
 
-      // Grupo C: Apresentação (Somente para Bambu Lab que possui Carretel vs Refil)
+      // Apresentação (Somente para Bambu Lab: Com Bobina RFID vs Refil s/ Bobina)
       if (!isBambu) {
         seletor1Html = "";
       } else {
         seletor1Html = `
           <div class="pdp-option-group pdp-filament-rfid-group">
             <div class="pdp-option-header">
-              <span>Apresentação RFID:</span>
+              <span>Apresentação Bambu Lab:</span>
             </div>
             <div class="pdp-pills-wrap" id="pdp-sel1-pills">
               <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
@@ -4834,28 +4814,8 @@
         `
           : "";
 
-    // Miniaturas abaixo da imagem principal (Rolo + Peça e Foto Oficial do Catálogo)
-    const thumbsHtml =
-      item.tipoFilamento && corAtiva
-        ? `
-          <div class="pdp-thumbs-strip" id="pdp-thumbs-strip">
-            <button type="button" class="pdp-thumb-btn active" data-pdp-thumb-mode="rolo" title="Ver Rolo + Peça 3D">
-              <img src="${imagemBase}" alt="Rolo e Peça" id="pdp-thumb-rolo-img" style="filter: ${corAtiva.usaFotoCatalogoDireta ? "none" : corAtiva.filtroCss
-        };" />
-              <span>Rolo + Peça</span>
-            </button>
-            ${corAtiva.imgCatalogo
-          ? `
-                  <button type="button" class="pdp-thumb-btn" data-pdp-thumb-mode="catalogo" title="Ver Peça Oficial do Catálogo Loja SJ">
-                    <img src="${corAtiva.imgCatalogo}" alt="Amostra Oficial do Catálogo" id="pdp-thumb-cat-img" />
-                    <span>Peça do Catálogo</span>
-                  </button>
-                `
-          : ""
-        }
-          </div>
-        `
-        : "";
+    // Sem botões redundantes "Rolo + Peça / Peça do Catálogo" nem miniatura repetida
+    const thumbsHtml = "";
 
     // Blocos limpos de parâmetros abaixo da dobra (estilo Anycubic)
     const fichasEntries = Object.entries(item.fichaTecnica || {});
@@ -4874,10 +4834,12 @@
       ]
       : fichasEntries.slice(0, 4).map(([k, v]) => ({ label: k, val: v }));
 
-    // Outros produtos relacionados para navegação rápida
-    const relacionados = window.SITE_DATA.catalogo
-      .filter((i) => i.categoria === item.categoria && i.id !== item.id)
-      .slice(0, 3);
+    // Outros produtos relacionados (apenas para Impressoras/Peças/Manutenção; Filamentos já possuem todas as cores e materiais na própria tela)
+    const relacionados = item.tipoFilamento
+      ? []
+      : window.SITE_DATA.catalogo
+          .filter((i) => i.categoria === item.categoria && i.id !== item.id)
+          .slice(0, 3);
 
     pdpView.innerHTML = `
       <!-- Topo: Breadcrumb + Voltar ao Catálogo -->
@@ -4925,10 +4887,6 @@
               class="${item.tipoFilamento ? "cover-img" : ""}"
               style="filter: ${filtroPrincipal};"
             />
-            ${item.tipoFilamento && corAtiva?.imgCatalogo
-        ? `<img src="${corAtiva.imgCatalogo}" alt="Amostra do Catálogo" class="pdp-corner-sample" id="pdp-corner-sample" title="Amostra oficial do catálogo Loja SJ" />`
-        : ""
-      }
           </div>
 
           ${thumbsHtml}
@@ -4975,10 +4933,10 @@
       }
           </div>
 
-          <!-- Seletores Interativos -->
-          ${seletorLinhasFilamentoHtml}
-          ${seletor1Html}
+          <!-- Seletores Interativos (Cores primeiro para troca imediata, depois linha/apresentação da própria marca) -->
           ${seletor2Html}
+          ${seletor1Html}
+          ${seletorLinhasFilamentoHtml}
 
           <!-- Quantidade + Botões de Ação -->
           <div class="pdp-actions-block">

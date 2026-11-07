@@ -709,13 +709,17 @@ button, select, input {
 .combo-image-wrap img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 12px;
+  background: #ffffff;
   display: block;
   transition: filter 0.25s ease, transform 0.3s ease;
 }
 
 .combo-image-wrap img.cover-img {
-  object-fit: cover;
+  object-fit: contain;
+  padding: 12px;
+  background: #ffffff;
 }
 
 .combo-filament-card:hover .combo-image-wrap img {
@@ -1598,13 +1602,17 @@ select:focus-visible {
 .pdp-main-image-box img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
+  padding: 14px;
+  background: #ffffff;
   display: block;
   transition: filter 0.25s ease;
 }
 
 .pdp-main-image-box img.cover-img {
-  object-fit: cover;
+  object-fit: contain;
+  padding: 14px;
+  background: #ffffff;
 }
 
 .pdp-origin-badge {
@@ -10248,10 +10256,10 @@ button.color-swatch-more:hover {
     border-radius: 8px !important;
   }
 
-  /* 2.9.2 Página Interna do Filamento (PDP) no Mobile: Ultra-Clean, Foto + Info Lado a Lado e Cores Visíveis na Hora */
+  /* 2.9.2 Página Interna do Filamento (PDP) no Mobile: Ultra-Clean, Foto Única Grande de Lado a Lado e Cores Visíveis na Hora */
   .pdp-topbar {
-    margin-bottom: 10px !important;
-    padding-bottom: 8px !important;
+    margin-bottom: 8px !important;
+    padding-bottom: 6px !important;
     gap: 8px !important;
   }
 
@@ -10265,13 +10273,13 @@ button.color-swatch-more:hover {
     border-radius: 8px !important;
   }
 
-  /* Transforma a PDP de Filamento em Cabeçalho Lado a Lado (Foto Esquerda + Preço Direita) + Cores logo abaixo */
+  /* Layout Mobile Ultra-Clean: 1 Coluna de Lado a Lado, Foto Grande no Topo + Preço Compacto + Cores Imediatas */
   .pdp-main-grid.is-filament-pdp {
     display: grid !important;
-    grid-template-columns: 132px minmax(0, 1fr) !important;
-    gap: 10px 12px !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: 8px !important;
     align-items: start !important;
-    margin-bottom: 24px !important;
+    margin-bottom: 20px !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-gallery-col,
@@ -10279,136 +10287,102 @@ button.color-swatch-more:hover {
     display: contents !important;
   }
 
-  /* Coluna 1 (Esquerda): Foto do Filamento 100% visível + Miniaturas compactas logo abaixo */
+  /* Linha 1: Foto Única Grande ocupando todo o espaço de um lado ao outro, 100% encaixada sem cortes */
   .pdp-main-grid.is-filament-pdp .pdp-main-image-box {
-    grid-column: 1 / 2 !important;
-    grid-row: 1 / 4 !important;
-    aspect-ratio: 1 / 1 !important;
+    grid-column: 1 / -1 !important;
+    grid-row: 1 / 2 !important;
+    width: 100% !important;
+    aspect-ratio: 16 / 10 !important;
+    max-height: 230px !important;
     margin-bottom: 0 !important;
-    border-radius: 12px !important;
-    padding: 6px !important;
+    border-radius: 14px !important;
+    padding: 12px !important;
     background: #ffffff !important;
+    border: 1px solid #e4e4e7 !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-main-image-box img#pdp-main-img {
     object-fit: contain !important;
     width: 100% !important;
     height: 100% !important;
+    padding: 0 !important;
   }
 
-  /* Remove badges poluentes de cima da foto pequena no celular */
   .pdp-main-grid.is-filament-pdp .pdp-origin-badge,
-  .pdp-main-grid.is-filament-pdp .pdp-cod-floating {
+  .pdp-main-grid.is-filament-pdp .pdp-corner-sample,
+  .pdp-main-grid.is-filament-pdp .pdp-thumbs-strip {
     display: none !important;
   }
 
-  .pdp-main-grid.is-filament-pdp .pdp-corner-sample {
-    width: 36px !important;
-    height: 36px !important;
-    bottom: 5px !important;
-    right: 5px !important;
+  .pdp-main-grid.is-filament-pdp .pdp-cod-floating {
+    top: 10px !important;
+    right: 10px !important;
+    font-size: 0.68rem !important;
+    padding: 3px 8px !important;
     border-radius: 6px !important;
-    border-width: 1.5px !important;
   }
 
-  /* Miniaturas Rolo / Peça lado a lado na largura total logo abaixo do cabeçalho */
-  .pdp-main-grid.is-filament-pdp .pdp-thumbs-strip {
-    grid-column: 1 / -1 !important;
-    grid-row: 4 / 5 !important;
-    display: grid !important;
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-    gap: 8px !important;
-    margin: 2px 0 4px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-thumb-btn {
-    padding: 5px 8px !important;
-    gap: 7px !important;
-    font-size: 0.72rem !important;
-    border-radius: 8px !important;
-    justify-content: center !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-thumb-btn img {
-    width: 28px !important;
-    height: 28px !important;
-    object-fit: contain !important;
-  }
-
-  /* Oculta os 3 blocos empilhados ("Alta Precisão / Estoque Local / Suporte") no celular para subir as cores */
+  /* Oculta elementos secundários no topo para deixar o cabeçalho o mais clean possível */
+  .pdp-main-grid.is-filament-pdp .pdp-meta-row,
   .pdp-main-grid.is-filament-pdp .pdp-trust-strip,
   .pdp-main-grid.is-filament-pdp .pdp-subtitle,
   .pdp-main-grid.is-filament-pdp .pdp-price-sub-row {
     display: none !important;
   }
 
-  /* Coluna 2 (Direita, ao lado da foto): Marca, Título e Preço */
-  .pdp-main-grid.is-filament-pdp .pdp-meta-row {
-    grid-column: 2 / 3 !important;
-    grid-row: 1 / 2 !important;
-    margin-bottom: 0 !important;
-    gap: 6px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-brand-badge {
-    font-size: 0.64rem !important;
-    padding: 2px 7px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-stock-status {
-    font-size: 0.68rem !important;
-  }
-
+  /* Linha 2: Título + Preço super limpos logo abaixo da foto grande */
   .pdp-main-grid.is-filament-pdp .pdp-title {
-    grid-column: 2 / 3 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 2 / 3 !important;
-    font-size: 1.02rem !important;
-    line-height: 1.2 !important;
-    margin: 0 !important;
+    font-size: 1.04rem !important;
+    line-height: 1.22 !important;
+    margin: 2px 0 0 !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-price-card {
-    grid-column: 2 / 3 !important;
+    grid-column: 1 / -1 !important;
     grid-row: 3 / 4 !important;
-    padding: 8px 10px !important;
+    padding: 8px 12px !important;
     margin: 0 !important;
-    border-radius: 8px !important;
+    border-radius: 10px !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-price-main-row {
-    gap: 6px !important;
-    flex-wrap: wrap !important;
+    gap: 8px !important;
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-price-label {
-    font-size: 0.64rem !important;
+    font-size: 0.66rem !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-price-value {
-    font-size: 1.22rem !important;
+    font-size: 1.25rem !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-cod-pill {
-    font-size: 0.66rem !important;
-    padding: 2px 7px !important;
+    font-size: 0.68rem !important;
+    padding: 3px 8px !important;
+    margin-left: auto !important;
   }
 
-  /* Seletores de Marca, Material e Cores ocupando 100% da largura logo abaixo da foto */
+  /* Seletores ocupando 100% da largura */
   .pdp-main-grid.is-filament-pdp .pdp-option-group,
   .pdp-main-grid.is-filament-pdp .pdp-actions-block,
   .pdp-main-grid.is-filament-pdp .pdp-order-bar {
     grid-column: 1 / -1 !important;
-    margin-bottom: 4px !important;
+    margin-bottom: 2px !important;
   }
 
-  /* COLOCA AS CORES IMEDIATAMENTE ABAIXO DA FOTO E MINIATURAS (Ordem prioritária no Mobile) */
+  /* Linha 4: Seletor de Cores IMEDIATAMENTE abaixo do preço para trocar a foto grande em tempo real */
   .pdp-main-grid.is-filament-pdp .pdp-filament-color-group {
-    grid-row: 5 / 6 !important;
+    grid-row: 4 / 5 !important;
     background: #ffffff !important;
     border: 1.5px solid #e4e4e7 !important;
     border-radius: 12px !important;
     padding: 10px 11px !important;
-    margin-top: 2px !important;
+    margin-top: 0 !important;
   }
 
   .pdp-main-grid.is-filament-pdp .pdp-color-option-header {
@@ -10434,7 +10408,7 @@ button.color-swatch-more:hover {
     display: grid !important;
     grid-template-columns: repeat(7, minmax(0, 1fr)) !important;
     gap: 8px !important;
-    padding: 10px !important;
+    padding: 8px 6px !important;
     margin-bottom: 0 !important;
     justify-items: center !important;
   }
@@ -10444,17 +10418,16 @@ button.color-swatch-more:hover {
     height: 34px !important;
   }
 
-  /* Marca e Material em linhas horizontais compactas (sem empilhar um embaixo do outro) */
-  .pdp-main-grid.is-filament-pdp .pdp-filament-brand-group,
+  /* Linha 5: Opções exclusivas da marca selecionada (Com Bobina / Refil na Bambu Lab OU Materiais na Masterprint) lado a lado */
   .pdp-main-grid.is-filament-pdp .pdp-filament-material-group,
   .pdp-main-grid.is-filament-pdp .pdp-filament-rfid-group {
+    grid-row: 5 / 6 !important;
     display: flex !important;
     align-items: center !important;
     gap: 8px !important;
     margin-bottom: 2px !important;
   }
 
-  .pdp-main-grid.is-filament-pdp .pdp-filament-brand-group .pdp-option-header,
   .pdp-main-grid.is-filament-pdp .pdp-filament-material-group .pdp-option-header,
   .pdp-main-grid.is-filament-pdp .pdp-filament-rfid-group .pdp-option-header {
     margin-bottom: 0 !important;
@@ -10463,7 +10436,6 @@ button.color-swatch-more:hover {
     flex-shrink: 0 !important;
   }
 
-  .pdp-main-grid.is-filament-pdp .pdp-brand-switch-row,
   .pdp-main-grid.is-filament-pdp .pdp-material-switch-row,
   .pdp-main-grid.is-filament-pdp #pdp-sel1-pills {
     flex-wrap: nowrap !important;
@@ -10475,7 +10447,6 @@ button.color-swatch-more:hover {
     padding-bottom: 2px !important;
   }
 
-  .pdp-main-grid.is-filament-pdp .pdp-brand-switch-row::-webkit-scrollbar,
   .pdp-main-grid.is-filament-pdp .pdp-material-switch-row::-webkit-scrollbar,
   .pdp-main-grid.is-filament-pdp #pdp-sel1-pills::-webkit-scrollbar {
     display: none;
@@ -10489,9 +10460,9 @@ button.color-swatch-more:hover {
     border-radius: 8px !important;
   }
 
-  /* Quantidade e Botão Adicionar lado a lado (não empilhados) */
+  /* Linha 6: Quantidade e Botão Adicionar lado a lado */
   .pdp-main-grid.is-filament-pdp .pdp-actions-block {
-    margin-top: 6px !important;
+    margin-top: 4px !important;
     gap: 8px !important;
   }
 
