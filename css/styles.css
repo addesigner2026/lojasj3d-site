@@ -8892,6 +8892,7 @@ button.color-swatch-more:hover {
   line-height: 1.25;
   display: -webkit-box;
   -webkit-line-clamp: 2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
   min-height: 2.1em;
@@ -9813,6 +9814,7 @@ button.color-swatch-more:hover {
     margin-bottom: 10px !important;
     display: -webkit-box;
     -webkit-line-clamp: 3;
+    line-clamp: 3;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -9919,6 +9921,7 @@ button.color-swatch-more:hover {
     line-height: 1.28;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -9982,6 +9985,7 @@ button.color-swatch-more:hover {
     margin-bottom: 6px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -10062,6 +10066,7 @@ button.color-swatch-more:hover {
     line-height: 1.42;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
@@ -10129,6 +10134,7 @@ button.color-swatch-more:hover {
     margin-bottom: 6px;
     display: -webkit-box;
     -webkit-line-clamp: 2;
+    line-clamp: 2;
     -webkit-box-orient: vertical;
     overflow: hidden;
   }
