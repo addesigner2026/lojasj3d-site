@@ -7312,15 +7312,20 @@ button.color-swatch-more:hover {
 .filament-color-tile-img {
   position: relative;
   aspect-ratio: 1 / 1;
-  background: #f8fafc;
+  background: #ffffff;
   overflow: hidden;
   cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .filament-color-tile-img img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  object-fit: contain;
   transition: transform 0.25s ease;
 }
 
@@ -8751,7 +8756,7 @@ button.color-swatch-more:hover {
 .sj-fil-clean-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(172px, 1fr));
-  gap: 12px;
+  gap: 14px;
 }
 
 .sj-fil-card {
@@ -8772,24 +8777,31 @@ button.color-swatch-more:hover {
 
 .sj-fil-card-media {
   position: relative;
-  height: 146px;
-  background: #f8f9fa;
+  aspect-ratio: 1 / 1;
+  width: 100%;
+  height: auto;
+  min-height: 160px;
+  background: #ffffff;
   display: flex;
   align-items: center;
   justify-content: center;
   cursor: pointer;
   overflow: hidden;
+  padding: 12px;
+  border-bottom: 1px solid #f1f5f9;
 }
 
 .sj-fil-card-media img {
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   transition: transform 0.22s ease;
 }
 
 .sj-fil-card:hover .sj-fil-card-media img {
-  transform: scale(1.03);
+  transform: scale(1.04);
 }
 
 .sj-fil-code-tag {
@@ -8879,9 +8891,10 @@ button.color-swatch-more:hover {
   color: #18181b;
   line-height: 1.25;
   display: -webkit-box;
-  -webkit-line-clamp: 1;
+  -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  min-height: 2.1em;
 }
 
 .sj-fil-card-footer {
@@ -8922,7 +8935,10 @@ button.color-swatch-more:hover {
     gap: 9px;
   }
   .sj-fil-card-media {
-    height: 124px;
+    aspect-ratio: 1 / 1;
+    height: auto;
+    min-height: auto;
+    padding: 8px;
   }
   .sj-fil-brand-segmented {
     width: 100%;
