@@ -2435,11 +2435,6 @@
       </div>
     `;
   }
-        </div>
-        <div class="hero-raffle-art-spacer" aria-hidden="true"></div>
-      </div>
-    `;
-  }
 
   // Extrai o valor numérico e texto do parcelamento (10x) das impressoras 3D
   function extrairDadosParcelamentoImpressora(item) {
