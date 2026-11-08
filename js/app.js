@@ -2405,7 +2405,6 @@
     if (!b.exibirBannerSecaoImpressoras) return "";
 
     const styleInline = gerarEstiloBgBannerPromocao(b.imagemFundo);
-    const resumoCurto = gerarResumoCurtoSorteio(b);
 
     return `
       <div class="natal-raffle-banner full-bleed-raffle-banner clean-raffle-banner" style="${styleInline}">
@@ -2418,55 +2417,24 @@
             ${b.dataSorteio ? `<span class="raffle-pill-date">📅 ${b.dataSorteio}</span>` : ""}
           </div>
           <div class="raffle-hero-heading-block">
-            ${b.tituloKicker ? `<span class="raffle-kicker-line">${b.tituloKicker}</span>` : ""}
-            <h3 class="raffle-big-model">${b.tituloPrincipal || "PROMOÇÃO LOJA SJ"}</h3>
+            <h3 class="raffle-big-model">${b.tituloPrincipal || "SORTEIO BAMBU LAB A1 MINI"}</h3>
             ${b.subtituloPremio ? `<span class="raffle-sub-prize">${b.subtituloPremio}</span>` : ""}
           </div>
 
-          <div class="raffle-clean-summary-pill">
-            <span>${resumoCurto}</span>
-          </div>
-
           <div class="natal-raffle-actions">
-            ${b.btn1Texto
-        ? `
-                <a
-                  href="${b.btn1Url || "https://wa.me/5544991351318"}"
-                  target="_blank"
-                  rel="noopener"
-                  class="btn-raffle-whatsapp"
-                >
-                  ${b.btn1Texto}
-                </a>
-              `
-        : ""
-      }
-            <button
-              type="button"
-              class="btn-raffle-saiba-mais"
-              data-open-raffle-modal="1"
+            <a
+              href="${b.btn1Url || "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!"}"
+              target="_blank"
+              rel="noopener"
+              class="btn-raffle-whatsapp"
             >
-              ✨ Saiba Mais / Como Participar
-            </button>
+              ${b.btn1Texto || "Mais Informações no WhatsApp →"}
+            </a>
           </div>
-
-          <div class="raffle-clean-store-footnote">
-            <span>📍 Av. Portugal, 6759 — Umuarama - PR</span>
-            <span class="sj-inline-social-logos">
-              <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="sj-social-mini-icon insta" title="Instagram @lojasj3d" aria-label="Instagram Loja SJ 3D">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-              </a>
-              <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-mini-icon fb" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-              </a>
-              <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="sj-social-mini-icon wa" title="WhatsApp (44) 99135-1318" aria-label="WhatsApp Loja SJ 3D">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-              </a>
-              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="sj-social-mini-icon maps" title="Localização no Google Maps" aria-label="Google Maps Loja SJ 3D">
-                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-              </a>
-            </span>
-          </div>
+        </div>
+      </div>
+    `;
+  }
         </div>
         <div class="hero-raffle-art-spacer" aria-hidden="true"></div>
       </div>
@@ -3922,28 +3890,28 @@
     const slidePromocional = {
       fullBleedRaffle: true,
       styleBg: gerarEstiloBgBannerPromocao(cfgBan.imagemFundo),
-      badge: cfgBan.badge,
+      badge: cfgBan.badge || "🎁 SORTEIO OFICIAL",
       dataSorteio: cfgBan.dataSorteio,
-      tituloRaffleKicker: cfgBan.tituloKicker,
-      tituloRaffleMain: cfgBan.tituloPrincipal,
-      tituloRaffleSub: cfgBan.subtituloPremio,
-      precoDestaque: cfgBan.precoDestaque,
-      resumoCurtoSorteio: gerarResumoCurtoSorteio(cfgBan),
-      btn1Texto: cfgBan.btn1Texto,
-      btn1Whatsapp: cfgBan.btn1Url,
-      abrirModalRegras: true
+      tituloRaffleKicker: "",
+      tituloRaffleMain: cfgBan.tituloPrincipal || "SORTEIO <em>BAMBU LAB A1 MINI</em>",
+      tituloRaffleSub: cfgBan.subtituloPremio || "+ KIT COM 4 KG DE FILAMENTOS",
+      precoDestaque: "",
+      resumoCurtoSorteio: "",
+      btn1Texto: cfgBan.btn1Texto || "Mais Informações no WhatsApp →",
+      btn1Whatsapp: cfgBan.btn1Url || "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
+      abrirModalRegras: false
     };
 
     const slidesFixos = [
       {
-        badge: "ALTA PERFORMANCE • 4 CABEÇOTES & COREXY FECHADA",
+        badge: "ALTA PERFORMANCE • 4 CABEÇOTES & COREXY",
         titulo: "Snapmaker U1 & Bambu Lab P2S Combo",
         subtitulo:
-          "Impressão 3D multicolor de última geração na Loja SJ 3D em Umuarama - PR. Em até 10x ou desconto especial à vista.",
+          "Impressoras 3D fechadas de alta precisão. Até 10x sem juros ou desconto especial à vista.",
         precoDestaque: "A partir de R$ 8.849,00 à vista",
         btn1Texto: "Ver Snapmaker U1 →",
         btn1Item: "imp-snapmaker",
-        btn2Texto: "Ver Todas as Impressoras",
+        btn2Texto: "Ver Impressoras",
         btn2Cat: "impressoras",
         img1: "assets/produtos/impressora-snapmaker_u1.jpg",
         img1Label: "Snapmaker U1 (4 Cabeçotes)",
@@ -3951,12 +3919,12 @@
         img2Label: "Bambu Lab P2S Combo"
       },
       {
-        badge: "CAMPEÃS DE VENDAS • LINHA BAMBU LAB A1",
-        titulo: "Bambu Lab A1 Mini & A1 Combo com AMS Lite",
+        badge: "CAMPEÃS DE VENDAS • LINHA A1",
+        titulo: "Bambu Lab A1 Mini & A1 Combo",
         subtitulo:
-          "Calibração 100% automática, alta velocidade de até 500 mm/s e sistema multicor para 4 cores com leitura RFID.",
+          "Calibração 100% automática, alta velocidade de até 500 mm/s e sistema multicor com leitura RFID.",
         precoDestaque: "A1 Mini a partir de R$ 1.961,00 à vista (ou 10x de R$ 217,90)",
-        btn1Texto: "Conhecer A1 Combo →",
+        btn1Texto: "Conhecer Linha A1 →",
         btn1Item: "imp-bambu-a1-combo",
         btn2Texto: "Ver A1 Mini",
         btn2Item: "imp-bambu-a1-mini",
@@ -3966,19 +3934,19 @@
         img2Label: "Bambu Lab A1 Mini Combo"
       },
       {
-        badge: "CATÁLOGO OFICIAL • +80 CORES E ACABAMENTOS",
-        titulo: "Os Filamentos Mais Bonitos: Bambu Lab RFID & Masterprint",
+        badge: "CATÁLOGO OFICIAL • +80 CORES",
+        titulo: "Filamentos Masterprint & Bambu Lab RFID",
         subtitulo:
-          "PLA Silk Dual/Tri Color, Rainbow, Madeira, Mármore, Glitter, PETG Carbono e Bobinas/Refis com Chip RFID.",
+          "Mais de 80 cores oficiais à pronta entrega: PLA Silk Dual/Rainbow, PETG, TPU e Bobinas/Refis RFID.",
         precoDestaque: "Filamentos 1 kg a partir de R$ 59,90",
-        btn1Texto: "Explorar Filamentos →",
+        btn1Texto: "Ver Filamentos →",
         btn1Cat: "filamentos",
-        btn2Texto: "Ver PLA Silk Dual/Rainbow",
+        btn2Texto: "Ver PLA Silk",
         btn2Item: "fil-silk-maxprint",
-        img1: "assets/produtos/pla-bambulab.jpg",
+        img1: "assets/produtos/filamentos/cod_137.png?v=20261108_05",
         img1Label: "PLA Bambu Lab RFID",
         img2: "assets/produtos/pla-maxprint.jpg",
-        img2Label: "PLA & Silk Masterprint"
+        img2Label: "PLA Masterprint"
       }
     ];
 
@@ -4108,7 +4076,9 @@
                           <span>${s.resumoCurtoSorteio}</span>
                         </div>
                       `
-              : `<div class="hero-slide-price-pill">${s.precoDestaque}</div>`
+              : s.precoDestaque
+                ? `<div class="hero-slide-price-pill">${s.precoDestaque}</div>`
+                : ""
             }
                   <div class="hero-slide-actions">
                     ${s.btn1Whatsapp
@@ -4126,28 +4096,6 @@
                   : `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
             }
                   </div>
-                  ${s.fullBleedRaffle
-              ? `
-                        <div class="raffle-clean-store-footnote">
-                          <span>📍 Av. Portugal, 6759 — Umuarama - PR</span>
-                          <span class="sj-inline-social-logos">
-                            <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="sj-social-mini-icon insta" title="Instagram @lojasj3d" aria-label="Instagram Loja SJ 3D">
-                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-                            </a>
-                            <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-mini-icon fb" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
-                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
-                            </a>
-                            <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="sj-social-mini-icon wa" title="WhatsApp (44) 99135-1318" aria-label="WhatsApp Loja SJ 3D">
-                              <svg viewBox="0 0 24 24" width="14" height="14" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
-                            </a>
-                            <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="sj-social-mini-icon maps" title="Localização no Google Maps" aria-label="Google Maps Loja SJ 3D">
-                              <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-                            </a>
-                          </span>
-                        </div>
-                      `
-              : ""
-            }
                 </div>
 
                 ${s.fullBleedRaffle

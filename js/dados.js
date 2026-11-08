@@ -38,34 +38,34 @@ window.SITE_DATA = {
     ativo: true,
     exibirBannerSecaoImpressoras: true,
     exibirCuponsCarrinho: true,
-    estilo: "sorteio", // "sorteio" (com 3 cards de regras) ou "promocao" (destaque limpo com preço/chamada)
-    badge: "A MAIOR BLACK FRIDAY DA LOJA SJ",
-    dataSorteio: "SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO",
-    tituloKicker: "GRANDE PRÊMIO DE NATAL LOJA SJ 3D",
-    tituloPrincipal: "SORTEIO <em>A1 MINI</em>",
+    estilo: "sorteio", // "sorteio" ou "promocao"
+    badge: "🎁 SORTEIO OFICIAL",
+    dataSorteio: "SORTEIO: 20 DE DEZEMBRO",
+    tituloKicker: "",
+    tituloPrincipal: "SORTEIO <em>BAMBU LAB A1 MINI</em>",
     subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS",
-    descricaoCurta: "Compre na Loja SJ 3D em Umuarama - PR e concorra a uma Impressora Bambu Lab A1 Mini + 4 kg de Filamentos!",
-    precoDestaque: "Ganhe até 10 cupons na compra da sua Impressora 3D!",
+    descricaoCurta: "Participe do nosso sorteio oficial e concorra a uma Impressora 3D Bambu Lab A1 Mini completa!",
+    precoDestaque: "",
     imagemFundo: "assets/produtos/banner-sorteio-natal-wide.jpg",
-    btn1Texto: "Garantir Meus Cupons no WhatsApp →",
-    btn1Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!",
-    btn2Texto: "Seguir @lojasj3d",
-    btn2Url: "https://www.instagram.com/lojasj3d/",
+    btn1Texto: "Mais Informações no WhatsApp →",
+    btn1Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
+    btn2Texto: "",
+    btn2Url: "",
     regrasCards: [
       {
-        tag: "1️⃣ 3 CUPONS GRÁTIS",
-        titulo: "Retirada Presencial (Por CPF)",
-        texto: "Siga <a href=\"https://www.instagram.com/lojasj3d/\" target=\"_blank\" rel=\"noopener\" class=\"raffle-insta-link\">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!"
+        tag: "1️⃣ CUPONS GRÁTIS",
+        titulo: "Retirada na Loja Física",
+        texto: "Visite a loja física da Loja SJ 3D em Umuarama para retirar seus cupons gratuitos."
       },
       {
         tag: "2️⃣ FILAMENTOS E PEÇAS",
-        titulo: "1 Cupom a cada R$ 60",
-        texto: "Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra)."
+        titulo: "A cada R$ 60 em Compras",
+        texto: "Compras a partir de R$ 60 garantem 1 cupom a cada R$ 60 gastos."
       },
       {
         tag: "🏆 IMPRESSORA 3D",
         titulo: "10 Cupons Imediatos",
-        texto: "Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!"
+        texto: "Na compra de qualquer Impressora 3D você ganha 10 cupons na hora na urna!"
       }
     ]
   },
