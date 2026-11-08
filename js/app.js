@@ -4038,6 +4038,9 @@
     const todosFilamentos = window.SITE_DATA.catalogo.filter(
       (i) => i.categoria === "filamentos"
     );
+    const todasPecas = window.SITE_DATA.catalogo.filter(
+      (i) => i.categoria === "pecas"
+    );
 
     homeEl.innerHTML = `
       <!-- 1. HERO CAROUSEL DE DESTAQUES (PASSA PARA O LADO) -->
@@ -4307,6 +4310,21 @@
           </div>
         </div>
       </div>
+
+      <!-- 6. VITRINE DE PEÇAS DE REPOSIÇÃO & ACESSÓRIOS ORIGINAIS (DIRETO NA HOME) -->
+      <div class="home-section-block" id="home-pecas-showcase">
+        <div class="home-section-head">
+          <div>
+            <span class="home-eyebrow">COMPONENTES ORIGINAIS &amp; UPGRADES</span>
+            <h2>Peças de Reposição &amp; Acessórios (${todasPecas.length})</h2>
+          </div>
+          <button type="button" class="pdp-back-btn" data-home-go-cat="pecas">Ver Todas as ${todasPecas.length} Peças →</button>
+        </div>
+
+        <div class="combo-products-row" id="home-pecas-grid">
+          ${todasPecas.map((peca) => gerarCardHTML(peca)).join("")}
+        </div>
+      </div>
     `;
 
     // Botão Admin Rápido nos banners da Home
@@ -4428,9 +4446,12 @@
       });
     });
 
-    // Vincula eventos dos cards de impressoras na Home
+    // Vincula eventos dos cards de impressoras e peças na Home
     const printersGrid = document.getElementById("home-printers-grid");
     if (printersGrid) vincularEventosDosCards(printersGrid);
+
+    const pecasGrid = document.getElementById("home-pecas-grid");
+    if (pecasGrid) vincularEventosDosCards(pecasGrid);
   }
 
   function atualizarVisaoPrincipal() {

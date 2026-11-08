@@ -28,7 +28,7 @@
     CLIENTES_TABELA: "sj_db_clientes_v1",
     ORCAMENTOS_TABELA: "sj_db_orcamentos_v1",
     CONFIG_TABELA: "sj_db_config_v1",
-    CATALOGO_CUSTOM: "sj_db_catalogo_custom_v1"
+    CATALOGO_CUSTOM: "sj_db_catalogo_custom_v2"
   };
 
   // Snapshot original do SITE_DATA para permitir restaurar padrão de fábrica
@@ -937,7 +937,30 @@
       }
 
       if (Array.isArray(custom.catalogo) && custom.catalogo.length > 0) {
-        window.SITE_DATA.catalogo = JSON.parse(JSON.stringify(custom.catalogo));
+        // Smart merge: preserva todos os novos itens de dados.js (ex: 22 peças de reposição)
+        const customMap = new Map();
+        custom.catalogo.forEach((c) => {
+          if (c && c.id) customMap.set(c.id, c);
+        });
+
+        const legadosRemovidos = ["peca-hotend-a1", "peca-placa-pei", "peca-extrusora-ams"];
+        legadosRemovidos.forEach((legId) => customMap.delete(legId));
+
+        window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).map((prod) => {
+          if (customMap.has(prod.id)) {
+            const editado = customMap.get(prod.id);
+            customMap.delete(prod.id);
+            return { ...prod, ...editado };
+          }
+          return prod;
+        });
+
+        // Adiciona itens novos criados pelo usuário no painel admin
+        customMap.forEach((itemCustom) => {
+          if (itemCustom && itemCustom.id) {
+            window.SITE_DATA.catalogo.push(itemCustom);
+          }
+        });
       }
 
       CHAVES_PALETAS.forEach((chave) => {
