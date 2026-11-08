@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261107_09" />
+  <link rel="stylesheet" href="css/styles.css?v=20261107_10" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -84,12 +84,41 @@
       </div>
 
       <div class="admin-topbar-actions">
-        <button type="button" class="admin-bar-btn btn-cms-manage" id="admin-bar-btn-cms" title="Alterar fotos, preços, descrições dos produtos e banner de promoções">
+        <button type="button" class="admin-bar-btn btn-cms-manage" id="admin-bar-btn-cms" title="Painel Multiplataforma: Controle do Site, Produtos, Clientes e QR Code">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M12 20h9"></path>
-            <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path>
+            <rect x="3" y="3" width="7" height="7"></rect>
+            <rect x="14" y="3" width="7" height="7"></rect>
+            <rect x="14" y="14" width="7" height="7"></rect>
+            <rect x="3" y="14" width="7" height="7"></rect>
           </svg>
-          <span>Gerenciar Site & Produtos</span>
+          <span>Painel de Controle</span>
+        </button>
+
+        <button type="button" class="admin-bar-btn" id="admin-bar-btn-scanner" style="background:rgba(240,78,35,0.18); border-color:rgba(240,78,35,0.45); color:#fff;" title="Consultar Preço Rápido ou Ler QR Code de Produto com a Câmera">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3" y="3" width="5" height="5"></rect>
+            <rect x="16" y="3" width="5" height="5"></rect>
+            <rect x="3" y="16" width="5" height="5"></rect>
+            <path d="M21 16h-3a2 2 0 0 0-2 2v3"></path>
+            <path d="M21 21v.01"></path>
+            <path d="M12 7v3a2 2 0 0 1-2 2H7"></path>
+            <path d="M3 12h.01"></path>
+            <path d="M12 3h.01"></path>
+            <path d="M12 16v.01"></path>
+            <path d="M16 12h1"></path>
+            <path d="M21 12v.01"></path>
+          </svg>
+          <span>Consulta Preço &amp; QR</span>
+        </button>
+
+        <button type="button" class="admin-bar-btn" id="admin-bar-btn-clients" title="Banco de Dados de Clientes Cadastrados & Leads">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+            <circle cx="9" cy="7" r="4"></circle>
+            <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+            <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+          </svg>
+          <span>Clientes &amp; Leads</span>
         </button>
 
         <button type="button" class="admin-bar-btn btn-primary-quote" id="header-btn-quote" title="Gerar Orçamento Timbrado com os itens selecionados">
@@ -110,11 +139,11 @@
           <span>Histórico</span>
         </button>
 
-        <button type="button" class="admin-bar-btn" id="admin-bar-btn-users" title="Gerenciar solicitações de administradores e alterar sua senha">
+        <button type="button" class="admin-bar-btn" id="admin-bar-btn-users" title="Gerenciar Funcionários, Administradores e Senha">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
           </svg>
-          <span>Acessos & Senha</span>
+          <span>Equipe &amp; Acessos</span>
           <span id="topbar-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.68rem; padding:1px 6px; border-radius:999px; margin-left:4px; font-weight:700;">0</span>
         </button>
 
@@ -1490,13 +1519,99 @@
       border-color: #F04E23 !important;
       box-shadow: 0 6px 16px rgba(240, 78, 35, 0.1) !important;
     }
+    /* Estilos dos Módulos Consulta QR Code & Banco de Clientes (Multiplataforma) */
+    .sj-qr-spotlight-card {
+      background: linear-gradient(135deg, #18181b 0%, #27272a 100%) !important;
+      color: #ffffff !important;
+      border-radius: 16px !important;
+      padding: 20px !important;
+      border: 1.5px solid rgba(240, 78, 35, 0.45) !important;
+      box-shadow: 0 14px 34px rgba(0, 0, 0, 0.16) !important;
+      margin-bottom: 18px !important;
+    }
+    .sj-qr-camera-wrap {
+      background: #09090b !important;
+      border: 2px solid #F04E23 !important;
+      border-radius: 16px !important;
+      padding: 16px !important;
+      margin-bottom: 18px !important;
+      color: #fff !important;
+      text-align: center !important;
+    }
+    .sj-qr-video-box {
+      position: relative !important;
+      width: 100% !important;
+      max-width: 420px !important;
+      aspect-ratio: 1 / 1 !important;
+      margin: 12px auto !important;
+      border-radius: 14px !important;
+      overflow: hidden !important;
+      background: #000 !important;
+      border: 2px solid rgba(255, 255, 255, 0.2) !important;
+    }
+    .sj-qr-video-box video {
+      width: 100% !important;
+      height: 100% !important;
+      object-fit: cover !important;
+      display: block !important;
+    }
+    .sj-qr-scan-frame {
+      position: absolute !important;
+      inset: 16% !important;
+      border: 2.5px dashed #F04E23 !important;
+      border-radius: 14px !important;
+      box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.42) !important;
+      pointer-events: none !important;
+    }
+    .sj-qr-lookup-grid {
+      display: grid !important;
+      grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)) !important;
+      gap: 12px !important;
+    }
+    .sj-qr-item-card {
+      background: #ffffff !important;
+      border: 1.5px solid #e4e4e7 !important;
+      border-radius: 13px !important;
+      padding: 12px 14px !important;
+      display: flex !important;
+      flex-direction: column !important;
+      gap: 10px !important;
+      transition: all 0.18s ease !important;
+    }
+    .sj-qr-item-card:hover {
+      border-color: #F04E23 !important;
+      box-shadow: 0 8px 20px rgba(24, 24, 27, 0.07) !important;
+    }
+    .sj-lead-card {
+      background: #ffffff !important;
+      border: 1.5px solid #e4e4e7 !important;
+      border-radius: 13px !important;
+      padding: 14px 16px !important;
+      display: flex !important;
+      align-items: center !important;
+      justify-content: space-between !important;
+      gap: 14px !important;
+      flex-wrap: wrap !important;
+      transition: all 0.16s ease !important;
+    }
+    .sj-lead-card:hover {
+      border-color: #F04E23 !important;
+      box-shadow: 0 6px 18px rgba(0, 0, 0, 0.05) !important;
+    }
     @media (max-width: 900px) {
+      #modal-admin-cms {
+        padding: 0 !important;
+      }
       .sj-crm-shell {
         grid-template-columns: 1fr !important;
-        height: 94vh !important;
+        width: 100vw !important;
+        max-width: 100vw !important;
+        height: 100dvh !important;
+        max-height: 100dvh !important;
+        border-radius: 0 !important;
       }
       .sj-crm-sidebar {
-        padding: 12px 14px !important;
+        padding: 10px 12px !important;
         border-right: none !important;
         border-bottom: 1px solid rgba(255, 255, 255, 0.1) !important;
       }
@@ -1506,13 +1621,36 @@
       .sj-crm-nav {
         flex-direction: row !important;
         overflow-x: auto !important;
+        padding-bottom: 2px !important;
+        gap: 6px !important;
       }
       .sj-crm-nav-btn {
         white-space: nowrap !important;
         width: auto !important;
+        padding: 8px 12px !important;
+        font-size: 0.76rem !important;
+      }
+      .sj-crm-topbar {
+        padding: 10px 14px !important;
+        flex-wrap: wrap !important;
+        gap: 8px !important;
+      }
+      #admin-cms-title {
+        font-size: 0.96rem !important;
+      }
+      .sj-crm-workspace {
+        padding: 14px 12px 28px !important;
       }
       .sj-crm-kpi-row {
         grid-template-columns: repeat(2, 1fr) !important;
+        gap: 8px !important;
+      }
+      .sj-crm-kpi-card {
+        padding: 10px 12px !important;
+      }
+      .sj-lead-card {
+        flex-direction: column !important;
+        align-items: stretch !important;
       }
     }
   </style>
@@ -1520,40 +1658,49 @@
   <div class="modal-overlay" id="modal-admin-cms" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="admin-cms-title">
     <div class="sj-crm-shell">
 
-      <!-- COLUNA ESQUERDA: MENU LATERAL DO CRM -->
+      <!-- COLUNA ESQUERDA: MENU LATERAL DO CRM MULTIPLATAFORMA -->
       <aside class="sj-crm-sidebar">
         <div>
           <div class="sj-crm-brand">
             <div class="sj-crm-brand-icon">SJ</div>
             <div>
               <div style="font-size:0.92rem; font-weight:900; letter-spacing:0.3px;">LOJA SJ 3D</div>
-              <div style="font-size:0.7rem; color:#a1a1aa; font-weight:600;">CRM &amp; Painel de Controle</div>
+              <div style="font-size:0.7rem; color:#a1a1aa; font-weight:600;">Plataforma Admin &amp; Vendedor</div>
             </div>
           </div>
 
           <div class="sj-crm-admin-box">
             <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
               <span style="width:8px; height:8px; border-radius:50%; background:#22c55e; display:inline-block;"></span>
-              <span style="font-size:0.68rem; font-weight:800; color:#f59e0b; text-transform:uppercase; letter-spacing:0.4px;">👑 Admin Oficial</span>
+              <span id="crm-sidebar-role-badge" style="font-size:0.68rem; font-weight:800; color:#f59e0b; text-transform:uppercase; letter-spacing:0.4px;">👑 Admin / Equipe</span>
             </div>
             <div id="crm-sidebar-admin-email" style="font-size:0.78rem; font-weight:700; color:#ffffff; word-break:break-all;">jt.designer21@gmail.com</div>
-            <div style="font-size:0.68rem; color:#a1a1aa; margin-top:2px;">Área Restrita Autorizada</div>
+            <div style="font-size:0.68rem; color:#a1a1aa; margin-top:2px;">Sistema Multiplataforma (PC &amp; Celular)</div>
           </div>
 
-          <div style="font-size:0.66rem; font-weight:800; color:#71717a; text-transform:uppercase; letter-spacing:0.8px; padding:0 8px 6px;">Módulos de Gestão</div>
+          <div style="font-size:0.66rem; font-weight:800; color:#71717a; text-transform:uppercase; letter-spacing:0.8px; padding:0 8px 6px;">Módulos da Plataforma</div>
 
           <nav class="sj-crm-nav" role="tablist">
             <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
-              <span>📦 Catálogo &amp; Estoque</span>
+              <span>📦 Catálogo, Filamentos &amp; Preços</span>
             </button>
 
-            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
-              <span>🔐 Acessos &amp; Solicitações</span>
-              <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" role="tab">
+              <span>🔍 Consulta de Preço &amp; QR Code</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes" role="tab">
+              <span>📇 Clientes &amp; Leads (Banco)</span>
+              <span id="cms-clients-count-badge" style="background:rgba(255,255,255,0.16); color:#fff; font-size:0.68rem; padding:1px 7px; border-radius:999px; font-weight:800;">0</span>
             </button>
 
             <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="banner" role="tab">
               <span>🎨 Banner &amp; Sorteio</span>
+            </button>
+
+            <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
+              <span>👥 Funcionários &amp; Acessos</span>
+              <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
             </button>
 
             <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
@@ -1567,6 +1714,9 @@
         </div>
 
         <div class="sj-crm-sidebar-footer" style="border-top:1px solid rgba(255,255,255,0.08); padding-top:12px; display:flex; flex-direction:column; gap:6px;">
+          <button type="button" id="crm-btn-open-scanner-quick" style="width:100%; padding:9px 12px; border-radius:9px; border:1px solid rgba(240,78,35,0.45); background:rgba(240,78,35,0.16); color:#fff; font-size:0.78rem; font-weight:800; cursor:pointer; text-align:left;">
+            📷 Ler QR Code (Câmera)
+          </button>
           <button type="button" id="crm-btn-open-quote" style="width:100%; padding:9px 12px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer; text-align:left;">
             📄 Emitir Orçamento Timbrado
           </button>
@@ -1580,17 +1730,23 @@
       <div class="sj-crm-main">
         <header class="sj-crm-topbar">
           <div>
-            <span style="font-size:0.7rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.6px;">PAINEL DE CONTROLE CRM • LOJA SJ 3D</span>
-            <h3 id="admin-cms-title" style="margin:2px 0 0; font-size:1.15rem; font-weight:900; color:#111827;">Gerenciar Catálogo, Preços, Estoque &amp; Acessos</h3>
+            <span style="font-size:0.7rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.6px;">PLATAFORMA MULTIPLATAFORMA (ADMIN &amp; FUNCIONÁRIO) • LOJA SJ 3D</span>
+            <h3 id="admin-cms-title" style="margin:2px 0 0; font-size:1.15rem; font-weight:900; color:#111827;">Controle do Site, Clientes (Leads) &amp; Consulta por QR Code</h3>
           </div>
 
-          <div style="display:flex; align-items:center; gap:10px;">
-            <button type="button" id="crm-top-btn-equipe-shortcut" style="padding:8px 13px; border-radius:9px; border:1.5px solid #e4e4e7; background:#fafafa; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-              <span>📩 Solicitações de Admin</span>
+          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+            <button type="button" id="crm-top-btn-qr-shortcut" style="padding:8px 12px; border-radius:9px; border:1.5px solid #fed7aa; background:#fff7ed; color:#c2410c; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+              <span>📷 Ler QR / Preço</span>
+            </button>
+            <button type="button" id="crm-top-btn-clients-shortcut" style="padding:8px 12px; border-radius:9px; border:1.5px solid #e4e4e7; background:#fafafa; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:5px;">
+              <span>📇 Clientes &amp; Leads</span>
+            </button>
+            <button type="button" id="crm-top-btn-equipe-shortcut" style="padding:8px 12px; border-radius:9px; border:1.5px solid #e4e4e7; background:#fafafa; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+              <span>👥 Equipe</span>
               <span id="crm-top-pending-pill" style="background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; font-weight:800; display:none;">0</span>
             </button>
             <button type="button" id="close-admin-cms-btn" aria-label="Fechar painel de gestão" style="padding:8px 14px; border-radius:9px; border:1.5px solid #fecaca; background:#fef2f2; color:#dc2626; font-size:0.8rem; font-weight:800; cursor:pointer;">
-              ✕ Fechar Painel
+              ✕ Fechar
             </button>
           </div>
         </header>
@@ -1754,6 +1910,29 @@
                 </div>
               </div>
 
+              <!-- ETIQUETA QR CODE DO PRODUTO (PARA IMPRESSÃO E LEITURA NO CELULAR) -->
+              <div class="cms-block-card" id="cms-product-qrcode-block" style="background:linear-gradient(135deg, #fff7ed 0%, #ffffff 100%); border:1.5px solid #fed7aa;">
+                <div class="cms-block-header" style="align-items:center;">
+                  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                    <div id="cms-editor-qr-preview" style="width:88px; height:88px; background:#fff; border:1.5px solid #e4e4e7; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:6px; flex-shrink:0;"></div>
+                    <div>
+                      <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.66rem; font-weight:800; padding:2px 8px; border-radius:999px; margin-bottom:4px;">🏷️ QR CODE EXCLUSIVO DESTE PRODUTO</span>
+                      <h4 style="margin:0;">Etiqueta QR Code para Consulta de Preço</h4>
+                      <p style="margin:3px 0 0; font-size:0.8rem; color:#52525b;">Imprima este QR Code para colar na prateleira, caixa ou mostruário. O vendedor lê pelo celular na aba <strong>Consulta de Preço &amp; QR Code</strong>.</p>
+                      <div id="cms-editor-qr-code-text" style="font-family:monospace; font-size:0.75rem; font-weight:700; color:#c2410c; margin-top:4px;">SJ3D:PROD:...</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn-cms-primary" id="btn-cms-print-single-qr">
+                      🖨️ Imprimir Etiqueta QR deste Produto
+                    </button>
+                    <button type="button" class="btn-cms-secondary" id="btn-cms-print-filament-colors-qr" style="display:none;">
+                      🏷️ Imprimir QR Codes de Todas as Cores
+                    </button>
+                  </div>
+                </div>
+              </div>
+
               <!-- FICHA TÉCNICA E DESCRIÇÕES DETALHADAS -->
               <div class="cms-block-card">
                 <div class="cms-block-header">
@@ -1796,6 +1975,202 @@
               </div>
             </form>
           </div>
+        </div>
+
+        <!-- ==============================================================
+             ABA NOVO 1: SISTEMA DE CONSULTA DE PREÇO & LEITOR/GERADOR QR CODE
+             ============================================================== -->
+        <div class="admin-cms-pane" id="cms-pane-consulta-qr" style="display: none;">
+          <!-- Barra de Ação Rápida do Vendedor (Leitor Câmera + Impressão de Etiquetas) -->
+          <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:15px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div>
+              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:5px;">📱 TERMINAL DO VENDEDOR &amp; LEITOR QR CODE</span>
+              <h4 style="margin:0; font-size:1.08rem; font-weight:900; color:#fff;">Consulta Rápida de Preço, Estoque &amp; Etiquetas QR Code</h4>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:#d4d4d8;">Use a câmera do celular para ler o QR Code colado no produto/filamento ou pesquise pelo código/nome abaixo.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" id="btn-cms-start-qr-camera" style="padding:11px 18px; border-radius:11px; border:none; background:#F04E23; color:#fff; font-size:0.86rem; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 8px 20px rgba(240,78,35,0.35);">
+                <span>📷 Ler QR Code com a Câmera</span>
+              </button>
+              <button type="button" id="btn-cms-print-batch-qr" style="padding:11px 16px; border-radius:11px; border:1.5px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.1); color:#fff; font-size:0.82rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:7px;">
+                <span>🖨️ Imprimir Cartela de QR Codes</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- CÂMERA AO VIVO PARA LEITURA DO QR CODE NO CELULAR / TABLET / WEBCAM -->
+          <div id="cms-qr-camera-box" class="sj-qr-camera-wrap" style="display: none;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <div style="text-align:left;">
+                <strong style="font-size:0.95rem; color:#fff;">📷 Leitor de QR Code Ativo</strong>
+                <div id="cms-qr-camera-status" style="font-size:0.78rem; color:#a1a1aa;">Aponte a câmera para a etiqueta QR Code do produto ou filamento...</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" id="btn-cms-switch-camera" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.1); color:#fff; font-size:0.76rem; font-weight:700; cursor:pointer;">
+                  🔄 Trocar Câmera
+                </button>
+                <button type="button" id="btn-cms-stop-qr-camera" style="padding:7px 12px; border-radius:8px; border:1px solid #f87171; background:rgba(239,68,68,0.2); color:#fca5a5; font-size:0.76rem; font-weight:800; cursor:pointer;">
+                  ✕ Fechar Câmera
+                </button>
+              </div>
+            </div>
+
+            <div class="sj-qr-video-box">
+              <video id="cms-qr-video" playsinline muted></video>
+              <div class="sj-qr-scan-frame"></div>
+              <canvas id="cms-qr-canvas" style="display:none;"></canvas>
+            </div>
+            <div style="font-size:0.76rem; color:#d4d4d8; margin-top:6px;">
+              💡 Assim que o QR Code entrar no quadro tracejado, o preço e o estoque aparecerão automaticamente!
+            </div>
+          </div>
+
+          <!-- VISOR DE PREÇO EM DESTAQUE (RESULTADO DA LEITURA QR OU SELEÇÃO) -->
+          <div id="cms-price-lookup-spotlight" class="sj-qr-spotlight-card" style="display: none;"></div>
+
+          <!-- BARRA DE BUSCA INSTANTÂNEA DE PREÇO E FILTROS -->
+          <div class="cms-toolbar-row" style="background:#fff; padding:14px 16px; border-radius:12px; border:1px solid #e4e4e7; margin-bottom:16px;">
+            <div class="cms-cat-pills" id="cms-qr-cat-pills">
+              <button type="button" class="cms-cat-pill active" data-qr-cat="todos">Todos os Itens</button>
+              <button type="button" class="cms-cat-pill" data-qr-cat="impressoras">Impressoras 3D</button>
+              <button type="button" class="cms-cat-pill" data-qr-cat="filamentos">Linhas de Filamento</button>
+              <button type="button" class="cms-cat-pill" data-qr-cat="cores">🎨 Todas as Cores (Por Código)</button>
+              <button type="button" class="cms-cat-pill" data-qr-cat="pecas">Peças &amp; Acessórios</button>
+            </div>
+
+            <div class="cms-toolbar-right" style="flex:1; min-width:260px;">
+              <input type="text" id="cms-price-lookup-input" class="cms-search-input" style="flex:1; min-width:220px; border-color:#F04E23;" placeholder="🔍 Digite o Código (ex: 149, 34), Nome do Produto, Cor ou bipe o leitor QR..." />
+              <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.76rem; font-weight:700; color:#3f3f46; cursor:pointer; white-space:nowrap;">
+                <input type="checkbox" id="chk-cms-qr-print-price" checked />
+                <span>Incluir preço na etiqueta impressa</span>
+              </label>
+            </div>
+          </div>
+
+          <!-- GRADE DE PRODUTOS E CORES COM PREÇO + QR CODE INDIVIDUAL -->
+          <div id="cms-price-lookup-grid" class="sj-qr-lookup-grid"></div>
+        </div>
+
+        <!-- ==============================================================
+             ABA NOVO 2: BANCO DE DADOS DE CLIENTES CADASTRADOS & LEADS (CRM)
+             ============================================================== -->
+        <div class="admin-cms-pane" id="cms-pane-clientes" style="display: none;">
+          <!-- KPIs do Banco de Clientes & Leads -->
+          <div class="sj-crm-kpi-row">
+            <div class="sj-crm-kpi-card">
+              <div style="font-size:0.72rem; font-weight:700; color:#6b7280;">👥 TOTAL DE CLIENTES / LEADS</div>
+              <div id="cms-leads-kpi-total" style="font-size:1.45rem; font-weight:900; color:#111827; margin-top:2px;">0</div>
+              <div style="font-size:0.68rem; color:#9ca3af;">Banco de dados unificado</div>
+            </div>
+            <div class="sj-crm-kpi-card">
+              <div style="font-size:0.72rem; font-weight:700; color:#166534;">💬 COM WHATSAPP (LEADS)</div>
+              <div id="cms-leads-kpi-whats" style="font-size:1.45rem; font-weight:900; color:#15803d; margin-top:2px;">0</div>
+              <div style="font-size:0.68rem; color:#6b7280;">Prontos p/ disparo e contato</div>
+            </div>
+            <div class="sj-crm-kpi-card">
+              <div style="font-size:0.72rem; font-weight:700; color:#1d4ed8;">🪪 COM CPF / CNPJ</div>
+              <div id="cms-leads-kpi-cpf" style="font-size:1.45rem; font-weight:900; color:#2563eb; margin-top:2px;">0</div>
+              <div style="font-size:0.68rem; color:#6b7280;">Identificados p/ NF-e e Sorteio</div>
+            </div>
+            <div class="sj-crm-kpi-card">
+              <div style="font-size:0.72rem; font-weight:700; color:#c2410c;">🌐 CADASTROS NO SITE</div>
+              <div id="cms-leads-kpi-site" style="font-size:1.45rem; font-weight:900; color:#ea580c; margin-top:2px;">0</div>
+              <div style="font-size:0.68rem; color:#6b7280;">Clientes que entraram na conta</div>
+            </div>
+          </div>
+
+          <!-- Barra de Pesquisa, Filtros e Ações de Leads -->
+          <div class="cms-toolbar-row" style="background:#fff; padding:14px 16px; border-radius:12px; border:1px solid #e4e4e7; margin-bottom:16px;">
+            <div style="display:flex; align-items:center; gap:8px; flex:1; min-width:240px; flex-wrap:wrap;">
+              <input type="text" id="cms-clients-search-input" class="cms-search-input" style="flex:1; min-width:220px;" placeholder="🔍 Buscar cliente por Nome, Telefone/WhatsApp, CPF/CNPJ, E-mail ou Cidade..." />
+              <select id="cms-clients-filter-select" style="height:36px; padding:0 10px; border:1.5px solid #d4d4d8; border-radius:8px; font-size:0.78rem; font-weight:700; background:#fff;">
+                <option value="todos">👥 Todos os Clientes &amp; Leads</option>
+                <option value="whatsapp">💬 Somente com WhatsApp</option>
+                <option value="cpf">🪪 Somente com CPF / CNPJ</option>
+                <option value="site">🌐 Cadastrados pelo Site</option>
+              </select>
+            </div>
+
+            <div class="cms-toolbar-right">
+              <button type="button" class="btn-cms-secondary" id="btn-cms-sync-clients" title="Sincronizar clientes da nuvem Supabase">
+                🔄 Sincronizar
+              </button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients-csv" title="Baixar planilha Excel/CSV com todos os leads, telefones e CPFs">
+                📥 Exportar Leads (.CSV)
+              </button>
+              <button type="button" class="btn-cms-primary" id="btn-cms-new-client">
+                + Cadastrar Cliente / Lead
+              </button>
+            </div>
+          </div>
+
+          <!-- Formulário Rápido para Cadastrar ou Editar Cliente / Lead -->
+          <div id="cms-client-form-box" class="cms-block-card" style="display: none; border:1.5px solid #F04E23; background:#fffaf8;">
+            <div class="cms-block-header">
+              <div>
+                <h4 id="cms-client-form-title">➕ Cadastrar Novo Cliente / Lead</h4>
+                <p>Registre os dados do cliente para manter no banco de dados de leads e usar em orçamentos.</p>
+              </div>
+              <button type="button" class="btn-cms-cancel" id="btn-cms-close-client-form">✕ Fechar</button>
+            </div>
+
+            <form id="form-cms-client-lead" class="cms-editor-form">
+              <input type="hidden" id="cms-cli-id" />
+              <div class="cms-field-row-3">
+                <div class="cms-field">
+                  <label for="cms-cli-nome">Nome Completo / Empresa *</label>
+                  <input type="text" id="cms-cli-nome" placeholder="Ex: Carlos Eduardo Silva" required />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-whatsapp">WhatsApp / Telefone *</label>
+                  <input type="text" id="cms-cli-whatsapp" placeholder="Ex: (44) 99999-9999" required />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-cpf">CPF ou CNPJ</label>
+                  <input type="text" id="cms-cli-cpf" placeholder="Ex: 000.000.000-00" />
+                </div>
+              </div>
+
+              <div class="cms-field-row-3">
+                <div class="cms-field">
+                  <label for="cms-cli-email">E-mail</label>
+                  <input type="email" id="cms-cli-email" placeholder="cliente@email.com" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-cidade">Cidade / UF</label>
+                  <input type="text" id="cms-cli-cidade" placeholder="Ex: Umuarama / PR" value="Umuarama / PR" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-origem">Origem do Lead</label>
+                  <select id="cms-cli-origem">
+                    <option value="Cadastro no Site">🌐 Cadastro no Site</option>
+                    <option value="Lead WhatsApp / Balcão">💬 Lead WhatsApp / Balcão</option>
+                    <option value="Orçamento Comercial">📄 Orçamento Comercial</option>
+                    <option value="Clube SJ / Sorteio">🎁 Clube SJ / Sorteio</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="cms-field-row-2">
+                <div class="cms-field">
+                  <label for="cms-cli-endereco">Endereço / Bairro / CEP</label>
+                  <input type="text" id="cms-cli-endereco" placeholder="Ex: Av. Paraná, 1200 - Centro - CEP 87501-000" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-obs">Interesse / Observação do Lead</label>
+                  <input type="text" id="cms-cli-obs" placeholder="Ex: Interesse em Bambu Lab A1 Combo / Compra Filamento PLA mensal" />
+                </div>
+              </div>
+
+              <div class="cms-editor-footer-actions" style="margin-top:10px;">
+                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-client-lead">Cancelar</button>
+                <button type="submit" class="btn-cms-save">💾 Salvar Cliente no Banco de Leads</button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Lista de Clientes & Leads Cadastrados -->
+          <div id="cms-clients-list" style="display:flex; flex-direction:column; gap:10px;"></div>
         </div>
 
         <!-- ==============================================================
@@ -2060,46 +2435,53 @@
           </div>
         </div>
 
-        <!-- ABA: ADMINISTRADORES & SENHA (Somente Administrador Oficial gerencia) -->
+        <!-- ABA: FUNCIONÁRIOS, ADMINISTRADORES & SENHA -->
         <div class="admin-cms-pane" id="cms-pane-equipe">
           <!-- Card Resumo do Administrador Oficial -->
           <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:14px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
             <div>
               <span style="display:inline-block; background:#E84520; color:#fff; font-size:0.7rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:6px;">👑 ADMINISTRADOR OFICIAL MASTER</span>
               <div style="font-size:1.05rem; font-weight:800;">jt.designer21@gmail.com</div>
-              <div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">Controle exclusivo de aprovações, bloqueios e permissões de acesso à Área Restrita.</div>
+              <div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">Controle de Funcionários, Vendedores e Administradores com acesso ao Painel, Consulta QR Code e Orçamentos.</div>
             </div>
             <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.22);">
-              🔄 Atualizar Solicitações
+              🔄 Atualizar Equipe
             </button>
           </div>
 
           <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
             <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
               <div>
-                <h4 style="margin:0 0 3px; font-size:1rem;">📩 Solicitações Pendentes de Acesso Administrativo</h4>
-                <p style="margin:0; color:#6B7280; font-size:0.84rem;">Quando alguém pedir permissão na Área Restrita, o e-mail aparecerá abaixo para você <strong>Aprovar (Liberar)</strong>, <strong>Negar</strong> ou <strong>Bloquear</strong>.</p>
+                <h4 style="margin:0 0 3px; font-size:1rem;">📩 Solicitações Pendentes de Funcionários / Administradores</h4>
+                <p style="margin:0; color:#6B7280; font-size:0.84rem;">Quando um funcionário ou colaborador pedir acesso na Área Restrita, o e-mail aparecerá abaixo para você <strong>Aprovar (Liberar)</strong> ou <strong>Bloquear</strong>.</p>
               </div>
             </div>
             <div id="cms-pending-requests-list"></div>
           </div>
 
-          <!-- Adicionar / Autorizar Novo Administrador Diretamente pelo Painel -->
+          <!-- Adicionar / Autorizar Novo Funcionário ou Administrador Diretamente pelo Painel -->
           <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
-            <h4 style="margin:0 0 4px; font-size:1rem;">➕ Cadastrar ou Autorizar E-mail Manualmente</h4>
-            <p style="margin:0 0 12px; color:#6B7280; font-size:0.84rem;">Autorize diretamente um colaborador ou crie uma solicitação para testar o fluxo de aprovação.</p>
-            <form id="form-cms-add-admin" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(170px, 1fr)); gap:10px; align-items:end;">
+            <h4 style="margin:0 0 4px; font-size:1rem;">➕ Cadastrar Novo Funcionário / Vendedor ou Administrador</h4>
+            <p style="margin:0 0 12px; color:#6B7280; font-size:0.84rem;">Cadastre um funcionário para usar o Leitor de QR Code, Consulta de Preços, Banco de Clientes e Emissor de Orçamentos pelo celular ou computador.</p>
+            <form id="form-cms-add-admin" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(155px, 1fr)); gap:10px; align-items:end;">
               <div class="cms-field">
                 <label for="cms-new-admin-nome">Nome *</label>
                 <input type="text" id="cms-new-admin-nome" placeholder="Ex: João Vendedor" required />
               </div>
               <div class="cms-field">
-                <label for="cms-new-admin-email">E-mail *</label>
-                <input type="email" id="cms-new-admin-email" placeholder="email@exemplo.com" required />
+                <label for="cms-new-admin-email">E-mail de Login *</label>
+                <input type="email" id="cms-new-admin-email" placeholder="funcionario@lojasj.com" required />
               </div>
               <div class="cms-field">
-                <label for="cms-new-admin-senha">Senha Inicial *</label>
+                <label for="cms-new-admin-senha">Senha de Acesso *</label>
                 <input type="text" id="cms-new-admin-senha" placeholder="Mín. 4 caracteres" minlength="4" required />
+              </div>
+              <div class="cms-field">
+                <label for="cms-new-admin-cargo">Função / Cargo</label>
+                <select id="cms-new-admin-cargo">
+                  <option value="Funcionário / Vendedor">🧑‍💼 Funcionário / Vendedor</option>
+                  <option value="Administrador Autorizado">🛡️ Administrador Autorizado</option>
+                </select>
               </div>
               <div class="cms-field">
                 <label for="cms-new-admin-status">Status Inicial</label>
@@ -2109,13 +2491,13 @@
                 </select>
               </div>
               <button type="submit" class="btn-cms-save" style="height:37px; padding:0 16px;">
-                + Salvar Usuário
+                + Salvar Acesso
               </button>
             </form>
           </div>
 
           <div style="background:#fff; border:1px solid #E5E7EB; border-radius:14px; padding:18px; margin-bottom:16px;">
-            <h4 style="margin:0 0 4px; font-size:1rem;">👥 Administradores &amp; Equipe Cadastrados</h4>
+            <h4 style="margin:0 0 4px; font-size:1rem;">👥 Funcionários &amp; Administradores Cadastrados</h4>
             <p style="margin:0 0 12px; color:#6B7280; font-size:0.85rem;">Gerencie quem pode entrar na Área Restrita. Você pode alternar entre Liberado, Pendente ou Bloqueado a qualquer momento.</p>
             <div id="cms-all-admins-list"></div>
           </div>
@@ -2139,10 +2521,12 @@
   </div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261107_09"></script>
-  <script src="js/dados.js?v=20261107_09"></script>
-  <script src="js/database.js?v=20261107_09"></script>
-  <script src="js/app.js?v=20261107_09"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js"></script>
+  <script src="js/supabase-client.js?v=20261107_10"></script>
+  <script src="js/dados.js?v=20261107_10"></script>
+  <script src="js/database.js?v=20261107_10"></script>
+  <script src="js/app.js?v=20261107_10"></script>
 </body>
 
 </html>

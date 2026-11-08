@@ -604,16 +604,69 @@
   };
 
   // =========================================================================
-  // 2. MÓDULO DE CLIENTES (CLIENTES & AUTOCOMPLETAR)
+  // 2. MÓDULO DE CLIENTES & LEADS (CRM BANCO DE DADOS DE CLIENTES)
   // =========================================================================
 
   const clientes = {
-    // Retorna todos os clientes salvos
+    // Retorna todos os clientes e leads salvos
     listar: function () {
-      return lerLocal(STORAGE_KEYS.CLIENTES_TABELA, CLIENTES_PADRAO);
+      const lista = lerLocal(STORAGE_KEYS.CLIENTES_TABELA, CLIENTES_PADRAO);
+      return Array.isArray(lista) ? lista : CLIENTES_PADRAO;
     },
 
-    // Salva ou atualiza os dados de um cliente (incluindo dados fiscais para NF-e)
+    // Sincroniza a base de clientes/leads com o Supabase (configuracoes_site -> clientes_leads_v1)
+    sincronizarNuvem: async function (listaParaSalvar = null) {
+      try {
+        if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
+          return clientes.listar();
+        }
+        const supa = window.SJ_SUPABASE.getClient();
+        if (!supa) return clientes.listar();
+
+        if (Array.isArray(listaParaSalvar)) {
+          gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, listaParaSalvar);
+          await supa.from("configuracoes_site").upsert(
+            {
+              chave: "clientes_leads_v1",
+              valor: { clientes: listaParaSalvar },
+              atualizado_em: new Date().toISOString()
+            },
+            { onConflict: "chave" }
+          );
+          return listaParaSalvar;
+        } else {
+          const { data, error } = await supa
+            .from("configuracoes_site")
+            .select("valor")
+            .eq("chave", "clientes_leads_v1")
+            .maybeSingle();
+
+          const local = clientes.listar();
+          if (!error && data && data.valor && Array.isArray(data.valor.clientes)) {
+            const nuvem = data.valor.clientes;
+            const mapa = new Map();
+            const gerarChave = (c) =>
+              String(c.id || c.email || c.cnpjCpf || c.cpf || c.nome || "").trim().toLowerCase();
+            local.forEach((c) => {
+              const k = gerarChave(c);
+              if (k) mapa.set(k, c);
+            });
+            nuvem.forEach((c) => {
+              const k = gerarChave(c);
+              if (k) mapa.set(k, { ...(mapa.get(k) || {}), ...c });
+            });
+            const mesclado = Array.from(mapa.values());
+            gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, mesclado);
+            return mesclado;
+          }
+          return local;
+        }
+      } catch (_) {
+        return clientes.listar();
+      }
+    },
+
+    // Salva ou atualiza os dados de um cliente/lead (incluindo dados fiscais e origem do lead)
     salvar: function (dadosCliente) {
       if (!dadosCliente || !dadosCliente.nome) return null;
 
@@ -621,35 +674,42 @@
       const nomeLimpo = dadosCliente.nome.trim();
       const cnpjCpfLimpo = (dadosCliente.cnpjCpf || dadosCliente.cpf || "").trim();
       const emailLimpo = (dadosCliente.email || "").trim().toLowerCase();
+      const idAlvo = (dadosCliente.id || "").trim();
 
-      // Busca por E-mail, CPF/CNPJ se preenchido, ou por Nome
+      // Busca por ID, E-mail, CPF/CNPJ se preenchido, ou por Nome
       const idx = lista.findIndex((c) => {
+        if (idAlvo && c.id && c.id === idAlvo) return true;
         if (emailLimpo && c.email && c.email.trim().toLowerCase() === emailLimpo) return true;
-        if (cnpjCpfLimpo && c.cnpjCpf && c.cnpjCpf.trim() === cnpjCpfLimpo) return true;
+        if (cnpjCpfLimpo && (c.cnpjCpf || c.cpf) && (c.cnpjCpf || c.cpf).trim() === cnpjCpfLimpo) return true;
         return c.nome && c.nome.toLowerCase() === nomeLimpo.toLowerCase();
       });
 
-      const logradouro = (dadosCliente.logradouro || "").trim();
-      const numero = (dadosCliente.numero || "").trim();
-      const complemento = (dadosCliente.complemento || "").trim();
-      const bairro = (dadosCliente.bairro || "").trim();
-      const cidade = (dadosCliente.cidade || "").trim();
-      const uf = (dadosCliente.uf || "").trim().toUpperCase();
-      const cep = (dadosCliente.cep || "").trim();
-      const whatsapp = (dadosCliente.whatsapp || dadosCliente.cepTelefone || "").trim();
+      const existente = idx >= 0 ? lista[idx] : {};
+
+      const logradouro = (dadosCliente.logradouro ?? existente.logradouro ?? "").trim();
+      const numero = (dadosCliente.numero ?? existente.numero ?? "").trim();
+      const complemento = (dadosCliente.complemento ?? existente.complemento ?? "").trim();
+      const bairro = (dadosCliente.bairro ?? existente.bairro ?? "").trim();
+      const cidade = (dadosCliente.cidade ?? existente.cidade ?? "").trim();
+      const uf = (dadosCliente.uf ?? existente.uf ?? "").trim().toUpperCase();
+      const cep = (dadosCliente.cep ?? existente.cep ?? "").trim();
+      const whatsapp = (dadosCliente.whatsapp || dadosCliente.cepTelefone || existente.whatsapp || existente.cepTelefone || "").trim();
 
       const enderecoMontado = (dadosCliente.endereco || "").trim() ||
-        [logradouro, numero ? `nº ${numero}` : "", complemento].filter(Boolean).join(", ");
+        [logradouro, numero ? `nº ${numero}` : "", complemento].filter(Boolean).join(", ") ||
+        (existente.endereco || "");
       const bairroCidadeMontado = (dadosCliente.bairroCidadeUf || "").trim() ||
-        [bairro, [cidade, uf].filter(Boolean).join("/")].filter(Boolean).join(" - ");
+        [bairro, [cidade, uf].filter(Boolean).join("/")].filter(Boolean).join(" - ") ||
+        (existente.bairroCidadeUf || "");
 
       const clientePronto = {
-        id: dadosCliente.id || (idx >= 0 ? lista[idx].id : ("cli-" + Date.now())),
+        ...existente,
+        id: idAlvo || existente.id || ("cli-" + Date.now()),
         nome: nomeLimpo,
-        cnpjCpf: cnpjCpfLimpo,
-        cpf: cnpjCpfLimpo,
-        inscricaoEstadual: (dadosCliente.inscricaoEstadual || "").trim(),
-        precisaNotaFiscal: Boolean(dadosCliente.precisaNotaFiscal),
+        cnpjCpf: cnpjCpfLimpo || existente.cnpjCpf || "",
+        cpf: cnpjCpfLimpo || existente.cpf || "",
+        inscricaoEstadual: (dadosCliente.inscricaoEstadual ?? existente.inscricaoEstadual ?? "").trim(),
+        precisaNotaFiscal: dadosCliente.precisaNotaFiscal !== undefined ? Boolean(dadosCliente.precisaNotaFiscal) : Boolean(existente.precisaNotaFiscal),
         cep,
         logradouro,
         numero,
@@ -661,19 +721,22 @@
         endereco: enderecoMontado,
         bairroCidadeUf: bairroCidadeMontado,
         cepTelefone: [cep ? `CEP ${cep}` : "", whatsapp].filter(Boolean).join(" • ") || whatsapp,
-        email: emailLimpo,
-        cadastroAprovado: Boolean(dadosCliente.cadastroAprovado),
+        email: emailLimpo || existente.email || "",
+        origem: dadosCliente.origem || existente.origem || "Cadastro no Site",
+        observacoes: (dadosCliente.observacoes ?? existente.observacoes ?? "").trim(),
+        cadastroAprovado: dadosCliente.cadastroAprovado !== undefined ? Boolean(dadosCliente.cadastroAprovado) : Boolean(existente.cadastroAprovado),
+        criadoEm: existente.criadoEm || dadosCliente.criadoEm || new Date().toISOString(),
         atualizadoEm: new Date().toISOString()
       };
 
       if (idx >= 0) {
-        lista[idx] = { ...lista[idx], ...clientePronto };
+        lista[idx] = clientePronto;
       } else {
-        clientePronto.criadoEm = new Date().toISOString();
         lista.unshift(clientePronto);
       }
 
       gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, lista);
+      clientes.sincronizarNuvem(lista).catch(() => {});
 
       chamarApiOuLocal("/api/clientes", {
         method: "POST",
@@ -683,7 +746,18 @@
       return clientePronto;
     },
 
-    // Busca clientes por termo (para sugestões e autocompletar)
+    // Exclui um cliente/lead pelo ID
+    excluir: function (id) {
+      if (!id) return false;
+      const lista = clientes.listar();
+      const novaLista = lista.filter((c) => String(c.id) !== String(id));
+      if (novaLista.length === lista.length) return false;
+      gravarLocal(STORAGE_KEYS.CLIENTES_TABELA, novaLista);
+      clientes.sincronizarNuvem(novaLista).catch(() => {});
+      return true;
+    },
+
+    // Busca clientes por termo (para sugestões, autocompletar e filtro de leads)
     buscar: function (termo) {
       if (!termo || termo.trim().length === 0) return clientes.listar();
       const q = termo.toLowerCase().trim();
@@ -692,8 +766,12 @@
         return (
           (c.nome && c.nome.toLowerCase().includes(q)) ||
           (c.cnpjCpf && c.cnpjCpf.toLowerCase().includes(q)) ||
-          (c.cepTelefone && c.cepTelefone.includes(q)) ||
-          (c.email && c.email.toLowerCase().includes(q))
+          (c.cpf && c.cpf.toLowerCase().includes(q)) ||
+          (c.whatsapp && c.whatsapp.toLowerCase().includes(q)) ||
+          (c.cepTelefone && c.cepTelefone.toLowerCase().includes(q)) ||
+          (c.email && c.email.toLowerCase().includes(q)) ||
+          (c.bairroCidadeUf && c.bairroCidadeUf.toLowerCase().includes(q)) ||
+          (c.cidade && c.cidade.toLowerCase().includes(q))
         );
       });
     }

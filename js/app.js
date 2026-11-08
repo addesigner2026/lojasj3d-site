@@ -6773,6 +6773,925 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
   }
 
+  // =========================================================================
+  // MÓDULO 1: GERADOR E IMPRESSÃO DE QR CODE (ETIQUETAS DO PRODUTO & CARTELA)
+  // =========================================================================
+
+  function gerarQrSvgOuCanvas(texto, tamanho = 120) {
+    if (typeof qrcode === "function") {
+      try {
+        const qr = qrcode(0, "M");
+        qr.addData(String(texto));
+        qr.make();
+        return qr.createSvgTag({ scalable: true, margin: 1 });
+      } catch (err) {
+        console.warn("[QR Code] Falha no qrcode-generator, gerando fallback SVG:", err);
+      }
+    }
+    // Fallback visual limpo
+    return `
+      <svg viewBox="0 0 100 100" width="${tamanho}" height="${tamanho}" style="display:block; max-width:100%;">
+        <rect width="100" height="100" fill="#fff" />
+        <rect x="8" y="8" width="28" height="28" fill="#18181b" />
+        <rect x="14" y="14" width="16" height="16" fill="#fff" />
+        <rect x="18" y="18" width="8" height="8" fill="#F04E23" />
+        <rect x="64" y="8" width="28" height="28" fill="#18181b" />
+        <rect x="70" y="14" width="16" height="16" fill="#fff" />
+        <rect x="74" y="18" width="8" height="8" fill="#F04E23" />
+        <rect x="8" y="64" width="28" height="28" fill="#18181b" />
+        <rect x="14" y="70" width="16" height="16" fill="#fff" />
+        <rect x="18" y="74" width="8" height="8" fill="#F04E23" />
+        <rect x="44" y="44" width="12" height="12" fill="#18181b" />
+        <rect x="64" y="64" width="10" height="10" fill="#18181b" />
+        <rect x="78" y="78" width="14" height="14" fill="#18181b" />
+      </svg>
+    `;
+  }
+
+  function renderizarQrCodeHtml(container, texto, tamanho = 120) {
+    if (!container) return;
+    const svgTag = gerarQrSvgOuCanvas(texto, tamanho);
+    container.innerHTML = svgTag;
+    const svgEl = container.querySelector("svg");
+    if (svgEl) {
+      svgEl.style.width = "100%";
+      svgEl.style.height = "100%";
+      svgEl.style.display = "block";
+    }
+  }
+
+  function imprimirEtiquetaQrIndividual(item) {
+    if (!item) return;
+    const incluirPreco = document.getElementById("chk-cms-qr-print-price")?.checked !== false;
+    const payload = item.qrPayload || (item.tipo === "cor" ? `SJ3D:FIL:${item.produtoId}:${item.codigo}` : `SJ3D:PROD:${item.id}`);
+    const qrSvg = gerarQrSvgOuCanvas(payload, 150);
+
+    const win = window.open("", "_blank", "width=600,height=650");
+    if (!win) {
+      alert("Por favor, permita pop-ups no navegador para imprimir a etiqueta.");
+      return;
+    }
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Etiqueta QR Code - ${item.nome || "Produto Loja SJ"}</title>
+        <style>
+          @page { size: auto; margin: 8mm; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 12px; display: flex; justify-content: center;
+          }
+          .etiqueta-box {
+            width: 72mm; min-height: 48mm; border: 2px dashed #3f3f46; border-radius: 8px;
+            padding: 10px; display: flex; flex-direction: column; align-items: center;
+            text-align: center; box-sizing: border-box; background: #fff;
+          }
+          .header-loja { font-size: 11px; font-weight: 900; letter-spacing: 0.5px; color: #F04E23; text-transform: uppercase; }
+          .nome-item { font-size: 13px; font-weight: 800; color: #111827; margin: 4px 0 2px; line-height: 1.25; }
+          .codigo-item { font-size: 11px; font-weight: 800; color: #6b7280; font-family: monospace; }
+          .qr-wrap { width: 34mm; height: 34mm; margin: 6px auto; display: flex; align-items: center; justify-content: center; }
+          .qr-wrap svg { width: 100%; height: 100%; }
+          .preco-box { font-size: 16px; font-weight: 900; color: #111827; }
+          .pix-tag { font-size: 9px; font-weight: 700; color: #16a34a; }
+          .footer-info { font-size: 8px; color: #71717a; margin-top: 4px; }
+        </style>
+      </head>
+      <body>
+        <div class="etiqueta-box">
+          <div class="header-loja">LOJA SJ 3D • UMUARAMA PR</div>
+          <div class="nome-item">${item.nome || "Produto"}</div>
+          <div class="codigo-item">${item.codigo ? String(item.codigo).toUpperCase() : `CÓD. ${item.id}`}</div>
+          <div class="qr-wrap">${qrSvg}</div>
+          ${incluirPreco && item.preco ? `
+            <div class="preco-box">${item.preco}</div>
+            <div class="pix-tag">5% OFF NO PIX • GARANTIA OFICIAL</div>
+          ` : ""}
+          <div class="footer-info">Bipe com o Leitor QR da Loja SJ 3D</div>
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  }
+
+  function imprimirCartelaQrCodes(listaItens) {
+    if (!Array.isArray(listaItens) || listaItens.length === 0) {
+      alert("Nenhum item selecionado para imprimir cartela.");
+      return;
+    }
+    const incluirPreco = document.getElementById("chk-cms-qr-print-price")?.checked !== false;
+
+    const win = window.open("", "_blank", "width=900,height=900");
+    if (!win) {
+      alert("Por favor, permita pop-ups no navegador para imprimir a cartela.");
+      return;
+    }
+
+    const htmlCards = listaItens.map((item) => {
+      const payload = item.qrPayload || (item.tipo === "cor" ? `SJ3D:FIL:${item.produtoId}:${item.codigo}` : `SJ3D:PROD:${item.id}`);
+      const qrSvg = gerarQrSvgOuCanvas(payload, 100);
+      return `
+        <div class="cartela-card">
+          <div class="card-loja">LOJA SJ 3D</div>
+          <div class="card-nome">${item.nome || "Produto"}</div>
+          <div class="card-cod">${item.codigo ? String(item.codigo).toUpperCase() : `CÓD. ${item.id}`}</div>
+          <div class="card-qr">${qrSvg}</div>
+          ${incluirPreco && item.preco ? `
+            <div class="card-preco">${item.preco}</div>
+          ` : ""}
+        </div>
+      `;
+    }).join("");
+
+    win.document.write(`
+      <!DOCTYPE html>
+      <html lang="pt-BR">
+      <head>
+        <meta charset="UTF-8">
+        <title>Cartela de Etiquetas QR Code - Loja SJ 3D</title>
+        <style>
+          @page { size: A4; margin: 10mm; }
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            margin: 0; padding: 0; background: #fff;
+          }
+          .cartela-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 6mm;
+          }
+          .cartela-card {
+            border: 1.5px dashed #71717a; border-radius: 6px; padding: 8px;
+            display: flex; flex-direction: column; align-items: center; text-align: center;
+            page-break-inside: avoid;
+          }
+          .card-loja { font-size: 9px; font-weight: 900; color: #F04E23; letter-spacing: 0.5px; }
+          .card-nome { font-size: 11px; font-weight: 800; color: #111827; margin: 3px 0 1px; max-height: 28px; overflow: hidden; line-height: 1.2; }
+          .card-cod { font-size: 10px; font-weight: 800; color: #6b7280; font-family: monospace; }
+          .card-qr { width: 28mm; height: 28mm; margin: 4px auto; display: flex; align-items: center; justify-content: center; }
+          .card-qr svg { width: 100%; height: 100%; }
+          .card-preco { font-size: 13px; font-weight: 900; color: #111827; }
+        </style>
+      </head>
+      <body>
+        <div class="cartela-grid">
+          ${htmlCards}
+        </div>
+        <script>
+          window.onload = function() {
+            window.print();
+          };
+        <\/script>
+      </body>
+      </html>
+    `);
+    win.document.close();
+  }
+
+  // =========================================================================
+  // MÓDULO 2: CÂMERA AO VIVO LEITOR DE QR CODE (ANDROID & IOS SAFARI COMPATÍVEL)
+  // =========================================================================
+
+  let cameraQrStream = null;
+  let cameraQrAnimationId = null;
+  let cameraFacingMode = "environment";
+
+  async function iniciarCameraLeitorQr() {
+    const box = document.getElementById("cms-qr-camera-box");
+    const video = document.getElementById("cms-qr-video");
+    const statusText = document.getElementById("cms-qr-camera-status");
+    if (!box || !video) return;
+
+    box.style.display = "block";
+    if (statusText) statusText.textContent = "Conectando à câmera do dispositivo...";
+
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      if (statusText) statusText.textContent = "Câmera não suportada neste navegador. Utilize a busca por código logo abaixo.";
+      return;
+    }
+
+    try {
+      pararCameraLeitorQr(false);
+      const stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          facingMode: { ideal: cameraFacingMode },
+          width: { ideal: 1280 },
+          height: { ideal: 720 }
+        },
+        audio: false
+      });
+
+      cameraQrStream = stream;
+      video.srcObject = stream;
+      await video.play();
+      if (statusText) statusText.textContent = "Aponte para o QR Code do produto. A leitura é instantânea!";
+      iniciarLoopLeituraQr();
+    } catch (err) {
+      console.warn("[Câmera QR] Erro ao abrir câmera:", err);
+      if (statusText) {
+        statusText.innerHTML = `⚠️ Não foi possível abrir a câmera (${err.name || "Acesso negado"}). Digite o código na barra de busca abaixo.`;
+      }
+    }
+  }
+
+  function pararCameraLeitorQr(esconderBox = true) {
+    if (cameraQrAnimationId) {
+      cancelAnimationFrame(cameraQrAnimationId);
+      cameraQrAnimationId = null;
+    }
+    if (cameraQrStream) {
+      cameraQrStream.getTracks().forEach((t) => t.stop());
+      cameraQrStream = null;
+    }
+    const video = document.getElementById("cms-qr-video");
+    if (video) video.srcObject = null;
+    if (esconderBox) {
+      const box = document.getElementById("cms-qr-camera-box");
+      if (box) box.style.display = "none";
+    }
+  }
+
+  function iniciarLoopLeituraQr() {
+    const video = document.getElementById("cms-qr-video");
+    const canvas = document.getElementById("cms-qr-canvas");
+    if (!video || !canvas) return;
+    const ctx = canvas.getContext("2d", { willReadFrequently: true });
+
+    let detectorNativo = null;
+    if ("BarcodeDetector" in window) {
+      try {
+        detectorNativo = new window.BarcodeDetector({ formats: ["qr_code"] });
+      } catch (_) {}
+    }
+
+    let ultimoProcessamento = 0;
+
+    async function tick(tempoAtual) {
+      if (!cameraQrStream) return;
+
+      if (video.readyState === video.HAVE_ENOUGH_DATA && (tempoAtual - ultimoProcessamento > 140)) {
+        ultimoProcessamento = tempoAtual;
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+        let payloadLido = null;
+
+        if (detectorNativo) {
+          try {
+            const barcodes = await detectorNativo.detect(canvas);
+            if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
+              payloadLido = barcodes[0].rawValue;
+            }
+          } catch (_) {}
+        }
+
+        if (!payloadLido && typeof jsQR === "function") {
+          try {
+            const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+            const code = jsQR(imageData.data, imageData.width, imageData.height, {
+              inversionAttempts: "dontInvert"
+            });
+            if (code && code.data) {
+              payloadLido = code.data;
+            }
+          } catch (_) {}
+        }
+
+        if (payloadLido) {
+          processarLeituraQrCode(payloadLido);
+          pararCameraLeitorQr(true);
+          return;
+        }
+      }
+
+      cameraQrAnimationId = requestAnimationFrame(tick);
+    }
+
+    cameraQrAnimationId = requestAnimationFrame(tick);
+  }
+
+  function processarLeituraQrCode(rawPayload) {
+    const limpo = String(rawPayload || "").trim();
+    if (!limpo) return;
+
+    // Beep sonoro amigável do leitor
+    try {
+      const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 880;
+      gain.gain.setValueAtTime(0.12, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.18);
+    } catch (_) {}
+
+    // Vibração háptica no celular
+    if (navigator.vibrate) {
+      try { navigator.vibrate(80); } catch (_) {}
+    }
+
+    mostrarToast(`📷 QR Code lido com sucesso: <strong>${limpo}</strong>`, "success");
+
+    // Identifica se é do tipo SJ3D:PROD:xxx ou SJ3D:FIL:xxx:cod ou busca livre
+    let buscaTexto = limpo;
+    if (limpo.startsWith("SJ3D:PROD:")) {
+      buscaTexto = limpo.replace("SJ3D:PROD:", "");
+    } else if (limpo.startsWith("SJ3D:FIL:")) {
+      const partes = limpo.split(":");
+      buscaTexto = partes[3] || partes[2] || limpo;
+    }
+
+    const input = document.getElementById("cms-price-lookup-input");
+    if (input) input.value = buscaTexto;
+
+    executarConsultaPreco(buscaTexto, true);
+  }
+
+  // =========================================================================
+  // MÓDULO 3: CONSULTA DE PREÇO INSTANTÂNEA & GRADE DO VENDEDOR
+  // =========================================================================
+
+  let consultaQrState = {
+    categoria: "todos",
+    busca: "",
+    itemSelecionado: null
+  };
+
+  function obterListaTodosItensCatalogoParaConsulta() {
+    const catalogo = (window.SITE_DATA && window.SITE_DATA.catalogo) || [];
+    const listaCompleta = [];
+
+    catalogo.forEach((p) => {
+      listaCompleta.push({
+        tipo: "produto",
+        id: p.id,
+        produtoId: p.id,
+        nome: p.nome,
+        subtitulo: p.subtitulo || "",
+        categoria: p.categoria || "outros",
+        marca: p.marca || "Loja SJ 3D",
+        codigo: p.id,
+        preco: p.precoVista,
+        precoValor: p.precoVistaValor || extrairNumeroDePrecoBR(p.precoVista),
+        precoParcelado: p.precoParcelado || "",
+        estoqueStatus: p.estoqueStatus || "disponivel",
+        imagem: p.imagem || "assets/produtos/impressora-a1_mini.jpg",
+        qrPayload: `SJ3D:PROD:${p.id}`
+      });
+
+      // Se tiver paleta de filamento, adiciona cada cor individualmente com seu código exclusivo
+      const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+      if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
+        window.SITE_DATA[chavePaleta].forEach((c, cIdx) => {
+          listaCompleta.push({
+            tipo: "cor",
+            id: `${p.id}-${c.cod || cIdx}`,
+            produtoId: p.id,
+            nome: `${p.nome} — ${c.nome}`,
+            subtitulo: `Linha ${p.nome} • Cor ${c.nome}`,
+            categoria: "cores",
+            marca: p.marca || "Loja SJ 3D",
+            codigo: c.cod ? `CÓD. ${c.cod}` : `COR ${cIdx + 1}`,
+            codNumero: String(c.cod || ""),
+            corNome: c.nome,
+            corHex: c.hex || "#F04E23",
+            preco: c.preco || p.precoVista,
+            precoValor: c.valor || extrairNumeroDePrecoBR(c.preco || p.precoVista),
+            precoParcelado: p.precoParcelado || "",
+            estoqueStatus: c.estoqueStatus || p.estoqueStatus || "disponivel",
+            imagem: c.imgCatalogo || p.imagem || "assets/produtos/pla-maxprint.jpg",
+            qrPayload: `SJ3D:FIL:${p.id}:${c.cod || c.nome}`
+          });
+        });
+      }
+    });
+
+    return listaCompleta;
+  }
+
+  function renderizarSpotlightPreco(item) {
+    const card = document.getElementById("cms-price-lookup-spotlight");
+    if (!card) return;
+    if (!item) {
+      card.style.display = "none";
+      card.innerHTML = "";
+      return;
+    }
+
+    const valorNum = item.precoValor || extrairNumeroDePrecoBR(item.preco);
+    const precoPix = valorNum > 0 ? (valorNum * 0.95).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : item.preco;
+    const st = item.estoqueStatus || "disponivel";
+    const statusMap = {
+      disponivel: { label: "🟢 EM ESTOQUE (PRONTA ENTREGA)", bg: "#166534" },
+      poucas_unidades: { label: "🟠 POUCAS UNIDADES (ÚLTIMAS PEÇAS)", bg: "#b45309" },
+      esgotado: { label: "🔴 ESGOTADO (INDISPONÍVEL)", bg: "#b91c1c" }
+    };
+    const stBadge = statusMap[st] || statusMap.disponivel;
+
+    card.style.display = "block";
+    card.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px;">
+          <span style="background:${stBadge.bg}; color:#fff; font-size:0.72rem; font-weight:800; padding:3px 10px; border-radius:999px;">
+            ${stBadge.label}
+          </span>
+          <span style="font-family:monospace; background:rgba(255,255,255,0.14); padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
+            ${item.codigo ? String(item.codigo).toUpperCase() : item.id}
+          </span>
+        </div>
+        <button type="button" id="btn-cms-close-spotlight" style="background:transparent; border:none; color:#a1a1aa; font-size:1.1rem; cursor:pointer;" title="Fechar consulta">&times;</button>
+      </div>
+
+      <div style="display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center;" class="spotlight-body-grid">
+        <div style="width:110px; height:110px; border-radius:12px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+          <img src="${item.imagem}" alt="${item.nome}" style="width:100%; height:100%; object-fit:contain; padding:4px;" />
+        </div>
+
+        <div>
+          <div style="font-size:0.78rem; color:#F04E23; font-weight:800; text-transform:uppercase;">${item.marca || "Loja SJ 3D"}</div>
+          <h3 style="margin:2px 0 4px; font-size:1.35rem; font-weight:900; color:#fff; line-height:1.2;">${item.nome}</h3>
+          <p style="margin:0 0 10px; font-size:0.84rem; color:#d4d4d8;">${item.subtitulo}</p>
+
+          <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
+            <div style="font-size:1.75rem; font-weight:900; color:#fff;">${item.preco || "R$ 0,00"}</div>
+            <div style="font-size:0.95rem; font-weight:800; color:#4ade80;">À Vista no PIX: ${precoPix} (5% OFF)</div>
+          </div>
+          ${item.precoParcelado ? `<div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">${item.precoParcelado}</div>` : ""}
+        </div>
+
+        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
+          <button type="button" class="btn-cms-primary" id="btn-spotlight-print-qr" style="width:100%; justify-content:center;">
+            🖨️ Imprimir Etiqueta QR
+          </button>
+          <button type="button" class="btn-cms-secondary" id="btn-spotlight-add-cart" style="width:100%; background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.22); justify-content:center;">
+            🛒 + Adicionar ao Orçamento
+          </button>
+          <button type="button" class="btn-cms-secondary" id="btn-spotlight-edit-prod" style="width:100%; background:transparent; color:#d4d4d8; border-color:rgba(255,255,255,0.18); font-size:0.76rem; justify-content:center;">
+            ✏️ Editar Produto no Catálogo
+          </button>
+        </div>
+      </div>
+    `;
+
+    card.querySelector("#btn-cms-close-spotlight")?.addEventListener("click", () => {
+      renderizarSpotlightPreco(null);
+    });
+
+    card.querySelector("#btn-spotlight-print-qr")?.addEventListener("click", () => {
+      imprimirEtiquetaQrIndividual(item);
+    });
+
+    card.querySelector("#btn-spotlight-add-cart")?.addEventListener("click", () => {
+      const prodOriginal = (window.SITE_DATA.catalogo || []).find((p) => p.id === item.produtoId) || item;
+      adicionarAoCarrinho({
+        id: item.id,
+        nome: item.nome,
+        precoVista: item.preco,
+        imagem: item.imagem
+      }, 1, item.corNome || "Padrão", "À Vista");
+      mostrarToast(`🛒 <strong>${item.nome}</strong> adicionado ao carrinho de vendas!`, "success");
+    });
+
+    card.querySelector("#btn-spotlight-edit-prod")?.addEventListener("click", () => {
+      selecionarAbaCms("produtos");
+      abrirEditorProdutoCms(item.produtoId);
+    });
+  }
+
+  function executarConsultaPreco(termoBusca, abrirSpotlightAutomatico = false) {
+    const q = (termoBusca || "").toLowerCase().trim();
+    const todosItens = obterListaTodosItensCatalogoParaConsulta();
+
+    if (!q) {
+      renderizarGradeConsultaQr();
+      return;
+    }
+
+    // Procura exato por código (ex: 149 ou CÓD. 149 ou SJ3D:PROD:...)
+    const itemExato = todosItens.find((it) => {
+      const codLimpo = (it.codNumero || "").toLowerCase();
+      const codCompleto = (it.codigo || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const qLimpo = q.replace(/[^a-z0-9]/g, "");
+      return (
+        codLimpo === q ||
+        codCompleto === qLimpo ||
+        (it.qrPayload && it.qrPayload.toLowerCase() === q) ||
+        (it.id && it.id.toLowerCase() === q)
+      );
+    });
+
+    if (itemExato && abrirSpotlightAutomatico) {
+      renderizarSpotlightPreco(itemExato);
+    }
+
+    renderizarGradeConsultaQr(q);
+  }
+
+  function renderizarGradeConsultaQr(filtroTermo = "") {
+    const grid = document.getElementById("cms-price-lookup-grid");
+    if (!grid) return;
+
+    const itens = obterListaTodosItensCatalogoParaConsulta();
+    const cat = consultaQrState.categoria;
+    const termo = (filtroTermo || consultaQrState.busca || "").toLowerCase().trim();
+
+    const filtrados = itens.filter((it) => {
+      if (cat !== "todos") {
+        if (cat === "cores" && it.tipo !== "cor") return false;
+        if (cat !== "cores" && it.categoria !== cat) return false;
+      }
+      if (termo) {
+        const texto = `${it.nome} ${it.subtitulo} ${it.codigo || ""} ${it.codNumero || ""} ${it.marca || ""} ${it.id}`.toLowerCase();
+        return texto.includes(termo);
+      }
+      return true;
+    });
+
+    if (filtrados.length === 0) {
+      grid.innerHTML = `<div style="grid-column:1/-1; padding:30px; text-align:center; color:#71717a; background:#fff; border-radius:12px; border:1px solid #e4e4e7;">Nenhum item encontrado com o código ou nome pesquisado.</div>`;
+      return;
+    }
+
+    grid.innerHTML = filtrados.slice(0, 80).map((it) => {
+      const st = it.estoqueStatus || "disponivel";
+      const corSt = st === "esgotado" ? "#dc2626" : (st === "poucas_unidades" ? "#d97706" : "#16a34a");
+      const qrSvgMini = gerarQrSvgOuCanvas(it.qrPayload, 60);
+
+      return `
+        <div class="sj-qr-item-card" data-qr-select-id="${it.id}">
+          <div style="display:flex; gap:10px; align-items:center;">
+            <div style="width:58px; height:58px; border-radius:8px; overflow:hidden; background:#f4f4f5; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <img src="${it.imagem}" alt="${it.nome}" style="width:100%; height:100%; object-fit:contain;" />
+            </div>
+            <div style="flex:1; min-width:0;">
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
+                <span style="font-family:monospace; font-size:0.72rem; font-weight:800; background:#f4f4f5; padding:2px 6px; border-radius:4px; color:#18181b;">
+                  ${it.codigo ? String(it.codigo).toUpperCase() : it.id}
+                </span>
+                <span style="width:7px; height:7px; border-radius:50%; background:${corSt}; display:inline-block;" title="Status de estoque"></span>
+              </div>
+              <strong style="font-size:0.86rem; color:#18181b; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.nome}</strong>
+              <div style="font-size:1.05rem; font-weight:900; color:#F04E23; margin-top:2px;">${it.preco}</div>
+            </div>
+            <div style="width:48px; height:48px; flex-shrink:0; cursor:pointer;" data-print-single-qr="${it.id}" title="Clique para imprimir etiqueta deste item">
+              ${qrSvgMini}
+            </div>
+          </div>
+          <div style="display:flex; gap:6px; margin-top:4px;">
+            <button type="button" class="btn-cms-primary" style="flex:1; padding:6px 10px; font-size:0.74rem;" data-open-spotlight="${it.id}">
+              🔍 Consultar Preço
+            </button>
+            <button type="button" class="btn-cms-secondary" style="padding:6px 10px; font-size:0.74rem;" data-print-single-qr="${it.id}" title="Imprimir etiqueta">
+              🖨️ Etiqueta
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    grid.querySelectorAll("[data-open-spotlight]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.openSpotlight;
+        const item = itens.find((it) => it.id === id);
+        if (item) renderizarSpotlightPreco(item);
+      });
+    });
+
+    grid.querySelectorAll("[data-print-single-qr]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const id = btn.dataset.printSingleQr;
+        const item = itens.find((it) => it.id === id);
+        if (item) imprimirEtiquetaQrIndividual(item);
+      });
+    });
+  }
+
+  // =========================================================================
+  // MÓDULO 4: BANCO DE DADOS DE CLIENTES CADASTRADOS & LEADS (CRM)
+  // =========================================================================
+
+  let clientesState = {
+    busca: "",
+    filtro: "todos"
+  };
+
+  function renderizarListaClientesCms() {
+    const listEl = document.getElementById("cms-clients-list");
+    if (!listEl || !window.SJ_DB || !window.SJ_DB.clientes) return;
+
+    const lista = window.SJ_DB.clientes.listar() || [];
+    const termo = (clientesState.busca || "").toLowerCase().trim();
+    const filtro = clientesState.filtro || "todos";
+
+    // KPIs
+    const total = lista.length;
+    const whats = lista.filter((c) => Boolean(c.whatsapp || c.cepTelefone)).length;
+    const cpfs = lista.filter((c) => Boolean(c.cnpjCpf || c.cpf)).length;
+    const site = lista.filter((c) => String(c.origem || "").toLowerCase().includes("site") || c.cadastroAprovado).length;
+
+    const kTotal = document.getElementById("cms-leads-kpi-total");
+    const kWhats = document.getElementById("cms-leads-kpi-whats");
+    const kCpf = document.getElementById("cms-leads-kpi-cpf");
+    const kSite = document.getElementById("cms-leads-kpi-site");
+    const badgeSidebar = document.getElementById("cms-clients-count-badge");
+
+    if (kTotal) kTotal.textContent = String(total);
+    if (kWhats) kWhats.textContent = String(whats);
+    if (kCpf) kCpf.textContent = String(cpfs);
+    if (kSite) kSite.textContent = String(site);
+    if (badgeSidebar) badgeSidebar.textContent = String(total);
+
+    const filtrados = lista.filter((c) => {
+      if (filtro === "whatsapp" && !c.whatsapp && !c.cepTelefone) return false;
+      if (filtro === "cpf" && !c.cnpjCpf && !c.cpf) return false;
+      if (filtro === "site" && !String(c.origem || "").toLowerCase().includes("site") && !c.cadastroAprovado) return false;
+
+      if (termo) {
+        const texto = `${c.nome || ""} ${c.whatsapp || ""} ${c.cepTelefone || ""} ${c.cnpjCpf || ""} ${c.cpf || ""} ${c.email || ""} ${c.bairroCidadeUf || ""} ${c.cidade || ""}`.toLowerCase();
+        return texto.includes(termo);
+      }
+      return true;
+    });
+
+    if (filtrados.length === 0) {
+      listEl.innerHTML = `<div style="padding:32px; text-align:center; color:#71717a; background:#fff; border-radius:12px; border:1px solid #e4e4e7;">Nenhum cliente ou lead encontrado com este filtro.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = filtrados.map((c) => {
+      const telLimpo = String(c.whatsapp || c.cepTelefone || "").replace(/\D/g, "");
+      const linkWhats = telLimpo ? `https://wa.me/55${telLimpo}?text=Ol%C3%A1%20${encodeURIComponent(c.nome || "")}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Loja%20SJ%203D!` : null;
+      const dataCadastro = c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "Recente";
+
+      return `
+        <div class="sj-lead-card" data-lead-id="${c.id}">
+          <div style="flex:1; min-width:240px;">
+            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+              <strong style="font-size:1rem; color:#111827;">${c.nome || "Cliente Sem Nome"}</strong>
+              <span style="font-size:0.7rem; font-weight:800; background:#f4f4f5; color:#52525b; padding:2px 8px; border-radius:999px;">
+                ${c.origem || "Cadastro Site"}
+              </span>
+              <span style="font-size:0.7rem; color:#a1a1aa;">Cadastrado em: ${dataCadastro}</span>
+            </div>
+
+            <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.8rem; color:#4b5563; margin-top:4px;">
+              ${c.whatsapp || c.cepTelefone ? `<div>📱 <strong>${c.whatsapp || c.cepTelefone}</strong></div>` : ""}
+              ${c.cnpjCpf || c.cpf ? `<div>🪪 CPF/CNPJ: <strong>${c.cnpjCpf || c.cpf}</strong></div>` : ""}
+              ${c.email ? `<div>✉️ ${c.email}</div>` : ""}
+              ${c.bairroCidadeUf || c.cidade ? `<div>📍 ${c.bairroCidadeUf || c.cidade}</div>` : ""}
+            </div>
+
+            ${c.endereco ? `<div style="font-size:0.76rem; color:#6b7280; margin-top:4px;">🏠 ${c.endereco}</div>` : ""}
+            ${c.observacoes ? `<div style="font-size:0.76rem; color:#c2410c; margin-top:3px; font-weight:600;">💡 ${c.observacoes}</div>` : ""}
+          </div>
+
+          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+            ${linkWhats ? `
+              <a href="${linkWhats}" target="_blank" rel="noopener" class="btn-cms-save" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#16a34a; font-size:0.78rem; padding:8px 12px;">
+                💬 Chamar no WhatsApp
+              </a>
+            ` : ""}
+            <button type="button" class="btn-cms-secondary" data-lead-quote="${c.id}" style="font-size:0.78rem; padding:8px 12px;" title="Iniciar orçamento timbrado com este cliente">
+              📄 Orçamento
+            </button>
+            <button type="button" class="btn-cms-secondary" data-lead-edit="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Editar dados">
+              ✏️
+            </button>
+            <button type="button" class="btn-cms-danger" data-lead-del="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Excluir cliente">
+              🗑️
+            </button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.querySelectorAll("[data-lead-edit]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.leadEdit;
+        const c = lista.find((item) => String(item.id) === String(id));
+        if (c) abrirFormularioClienteLead(c);
+      });
+    });
+
+    listEl.querySelectorAll("[data-lead-quote]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.leadQuote;
+        const c = lista.find((item) => String(item.id) === String(id));
+        if (c) {
+          fecharPainelAdminCms();
+          abrirEmissorOrcamento({
+            metadados: {
+              cliente: {
+                nome: c.nome,
+                cnpjCpf: c.cnpjCpf || c.cpf || "",
+                endereco: c.endereco || "",
+                bairroCidadeUf: c.bairroCidadeUf || c.cidade || "Umuarama / PR",
+                cepTelefone: c.whatsapp || c.cepTelefone || "",
+                email: c.email || ""
+              }
+            }
+          });
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-lead-del]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const id = btn.dataset.leadDel;
+        const c = lista.find((item) => String(item.id) === String(id));
+        if (c && confirm(`Deseja realmente remover o cliente "${c.nome}" do banco de dados?`)) {
+          window.SJ_DB.clientes.excluir(id);
+          renderizarListaClientesCms();
+          mostrarToast(`Cliente <strong>${c.nome}</strong> removido com sucesso.`, "info");
+        }
+      });
+    });
+  }
+
+  function abrirFormularioClienteLead(cliente = null) {
+    const box = document.getElementById("cms-client-form-box");
+    const title = document.getElementById("cms-client-form-title");
+    if (!box) return;
+
+    box.style.display = "block";
+    if (title) title.textContent = cliente ? `✏️ Editar Dados de: ${cliente.nome}` : "➕ Cadastrar Novo Cliente / Lead";
+
+    document.getElementById("cms-cli-id").value = cliente ? cliente.id : "";
+    document.getElementById("cms-cli-nome").value = cliente ? cliente.nome : "";
+    document.getElementById("cms-cli-whatsapp").value = cliente ? (cliente.whatsapp || cliente.cepTelefone || "") : "";
+    document.getElementById("cms-cli-cpf").value = cliente ? (cliente.cnpjCpf || cliente.cpf || "") : "";
+    document.getElementById("cms-cli-email").value = cliente ? (cliente.email || "") : "";
+    document.getElementById("cms-cli-cidade").value = cliente ? (cliente.bairroCidadeUf || cliente.cidade || "Umuarama / PR") : "Umuarama / PR";
+    document.getElementById("cms-cli-origem").value = cliente ? (cliente.origem || "Lead WhatsApp / Balcão") : "Lead WhatsApp / Balcão";
+    document.getElementById("cms-cli-endereco").value = cliente ? (cliente.endereco || "") : "";
+    document.getElementById("cms-cli-obs").value = cliente ? (cliente.observacoes || "") : "";
+
+    box.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  function fecharFormularioClienteLead() {
+    const box = document.getElementById("cms-client-form-box");
+    if (box) box.style.display = "none";
+  }
+
+  function exportarClientesCsv() {
+    if (!window.SJ_DB || !window.SJ_DB.clientes) return;
+    const lista = window.SJ_DB.clientes.listar() || [];
+    if (lista.length === 0) {
+      alert("Nenhum cliente cadastrado para exportar.");
+      return;
+    }
+
+    const cabecalho = ["ID", "Nome", "WhatsApp/Telefone", "CPF/CNPJ", "Email", "Cidade/UF", "Endereco", "Origem", "CriadoEm"];
+    const linhas = lista.map((c) => [
+      `"${c.id || ""}"`,
+      `"${(c.nome || "").replace(/"/g, '""')}"`,
+      `"${(c.whatsapp || c.cepTelefone || "").replace(/"/g, '""')}"`,
+      `"${(c.cnpjCpf || c.cpf || "").replace(/"/g, '""')}"`,
+      `"${(c.email || "").replace(/"/g, '""')}"`,
+      `"${(c.bairroCidadeUf || c.cidade || "").replace(/"/g, '""')}"`,
+      `"${(c.endereco || "").replace(/"/g, '""')}"`,
+      `"${(c.origem || "Site").replace(/"/g, '""')}"`,
+      `"${c.criadoEm || ""}"`
+    ]);
+
+    const csvContent = "\uFEFF" + [cabecalho.join(";"), ...linhas.map((r) => r.join(";"))].join("\r\n");
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `leads_clientes_lojasj3d_${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    mostrarToast("📥 Planilha CSV de Clientes e Leads exportada com sucesso!", "success");
+  }
+
+  function configurarEventosNovosModulosCms() {
+    // Consulta QR Code
+    document.getElementById("btn-cms-start-qr-camera")?.addEventListener("click", () => {
+      iniciarCameraLeitorQr();
+    });
+
+    document.getElementById("btn-cms-stop-qr-camera")?.addEventListener("click", () => {
+      pararCameraLeitorQr(true);
+    });
+
+    document.getElementById("btn-cms-switch-camera")?.addEventListener("click", () => {
+      cameraFacingMode = cameraFacingMode === "environment" ? "user" : "environment";
+      iniciarCameraLeitorQr();
+    });
+
+    document.getElementById("btn-cms-print-batch-qr")?.addEventListener("click", () => {
+      const itens = obterListaTodosItensCatalogoParaConsulta();
+      imprimirCartelaQrCodes(itens);
+    });
+
+    document.getElementById("cms-price-lookup-input")?.addEventListener("input", (e) => {
+      consultaQrState.busca = e.target.value || "";
+      executarConsultaPreco(consultaQrState.busca, false);
+    });
+
+    document.querySelectorAll("[data-qr-cat]").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        consultaQrState.categoria = pill.dataset.qrCat;
+        document.querySelectorAll("[data-qr-cat]").forEach((b) => {
+          b.classList.toggle("active", b === pill);
+        });
+        renderizarGradeConsultaQr();
+      });
+    });
+
+    // Clientes & Leads
+    document.getElementById("cms-clients-search-input")?.addEventListener("input", (e) => {
+      clientesState.busca = e.target.value || "";
+      renderizarListaClientesCms();
+    });
+
+    document.getElementById("cms-clients-filter-select")?.addEventListener("change", (e) => {
+      clientesState.filtro = e.target.value || "todos";
+      renderizarListaClientesCms();
+    });
+
+    document.getElementById("btn-cms-sync-clients")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-cms-sync-clients");
+      if (btn) btn.textContent = "⏳ Sincronizando...";
+      if (window.SJ_DB?.clientes?.sincronizarNuvem) {
+        await window.SJ_DB.clientes.sincronizarNuvem();
+      }
+      if (btn) btn.textContent = "🔄 Sincronizar";
+      renderizarListaClientesCms();
+      mostrarToast("Banco de dados de clientes sincronizado com sucesso!", "success");
+    });
+
+    document.getElementById("btn-cms-export-clients-csv")?.addEventListener("click", () => {
+      exportarClientesCsv();
+    });
+
+    document.getElementById("btn-cms-new-client")?.addEventListener("click", () => {
+      abrirFormularioClienteLead(null);
+    });
+
+    document.getElementById("btn-cms-close-client-form")?.addEventListener("click", () => {
+      fecharFormularioClienteLead();
+    });
+
+    document.getElementById("btn-cms-cancel-client-lead")?.addEventListener("click", () => {
+      fecharFormularioClienteLead();
+    });
+
+    document.getElementById("form-cms-client-lead")?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const id = document.getElementById("cms-cli-id")?.value.trim();
+      const nome = document.getElementById("cms-cli-nome")?.value.trim();
+      const whatsapp = document.getElementById("cms-cli-whatsapp")?.value.trim();
+      const cpf = document.getElementById("cms-cli-cpf")?.value.trim();
+      const email = document.getElementById("cms-cli-email")?.value.trim().toLowerCase();
+      const cidade = document.getElementById("cms-cli-cidade")?.value.trim();
+      const origem = document.getElementById("cms-cli-origem")?.value || "Lead WhatsApp / Balcão";
+      const endereco = document.getElementById("cms-cli-endereco")?.value.trim();
+      const observacoes = document.getElementById("cms-cli-obs")?.value.trim();
+
+      if (!nome || !whatsapp) {
+        alert("Preencha o Nome e o WhatsApp do cliente.");
+        return;
+      }
+
+      window.SJ_DB.clientes.salvar({
+        id: id || ("cli-" + Date.now()),
+        nome,
+        whatsapp,
+        cepTelefone: whatsapp,
+        cpf,
+        cnpjCpf: cpf,
+        email,
+        bairroCidadeUf: cidade,
+        origem,
+        endereco,
+        observacoes,
+        cadastroAprovado: true
+      });
+
+      fecharFormularioClienteLead();
+      renderizarListaClientesCms();
+      mostrarToast(`✅ Cliente <strong>${nome}</strong> salvo com sucesso no banco de dados!`, "success");
+    });
+  }
+
   function atualizarSiteAposEdicaoCms() {
     renderizarCapaHome();
     renderizarCatalogoCompleto();
@@ -6789,6 +7708,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
     const mapPanes = {
       produtos: "cms-pane-produtos",
+      "consulta-qr": "cms-pane-consulta-qr",
+      clientes: "cms-pane-clientes",
       banner: "cms-pane-banner",
       exportar: "cms-pane-exportar",
       supabase: "cms-pane-supabase",
@@ -6796,7 +7717,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
     const mapTitles = {
       produtos: "Catálogo, Preços & Controle de Estoque",
-      equipe: "Acessos, Solicitações de Admin & Senha",
+      "consulta-qr": "Consulta Rápida de Preço & Leitor QR Code",
+      clientes: "Banco de Dados de Clientes Cadastrados & Leads",
+      equipe: "Funcionários, Administradores & Acessos",
       banner: "Banner de Promoções & Sorteio",
       supabase: "Conexão Supabase & Nuvem",
       exportar: "Backup & Exportação de Dados"
@@ -6813,6 +7736,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         el.style.display = ativo ? "block" : "none";
       }
     });
+    if (aba === "consulta-qr") {
+      renderizarGradeConsultaQr();
+    }
+    if (aba === "clientes") {
+      renderizarListaClientesCms();
+    }
     if (aba === "supabase") {
       atualizarStatusSupabaseNoCms();
     }
@@ -7465,9 +8394,35 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     renderizarLinhasFichaTecnicaCms(item.fichaTecnica || {});
 
+    // QR Code individual do produto no editor
+    const qrWrap = document.getElementById("cms-editor-qr-preview");
+    const qrText = document.getElementById("cms-editor-qr-code-text");
+    const qrPayload = `SJ3D:PROD:${item.id}`;
+    if (qrWrap) {
+      renderizarQrCodeHtml(qrWrap, qrPayload, 76);
+    }
+    if (qrText) {
+      qrText.textContent = qrPayload;
+    }
+
+    const btnPrintSingleQr = document.getElementById("btn-cms-print-single-qr");
+    if (btnPrintSingleQr) {
+      btnPrintSingleQr.onclick = () => {
+        imprimirEtiquetaQrIndividual({
+          id: item.id,
+          nome: item.nome,
+          codigo: item.id,
+          preco: item.precoVista,
+          imagem: item.imagem,
+          marca: item.marca
+        });
+      };
+    }
+
     // Se for um produto de filamento com paleta de cores, carrega o editor de cores
     const colorsBlock = document.getElementById("cms-filament-colors-block");
     const select2Wrap = document.getElementById("cms-prod-select2-wrap");
+    const btnPrintColorsQr = document.getElementById("btn-cms-print-filament-colors-qr");
     const chavePaleta = item.tipoFilamento ? mapearChavePaletaSiteData(item.usaCoresDinamicas) : null;
 
     if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
@@ -7475,12 +8430,25 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       cmsState.coresTempEditando = JSON.parse(JSON.stringify(window.SITE_DATA[chavePaleta]));
       if (colorsBlock) colorsBlock.style.display = "block";
       if (select2Wrap) select2Wrap.style.display = "none";
+      if (btnPrintColorsQr) {
+        btnPrintColorsQr.style.display = "inline-flex";
+        btnPrintColorsQr.onclick = () => {
+          imprimirCartelaQrCodes(cmsState.coresTempEditando.map(c => ({
+            id: `${item.id}-${c.cod}`,
+            nome: `${item.nome} (${c.nome})`,
+            codigo: c.cod ? `CÓD. ${c.cod}` : item.id,
+            preco: c.preco || item.precoVista,
+            qrPayload: `SJ3D:FIL:${item.id}:${c.cod || c.nome}`
+          })));
+        };
+      }
       renderizarListaCoresFilamentoCms();
     } else {
       cmsState.chavePaletaEditando = null;
       cmsState.coresTempEditando = [];
       if (colorsBlock) colorsBlock.style.display = "none";
       if (select2Wrap) select2Wrap.style.display = "flex";
+      if (btnPrintColorsQr) btnPrintColorsQr.style.display = "none";
     }
   }
 
@@ -7534,6 +8502,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     renderizarCatalogoCompleto();
     atualizarCaixaLateral();
     atualizarVisaoPrincipal();
+    configurarEventosNovosModulosCms();
 
     // Eventos de Autenticação Google & Operador
     document.getElementById("close-google-auth-btn")?.addEventListener("click", () => {
@@ -7838,6 +8807,29 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Botões da Barra Exclusiva do Vendedor Autenticado (#admin-vendor-topbar)
     document.getElementById("admin-bar-btn-cms")?.addEventListener("click", () => {
       abrirPainelAdminCms("produtos");
+    });
+
+    document.getElementById("admin-bar-btn-scanner")?.addEventListener("click", () => {
+      abrirPainelAdminCms("consulta-qr");
+      iniciarCameraLeitorQr();
+    });
+
+    document.getElementById("admin-bar-btn-clients")?.addEventListener("click", () => {
+      abrirPainelAdminCms("clientes");
+    });
+
+    document.getElementById("crm-btn-open-scanner-quick")?.addEventListener("click", () => {
+      selecionarAbaCms("consulta-qr");
+      iniciarCameraLeitorQr();
+    });
+
+    document.getElementById("crm-top-btn-qr-shortcut")?.addEventListener("click", () => {
+      selecionarAbaCms("consulta-qr");
+      iniciarCameraLeitorQr();
+    });
+
+    document.getElementById("crm-top-btn-clients-shortcut")?.addEventListener("click", () => {
+      selecionarAbaCms("clientes");
     });
 
     document.getElementById("header-btn-quote")?.addEventListener("click", () => {
