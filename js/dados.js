@@ -76,19 +76,19 @@ window.SITE_DATA = {
 
   // 1. BAMBU LAB (Páginas 43 a 49 do PDF — Carretel RFID R$ 99,90 | Refil RFID R$ 79,90)
   coresBambuLab: [
-    { nome: "Laranja 1kg", cod: "137", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F04E23", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_137.jpg" },
-    { nome: "Preto 1kg", cod: "110", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_110.jpg" },
-    { nome: "Branco 1kg", cod: "135", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_135.jpg" },
-    { nome: "Cinza 1kg", cod: "145", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_145.jpg" },
-    { nome: "Azul Ciano 1kg", cod: "136", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#0284C7", filtroCss: "hue-rotate(175deg) saturate(1.1)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_136.jpg" },
-    { nome: "Verde 1kg", cod: "115", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_115.jpg" },
-    { nome: "Amarelo Sol 1kg", cod: "113", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#FACC15", filtroCss: "hue-rotate(32deg) saturate(1.15) brightness(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_113.jpg" },
-    { nome: "Amarelo Girassol 1kg", cod: "116", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F59E0B", filtroCss: "hue-rotate(22deg) saturate(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_116.jpg" },
-    { nome: "Matte Bege 1kg (Fosco)", cod: "112", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#E5D3B3", filtroCss: "hue-rotate(25deg) saturate(0.45) brightness(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_112.jpg" },
-    { nome: "Marrom Coco 1kg", cod: "166", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#5C4033", filtroCss: "hue-rotate(-8deg) saturate(0.55) brightness(0.82)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_166.jpg" },
-    { nome: "Refil PLA Branco 1kg", cod: "146", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_146.jpg" },
-    { nome: "Refil PLA Cinza 1kg", cod: "147", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_147.jpg" },
-    { nome: "Refil PLA Verde 1kg", cod: "151", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_151.jpg" }
+    { nome: "Laranja 1kg", cod: "137", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F04E23", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_137.png?v=20261108_05" },
+    { nome: "Preto 1kg", cod: "110", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_110.png?v=20261108_05" },
+    { nome: "Branco 1kg", cod: "135", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_135.png?v=20261108_05" },
+    { nome: "Cinza 1kg", cod: "145", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_145.png?v=20261108_05" },
+    { nome: "Azul Ciano 1kg", cod: "136", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#0284C7", filtroCss: "hue-rotate(175deg) saturate(1.1)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_136.png?v=20261108_05" },
+    { nome: "Verde 1kg", cod: "115", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_115.png?v=20261108_05" },
+    { nome: "Amarelo Sol 1kg", cod: "113", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#FACC15", filtroCss: "hue-rotate(32deg) saturate(1.15) brightness(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_113.png?v=20261108_05" },
+    { nome: "Amarelo Girassol 1kg", cod: "116", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F59E0B", filtroCss: "hue-rotate(22deg) saturate(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_116.png?v=20261108_05" },
+    { nome: "Matte Bege 1kg (Fosco)", cod: "112", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#E5D3B3", filtroCss: "hue-rotate(25deg) saturate(0.45) brightness(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_112.png?v=20261108_05" },
+    { nome: "Marrom Coco 1kg", cod: "166", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#5C4033", filtroCss: "hue-rotate(-8deg) saturate(0.55) brightness(0.82)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_166.png?v=20261108_05" },
+    { nome: "Refil PLA Branco 1kg", cod: "146", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_146.png?v=20261108_05" },
+    { nome: "Refil PLA Cinza 1kg", cod: "147", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_147.png?v=20261108_05" },
+    { nome: "Refil PLA Verde 1kg", cod: "151", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_151.png?v=20261108_05" }
   ],
 
   // 2. PLA MASTERPRINT / MAXPRINT (Páginas 2 a 21 do PDF — 36 Cores Oficiais)
@@ -216,7 +216,7 @@ window.SITE_DATA = {
       subtitulo: "Chip RFID para leitura automática no AMS • Bico 190–230°C • 1.75mm",
       precoVista: "R$ 99,90",
       precoParcelado: "Refil RFID: R$ 79,90 • Carretel RFID: R$ 99,90",
-      imagem: "assets/produtos/filamentos/cod_137.jpg",
+      imagem: "assets/produtos/filamentos/cod_137.png?v=20261108_05",
       tipoFilamento: true,
       kgPorUnidade: 1,
       select1Label: "Apresentação",
