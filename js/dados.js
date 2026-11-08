@@ -76,19 +76,19 @@ window.SITE_DATA = {
 
   // 1. BAMBU LAB (Páginas 43 a 49 do PDF — Carretel RFID R$ 99,90 | Refil RFID R$ 79,90)
   coresBambuLab: [
-    { nome: "Laranja 1kg", cod: "137", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F04E23", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_137.png?v=20261108_05" },
-    { nome: "Preto 1kg", cod: "110", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_110.png?v=20261108_05" },
-    { nome: "Branco 1kg", cod: "135", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_135.png?v=20261108_05" },
-    { nome: "Cinza 1kg", cod: "145", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_145.png?v=20261108_05" },
-    { nome: "Azul Ciano 1kg", cod: "136", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#0284C7", filtroCss: "hue-rotate(175deg) saturate(1.1)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_136.png?v=20261108_05" },
-    { nome: "Verde 1kg", cod: "115", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_115.png?v=20261108_05" },
-    { nome: "Amarelo Sol 1kg", cod: "113", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#FACC15", filtroCss: "hue-rotate(32deg) saturate(1.15) brightness(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_113.png?v=20261108_05" },
-    { nome: "Amarelo Girassol 1kg", cod: "116", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F59E0B", filtroCss: "hue-rotate(22deg) saturate(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_116.png?v=20261108_05" },
-    { nome: "Matte Bege 1kg (Fosco)", cod: "112", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#E5D3B3", filtroCss: "hue-rotate(25deg) saturate(0.45) brightness(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_112.png?v=20261108_05" },
-    { nome: "Marrom Coco 1kg", cod: "166", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#5C4033", filtroCss: "hue-rotate(-8deg) saturate(0.55) brightness(0.82)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_166.png?v=20261108_05" },
-    { nome: "Refil PLA Branco 1kg", cod: "146", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_146.png?v=20261108_05" },
-    { nome: "Refil PLA Cinza 1kg", cod: "147", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_147.png?v=20261108_05" },
-    { nome: "Refil PLA Verde 1kg", cod: "151", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_151.png?v=20261108_05" }
+    { nome: "Laranja 1kg", cod: "137", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F04E23", filtroCss: "none", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_137.png?v=20261108_08" },
+    { nome: "Preto 1kg", cod: "110", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#18181B", filtroCss: "grayscale(1) brightness(0.75) contrast(1.15)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_110.png?v=20261108_08" },
+    { nome: "Branco 1kg", cod: "135", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_135.png?v=20261108_08" },
+    { nome: "Cinza 1kg", cod: "145", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_145.png?v=20261108_08" },
+    { nome: "Azul Ciano 1kg", cod: "136", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#0284C7", filtroCss: "hue-rotate(175deg) saturate(1.1)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_136.png?v=20261108_08" },
+    { nome: "Verde 1kg", cod: "115", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_115.png?v=20261108_08" },
+    { nome: "Amarelo Sol 1kg", cod: "113", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#FACC15", filtroCss: "hue-rotate(32deg) saturate(1.15) brightness(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_113.png?v=20261108_08" },
+    { nome: "Amarelo Girassol 1kg", cod: "116", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#F59E0B", filtroCss: "hue-rotate(22deg) saturate(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_116.png?v=20261108_08" },
+    { nome: "Matte Bege 1kg (Fosco)", cod: "112", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#E5D3B3", filtroCss: "hue-rotate(25deg) saturate(0.45) brightness(1.12)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_112.png?v=20261108_08" },
+    { nome: "Marrom Coco 1kg", cod: "166", preco: "R$ 99,90", valor: 99.90, tipo: "1KG Carretel RFID", hex: "#5C4033", filtroCss: "hue-rotate(-8deg) saturate(0.55) brightness(0.82)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_166.png?v=20261108_08" },
+    { nome: "Refil PLA Branco 1kg", cod: "146", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#F4F4F5", filtroCss: "grayscale(1) brightness(1.18)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_146.png?v=20261108_08" },
+    { nome: "Refil PLA Cinza 1kg", cod: "147", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#71717A", filtroCss: "grayscale(1) brightness(0.95)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_147.png?v=20261108_08" },
+    { nome: "Refil PLA Verde 1kg", cod: "151", preco: "R$ 79,90", valor: 79.90, tipo: "1KG Refil RFID", hex: "#16A34A", filtroCss: "hue-rotate(98deg) saturate(1.08)", usaFotoCatalogoDireta: true, imgCatalogo: "assets/produtos/filamentos/cod_151.png?v=20261108_08" }
   ],
 
   // 2. PLA MASTERPRINT / MAXPRINT (Páginas 2 a 21 do PDF — 36 Cores Oficiais)
@@ -216,7 +216,7 @@ window.SITE_DATA = {
       subtitulo: "Chip RFID para leitura automática no AMS • Bico 190–230°C • 1.75mm",
       precoVista: "R$ 99,90",
       precoParcelado: "Refil RFID: R$ 79,90 • Carretel RFID: R$ 99,90",
-      imagem: "assets/produtos/filamentos/cod_137.png?v=20261108_05",
+      imagem: "assets/produtos/filamentos/cod_137.png?v=20261108_08",
       tipoFilamento: true,
       kgPorUnidade: 1,
       select1Label: "Apresentação",
@@ -549,74 +549,431 @@ window.SITE_DATA = {
 
     // -------------------- 3. PEÇAS & ACESSÓRIOS --------------------
     {
-      id: "peca-hotend-a1",
+      id: "peca-cooler-hotend-20000",
       categoria: "pecas",
       marca: "Bambu Lab",
-      nome: "Hotend Quick-Swap Aço Endurecido (A1 / A1 Mini)",
-      subtitulo: "Troca magnética em 1 clique sem fios • Suporta até 300 °C",
-      precoVista: "Consulte no Pedido",
+      nome: "Cooler Ventilador de Refrigeração do Hotend 20000 RPM (2 Unidades)",
+      subtitulo: "Ventilador de alta rotação para resfriamento eficiente do bico hotend, evitando heat creep",
+      precoVista: "Sob Consulta",
       precoVistaValor: 0,
-      precoParcelado: "Pronta entrega em Umuarama • 0.2mm / 0.4mm / 0.6mm / 0.8mm",
-      imagem: "assets/produtos/peca-hotend.jpg",
-      select1Opcoes: ["A1 / Mini", "P2S"],
-      select2Opcoes: [
-        "0.4mm Aço Endurecido",
-        "0.2mm Alta Precisão (Inox)",
-        "0.6mm Alto Fluxo (Endurecido)",
-        "0.8mm Ultra Rápido (Endurecido)"
-      ],
-      botaoTexto: "Adicionar ao Pedido",
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_cooler_hotend_20000.jpg",
+      select1Opcoes: ["2 Peças"],
+      select2Opcoes: ["Bambu Lab A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
       fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1, A1 Mini e linha P2S",
-        "Material": "Aço Endurecido (Hardened Steel) para filamentos abrasivos"
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Velocidade": "20.000 RPM",
+        "Quantidade": "2 Unidades (2PCS)",
+        "Aplicação": "Refrigeração do dissipador do hotend para evitar entupimentos"
       }
     },
     {
-      id: "peca-placa-pei",
+      id: "peca-kit-ferramentas-40pcs",
       categoria: "pecas",
-      marca: "Bambu Lab",
-      nome: "Placa Flexível PEI Texturizada Dupla Face",
-      subtitulo: "Aderência perfeita sem cola e remoção fácil dobrando a chapa",
-      precoVista: "Consulte no Pedido",
+      marca: "Oficina SJ 3D",
+      nome: "Kit de Ferramentas Profissional para Impressão 3D (40 Peças)",
+      subtitulo: "Kit completo com raspadores, limas diamantadas, alicates de corte, pinças e desentupidores",
+      precoVista: "Sob Consulta",
       precoVistaValor: 0,
-      precoParcelado: "Tamanhos 256×256 mm (A1/P2S) e 180×180 mm (A1 Mini)",
-      imagem: "assets/produtos/peca-placa-pei.jpg",
-      select1Opcoes: ["PEI Gold", "PEI Black"],
-      select2Opcoes: [
-        "256×256mm (A1 Normal / P2S)",
-        "180×180mm (A1 Mini)",
-        "Chapa Efeito 3D Carbono"
-      ],
-      botaoTexto: "Adicionar ao Pedido",
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_kit_ferramentas_40pcs.jpg",
+      select1Opcoes: ["Kit Completo 40 Peças"],
+      select2Opcoes: ["Universal FDM / Resina"],
+      botaoTexto: "Consultar no WhatsApp",
       fichaTecnica: {
-        "Revestimento": "PEI Texturizado Dupla Face em Aço Mola Magnético",
-        "Compatibilidade": "PLA, PETG, ABS, TPU, ASA"
+        "Compatibilidade": "Universal para todas as impressoras 3D FDM e Resina",
+        "Composição": "Alicate de corte rente, raspadores com lâminas plásticas/metálicas, pinças de precisão, limas diamantadas, agulhas de limpeza de bico",
+        "Quantidade": "40 Itens essenciais de bancada"
       }
     },
     {
-      id: "peca-extrusora-ams",
+      id: "peca-oleo-graxa-lubrificante",
       categoria: "pecas",
-      marca: "Bambu Lab",
-      nome: "Peças de Reposição: Extrusora, Cortador & PTFE",
-      subtitulo: "Componentes em estoque em Umuarama para manutenção imediata",
-      precoVista: "Consulte no Pedido",
+      marca: "Oficina SJ 3D",
+      nome: "Graxa e Óleo Lubrificante Especial para Eixos e Fusos 3D",
+      subtitulo: "Lubrificação de precisão que reduz atrito, ruído e desgaste em fusos T8 e guias lineares",
+      precoVista: "Sob Consulta",
       precoVistaValor: 0,
-      precoParcelado: "Engrenagens, Lâminas Cortador, Silicone Sock e Tubos PTFE",
-      imagem: "assets/produtos/peca-hotend.jpg",
-      select1Opcoes: ["Série A1", "Série P2S"],
-      select2Opcoes: [
-        "Kit Engrenagem Extrusora Aço",
-        "Kit Lâminas Cortador + Wiper",
-        "Capa de Silicone (Silicone Sock)",
-        "Kit Tubos PTFE para AMS Lite"
-      ],
-      botaoTexto: "Adicionar ao Pedido",
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_oleo_graxa_lubrificante.jpg",
+      select1Opcoes: ["Pote com Pincel Aplicador"],
+      select2Opcoes: ["Universal 3D"],
+      botaoTexto: "Consultar no WhatsApp",
       fichaTecnica: {
-        "Pronta Entrega": "Loja SJ 3D — Av. Portugal, 6759, Umuarama - PR",
-        "Aplicação": "Reposição original e preventiva"
+        "Compatibilidade": "Bambu Lab (A1, A1 Mini, P1S, X1C), Creality, Anycubic e eixos lineares",
+        "Aplicação": "Fusos de elevação Z, guias lineares metálicas e rolamentos",
+        "Acessório": "Acompanha pincel aplicador de alta precisão"
       }
     },
-
+    {
+      id: "peca-kit-hotend-inox-02",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Kit Hotend com Bico de Aço Inox 0.2mm Integrado (4 Unidades)",
+      subtitulo: "Hotends de ultra precisão para miniaturas, action figures, detalhes finos e textos milimétricos",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_kit_hotend_inox_02.jpg",
+      select1Opcoes: ["Kit 4 Peças 0.2mm"],
+      select2Opcoes: ["Aço Inox"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Diâmetro do Bico": "0.2 mm",
+        "Material": "Aço Inoxidável de alta precisão",
+        "Quantidade": "4 Unidades com capa protetora de silicone"
+      }
+    },
+    {
+      id: "peca-extrusora-original-a1",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Unidade Extrusora Completa Original Bambu Lab A1 / A1 Mini",
+      subtitulo: "Mecanismo de tracionamento direto com engrenagens de aço endurecido e motor integrado",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_extrusora_original_a1.jpg",
+      select1Opcoes: ["Original Completa"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Tipo": "Direct Drive com engrenagens duplas de aço endurecido",
+        "Condição": "Produto 100% Original Bambu Lab lacrado"
+      }
+    },
+    {
+      id: "peca-hub-ams-lite-5way",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Hub de Filamento AMS Lite Five-Way Connector Original",
+      subtitulo: "Conector multiplexador de 4 vias original Bambu Lab para alimentação multicolor do AMS Lite",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_hub_ams_lite_5way.jpg",
+      select1Opcoes: ["Five-Way Connector"],
+      select2Opcoes: ["AMS Lite"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab AMS Lite (A1 e A1 Mini)",
+        "Entradas / Saídas": "4 entradas para bobinas + 1 saída direta para o cabeçote",
+        "Condição": "Original Bambu Lab de troca rápida"
+      }
+    },
+    {
+      id: "peca-hotend-aprimorado-06",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Kit Hotend Aprimorado de Alta Vazão — Bico 0.6mm (Aço Endurecido)",
+      subtitulo: "Bico reforçado resistente a filamentos abrasivos (Carbono, Madeira, Glow) com alto fluxo",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_hotend_aprimorado_06.jpg",
+      select1Opcoes: ["Bico 0.6mm"],
+      select2Opcoes: ["Aço Endurecido"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Diâmetro": "0.6 mm de alta vazão",
+        "Material": "Aço Endurecido (Hardened Steel)",
+        "Indicação": "Filamentos abrasivos como PLA Fibra de Carbono, Madeira e Glow"
+      }
+    },
+    {
+      id: "peca-hotend-aprimorado-08",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Kit Hotend Aprimorado de Alta Vazão — Bico 0.8mm (Aço Endurecido)",
+      subtitulo: "Vazão volumétrica máxima para impressões gigantes, protótipos industriais e peças técnicas",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_hotend_aprimorado_08.jpg",
+      select1Opcoes: ["Bico 0.8mm"],
+      select2Opcoes: ["Aço Endurecido"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Diâmetro": "0.8 mm ultra rápido",
+        "Material": "Aço Endurecido (Hardened Steel)",
+        "Destaque": "Reduz o tempo de impressão de peças volumosas em até 50%"
+      }
+    },
+    {
+      id: "peca-tubo-ptfe-teflon-15m",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Tubo PTFE (Teflon) Original de Alta Precisão (Rolo de 15 Metros)",
+      subtitulo: "Tubo capilar de baixo atrito para guia suave de filamento 1.75mm no AMS e cabeçote",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_tubo_ptfe_teflon_15m.jpg",
+      select1Opcoes: ["Rolo de 15 Metros"],
+      select2Opcoes: ["Filamento 1.75mm"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab X1C, P1P, P1S, A1, A1 Mini e AMS / AMS Lite",
+        "Dimensões": "Diâmetro interno 2.0 mm / Diâmetro externo 4.0 mm",
+        "Comprimento": "15 Metros contínuos de Teflon virgem de alta tolerância"
+      }
+    },
+    {
+      id: "peca-kit-hotend-inox-04",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Kit Hotend com Bico Integrado 0.4mm (4 Unidades)",
+      subtitulo: "O diâmetro padrão mais versátil para impressões do dia a dia com troca magnética instantânea",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_kit_hotend_inox_04.jpg",
+      select1Opcoes: ["Kit 4 Peças 0.4mm"],
+      select2Opcoes: ["Aço Inox"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Diâmetro do Bico": "0.4 mm Padrão",
+        "Quantidade": "Kit com 4 Unidades completas com meias de silicone",
+        "Sistema": "Troca rápida magnética sem parafusos ou conexões de fios"
+      }
+    },
+    {
+      id: "peca-placa-cryogrip-panda-184",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa Fria Magnética CryoGrip Pro Panda (184x184mm)",
+      subtitulo: "Superfície de adesão a frio com altíssima fixação de PLA e PETG sem necessidade de cola",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_placa_cryogrip_panda_184.jpg",
+      select1Opcoes: ["184×184mm"],
+      select2Opcoes: ["CryoGrip Pro"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 Mini (184×184 mm)",
+        "Tecnologia": "Revestimento CryoGrip Pro com adesão molecular a frio",
+        "Vantagem": "Elimina uso de cola spray/bastão e descola facilmente ao esfriar"
+      }
+    },
+    {
+      id: "peca-placa-carbono-pei-257",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa de Construção PEI Texturizada Dupla Face em Aço Mola (257x257mm)",
+      subtitulo: "Chapa de alta aderência com textura jateada em ambos os lados e flexão para soltar a peça",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_placa_carbono_pei_257.jpg",
+      select1Opcoes: ["257×257mm"],
+      select2Opcoes: ["PEI Dupla Face"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1, P1P, P1S e X1-Carbon (257×257 mm)",
+        "Acabamento": "PEI Texturizado em ambas as faces sobre aço mola flexível",
+        "Resistência Térmica": "Suporta temperaturas de mesa de até 120 °C"
+      }
+    },
+    {
+      id: "peca-placa-pey-pey-257",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa Holográfica PEY-PEY Dupla Face Efeito Phantom (257x257mm)",
+      subtitulo: "Transfere acabamento holográfico e iridescente reflexivo para a primeira camada da peça",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_placa_pey_pey_257.jpg",
+      select1Opcoes: ["257×257mm"],
+      select2Opcoes: ["Holográfica PEY-PEY"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1, P1P, P1S e X1C (257×257 mm)",
+        "Efeito Visual": "Padrão óptico holográfico Phantom Light Column",
+        "Faces": "Dupla Face 100% utilizável em aço mola flexível magnético"
+      }
+    },
+    {
+      id: "peca-placa-peo-pei-257",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa Híbrida PEO-PEI Dupla Face com Padrão Geométrico (257x257mm)",
+      subtitulo: "Um lado com acabamento diamante liso e o outro com PEI texturizado clássico",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_placa_peo_pei_257.jpg",
+      select1Opcoes: ["257×257mm"],
+      select2Opcoes: ["PEO Diamante + PEI"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1, P1P, P1S e X1C (257×257 mm)",
+        "Face A": "PEO com microtextura geométrica espelhada diamante",
+        "Face B": "PEI texturizado jateado fosco tradicional"
+      }
+    },
+    {
+      id: "peca-conjunto-aquecimento-v2",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Conjunto de Aquecimento V2.0 para Hotend Bambu Lab (5 Unidades)",
+      subtitulo: "Módulo aquecedor cerâmico e termistor blindado de alta precisão até 300 °C",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_conjunto_aquecimento_v2.jpg",
+      select1Opcoes: ["Kit 5 Peças V2.0"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Versão": "V2.0 Atualizada com fiação reforçada e contato banhado a níquel",
+        "Quantidade": "5 Peças completas com parafusos de montagem"
+      }
+    },
+    {
+      id: "peca-extrusora-fechada-a1",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Unidade Extrusora Selada Original de Reposição Bambu Lab",
+      subtitulo: "Conjunto mecânico completo direto da fábrica pronto para substituição rápida",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_extrusora_fechada_a1.jpg",
+      select1Opcoes: ["Caixa Lacrada Original"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Estado": "100% Original Bambu Lab, lacrada na embalagem original",
+        "Aplicação": "Manutenção preventiva ou substituição imediata sem calibração manual"
+      }
+    },
+    {
+      id: "peca-cooler-refrigeracao-20000",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Microventilador de Dissipação do Radiador Hotend 20000 RPM (Par)",
+      subtitulo: "Ventoinha compacta de altíssima rotação para prevenir aquecimento do bico hotend",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_cooler_refrigeracao_20000.jpg",
+      select1Opcoes: ["Par (2PCS)"],
+      select2Opcoes: ["20000 RPM"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Velocidade": "20.000 RPM de rotação contínua",
+        "Conector": "Conector original plug-and-play de 2 pinos micro",
+        "Quantidade": "Par (2 Unidades)"
+      }
+    },
+    {
+      id: "peca-hotend-aco-temperado-04",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Hotends de Aço Temperado Aprimorados 0.4mm (Kit com 4 Peças)",
+      subtitulo: "Máxima durabilidade e resistência ao desgaste em filamentos reforçados",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_hotend_aco_temperado_04.jpg",
+      select1Opcoes: ["Kit 4 Peças 0.4mm"],
+      select2Opcoes: ["Aço Temperado"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Diâmetro": "0.4 mm",
+        "Material": "Aço Temperado Aprimorado de alta condutividade térmica",
+        "Quantidade": "4 Peças completas com meias de silicone"
+      }
+    },
+    {
+      id: "peca-placa-controladora-th",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Placa Controladora do Cabeçote Toolhead (TH Board Bambu Lab)",
+      subtitulo: "Placa de circuito original que gerencia a eletrônica, sensores e aquecimento do cabeçote",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_placa_controladora_th.jpg",
+      select1Opcoes: ["Placa TH Original"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Tipo": "Toolhead Control Board (TH Board)",
+        "Aplicação": "Controle central dos sensores de nivelamento, ventoinhas e aquecimento"
+      }
+    },
+    {
+      id: "peca-sensor-filamento-hall-fpc",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Sensor de Filamento com Efeito Hall e Cabo FPC Flexível",
+      subtitulo: "Detecção magnética ultra precisa de presença e esgotamento de filamento no cabeçote",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_sensor_filamento_hall_fpc.jpg",
+      select1Opcoes: ["Sensor Hall + Cabo FPC"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Tecnologia": "Sensor Magnético Hall sem atrito mecânico",
+        "Itens Inclusos": "Placa do sensor + Cabo FPC flexível original de conexão"
+      }
+    },
+    {
+      id: "peca-purge-wiper-limpador",
+      categoria: "pecas",
+      marca: "Bambu Lab",
+      nome: "Limpador e Descartador de Purga (Purge Wiper Assembly)",
+      subtitulo: "Mecanismo de descarte e limpeza do bico para transição limpa entre trocas de cores",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_purge_wiper_limpador.jpg",
+      select1Opcoes: ["Purge Wiper Completo"],
+      select2Opcoes: ["A1 / A1 Mini"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
+        "Função": "Raspador de bico e alavanca mecânica de descarte de purga (poop wiper)",
+        "Quantidade": "Conjunto articulado completo pronto para montagem"
+      }
+    },
+    {
+      id: "peca-ventilador-blower-5015",
+      categoria: "pecas",
+      marca: "Oficina SJ 3D",
+      nome: "Ventilador Blower 5015 Radial de Alta Pressão Estática (2 Peças)",
+      subtitulo: "Ventoinha radial para refrigeração extrema de camada, pontes e balanços agressivos",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_ventilador_blower_5015.jpg",
+      select1Opcoes: ["Par (2PCS 5015)"],
+      select2Opcoes: ["Universal 3D / Mod"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Compatibilidade": "Bambu Lab A1 / A1 Mini com dutos customizados e impressoras FDM",
+        "Dimensões": "50 x 50 x 15 mm (Blower 5015)",
+        "Tensão / Conexão": "24V com conector de 2 pinos",
+        "Quantidade": "2 Peças de alta durabilidade"
+      }
+    },
     // -------------------- 4. MANUTENÇÃO & ASSISTÊNCIA TÉCNICA --------------------
     {
       id: "manut-revisao-preventiva",
