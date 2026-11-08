@@ -2102,6 +2102,388 @@ select:focus-visible {
   white-space: nowrap;
 }
 
+/* ==========================================================================
+   NOVO LAYOUT DE FILAMENTOS: PÍLULAS NO TOPO + 2 CARDS LADO A LADO
+   Card Showcase Branco (Esquerda) + Card Configurador Escuro (Direita)
+   ========================================================================== */
+
+.pdp-filament-top-material-bar {
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.pdp-filament-top-pills {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.pdp-top-pill {
+  padding: 10px 22px;
+  border-radius: 999px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
+  color: var(--text-black);
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.pdp-top-pill:hover {
+  border-color: var(--sj-orange);
+  color: var(--sj-orange);
+  transform: translateY(-1px);
+}
+
+.pdp-top-pill.active {
+  background: var(--sj-orange);
+  border-color: var(--sj-orange);
+  color: #ffffff;
+  box-shadow: 0 4px 14px rgba(240, 78, 35, 0.35);
+}
+
+/* Grade Principal 2 Colunas de Filamento */
+.pdp-main-grid.is-filament-pdp {
+  display: grid;
+  grid-template-columns: 1fr 1.08fr;
+  gap: 32px;
+  align-items: stretch;
+  margin-bottom: 36px;
+}
+
+/* Card Showcase Esquerdo (Fundo Branco, Bordas Arredondadas) */
+.pdp-filament-showcase-card {
+  background: #ffffff;
+  border: 1.5px solid var(--border-card);
+  border-radius: 20px;
+  padding: 26px 28px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 10px 32px rgba(0, 0, 0, 0.05);
+}
+
+.pdp-showcase-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.pdp-showcase-material-tag {
+  font-size: 0.95rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #18181b;
+  font-style: italic;
+}
+
+.pdp-showcase-stock-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  background: #ecfdf5;
+  color: #059669;
+  border: 1px solid rgba(5, 150, 105, 0.2);
+}
+
+.pdp-showcase-stock-pill.status-poucas_unidades {
+  background: #fff7ed;
+  color: #c2410c;
+  border-color: rgba(194, 65, 12, 0.2);
+}
+
+.pdp-showcase-stock-pill.status-esgotado {
+  background: #fef2f2;
+  color: #b91c1c;
+  border-color: rgba(185, 28, 28, 0.2);
+}
+
+.pdp-showcase-img-wrap {
+  position: relative;
+  width: 100%;
+  min-height: 340px;
+  max-height: 420px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px 0;
+  overflow: hidden;
+}
+
+.pdp-showcase-img {
+  max-width: 100%;
+  max-height: 370px;
+  width: auto;
+  height: auto;
+  object-fit: contain !important;
+  display: block;
+  transition: filter 0.25s ease;
+}
+
+.pdp-showcase-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 16px;
+  border-top: 1px solid #f4f4f5;
+}
+
+.pdp-showcase-color-name {
+  font-size: 1.6rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: #18181b;
+  text-transform: capitalize;
+}
+
+.pdp-showcase-spec-pill {
+  background: var(--sj-orange);
+  color: #ffffff;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  white-space: nowrap;
+}
+
+/* Card Configurador Direito (Dark Premium, Alto Contraste) */
+.pdp-filament-config-card {
+  background: #18181b;
+  border: 1.5px solid #27272a;
+  border-radius: 20px;
+  padding: 30px 32px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.12);
+  color: #ffffff;
+}
+
+.pdp-filament-header {
+  margin-bottom: 20px;
+}
+
+.pdp-filament-title {
+  font-size: 1.75rem;
+  font-weight: 900;
+  font-style: italic;
+  letter-spacing: -0.02em;
+  color: #ffffff;
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+
+.pdp-filament-subtitle {
+  font-size: 0.86rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+}
+
+.pdp-filament-color-section {
+  margin-bottom: 20px;
+}
+
+.pdp-filament-color-head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.pdp-filament-color-lbl {
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.pdp-filament-color-val {
+  font-size: 0.95rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.pdp-swatches-grid.pdp-filament-swatches {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  background: transparent;
+  border: none;
+  padding: 0;
+  margin-bottom: 0;
+}
+
+.pdp-filament-swatches .pdp-swatch-circle {
+  width: 34px;
+  height: 34px;
+  border: 2px solid rgba(255, 255, 255, 0.24);
+  border-radius: 50%;
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.pdp-filament-swatches .pdp-swatch-circle:hover {
+  transform: scale(1.22);
+  border-color: #ffffff;
+  z-index: 20;
+}
+
+.pdp-filament-swatches .pdp-swatch-circle.active {
+  border-color: #ffffff;
+  box-shadow: 0 0 0 2.5px #18181b, 0 0 0 5px var(--sj-orange);
+  transform: scale(1.14);
+  z-index: 10;
+}
+
+.pdp-filament-specs-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 14px;
+  border-top: 1px solid rgba(255, 255, 255, 0.12);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 18px 0;
+  margin: 18px 0;
+}
+
+.pdp-spec-box {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.pdp-spec-lbl {
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a1a1aa;
+}
+
+.pdp-spec-val {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.pdp-spec-val-price {
+  color: var(--sj-orange);
+  font-size: 1.25rem;
+  font-weight: 900;
+}
+
+.pdp-spec-sub-price {
+  font-size: 0.72rem;
+  color: #fdba74;
+  font-weight: 600;
+}
+
+.pdp-filament-actions-row {
+  display: flex;
+  gap: 12px;
+  align-items: stretch;
+  margin-top: 8px;
+}
+
+.pdp-filament-stepper {
+  display: inline-flex;
+  align-items: center;
+  background: #27272a;
+  border: 1.5px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  height: 50px;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.pdp-filament-stepper button {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.2rem;
+  font-weight: 700;
+  width: 36px;
+  height: 100%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 0.15s ease;
+}
+
+.pdp-filament-stepper button:hover {
+  opacity: 0.75;
+}
+
+.pdp-filament-stepper input {
+  background: none;
+  border: none;
+  color: #ffffff;
+  font-size: 1.05rem;
+  font-weight: 800;
+  width: 34px;
+  text-align: center;
+}
+
+.pdp-filament-btn-add {
+  flex: 1;
+  height: 50px;
+  background: var(--sj-orange);
+  color: #ffffff;
+  border: none;
+  border-radius: 999px;
+  font-size: 0.96rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 6px 20px rgba(240, 78, 35, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+}
+
+.pdp-filament-btn-add:hover {
+  background: var(--sj-orange-hover);
+  transform: translateY(-1px);
+  box-shadow: 0 8px 24px rgba(240, 78, 35, 0.5);
+}
+
+.pdp-filament-footer-note {
+  margin-top: 14px;
+  font-size: 0.78rem;
+  color: #71717a;
+  text-align: center;
+}
+
+.pdp-filament-wpp-btn {
+  background: none;
+  border: none;
+  color: var(--sj-orange);
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.pdp-filament-trust-strip {
+  margin-top: 24px;
+  margin-bottom: 40px;
+}
+
 /* Seção de Parâmetros e Especificações Abaixo da Dobra */
 .pdp-specs-section {
   padding-top: 36px;
@@ -9639,15 +10021,10 @@ button.color-swatch-more:hover {
     object-fit: contain !important;
   }
 
-  /* No Tablet (681px–1024px), mantém a PDP de filamento em 2 colunas lado a lado em vez de empilhar */
+  /* No Tablet (681px–1024px), mantém a PDP de filamento em 2 colunas lado a lado */
   .pdp-main-grid.is-filament-pdp {
-    grid-template-columns: 0.9fr 1.1fr;
+    grid-template-columns: 0.95fr 1.05fr;
     gap: 20px;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-trust-strip,
-  .pdp-main-grid.is-filament-pdp .pdp-subtitle {
-    display: none;
   }
 
   /* Oculta a barra sticky branca duplicada embaixo pois o carrinho fixo preto já fica visível */
@@ -10356,234 +10733,97 @@ button.color-swatch-more:hover {
     border-radius: 8px !important;
   }
 
-  /* Layout Mobile Ultra-Clean: 1 Coluna com Respiro Lateral, Foto Grande + Preço + Linha + Cores + Botão de Compra Visível */
-  .pdp-main-grid.is-filament-pdp {
-    display: grid !important;
-    grid-template-columns: minmax(0, 1fr) !important;
-    gap: 10px !important;
-    align-items: start !important;
-    margin-bottom: 24px !important;
-    padding: 0 2px !important;
+  /* Layout Mobile de Filamento (Estilo Referência Usuário: Pílulas no Topo, Card Showcase e Card Configurador) */
+  .pdp-filament-top-material-bar {
+    margin-bottom: 16px !important;
+    padding: 0 4px !important;
   }
 
-  .pdp-main-grid.is-filament-pdp .pdp-gallery-col,
-  .pdp-main-grid.is-filament-pdp .pdp-info-col {
-    display: contents !important;
-  }
-
-  /* Linha 1: Foto Única Grande ocupando o espaço de ponta a ponta com margem interna generosa */
-  .pdp-main-grid.is-filament-pdp .pdp-main-image-box {
-    grid-column: 1 / -1 !important;
-    grid-row: 1 / 2 !important;
-    width: 100% !important;
-    aspect-ratio: 16 / 10 !important;
-    max-height: 215px !important;
-    margin-bottom: 0 !important;
-    border-radius: 16px !important;
-    padding: 14px 18px !important;
-    background: #ffffff !important;
-    border: 1.5px solid #e4e4e7 !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-main-image-box img#pdp-main-img {
-    object-fit: contain !important;
-    width: 100% !important;
-    height: 100% !important;
-    padding: 0 !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-origin-badge,
-  .pdp-main-grid.is-filament-pdp .pdp-corner-sample,
-  .pdp-main-grid.is-filament-pdp .pdp-thumbs-strip {
-    display: none !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-cod-floating {
-    top: 12px !important;
-    right: 12px !important;
-    font-size: 0.7rem !important;
-    padding: 4px 10px !important;
-    border-radius: 8px !important;
-  }
-
-  /* Oculta elementos secundários no topo para deixar o cabeçalho o mais clean possível */
-  .pdp-main-grid.is-filament-pdp .pdp-meta-row,
-  .pdp-main-grid.is-filament-pdp .pdp-trust-strip,
-  .pdp-main-grid.is-filament-pdp .pdp-subtitle,
-  .pdp-main-grid.is-filament-pdp .pdp-price-sub-row {
-    display: none !important;
-  }
-
-  /* Linha 2: Título Centralizado com Respiro Lateral (sem encostar nas bordas) */
-  .pdp-main-grid.is-filament-pdp .pdp-title {
-    grid-column: 1 / -1 !important;
-    grid-row: 2 / 3 !important;
-    font-size: 1.1rem !important;
-    line-height: 1.26 !important;
-    margin: 4px 0 0 !important;
-    padding: 0 10px !important;
-    text-align: center !important;
-  }
-
-  /* Linha 3: Card de Preço Centralizado e Bem Espaçado por dentro */
-  .pdp-main-grid.is-filament-pdp .pdp-price-card {
-    grid-column: 1 / -1 !important;
-    grid-row: 3 / 4 !important;
-    padding: 12px 18px !important;
-    margin: 0 !important;
-    border-radius: 12px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-price-main-row {
-    gap: 12px !important;
-    flex-wrap: nowrap !important;
-    justify-content: center !important;
-    align-items: center !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-price-label {
-    font-size: 0.7rem !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-price-value {
-    font-size: 1.32rem !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-cod-pill {
-    font-size: 0.72rem !important;
-    padding: 4px 10px !important;
-    margin-left: 4px !important;
-  }
-
-  /* Seletores ocupando 100% da largura com espaçamento interno confortável */
-  .pdp-main-grid.is-filament-pdp .pdp-option-group,
-  .pdp-main-grid.is-filament-pdp .pdp-actions-block,
-  .pdp-main-grid.is-filament-pdp .pdp-order-bar {
-    grid-column: 1 / -1 !important;
-    margin-bottom: 2px !important;
-  }
-
-  /* Linha 4: Seletor de Cores Centralizado e com Bastante Respiro nas Laterais */
-  .pdp-main-grid.is-filament-pdp .pdp-filament-color-group {
-    grid-row: 4 / 5 !important;
-    background: #ffffff !important;
-    border: 1.5px solid #e4e4e7 !important;
-    border-radius: 14px !important;
-    padding: 14px 16px !important;
-    margin-top: 0 !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-color-option-header {
-    margin-bottom: 10px !important;
-    gap: 8px !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-color-label-left span {
-    font-size: 0.8rem !important;
-    font-weight: 800 !important;
-    color: #18181b !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-color-name-highlight {
-    width: 100% !important;
-    justify-content: center !important;
-    padding: 8px 12px !important;
-    font-size: 0.8rem !important;
-    border-radius: 8px !important;
-    background: #fff7ed !important;
-    border-color: rgba(240, 78, 35, 0.35) !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-swatches-grid {
-    display: grid !important;
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
-    gap: 10px !important;
-    padding: 14px 12px !important;
-    margin-bottom: 0 !important;
-    justify-items: center !important;
-    max-height: 205px !important;
-    overflow-y: auto !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-swatch-circle {
-    width: 34px !important;
-    height: 34px !important;
-  }
-
-  /* Linha 5: Quantidade e Botão Adicionar IMEDIATAMENTE abaixo das cores para o cliente comprar com facilidade */
-  .pdp-main-grid.is-filament-pdp .pdp-actions-block {
-    grid-row: 5 / 6 !important;
-    margin-top: 2px !important;
-    padding: 2px 0 4px !important;
-    gap: 10px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-qty-and-add {
-    grid-template-columns: 110px minmax(0, 1fr) !important;
-    gap: 10px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-qty-stepper {
-    height: 46px !important;
-    grid-template-columns: 34px 1fr 34px !important;
-    border-radius: 10px !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-btn-add {
-    height: 46px !important;
-    font-size: 0.86rem !important;
-    border-radius: 10px !important;
-    box-shadow: 0 4px 12px rgba(240, 78, 35, 0.25) !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-btn-whatsapp-now {
-    height: 42px !important;
-    font-size: 0.8rem !important;
-    border-radius: 10px !important;
-  }
-
-  /* Linha 6: Opções exclusivas da marca (Com Bobina/Refil na Bambu Lab OU Materiais na Masterprint) centralizadas no card */
-  .pdp-main-grid.is-filament-pdp .pdp-filament-material-group,
-  .pdp-main-grid.is-filament-pdp .pdp-filament-rfid-group {
-    grid-row: 6 / 7 !important;
-    display: flex !important;
-    flex-direction: column !important;
-    align-items: center !important;
-    text-align: center !important;
-    gap: 9px !important;
-    background: #ffffff !important;
-    border: 1.5px solid #e4e4e7 !important;
-    border-radius: 14px !important;
-    padding: 12px 16px !important;
-    margin-bottom: 0 !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-filament-material-group .pdp-option-header,
-  .pdp-main-grid.is-filament-pdp .pdp-filament-rfid-group .pdp-option-header {
-    margin-bottom: 0 !important;
-    font-size: 0.78rem !important;
-    font-weight: 800 !important;
-    color: #18181b !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-material-switch-row,
-  .pdp-main-grid.is-filament-pdp #pdp-sel1-pills {
-    display: flex !important;
-    flex-wrap: wrap !important;
-    justify-content: center !important;
-    gap: 8px !important;
-    width: 100% !important;
-    padding: 0 !important;
-  }
-
-  .pdp-main-grid.is-filament-pdp .pdp-pill-btn {
-    padding: 8px 13px !important;
-    font-size: 0.76rem !important;
+  .pdp-filament-top-pills {
+    overflow-x: auto !important;
     white-space: nowrap !important;
-    border-radius: 8px !important;
+    -webkit-overflow-scrolling: touch !important;
+    scrollbar-width: none !important;
+    gap: 8px !important;
+    padding-bottom: 6px !important;
+  }
+
+  .pdp-filament-top-pills::-webkit-scrollbar {
+    display: none !important;
+  }
+
+  .pdp-top-pill {
+    padding: 8px 16px !important;
+    font-size: 0.8rem !important;
+  }
+
+  .pdp-main-grid.is-filament-pdp {
+    display: flex !important;
+    flex-direction: column !important;
+    gap: 16px !important;
+    margin-bottom: 24px !important;
+    padding: 0 6px !important;
+  }
+
+  .pdp-filament-showcase-card {
+    padding: 18px !important;
+    border-radius: 18px !important;
+  }
+
+  .pdp-showcase-img-wrap {
+    min-height: 240px !important;
+    max-height: 290px !important;
+    padding: 10px 0 !important;
+  }
+
+  .pdp-showcase-img {
+    max-height: 270px !important;
+    width: 100% !important;
+  }
+
+  .pdp-showcase-color-name {
+    font-size: 1.35rem !important;
+  }
+
+  .pdp-filament-config-card {
+    padding: 22px 18px !important;
+    border-radius: 18px !important;
+  }
+
+  .pdp-filament-title {
+    font-size: 1.35rem !important;
+  }
+
+  .pdp-filament-specs-grid {
+    grid-template-columns: 1fr 1fr 1.25fr !important;
+    gap: 10px !important;
+    padding: 14px 0 !important;
+    margin: 14px 0 !important;
+  }
+
+  .pdp-spec-val {
+    font-size: 0.95rem !important;
+  }
+
+  .pdp-spec-val-price {
+    font-size: 1.15rem !important;
+  }
+
+  .pdp-filament-actions-row {
+    flex-direction: column !important;
+    gap: 10px !important;
+  }
+
+  .pdp-filament-stepper {
+    width: 100% !important;
+    justify-content: center !important;
+    height: 48px !important;
+  }
+
+  .pdp-filament-btn-add {
+    width: 100% !important;
+    height: 48px !important;
+    font-size: 0.92rem !important;
   }
 
   /* Especificações técnicas abaixo da dobra em grade 2x2 limpa e com espaçamento lateral */

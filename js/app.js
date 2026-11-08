@@ -4660,64 +4660,71 @@
       : Number(item.precoVistaValor || 0);
     const precoTextoAtual = corAtiva?.preco || item.precoVista || "Sob consulta";
     const codAtual = corAtiva?.cod ? `CÓD. ${corAtiva.cod}` : "";
-    // 1. SELETORES DE MARCA E MATERIAL DE FILAMENTO (Organização Ultra-Clean)
-    let seletorLinhasFilamentoHtml = "";
-    let seletor1Html = "";
 
+    // Tag do material no topo do card esquerdo (ex: PLA PRO, PETG PRO, BAMBU LAB RFID)
+    let materialTagTxt = "FILAMENTO 3D";
     if (item.tipoFilamento) {
-      // Exibe APENAS os seletores da marca atual (sem misturar as duas marcas dentro da página do filamento)
-      let seletorMaterialHtml = "";
+      if (isBambu) {
+        materialTagTxt = "BAMBU LAB RFID";
+      } else if (item.id === "fil-pla-maxprint") {
+        materialTagTxt = "PLA PRO";
+      } else if (item.id === "fil-silk-maxprint") {
+        materialTagTxt = "PLA SILK";
+      } else if (item.id === "fil-petg-maxprint") {
+        materialTagTxt = "PETG PRO";
+      } else if (item.id === "fil-tpu-maxprint") {
+        materialTagTxt = "TPU FLEX";
+      } else if (item.id === "fil-abs-especiais") {
+        materialTagTxt = "ABS & GLITTER";
+      } else {
+        materialTagTxt = (item.nome || "").toUpperCase();
+      }
+    }
+
+    // 1. BARRA TOPO DE MATERIAIS DE FILAMENTO (Estilo pílulas no topo da referência: PLA Pro | PETG Pro | PLA Silk ...)
+    let barraTopoMateriaisHtml = "";
+    if (item.tipoFilamento) {
       if (!isBambu) {
-        seletorMaterialHtml = `
-          <div class="pdp-option-group pdp-filament-material-group">
-            <div class="pdp-option-header">
-              <span>Material Masterprint:</span>
-            </div>
-            <div class="pdp-pills-wrap pdp-material-switch-row">
-              <button type="button" class="pdp-pill-btn ${item.id === "fil-pla-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-pla-maxprint" title="Filamento PLA 1kg">
-                <span>PLA (40)</span>
+        barraTopoMateriaisHtml = `
+          <div class="pdp-filament-top-material-bar">
+            <div class="pdp-filament-top-pills" role="tablist" aria-label="Selecione o tipo de filamento">
+              <button type="button" class="pdp-top-pill ${item.id === "fil-pla-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-pla-maxprint">
+                PLA
               </button>
-              <button type="button" class="pdp-pill-btn ${item.id === "fil-silk-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-silk-maxprint" title="Filamento PLA Silk Metalizado 1kg">
-                <span>PLA Silk (21)</span>
+              <button type="button" class="pdp-top-pill ${item.id === "fil-silk-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-silk-maxprint">
+                PLA Silk
               </button>
-              <button type="button" class="pdp-pill-btn ${item.id === "fil-petg-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-petg-maxprint" title="Filamento PETG 1kg">
-                <span>PETG (19)</span>
+              <button type="button" class="pdp-top-pill ${item.id === "fil-petg-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-petg-maxprint">
+                PETG
               </button>
-              <button type="button" class="pdp-pill-btn ${item.id === "fil-tpu-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-tpu-maxprint" title="Filamento TPU Flexível 95A 1kg">
-                <span>TPU Flex (5)</span>
+              <button type="button" class="pdp-top-pill ${item.id === "fil-tpu-maxprint" ? "active" : ""}" data-pdp-switch-item="fil-tpu-maxprint">
+                TPU Flex
               </button>
-              <button type="button" class="pdp-pill-btn ${item.id === "fil-abs-especiais" ? "active" : ""}" data-pdp-switch-item="fil-abs-especiais" title="Filamento ABS e Glitter 1kg">
-                <span>ABS & Glitter (6)</span>
+              <button type="button" class="pdp-top-pill ${item.id === "fil-abs-especiais" ? "active" : ""}" data-pdp-switch-item="fil-abs-especiais">
+                ABS & Glitter
               </button>
             </div>
           </div>
         `;
-      }
-
-      seletorLinhasFilamentoHtml = seletorMaterialHtml;
-
-      // Apresentação (Somente para Bambu Lab: Com Bobina RFID vs Refil s/ Bobina)
-      if (!isBambu) {
-        seletor1Html = "";
       } else {
-        seletor1Html = `
-          <div class="pdp-option-group pdp-filament-rfid-group">
-            <div class="pdp-option-header">
-              <span>Apresentação Bambu Lab:</span>
-            </div>
-            <div class="pdp-pills-wrap" id="pdp-sel1-pills">
-              <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
+        barraTopoMateriaisHtml = `
+          <div class="pdp-filament-top-material-bar">
+            <div class="pdp-filament-top-pills" role="tablist" aria-label="Apresentação Bambu Lab">
+              <button type="button" class="pdp-top-pill ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
                 Com Bobina RFID (R$ 99,90)
               </button>
-              <button type="button" class="pdp-pill-btn ${opcao1Ativa.includes("Refil") ? "active" : ""}" data-pdp-sel1="1KG Refil RFID">
+              <button type="button" class="pdp-top-pill ${opcao1Ativa.includes("Refil") ? "active" : ""}" data-pdp-sel1="1KG Refil RFID">
                 Refil s/ Bobina (R$ 79,90)
               </button>
             </div>
           </div>
         `;
       }
-    } else {
-      // Para produtos normais (impressoras, peças, etc.) — oculta se tiver apenas 1 opção "Padrão"
+    }
+
+    // Seletores para produtos normais (impressoras, peças, etc.)
+    let seletor1Html = "";
+    if (!item.tipoFilamento) {
       seletor1Html =
         opcoesSelect1 && opcoesSelect1.length > 1
           ? `
@@ -4869,8 +4876,135 @@
         </div>
       </div>
 
-      <!-- Grade Principal de 2 Colunas (Galeria Esquerda + Configurador Direita) -->
-      <div class="pdp-main-grid ${item.tipoFilamento ? "is-filament-pdp" : ""}">
+      ${item.tipoFilamento ? `
+        ${barraTopoMateriaisHtml}
+
+        <!-- Grade Principal de 2 Colunas: Card Showcase Esquerdo + Card Configurador Direito -->
+        <div class="pdp-main-grid is-filament-pdp">
+          <!-- COLUNA ESQUERDA: CARD SHOWCASE DO PRODUTO (Estilo Ref. Usuário) -->
+          <div class="pdp-filament-showcase-card">
+            <div class="pdp-showcase-header">
+              <span class="pdp-showcase-material-tag" id="pdp-showcase-material-tag">${materialTagTxt}</span>
+              <span class="pdp-showcase-stock-pill" id="pdp-stock-status-badge">● Alto estoque</span>
+            </div>
+
+            <div class="pdp-showcase-img-wrap">
+              ${codAtual ? `<span class="pdp-cod-floating" id="pdp-gallery-cod">${codAtual}</span>` : ""}
+              <img
+                src="${imgPrincipalSrc}"
+                alt="${tituloPagina}"
+                id="pdp-main-img"
+                class="pdp-showcase-img cover-img"
+                style="filter: ${filtroPrincipal};"
+              />
+            </div>
+
+            <div class="pdp-showcase-footer">
+              <strong class="pdp-showcase-color-name" id="pdp-showcase-color-name">${corAtiva ? corAtiva.nome : "Padrão"}</strong>
+              <span class="pdp-showcase-spec-pill">1,75mm | 1kg</span>
+            </div>
+          </div>
+
+          <!-- COLUNA DIREITA: CARD CONFIGURADOR ESCURO PREMIUM -->
+          <div class="pdp-filament-config-card">
+            <div class="pdp-filament-header">
+              <h1 class="pdp-filament-title">${tituloPagina}</h1>
+              <p class="pdp-filament-subtitle">${item.subtitulo || "O mais fácil de imprimir: alto rendimento, acabamento impecável e alta precisão dimensional para suas peças 3D."}</p>
+            </div>
+
+            <!-- SEÇÃO DE CORES -->
+            <div class="pdp-filament-color-section">
+              <div class="pdp-filament-color-head">
+                <span class="pdp-filament-color-lbl">COR</span>
+                <span class="pdp-filament-color-val" id="pdp-color-name-label">${corAtiva ? corAtiva.nome : ""}</span>
+              </div>
+              <div class="pdp-swatches-grid pdp-filament-swatches" id="pdp-swatches-grid" role="radiogroup" aria-label="Escolher cor do filamento">
+                ${listaCores ? listaCores.map((cor, idx) => `
+                  <button
+                    type="button"
+                    class="pdp-swatch-circle ${idx === idxCorAtiva ? "active" : ""}"
+                    style="background-color: ${cor.hex};"
+                    data-pdp-color-idx="${idx}"
+                    data-tooltip="${cor.nome} • #${cor.cod} (${cor.preco})"
+                    data-nome="${cor.nome}"
+                    data-cod="${cor.cod}"
+                    data-preco="${cor.preco}"
+                    data-hex="${cor.hex}"
+                    title="${cor.nome} — #${cor.cod} (${cor.preco})"
+                    aria-label="${cor.nome} — #${cor.cod}"
+                  ></button>
+                `).join("") : ""}
+              </div>
+              <select class="pdp-color-dropdown" id="pdp-color-dropdown" aria-label="Lista completa de cores e códigos" style="display: none;">
+                ${listaCores ? listaCores.map((cor, idx) => `
+                  <option value="${idx}" ${idx === idxCorAtiva ? "selected" : ""}>
+                    ${cor.nome} — CÓD. ${cor.cod} (${cor.preco})
+                  </option>
+                `).join("") : ""}
+              </select>
+            </div>
+
+            <!-- ESPECIFICAÇÕES EM GRID (DIÂMETRO / PESO LÍQUIDO / PREÇO) -->
+            <div class="pdp-filament-specs-grid">
+              <div class="pdp-spec-box">
+                <span class="pdp-spec-lbl">DIÂMETRO</span>
+                <strong class="pdp-spec-val">1,75 mm</strong>
+              </div>
+              <div class="pdp-spec-box">
+                <span class="pdp-spec-lbl">PESO LÍQUIDO</span>
+                <strong class="pdp-spec-val">1 kg</strong>
+              </div>
+              <div class="pdp-spec-box pdp-spec-box-price">
+                <span class="pdp-spec-lbl" id="pdp-price-label">PREÇO À VISTA</span>
+                <strong class="pdp-spec-val pdp-spec-val-price" id="pdp-price-val">${precoTextoAtual}</strong>
+                ${item.precoParcelado ? `<span class="pdp-spec-sub-price" id="pdp-price-sub-row">${item.precoParcelado}</span>` : ""}
+              </div>
+            </div>
+
+            <!-- AÇÕES: STEPPER + BOTÃO ADICIONAR -->
+            <div class="pdp-filament-actions-row">
+              <div class="pdp-filament-stepper" aria-label="Quantidade">
+                <button type="button" id="pdp-qty-dec" aria-label="Diminuir">−</button>
+                <input type="number" id="pdp-qty-input" value="1" min="1" max="99" readonly aria-label="Quantidade selecionada" />
+                <button type="button" id="pdp-qty-inc" aria-label="Aumentar">+</button>
+              </div>
+
+              <button type="button" class="pdp-filament-btn-add" id="pdp-btn-add">
+                Adicionar ao pedido — <span id="pdp-btn-add-price">${precoUnitarioAtual > 0 ? formatarMoedaBR(precoUnitarioAtual) : precoTextoAtual}</span>
+              </button>
+            </div>
+
+            <div class="pdp-filament-footer-note">
+              <span>Pedidos em volume para revenda ou atacado: <button type="button" id="pdp-btn-buy-now" class="pdp-filament-wpp-btn">fale conosco no WhatsApp</button></span>
+            </div>
+
+            <!-- Barra de Resumo do Pedido -->
+            <div class="pdp-order-bar" id="pdp-order-bar" style="display: none;">
+              <span id="pdp-order-bar-text"></span>
+              <div class="pdp-order-bar-actions">
+                <button type="button" class="pdp-order-bar-btn" id="pdp-view-order-btn">Ver Meu Pedido →</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="pdp-trust-strip pdp-filament-trust-strip">
+          <div class="pdp-trust-item">
+            <strong>✓ Alta Precisão</strong>
+            <span>Sem bolhas e sem emaranhados</span>
+          </div>
+          <div class="pdp-trust-item">
+            <strong>✓ Estoque Local</strong>
+            <span>Av. Portugal, 6759 • Umuarama</span>
+          </div>
+          <div class="pdp-trust-item">
+            <strong>✓ Suporte Loja SJ</strong>
+            <span>WhatsApp (44) 99135-1318</span>
+          </div>
+        </div>
+      ` : `
+        <!-- Grade Principal de 2 Colunas (Galeria Esquerda + Configurador Direita) -->
+        <div class="pdp-main-grid">
 
         <!-- COLUNA ESQUERDA: GALERIA CLEAN -->
         <div class="pdp-gallery-col">
@@ -4975,6 +5109,7 @@
           </div>
         </div>
       </div>
+      `}
 
       <!-- BARRA FIXA DE COMPRA RÁPIDA NO CELULAR DENTRO DA PÁGINA DO PRODUTO -->
       <div class="pdp-mobile-sticky-bar" id="pdp-mobile-sticky-bar">
@@ -5117,7 +5252,12 @@
 
       const colorLabelEl = document.getElementById("pdp-color-name-label");
       if (colorLabelEl && corAtiva) {
-        colorLabelEl.textContent = `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
+        colorLabelEl.textContent = item.tipoFilamento ? corAtiva.nome : `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
+      }
+
+      const showcaseColorEl = document.getElementById("pdp-showcase-color-name");
+      if (showcaseColorEl && corAtiva) {
+        showcaseColorEl.textContent = corAtiva.nome;
       }
 
       const dotIndicatorEl = document.getElementById("pdp-color-dot-indicator");
@@ -5132,16 +5272,28 @@
         (corAtiva && corAtiva.estoqueStatus) || item.estoqueStatus || "disponivel";
 
       if (pdpStockBadgeEl) {
-        pdpStockBadgeEl.className = `pdp-stock-status status-${statusEstoquePdp}`;
-        if (statusEstoquePdp === "esgotado") {
-          pdpStockBadgeEl.textContent = "🔴 Esgotado no momento — Consulte previsão no WhatsApp";
-        } else if (statusEstoquePdp === "poucas_unidades") {
-          pdpStockBadgeEl.textContent = "🟠 Poucas unidades — Últimas peças em estoque!";
+        if (item.tipoFilamento) {
+          pdpStockBadgeEl.className = `pdp-showcase-stock-pill pdp-stock-status status-${statusEstoquePdp}`;
+          if (statusEstoquePdp === "esgotado") {
+            pdpStockBadgeEl.textContent = "🔴 Esgotado";
+          } else if (statusEstoquePdp === "poucas_unidades") {
+            pdpStockBadgeEl.textContent = "🟠 Poucas unidades";
+          } else {
+            pdpStockBadgeEl.textContent = "● Alto estoque";
+          }
         } else {
-          pdpStockBadgeEl.textContent = "● Em estoque para envio / retirada";
+          pdpStockBadgeEl.className = `pdp-stock-status status-${statusEstoquePdp}`;
+          if (statusEstoquePdp === "esgotado") {
+            pdpStockBadgeEl.textContent = "🔴 Esgotado no momento — Consulte previsão no WhatsApp";
+          } else if (statusEstoquePdp === "poucas_unidades") {
+            pdpStockBadgeEl.textContent = "🟠 Poucas unidades — Últimas peças em estoque!";
+          } else {
+            pdpStockBadgeEl.textContent = "● Em estoque para envio / retirada";
+          }
         }
       }
 
+      const addBtnPriceEl = document.getElementById("pdp-btn-add-price");
       if (addBtnEl) {
         if (statusEstoquePdp === "esgotado") {
           addBtnEl.disabled = true;
@@ -5150,10 +5302,14 @@
         } else {
           addBtnEl.disabled = false;
           addBtnEl.classList.remove("btn-out-of-stock");
-          addBtnEl.textContent =
-            precoUnit > 0
-              ? `Adicionar ao Pedido — ${formatarMoedaBR(precoUnit * qtdAtiva)}`
-              : "Adicionar ao Pedido";
+          if (addBtnPriceEl) {
+            addBtnPriceEl.textContent = precoUnit > 0 ? formatarMoedaBR(precoUnit * qtdAtiva) : precoTxt;
+          } else {
+            addBtnEl.textContent =
+              precoUnit > 0
+                ? `Adicionar ao Pedido — ${formatarMoedaBR(precoUnit * qtdAtiva)}`
+                : "Adicionar ao Pedido";
+          }
         }
       }
 
@@ -5296,7 +5452,11 @@
         const preco = swatchBtn.dataset.preco;
         const hex = swatchBtn.dataset.hex;
         if (colorLabelEl && nome) {
-          colorLabelEl.textContent = `${nome} — CÓD. ${cod} (${preco})`;
+          colorLabelEl.textContent = item.tipoFilamento ? nome : `${nome} — CÓD. ${cod} (${preco})`;
+        }
+        const showcaseColorEl = document.getElementById("pdp-showcase-color-name");
+        if (showcaseColorEl && nome) {
+          showcaseColorEl.textContent = nome;
         }
         if (dotIndicatorEl && hex) {
           dotIndicatorEl.style.backgroundColor = hex;
@@ -5315,7 +5475,11 @@
     swatchesGrid?.addEventListener("mouseleave", () => {
       if (corAtiva) {
         if (colorLabelEl) {
-          colorLabelEl.textContent = `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
+          colorLabelEl.textContent = item.tipoFilamento ? corAtiva.nome : `${corAtiva.nome} — CÓD. ${corAtiva.cod} (${corAtiva.preco})`;
+        }
+        const showcaseColorEl = document.getElementById("pdp-showcase-color-name");
+        if (showcaseColorEl) {
+          showcaseColorEl.textContent = corAtiva.nome;
         }
         if (dotIndicatorEl) {
           dotIndicatorEl.style.backgroundColor = corAtiva.hex;
