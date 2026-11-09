@@ -855,6 +855,32 @@ button, select, input {
   margin: 0;
 }
 
+/* Botão elegante para Ver Todas as Peças */
+.btn-ver-todas-pecas-home {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  background: #ffffff;
+  color: var(--text-black);
+  border: 1.5px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 12px 24px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: all 0.2s ease;
+}
+
+.btn-ver-todas-pecas-home:hover {
+  border-color: #f04e23;
+  color: #f04e23;
+  background: #fff7ed;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 16px rgba(240, 78, 35, 0.12);
+}
+
 /* Pílulas de Seleção Rápida de Diâmetro no Card de Peças */
 .peca-card-diam-section {
   margin: 10px 0 6px;

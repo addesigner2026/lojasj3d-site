@@ -3387,23 +3387,47 @@
           `;
         }
 
+        let itensParaRenderizar = itensSecao;
+        let rodapeSecaoHtml = "";
+
+        if (sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "") {
+          const idsDestaque = [
+            "peca-kit-hotend-bambu-a1",
+            "peca-extrusora-original-a1",
+            "peca-placa-peo-pei-257",
+            "peca-hub-ams-lite-5way"
+          ];
+          const filtradas = idsDestaque.map((id) => itensSecao.find((i) => i.id === id)).filter(Boolean);
+          itensParaRenderizar = filtradas.length > 0 ? filtradas : itensSecao.slice(0, 4);
+          rodapeSecaoHtml = `
+            <div style="text-align: center; width: 100%; margin-top: 24px;">
+              <button type="button" class="btn-ver-todas-pecas-home" data-navegar-cat="pecas">
+                ⚙️ Ver Todas as ${itensSecao.length} Peças &amp; Acessórios →
+              </button>
+            </div>
+          `;
+        }
+
         const btnCompararHtml =
           sec.id === "impressoras"
             ? `<button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
-            : "";
+            : sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === ""
+              ? `<button type="button" class="pdp-back-btn" data-navegar-cat="pecas">Ver Todas (${itensSecao.length}) →</button>`
+              : "";
 
         return `
           <section class="category-section-block" id="sec-${sec.id}">
             <div class="category-section-header">
-              <h2>${sec.titulo}</h2>
+              <h2>${sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "" ? "Peças de Reposição em Destaque" : sec.titulo}</h2>
               <div class="category-header-right">
                 ${btnCompararHtml}
-                <span>${itensSecao.length} ${itensSecao.length === 1 ? "opção" : "opções"}</span>
+                <span>${itensParaRenderizar.length} ${itensParaRenderizar.length === 1 ? "opção" : "opções"} ${sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "" ? `de ${itensSecao.length}` : ""}</span>
               </div>
             </div>
             <div class="combo-products-row">
-              ${itensSecao.map((item) => gerarCardHTML(item)).join("")}
+              ${itensParaRenderizar.map((item) => gerarCardHTML(item)).join("")}
             </div>
+            ${rodapeSecaoHtml}
           </section>
         `;
       })
@@ -3666,6 +3690,13 @@
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
         abrirPainelAdminCms("banner");
+      });
+    });
+
+    // Navegar para categoria direto por botões de seção (ex: Ver Todas as Peças)
+    container.querySelectorAll("[data-navegar-cat]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        navegarParaCategoria(btn.dataset.navegarCat);
       });
     });
   }
@@ -4107,6 +4138,19 @@
       (i) => i.categoria === "pecas"
     );
 
+    // Destaques de Peças na Capa (Clean & Organizado — apenas as principais peças para não poluir a Home)
+    const idsPecasDestaque = [
+      "peca-kit-hotend-bambu-a1",
+      "peca-extrusora-original-a1",
+      "peca-placa-peo-pei-257",
+      "peca-hub-ams-lite-5way"
+    ];
+    const pecasDestaqueHome = idsPecasDestaque
+      .map((id) => todasPecas.find((p) => p.id === id))
+      .filter(Boolean);
+    const pecasParaExibirHome =
+      pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 4);
+
     homeEl.innerHTML = `
       <!-- 1. HERO CAROUSEL DE DESTAQUES (PASSA PARA O LADO) -->
       <div class="hero-slider-container" id="hero-slider-container">
@@ -4376,18 +4420,24 @@
         </div>
       </div>
 
-      <!-- 6. VITRINE DE PEÇAS DE REPOSIÇÃO & ACESSÓRIOS ORIGINAIS (DIRETO NA HOME) -->
+      <!-- 6. VITRINE DE PEÇAS DE REPOSIÇÃO & ACESSÓRIOS ORIGINAIS (DESTAQUES NA HOME) -->
       <div class="home-section-block" id="home-pecas-showcase">
         <div class="home-section-head">
           <div>
             <span class="home-eyebrow">COMPONENTES ORIGINAIS &amp; UPGRADES</span>
-            <h2>Peças de Reposição &amp; Acessórios (${todasPecas.length})</h2>
+            <h2>Peças de Reposição em Destaque</h2>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="pecas">Ver Todas as ${todasPecas.length} Peças →</button>
+          <button type="button" class="pdp-back-btn" data-home-go-cat="pecas">Ver Todas as Peças (${todasPecas.length}) →</button>
         </div>
 
         <div class="combo-products-row" id="home-pecas-grid">
-          ${todasPecas.map((peca) => gerarCardHTML(peca)).join("")}
+          ${pecasParaExibirHome.map((peca) => gerarCardHTML(peca)).join("")}
+        </div>
+
+        <div style="text-align: center; margin-top: 24px;">
+          <button type="button" class="btn-ver-todas-pecas-home" data-home-go-cat="pecas">
+            ⚙️ Explorar Catálogo Completo de Peças &amp; Acessórios (${todasPecas.length} itens) →
+          </button>
         </div>
       </div>
     `;
