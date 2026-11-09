@@ -357,6 +357,33 @@
     };
   }
 
+  // Mascaramento de Segurança LGPD (Art. 46) para exibição segura de CPF/CNPJ e Telefone
+  function mascararCpfCnpj(valor) {
+    if (!valor) return "";
+    const limpo = String(valor).replace(/\D/g, "");
+    if (limpo.length === 11) {
+      return `${limpo.slice(0, 3)}.***.***-${limpo.slice(-2)}`;
+    }
+    if (limpo.length === 14) {
+      return `${limpo.slice(0, 2)}.***.***/${limpo.slice(8, 12)}-${limpo.slice(-2)}`;
+    }
+    if (limpo.length > 4) {
+      return `${limpo.slice(0, 2)}***${limpo.slice(-2)}`;
+    }
+    return "***";
+  }
+
+  function mascararTelefone(valor) {
+    if (!valor) return "";
+    const limpo = String(valor).replace(/\D/g, "");
+    if (limpo.length >= 10) {
+      const ddd = limpo.slice(0, 2);
+      const ultimos = limpo.slice(-2);
+      return `(${ddd}) 9****-**${ultimos}`;
+    }
+    return "(**) *****-****";
+  }
+
   // Valida se o cadastro do cliente (e os dados de Nota Fiscal, quando solicitada) estão 100% preenchidos e aprovados
   function validarDadosCliente(cliente, exigirNotaFiscal = false) {
     if (!cliente) {
@@ -6466,12 +6493,12 @@
       return;
     }
 
-    // Popula datalist de clientes salvos
+    // Popula datalist de clientes salvos com documento mascarado (LGPD)
     const datalist = document.getElementById("wiz-clients-datalist");
     if (datalist && window.SJ_DB && window.SJ_DB.clientes) {
       const listaCli = window.SJ_DB.clientes.listar() || [];
       datalist.innerHTML = listaCli
-        .map((c) => `<option value="${c.nome}">${c.cnpjCpf ? ` (${c.cnpjCpf})` : ""}</option>`)
+        .map((c) => `<option value="${c.nome}">${c.cnpjCpf ? ` (${mascararCpfCnpj(c.cnpjCpf)})` : ""}</option>`)
         .join("");
     }
 
@@ -8168,7 +8195,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
             <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.8rem; color:#4b5563; margin-top:4px;">
               ${c.whatsapp || c.cepTelefone ? `<div>📱 <strong>${c.whatsapp || c.cepTelefone}</strong></div>` : ""}
-              ${c.cnpjCpf || c.cpf ? `<div>🪪 CPF/CNPJ: <strong>${c.cnpjCpf || c.cpf}</strong></div>` : ""}
+              ${c.cnpjCpf || c.cpf ? `
+                <div style="display:inline-flex; align-items:center; gap:5px;">
+                  🪪 CPF/CNPJ: <strong class="crm-doc-display" data-doc-raw="${escaparHtml(c.cnpjCpf || c.cpf)}" data-client-id="${c.id}">${mascararCpfCnpj(c.cnpjCpf || c.cpf)}</strong>
+                  <button type="button" class="btn-reveal-doc" data-reveal-client="${c.id}" title="Revelar documento completo (registrado em log de auditoria LGPD)" style="background:none; border:none; cursor:pointer; font-size:0.8rem; color:#F04E23; padding:0 3px;">👁️</button>
+                </div>
+              ` : ""}
               ${c.email ? `<div>✉️ ${c.email}</div>` : ""}
               ${c.bairroCidadeUf || c.cidade ? `<div>📍 ${c.bairroCidadeUf || c.cidade}</div>` : ""}
             </div>
@@ -8238,6 +8270,52 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         }
       });
     });
+
+    // Revelar Documento Mascarado sob Demanda (com Log de Auditoria LGPD)
+    listEl.querySelectorAll(".btn-reveal-doc").forEach((btn) => {
+      btn.addEventListener("click", async (e) => {
+        e.stopPropagation();
+        const clientId = btn.dataset.revealClient;
+        const wrap = btn.closest("div");
+        const docEl = wrap?.querySelector(".crm-doc-display");
+        if (!docEl) return;
+
+        const raw = docEl.dataset.docRaw;
+        const jaRevelado = docEl.classList.contains("revelado");
+
+        if (jaRevelado) {
+          docEl.textContent = mascararCpfCnpj(raw);
+          docEl.classList.remove("revelado");
+          btn.textContent = "👁️";
+          btn.title = "Revelar documento completo (registrado em log de auditoria LGPD)";
+        } else {
+          const confirma = confirm("Deseja visualizar o CPF/CNPJ completo deste titular?\n\nEsta visualização de dado pessoal sensível será registrada na trilha de auditoria da LGPD.");
+          if (!confirma) return;
+
+          docEl.textContent = raw;
+          docEl.classList.add("revelado");
+          btn.textContent = "🔒";
+          btn.title = "Ocultar documento";
+
+          if (window.SJ_SUPABASE?.getClient) {
+            try {
+              const client = window.SJ_SUPABASE.getClient();
+              if (client) {
+                const sessao = (await client.auth.getSession())?.data?.session;
+                await client.from("auditoria_logs").insert({
+                  tabela: "clientes",
+                  operacao: "VISUALIZACAO_DADO_SENSIVEL",
+                  registro_id: clientId,
+                  usuario_id: sessao?.user?.id || null,
+                  usuario_email: sessao?.user?.email || "operador@local",
+                  dados_novos: { campo: "cnpj_cpf", motivo: "Consulta visual autorizada no CRM" }
+                });
+              }
+            } catch (_) {}
+          }
+        }
+      });
+    });
   }
 
   function abrirFormularioClienteLead(cliente = null) {
@@ -8272,6 +8350,32 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (lista.length === 0) {
       alert("Nenhum cliente cadastrado para exportar.");
       return;
+    }
+
+    const confirma = confirm(
+      "🔒 EXPORTAÇÃO DE BASE DE DADOS (LGPD Art. 46):\n\n" +
+      "A extração de dados cadastrais de clientes é uma operação monitorada que será registrada na trilha de auditoria.\n\n" +
+      `Deseja exportar os registros de ${lista.length} cliente(s) em formato CSV?`
+    );
+    if (!confirma) return;
+
+    // Registra log de auditoria
+    if (window.SJ_SUPABASE?.getClient) {
+      try {
+        const client = window.SJ_SUPABASE.getClient();
+        if (client) {
+          client.auth.getSession().then(({ data }) => {
+            const user = data?.session?.user;
+            client.from("auditoria_logs").insert({
+              tabela: "clientes",
+              operacao: "EXPORTACAO_BASE_CSV",
+              usuario_id: user?.id || null,
+              usuario_email: user?.email || "operador@local",
+              dados_novos: { total_registros: lista.length, motivo: "Exportação manual autorizada via CRM" }
+            }).then(() => {});
+          });
+        }
+      } catch (_) {}
     }
 
     const cabecalho = ["ID", "Nome", "WhatsApp/Telefone", "CPF/CNPJ", "Email", "Cidade/UF", "Endereco", "Origem", "CriadoEm"];
