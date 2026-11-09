@@ -3394,11 +3394,10 @@
           const idsDestaque = [
             "peca-kit-hotend-bambu-a1",
             "peca-extrusora-original-a1",
-            "peca-placa-peo-pei-257",
-            "peca-hub-ams-lite-5way"
+            "peca-placa-peo-pei-257"
           ];
           const filtradas = idsDestaque.map((id) => itensSecao.find((i) => i.id === id)).filter(Boolean);
-          itensParaRenderizar = filtradas.length > 0 ? filtradas : itensSecao.slice(0, 4);
+          itensParaRenderizar = filtradas.length > 0 ? filtradas : itensSecao.slice(0, 3);
           rodapeSecaoHtml = `
             <div style="text-align: center; width: 100%; margin-top: 24px;">
               <button type="button" class="btn-ver-todas-pecas-home" data-navegar-cat="pecas">
@@ -4138,18 +4137,17 @@
       (i) => i.categoria === "pecas"
     );
 
-    // Destaques de Peças na Capa (Clean & Organizado — apenas as principais peças para não poluir a Home)
+    // Destaques de Peças na Capa (Clean & Simétrico — exatamente 3 peças para fechar 1 linha perfeita de 3 colunas)
     const idsPecasDestaque = [
       "peca-kit-hotend-bambu-a1",
       "peca-extrusora-original-a1",
-      "peca-placa-peo-pei-257",
-      "peca-hub-ams-lite-5way"
+      "peca-placa-peo-pei-257"
     ];
     const pecasDestaqueHome = idsPecasDestaque
       .map((id) => todasPecas.find((p) => p.id === id))
       .filter(Boolean);
     const pecasParaExibirHome =
-      pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 4);
+      pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 3);
 
     homeEl.innerHTML = `
       <!-- 1. HERO CAROUSEL DE DESTAQUES (PASSA PARA O LADO) -->
