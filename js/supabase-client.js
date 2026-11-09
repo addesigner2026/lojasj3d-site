@@ -78,11 +78,9 @@
           storage: window.localStorage
         }
       });
-      console.log("[SJ_SUPABASE] Conectado ao projeto Supabase com sucesso:", config.url);
       configurarListenerAuth(supabaseInstance);
       return supabaseInstance;
     } catch (err) {
-      console.error("[SJ_SUPABASE] Erro ao instanciar cliente Supabase:", err);
       return null;
     }
   }
@@ -92,8 +90,6 @@
 
     try {
       const { data } = client.auth.onAuthStateChange(async (event, session) => {
-        console.log(`[SJ_SUPABASE Auth] Evento: ${event}`, session?.user?.email || "sem usuário");
-
         if (!session?.user) {
           if (typeof window !== "undefined") {
             window.dispatchEvent(
@@ -433,14 +429,11 @@
             .upsert(payloadSupabase, { onConflict: "id" });
 
           if (error) {
-            console.warn("[SJ_SUPABASE] Aviso ao salvar cliente no Supabase:", error.message);
             mensagemErroSupabase = error.message;
           } else {
             salvoNoSupabase = true;
-            console.log("[SJ_SUPABASE] Cliente salvo com sucesso no Supabase:", nomeLimpo);
           }
         } catch (err) {
-          console.warn("[SJ_SUPABASE] Exceção ao gravar no Supabase:", err);
           mensagemErroSupabase = err.message;
         }
       }

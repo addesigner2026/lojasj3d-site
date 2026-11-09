@@ -400,7 +400,7 @@
       if (user.status === "pendente") {
         return {
           sucesso: false,
-          mensagem: `⏳ Solicitação em análise! O e-mail ${emailLimpo} aguarda liberação do Administrador Oficial (${ADMIN_MASTER_EMAIL}).`
+          mensagem: `⏳ Solicitação em análise! O e-mail ${emailLimpo} aguarda liberação do Administrador Oficial.`
         };
       }
 
@@ -508,7 +508,7 @@
           cargo: novaSolicitacao.cargo,
           status: "pendente"
         },
-        mensagem: `✅ Solicitação enviada com sucesso! O Administrador Oficial (${ADMIN_MASTER_EMAIL}) receberá o aviso no painel da Área Restrita para liberar seu acesso.`
+        mensagem: "✅ Solicitação enviada com sucesso! O Administrador Oficial receberá o aviso no painel da Área Restrita para liberar seu acesso."
       };
     },
 

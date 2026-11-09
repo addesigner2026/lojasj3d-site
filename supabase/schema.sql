@@ -33,38 +33,27 @@ create table if not exists public.perfis_usuarios (
 );
 
 -- Trigger para criar perfil automaticamente no SignUp via Supabase Auth
+-- REGRA DE SEGURANÇA: Todo novo usuário nasce estritamente como 'cliente'.
+-- Promoções de cargo/tipo só podem ser feitas por Administradores autenticados.
 create or replace function public.handle_novo_usuario()
 returns trigger
 language plpgsql
 security definer
 set search_path = public
 as $$
-declare
-  v_cargo text;
-  v_tipo text;
 begin
-  v_cargo := coalesce(new.raw_user_meta_data->>'cargo', 'Cliente');
-  -- Somente e-mails de administradores autorizados ou metadados de equipe são 'operador'/'admin'
-  if new.email in ('contato@gruposj.com.br') or v_cargo in ('Administrador', 'Vendedor', 'admin', 'operador') then
-    v_tipo := case when v_cargo in ('Administrador', 'admin') or new.email = 'contato@gruposj.com.br' then 'admin' else 'operador' end;
-  else
-    v_tipo := 'cliente';
-  end if;
-
   insert into public.perfis_usuarios (id, nome, email, cargo, tipo, foto_url)
   values (
     new.id,
     coalesce(new.raw_user_meta_data->>'name', new.raw_user_meta_data->>'nome', split_part(new.email, '@', 1)),
     new.email,
-    v_cargo,
-    v_tipo,
+    'Cliente',
+    'cliente',
     new.raw_user_meta_data->>'avatar_url'
   )
   on conflict (id) do update set
     nome = excluded.nome,
     email = excluded.email,
-    cargo = case when excluded.cargo <> 'Cliente' then excluded.cargo else public.perfis_usuarios.cargo end,
-    tipo = case when excluded.cargo in ('Administrador', 'Vendedor', 'admin', 'operador') then excluded.tipo else public.perfis_usuarios.tipo end,
     atualizado_em = now();
   return new;
 end;
@@ -75,7 +64,39 @@ create trigger on_auth_user_created
   after insert on auth.users
   for each row execute function public.handle_novo_usuario();
 
--- Função auxiliar de segurança (Security Definer) para verificar se o chamador é Vendedor ou Admin
+-- Funções granulares de segurança (Security Definer) por papel
+create or replace function public.is_admin()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.perfis_usuarios
+    where id = auth.uid()
+      and tipo = 'admin'
+      and ativo = true
+  );
+$$;
+
+create or replace function public.is_equipe_interna()
+returns boolean
+language sql
+security definer
+stable
+set search_path = public
+as $$
+  select exists (
+    select 1
+    from public.perfis_usuarios
+    where id = auth.uid()
+      and tipo in ('operador', 'admin', 'financeiro')
+      and ativo = true
+  );
+$$;
+
 create or replace function public.is_admin_ou_vendedor()
 returns boolean
 language sql
@@ -91,6 +112,29 @@ as $$
       and ativo = true
   );
 $$;
+
+-- Trigger para bloquear qualquer auto-promoção de perfil (usuário comum virar admin/operador)
+create or replace function public.bloquear_auto_promocao()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  if (old.tipo is distinct from new.tipo or old.cargo is distinct from new.cargo) then
+    if not (public.is_admin()) then
+      raise exception 'Acesso negado: Somente administradores ativos podem alterar cargos e tipos de acesso.';
+    end if;
+  end if;
+  new.atualizado_em := now();
+  return new;
+end;
+$$;
+
+drop trigger if exists trg_bloquear_auto_promocao on public.perfis_usuarios;
+create trigger trg_bloquear_auto_promocao
+  before update on public.perfis_usuarios
+  for each row execute function public.bloquear_auto_promocao();
 
 -- 3. CONFIGURAÇÕES DO SITE (BANNER DO SORTEIO/PROMOÇÕES E DADOS DA LOJA)
 create table if not exists public.configuracoes_site (
@@ -194,14 +238,20 @@ alter table public.filamento_cores enable row level security;
 alter table public.clientes enable row level security;
 alter table public.orcamentos enable row level security;
 
--- Permissões básicas do Data API para as roles anon e authenticated
+-- Permissões do Data API (Defesa em Profundidade: anon NÃO tem permissão de escrita)
 grant usage on schema public to anon, authenticated;
 grant select on public.configuracoes_site, public.produtos, public.filamento_cores to anon, authenticated;
 grant select, update on public.perfis_usuarios to authenticated;
-grant select, insert, update on public.clientes to authenticated;
-grant insert on public.clientes to anon;
-grant select, insert, update on public.orcamentos to authenticated;
-grant all on public.configuracoes_site, public.produtos, public.filamento_cores, public.clientes, public.orcamentos to authenticated;
+grant select, insert, update on public.clientes, public.orcamentos to authenticated;
+grant all on public.configuracoes_site, public.produtos, public.filamento_cores to authenticated;
+
+-- Revogação explícita de qualquer escrita pelo papel anônimo (Anon não acessa dados privados)
+revoke insert, update, delete on public.perfis_usuarios from anon;
+revoke insert, update, delete on public.clientes from anon;
+revoke insert, update, delete on public.orcamentos from anon;
+revoke insert, update, delete on public.configuracoes_site from anon;
+revoke insert, update, delete on public.produtos from anon;
+revoke insert, update, delete on public.filamento_cores from anon;
 
 -- Políticas: CONFIGURAÇÕES DO SITE (Leitura pública, Modificação apenas Operadores/Admins)
 drop policy if exists "Público pode ler configurações do site" on public.configuracoes_site;
@@ -288,14 +338,14 @@ create policy "perfis_usuarios_update_policy"
   using (id = auth.uid() or public.is_admin_ou_vendedor())
   with check (id = auth.uid() or public.is_admin_ou_vendedor());
 
--- Políticas: CLIENTES (Isolamento de Dados Pessoais / LGPD)
+-- Políticas: CLIENTES (Isolamento Estrito de Dados Pessoais / LGPD)
 drop policy if exists "Apenas vendedores autenticados podem ler clientes" on public.clientes;
 drop policy if exists "Clientes leem seus dados e vendedores leem todos" on public.clientes;
 drop policy if exists "clientes_select_policy" on public.clientes;
 create policy "clientes_select_policy"
   on public.clientes for select
   to authenticated
-  using (id = auth.uid()::text or public.is_admin_ou_vendedor());
+  using (id = auth.uid()::text or public.is_equipe_interna());
 
 drop policy if exists "Apenas vendedores autenticados podem inserir clientes" on public.clientes;
 drop policy if exists "Público e vendedores podem cadastrar clientes" on public.clientes;
@@ -303,11 +353,10 @@ drop policy if exists "Cadastro de novos clientes" on public.clientes;
 drop policy if exists "clientes_insert_policy" on public.clientes;
 create policy "clientes_insert_policy"
   on public.clientes for insert
-  to anon, authenticated
+  to authenticated
   with check (
-    (auth.uid() is not null and id = auth.uid()::text)
-    or (auth.uid() is null and id like 'cli-%')
-    or public.is_admin_ou_vendedor()
+    (id = auth.uid()::text)
+    or public.is_equipe_interna()
   );
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar clientes" on public.clientes;
@@ -317,15 +366,15 @@ drop policy if exists "clientes_update_policy" on public.clientes;
 create policy "clientes_update_policy"
   on public.clientes for update
   to authenticated
-  using (id = auth.uid()::text or public.is_admin_ou_vendedor())
-  with check (id = auth.uid()::text or public.is_admin_ou_vendedor());
+  using (id = auth.uid()::text or public.is_equipe_interna())
+  with check (id = auth.uid()::text or public.is_equipe_interna());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir clientes" on public.clientes;
 drop policy if exists "clientes_delete_policy" on public.clientes;
 create policy "clientes_delete_policy"
   on public.clientes for delete
   to authenticated
-  using (public.is_admin_ou_vendedor());
+  using (public.is_admin());
 
 -- Políticas: ORÇAMENTOS (Isolamento de Pedidos e Propostas por Cliente)
 drop policy if exists "Apenas vendedores autenticados podem ler orçamentos" on public.orcamentos;
@@ -335,7 +384,7 @@ drop policy if exists "orcamentos_select_policy" on public.orcamentos;
 create policy "orcamentos_select_policy"
   on public.orcamentos for select
   to authenticated
-  using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
+  using (cliente_id = auth.uid()::text or public.is_equipe_interna());
 
 drop policy if exists "Apenas vendedores autenticados podem criar orçamentos" on public.orcamentos;
 drop policy if exists "Clientes criam seus orçamentos e vendedores criam para todos" on public.orcamentos;
@@ -343,11 +392,10 @@ drop policy if exists "Clientes criam seus orçamentos e vendedores criam para t
 drop policy if exists "orcamentos_insert_policy" on public.orcamentos;
 create policy "orcamentos_insert_policy"
   on public.orcamentos for insert
-  to anon, authenticated
+  to authenticated
   with check (
-    (auth.uid() is not null and cliente_id = auth.uid()::text)
-    or (auth.uid() is null and (cliente_id like 'cli-%' or cliente_id is not null))
-    or public.is_admin_ou_vendedor()
+    (cliente_id = auth.uid()::text)
+    or public.is_equipe_interna()
   );
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar orçamentos" on public.orcamentos;
@@ -357,19 +405,20 @@ drop policy if exists "orcamentos_update_policy" on public.orcamentos;
 create policy "orcamentos_update_policy"
   on public.orcamentos for update
   to authenticated
-  using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor())
-  with check (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
+  using (cliente_id = auth.uid()::text or public.is_equipe_interna())
+  with check (cliente_id = auth.uid()::text or public.is_equipe_interna());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir orçamentos" on public.orcamentos;
 drop policy if exists "orcamentos_delete_policy" on public.orcamentos;
 create policy "orcamentos_delete_policy"
   on public.orcamentos for delete
   to authenticated
-  using (public.is_admin_ou_vendedor());
+  using (public.is_admin());
 
 -- ============================================================================
--- 9. STORAGE BUCKET PARA FOTOS DE PRODUTOS E BANNERS (produtos-midia)
+-- 9. STORAGE BUCKETS (PÚBLICO E PRIVADO)
 -- ============================================================================
+-- 9.1 Bucket Público de Mídias do Catálogo (produtos-midia)
 insert into storage.buckets (id, name, public)
 values ('produtos-midia', 'produtos-midia', true)
 on conflict (id) do nothing;
@@ -386,25 +435,115 @@ drop policy if exists "storage_produtos_midia_insert" on storage.objects;
 create policy "storage_produtos_midia_insert"
   on storage.objects for insert
   to authenticated
-  with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
+  with check (bucket_id = 'produtos-midia' and public.is_equipe_interna());
 
 drop policy if exists "Atualização de imagens por vendedores autenticados" on storage.objects;
 drop policy if exists "storage_produtos_midia_update" on storage.objects;
 create policy "storage_produtos_midia_update"
   on storage.objects for update
   to authenticated
-  using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor())
-  with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
+  using (bucket_id = 'produtos-midia' and public.is_equipe_interna())
+  with check (bucket_id = 'produtos-midia' and public.is_equipe_interna());
 
 drop policy if exists "Exclusão de imagens por vendedores autenticados" on storage.objects;
 drop policy if exists "storage_produtos_midia_delete" on storage.objects;
 create policy "storage_produtos_midia_delete"
   on storage.objects for delete
   to authenticated
-  using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
+  using (bucket_id = 'produtos-midia' and public.is_admin());
+
+-- 9.2 Bucket Privado para Notas Fiscais e Documentos Comerciais (documentos-privados)
+insert into storage.buckets (id, name, public)
+values ('documentos-privados', 'documentos-privados', false)
+on conflict (id) do nothing;
+
+drop policy if exists "storage_doc_privados_select" on storage.objects;
+create policy "storage_doc_privados_select"
+  on storage.objects for select
+  to authenticated
+  using (bucket_id = 'documentos-privados' and public.is_equipe_interna());
+
+drop policy if exists "storage_doc_privados_insert" on storage.objects;
+create policy "storage_doc_privados_insert"
+  on storage.objects for insert
+  to authenticated
+  with check (bucket_id = 'documentos-privados' and public.is_equipe_interna());
+
+drop policy if exists "storage_doc_privados_delete" on storage.objects;
+create policy "storage_doc_privados_delete"
+  on storage.objects for delete
+  to authenticated
+  using (bucket_id = 'documentos-privados' and public.is_admin());
 
 -- ============================================================================
--- 10. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
+-- 10. TABELA DE AUDITORIA DE SEGURANÇA & LOGS LGPD
+-- ============================================================================
+create table if not exists public.auditoria_logs (
+  id uuid primary key default gen_random_uuid(),
+  tabela text not null,
+  operacao text not null, -- INSERT | UPDATE | DELETE
+  registro_id text,
+  usuario_id uuid references auth.users(id),
+  usuario_email text,
+  dados_anteriores jsonb,
+  dados_novos jsonb,
+  ip_origem text,
+  criado_em timestamptz not null default now()
+);
+
+alter table public.auditoria_logs enable row level security;
+
+drop policy if exists "auditoria_admin_only" on public.auditoria_logs;
+create policy "auditoria_admin_only"
+  on public.auditoria_logs for select
+  to authenticated
+  using (public.is_admin());
+
+create or replace function public.gravar_log_auditoria()
+returns trigger
+language plpgsql
+security definer
+set search_path = public
+as $$
+begin
+  insert into public.auditoria_logs (
+    tabela,
+    operacao,
+    registro_id,
+    usuario_id,
+    usuario_email,
+    dados_anteriores,
+    dados_novos
+  ) values (
+    TG_TABLE_NAME,
+    TG_OP,
+    case when TG_OP = 'DELETE' then old.id::text else new.id::text end,
+    auth.uid(),
+    (select email from auth.users where id = auth.uid()),
+    case when TG_OP in ('UPDATE', 'DELETE') then to_jsonb(old) else null end,
+    case when TG_OP in ('INSERT', 'UPDATE') then to_jsonb(new) else null end
+  );
+  return null;
+end;
+$$;
+
+drop trigger if exists trg_audit_clientes on public.clientes;
+create trigger trg_audit_clientes
+  after insert or update or delete on public.clientes
+  for each row execute function public.gravar_log_auditoria();
+
+drop trigger if exists trg_audit_orcamentos on public.orcamentos;
+create trigger trg_audit_orcamentos
+  after insert or update or delete on public.orcamentos
+  for each row execute function public.gravar_log_auditoria();
+
+drop trigger if exists trg_audit_produtos on public.produtos;
+create trigger trg_audit_produtos
+  after insert or update or delete on public.produtos
+  for each row execute function public.gravar_log_auditoria();
+
+-- ============================================================================
+-- 11. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
 -- ============================================================================
 insert into public.configuracoes_site (chave, valor)
 values 
