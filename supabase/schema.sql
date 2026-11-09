@@ -205,13 +205,16 @@ grant all on public.configuracoes_site, public.produtos, public.filamento_cores,
 
 -- Políticas: CONFIGURAÇÕES DO SITE (Leitura pública, Modificação apenas Operadores/Admins)
 drop policy if exists "Público pode ler configurações do site" on public.configuracoes_site;
-create policy "Público pode ler configurações do site"
+drop policy if exists "configuracoes_site_select_policy" on public.configuracoes_site;
+create policy "configuracoes_site_select_policy"
   on public.configuracoes_site for select
   to anon, authenticated
   using (true);
 
 drop policy if exists "Vendedores autenticados podem alterar configurações do site" on public.configuracoes_site;
-create policy "Vendedores autenticados podem alterar configurações do site"
+drop policy if exists "Vendedores autenticados podem alterar configurações do s" on public.configuracoes_site;
+drop policy if exists "configuracoes_site_modify_policy" on public.configuracoes_site;
+create policy "configuracoes_site_modify_policy"
   on public.configuracoes_site for all
   to authenticated
   using (public.is_admin_ou_vendedor())
@@ -220,39 +223,48 @@ create policy "Vendedores autenticados podem alterar configurações do site"
 -- Políticas: PRODUTOS (Público/Clientes leem produtos ativos, Vendedor/Admin gerencia tudo)
 drop policy if exists "Público pode ver produtos ativos" on public.produtos;
 drop policy if exists "Vendedores autenticados podem ver todos os produtos" on public.produtos;
-create policy "Visualização de produtos ativos ou catálogo completo por vendedor"
+drop policy if exists "Apenas administradores autenticados podem alterar produtos" on public.produtos;
+drop policy if exists "Visualização de produtos ativos ou catálogo completo por vendedor" on public.produtos;
+drop policy if exists "Visualização de produtos ativos ou catálogo completo por ven" on public.produtos;
+drop policy if exists "produtos_select_policy" on public.produtos;
+create policy "produtos_select_policy"
   on public.produtos for select
   to anon, authenticated
   using (ativo = true or public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem inserir produtos" on public.produtos;
-create policy "Vendedores autenticados podem inserir produtos"
+drop policy if exists "produtos_insert_policy" on public.produtos;
+create policy "produtos_insert_policy"
   on public.produtos for insert
   to authenticated
   with check (public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem atualizar produtos" on public.produtos;
-create policy "Vendedores autenticados podem atualizar produtos"
+drop policy if exists "produtos_update_policy" on public.produtos;
+create policy "produtos_update_policy"
   on public.produtos for update
   to authenticated
   using (public.is_admin_ou_vendedor())
   with check (public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem deletar produtos" on public.produtos;
-create policy "Vendedores autenticados podem deletar produtos"
+drop policy if exists "produtos_delete_policy" on public.produtos;
+create policy "produtos_delete_policy"
   on public.produtos for delete
   to authenticated
   using (public.is_admin_ou_vendedor());
 
 -- Políticas: CORES DE FILAMENTOS (Leitura pública ativa, Gerenciamento apenas Vendedor/Admin)
 drop policy if exists "Público pode ver cores ativas de filamentos" on public.filamento_cores;
-create policy "Público pode ver cores ativas de filamentos"
+drop policy if exists "filamento_cores_select_policy" on public.filamento_cores;
+create policy "filamento_cores_select_policy"
   on public.filamento_cores for select
   to anon, authenticated
   using (ativo = true or public.is_admin_ou_vendedor());
 
 drop policy if exists "Vendedores autenticados podem gerenciar cores" on public.filamento_cores;
-create policy "Vendedores autenticados podem gerenciar cores"
+drop policy if exists "filamento_cores_all_policy" on public.filamento_cores;
+create policy "filamento_cores_all_policy"
   on public.filamento_cores for all
   to authenticated
   using (public.is_admin_ou_vendedor())
@@ -260,13 +272,17 @@ create policy "Vendedores autenticados podem gerenciar cores"
 
 -- Políticas: PERFIS DE USUÁRIOS (Isolamento por ID do Usuário)
 drop policy if exists "Usuários autenticados podem ler perfis" on public.perfis_usuarios;
-create policy "Usuários leem seus próprios perfis ou vendedores leem todos"
+drop policy if exists "Usuários leem seus próprios perfis ou vendedores leem todos" on public.perfis_usuarios;
+drop policy if exists "Usuários leem seus próprios perfis ou vendedores leem tod" on public.perfis_usuarios;
+drop policy if exists "perfis_usuarios_select_policy" on public.perfis_usuarios;
+create policy "perfis_usuarios_select_policy"
   on public.perfis_usuarios for select
   to authenticated
   using (id = auth.uid() or public.is_admin_ou_vendedor());
 
 drop policy if exists "Usuário autenticado pode atualizar seu próprio perfil" on public.perfis_usuarios;
-create policy "Usuário autenticado pode atualizar seu próprio perfil"
+drop policy if exists "perfis_usuarios_update_policy" on public.perfis_usuarios;
+create policy "perfis_usuarios_update_policy"
   on public.perfis_usuarios for update
   to authenticated
   using (id = auth.uid() or public.is_admin_ou_vendedor())
@@ -274,53 +290,79 @@ create policy "Usuário autenticado pode atualizar seu próprio perfil"
 
 -- Políticas: CLIENTES (Isolamento de Dados Pessoais / LGPD)
 drop policy if exists "Apenas vendedores autenticados podem ler clientes" on public.clientes;
-create policy "Clientes leem seus dados e vendedores leem todos"
+drop policy if exists "Clientes leem seus dados e vendedores leem todos" on public.clientes;
+drop policy if exists "clientes_select_policy" on public.clientes;
+create policy "clientes_select_policy"
   on public.clientes for select
   to authenticated
   using (id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem inserir clientes" on public.clientes;
 drop policy if exists "Público e vendedores podem cadastrar clientes" on public.clientes;
-create policy "Cadastro de novos clientes"
+drop policy if exists "Cadastro de novos clientes" on public.clientes;
+drop policy if exists "clientes_insert_policy" on public.clientes;
+create policy "clientes_insert_policy"
   on public.clientes for insert
   to anon, authenticated
-  with check (id = coalesce(auth.uid()::text, id) or public.is_admin_ou_vendedor());
+  with check (
+    (auth.uid() is not null and id = auth.uid()::text)
+    or (auth.uid() is null and id like 'cli-%')
+    or public.is_admin_ou_vendedor()
+  );
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar clientes" on public.clientes;
-create policy "Clientes atualizam seus dados e vendedores atualizam todos"
+drop policy if exists "Clientes atualizam seus dados e vendedores atualizam todos" on public.clientes;
+drop policy if exists "Clientes atualizam seus dados e vendedores atualizam tod" on public.clientes;
+drop policy if exists "clientes_update_policy" on public.clientes;
+create policy "clientes_update_policy"
   on public.clientes for update
   to authenticated
   using (id = auth.uid()::text or public.is_admin_ou_vendedor())
   with check (id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir clientes" on public.clientes;
-create policy "Apenas vendedores autenticados podem excluir clientes"
+drop policy if exists "clientes_delete_policy" on public.clientes;
+create policy "clientes_delete_policy"
   on public.clientes for delete
   to authenticated
   using (public.is_admin_ou_vendedor());
 
 -- Políticas: ORÇAMENTOS (Isolamento de Pedidos e Propostas por Cliente)
 drop policy if exists "Apenas vendedores autenticados podem ler orçamentos" on public.orcamentos;
-create policy "Clientes leem seus orçamentos e vendedores leem todos"
+drop policy if exists "Clientes leem seus orçamentos e vendedores leem todos" on public.orcamentos;
+drop policy if exists "Clientes leem seus orçamentos e vendedores leem tod" on public.orcamentos;
+drop policy if exists "orcamentos_select_policy" on public.orcamentos;
+create policy "orcamentos_select_policy"
   on public.orcamentos for select
   to authenticated
   using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem criar orçamentos" on public.orcamentos;
-create policy "Clientes criam seus orçamentos e vendedores criam para todos"
+drop policy if exists "Clientes criam seus orçamentos e vendedores criam para todos" on public.orcamentos;
+drop policy if exists "Clientes criam seus orçamentos e vendedores criam para tod" on public.orcamentos;
+drop policy if exists "orcamentos_insert_policy" on public.orcamentos;
+create policy "orcamentos_insert_policy"
   on public.orcamentos for insert
-  to authenticated
-  with check (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
+  to anon, authenticated
+  with check (
+    (auth.uid() is not null and cliente_id = auth.uid()::text)
+    or (auth.uid() is null and (cliente_id like 'cli-%' or cliente_id is not null))
+    or public.is_admin_ou_vendedor()
+  );
 
 drop policy if exists "Apenas vendedores autenticados podem atualizar orçamentos" on public.orcamentos;
-create policy "Clientes atualizam seus orçamentos e vendedores atualizam todos"
+drop policy if exists "Clientes atualizam seus orçamentos e vendedores atualizam todos" on public.orcamentos;
+drop policy if exists "Clientes atualizam seus orçamentos e vendedores atualizam tod" on public.orcamentos;
+drop policy if exists "orcamentos_update_policy" on public.orcamentos;
+create policy "orcamentos_update_policy"
   on public.orcamentos for update
   to authenticated
   using (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor())
   with check (cliente_id = auth.uid()::text or public.is_admin_ou_vendedor());
 
 drop policy if exists "Apenas vendedores autenticados podem excluir orçamentos" on public.orcamentos;
-create policy "Apenas vendedores autenticados podem excluir orçamentos"
+drop policy if exists "orcamentos_delete_policy" on public.orcamentos;
+create policy "orcamentos_delete_policy"
   on public.orcamentos for delete
   to authenticated
   using (public.is_admin_ou_vendedor());
@@ -333,26 +375,30 @@ values ('produtos-midia', 'produtos-midia', true)
 on conflict (id) do nothing;
 
 drop policy if exists "Visualização pública de imagens no bucket produtos-midia" on storage.objects;
-create policy "Visualização pública de imagens no bucket produtos-midia"
+drop policy if exists "storage_produtos_midia_select" on storage.objects;
+create policy "storage_produtos_midia_select"
   on storage.objects for select
   to anon, authenticated
   using (bucket_id = 'produtos-midia');
 
 drop policy if exists "Upload de imagens por vendedores autenticados" on storage.objects;
-create policy "Upload de imagens por vendedores autenticados"
+drop policy if exists "storage_produtos_midia_insert" on storage.objects;
+create policy "storage_produtos_midia_insert"
   on storage.objects for insert
   to authenticated
   with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
 
 drop policy if exists "Atualização de imagens por vendedores autenticados" on storage.objects;
-create policy "Atualização de imagens por vendedores autenticados"
+drop policy if exists "storage_produtos_midia_update" on storage.objects;
+create policy "storage_produtos_midia_update"
   on storage.objects for update
   to authenticated
   using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor())
   with check (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());
 
 drop policy if exists "Exclusão de imagens por vendedores autenticados" on storage.objects;
-create policy "Exclusão de imagens por vendedores autenticados"
+drop policy if exists "storage_produtos_midia_delete" on storage.objects;
+create policy "storage_produtos_midia_delete"
   on storage.objects for delete
   to authenticated
   using (bucket_id = 'produtos-midia' and public.is_admin_ou_vendedor());

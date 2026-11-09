@@ -1756,6 +1756,7 @@
     const whatsappSeguro = escaparHtml(c.whatsapp || "");
     const cidadeUfSeguro = escaparHtml(c.cidadeUf || "Umuarama / PR");
     const cpfSeguro = escaparHtml(c.cpf || "");
+    const fotoSegura = (c.foto && /^(https?:\/\/|data:image\/)/i.test(String(c.foto).trim())) ? escaparHtml(String(c.foto).trim()) : null;
     const totalFavoritos = (state.favoritos || []).length;
 
     // Busca pedidos/orçamentos do cliente (localStorage + SJ_DB.orcamentos)
@@ -1815,7 +1816,7 @@
       <div class="client-profile-hero">
         <div class="client-profile-main-col">
           <div class="client-avatar-circle">
-            ${c.foto ? `<img src="${c.foto}" alt="${nomeSeguro}" />` : `<span>${avatarLetra}</span>`}
+            ${fotoSegura ? `<img src="${fotoSegura}" alt="${nomeSeguro}" />` : `<span>${avatarLetra}</span>`}
           </div>
           <div class="client-profile-text">
             <h2>Olá, ${primeiroNomeSeguro}!</h2>

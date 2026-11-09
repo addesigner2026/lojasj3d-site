@@ -39,12 +39,31 @@
 
   const ADMIN_MASTER_EMAIL = "jt.designer21@gmail.com";
 
-  // Administrador Oficial Master da Loja SJ 3D
+  // Função utilitária de hashing SHA-256 no navegador para proteger senhas contra exposição em texto plano
+  async function hashSenha(senha) {
+    if (!senha) return "";
+    try {
+      if (typeof window !== "undefined" && window.crypto && window.crypto.subtle && typeof TextEncoder !== "undefined") {
+        const buffer = await window.crypto.subtle.digest("SHA-256", new TextEncoder().encode(senha));
+        return Array.from(new Uint8Array(buffer))
+          .map((b) => b.toString(16).padStart(2, "0"))
+          .join("");
+      }
+    } catch (_) {}
+    let hash = 0;
+    for (let i = 0; i < senha.length; i++) {
+      hash = (hash << 5) - hash + senha.charCodeAt(i);
+      hash |= 0;
+    }
+    return "legacy_" + Math.abs(hash).toString(16);
+  }
+
+  // Administrador Oficial Master da Loja SJ 3D (senha protegida com hash criptográfico SHA-256)
   const USUARIO_PADRAO = {
     id: "usr-admin-master",
     nome: "Thiago Novais (Admin Oficial)",
     email: ADMIN_MASTER_EMAIL,
-    senhaHash: "@Metallica1984",
+    senhaHash: "84f42efb145bdfb59d0a60ae69cbc65356e0dd74b505b3ede2392acf541693ba",
     cargo: "Administrador Oficial",
     tipo: "operador",
     status: "aprovado",
@@ -392,8 +411,13 @@
         };
       }
 
-      if (user.senhaHash !== senhaLimpa) {
+      const hashCalc = await hashSenha(senhaLimpa);
+      const confere = user.senhaHash === hashCalc || user.senhaHash === senhaLimpa;
+      if (!confere) {
         return { sucesso: false, mensagem: "Senha administrativa incorreta." };
+      }
+      if (user.senhaHash === senhaLimpa) {
+        user.senhaHash = hashCalc;
       }
 
       user.ultimoLogin = new Date().toISOString();

@@ -9,7 +9,13 @@
 const http = require("http");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 const { exec } = require("child_process");
+
+function gerarHashSenha(senha) {
+  if (!senha) return "";
+  return crypto.createHash("sha256").update(String(senha)).digest("hex");
+}
 
 const PORT = process.env.PORT || 3000;
 const ROOT = path.resolve(__dirname, "..");
@@ -48,7 +54,7 @@ function carregarBanco() {
           id: "usr-admin-1",
           nome: "Thiago Novais",
           email: "contato@gruposj.com.br",
-          senhaHash: "123456",
+          senhaHash: "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
           cargo: "Administrador / Vendedor",
           tipo: "operador",
           foto: null,
@@ -110,25 +116,16 @@ function verificarAutorizacaoAdmin(req, db) {
   const token = authHeader.replace(/^Bearer\s+/i, "").trim();
   const customKey = req.headers["x-admin-key"] || "";
 
-  if (token === ADMIN_API_KEY || customKey === ADMIN_API_KEY) {
+  if (ADMIN_API_KEY && (token === ADMIN_API_KEY || customKey === ADMIN_API_KEY)) {
     return true;
   }
 
   if (token && db && Array.isArray(db.usuarios)) {
     const user = db.usuarios.find(
-      (u) => u.id === token && (u.tipo === "operador" || u.tipo === "admin" || String(u.cargo).toLowerCase().includes("vendedor") || String(u.cargo).toLowerCase().includes("admin"))
+      (u) => (u.id === token || u.email?.toLowerCase() === token.toLowerCase()) &&
+             (u.tipo === "operador" || u.tipo === "admin" || String(u.cargo).toLowerCase().includes("vendedor") || String(u.cargo).toLowerCase().includes("admin"))
     );
     if (user) return true;
-  }
-
-  // Em chamadas locais diretas do browser em localhost
-  const host = req.headers["host"] || "";
-  const origin = req.headers["origin"] || "";
-  const referer = req.headers["referer"] || "";
-  const isLocalOrigin = (!origin || origin.includes("localhost") || origin.includes("127.0.0.1")) &&
-                        (!referer || referer.includes("localhost") || referer.includes("127.0.0.1"));
-  if ((host.startsWith("localhost:") || host.startsWith("127.0.0.1:")) && isLocalOrigin) {
-    return true;
   }
 
   return false;
@@ -224,14 +221,17 @@ const server = http.createServer(async (req, res) => {
       const senha = (body.senha || "").trim();
       const user = db.usuarios.find((usr) => usr.email.toLowerCase() === email);
 
-      if (!user) {
-        responderJson(res, 401, { sucesso: false, mensagem: "Usuário não encontrado." });
+      const hashCalculado = gerarHashSenha(senha);
+      const senhaValida = user && user.senhaHash && (user.senhaHash === hashCalculado || user.senhaHash === senha);
+
+      if (!user || !senhaValida) {
+        responderJson(res, 401, { sucesso: false, mensagem: "E-mail ou senha incorretos." });
         return;
       }
 
-      if (user.senhaHash && user.senhaHash !== senha) {
-        responderJson(res, 401, { sucesso: false, mensagem: "Senha incorreta." });
-        return;
+      // Migração automática de senha em texto plano para SHA-256
+      if (user.senhaHash === senha) {
+        user.senhaHash = hashCalculado;
       }
 
       user.ultimoLogin = new Date().toISOString();
@@ -266,11 +266,12 @@ const server = http.createServer(async (req, res) => {
         return;
       }
 
+      const senhaOriginal = body.senha || body.senhaHash || "123456";
       const novo = {
         id: "usr-" + Date.now(),
         nome: body.nome.trim(),
         email: email,
-        senhaHash: body.senhaHash || body.senha || "123456",
+        senhaHash: gerarHashSenha(senhaOriginal),
         cargo: body.cargo || "Vendedor",
         tipo: "operador",
         foto: null,
@@ -296,8 +297,12 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // 4. Listar Usuários
+    // 4. Listar Usuários (Acesso Restrito)
     if (pathname === "/api/auth/users" && req.method === "GET") {
+      if (!verificarAutorizacaoAdmin(req, db)) {
+        responderJson(res, 403, { sucesso: false, mensagem: "Acesso restrito a administradores." });
+        return;
+      }
       const lista = db.usuarios.map((u) => ({
         id: u.id,
         nome: u.nome,
@@ -365,7 +370,17 @@ const server = http.createServer(async (req, res) => {
         }
 
         if (idx >= 0) {
-          db.orcamentos[idx] = { ...db.orcamentos[idx], ...body, atualizadoEm: new Date().toISOString() };
+          const authHeader = req.headers["authorization"] || "";
+          const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+          const orcExistente = db.orcamentos[idx];
+          const ehAdmin = verificarAutorizacaoAdmin(req, db);
+          const ehDono = token && (orcExistente.clienteId === token || orcExistente.metadados?.clienteId === token || orcExistente.cliente_id === token);
+
+          if (!ehAdmin && !ehDono) {
+            responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para modificar este orçamento." });
+            return;
+          }
+          db.orcamentos[idx] = { ...db.orcamentos[idx], ...body, id: orcExistente.id, atualizadoEm: new Date().toISOString() };
         } else {
           db.orcamentos.unshift({ ...body, dataHoraSalvo: new Date().toISOString() });
         }
@@ -435,9 +450,21 @@ const server = http.createServer(async (req, res) => {
           return;
         }
 
-        const idx = db.clientes.findIndex((c) => c.nome.toLowerCase() === body.nome.toLowerCase().trim());
+        const authHeader = req.headers["authorization"] || "";
+        const token = authHeader.replace(/^Bearer\s+/i, "").trim();
+        const nomeTrim = body.nome.toLowerCase().trim();
+        const idx = db.clientes.findIndex((c) => (body.id && c.id === body.id) || c.nome.toLowerCase() === nomeTrim);
+
         if (idx >= 0) {
-          db.clientes[idx] = { ...db.clientes[idx], ...body, atualizadoEm: new Date().toISOString() };
+          const cliExistente = db.clientes[idx];
+          const ehAdmin = verificarAutorizacaoAdmin(req, db);
+          const ehProprio = token && (cliExistente.id === token || (cliExistente.email && cliExistente.email.toLowerCase() === token.toLowerCase()));
+
+          if (!ehAdmin && !ehProprio) {
+            responderJson(res, 403, { sucesso: false, mensagem: "Acesso não autorizado para modificar os dados deste cliente." });
+            return;
+          }
+          db.clientes[idx] = { ...db.clientes[idx], ...body, id: cliExistente.id, atualizadoEm: new Date().toISOString() };
         } else {
           body.id = body.id || ("cli-" + Date.now());
           body.criadoEm = new Date().toISOString();

@@ -394,7 +394,17 @@
       }
 
       const client = inicializarCliente();
-      const idGerado = dados.id || "cli-" + Date.now();
+      let userAuthId = null;
+      if (client) {
+        try {
+          const sessao = (await client.auth.getSession())?.data?.session;
+          if (sessao?.user?.id) {
+            userAuthId = sessao.user.id;
+          }
+        } catch (_) {}
+      }
+
+      const idGerado = dados.id || userAuthId || ("cli-" + Date.now());
       const nomeLimpo = String(dados.nome || "").trim();
       const cnpjCpfLimpo = String(dados.cnpjCpf || dados.cpf || dados.cnpj || "").trim();
       const telefoneLimpo = String(dados.cepTelefone || dados.telefone || dados.whatsapp || "").trim();
