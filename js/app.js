@@ -1218,6 +1218,104 @@
     document.body.style.overflow = "";
   }
 
+  // ==========================================================================
+  // GESTÃO DE COOKIES E CONSENTIMENTO LGPD (ART. 8º E 9º)
+  // ==========================================================================
+  const COOKIE_CONSENT_KEY = "sj_cookies_consent_v1";
+
+  function obterConsentimentoCookies() {
+    try {
+      const raw = localStorage.getItem(COOKIE_CONSENT_KEY);
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function aplicarPreferenciasCookies(consent) {
+    if (!consent) return;
+    window.SJ_COOKIES = {
+      preferencias: consent,
+      podeExecutar: (categoria) => {
+        if (categoria === "essenciais") return true;
+        return !!consent[categoria];
+      }
+    };
+    try {
+      window.dispatchEvent(new CustomEvent("sj_cookies_updated", { detail: consent }));
+    } catch (_) {}
+  }
+
+  async function salvarConsentimentoCookies(prefs = {}) {
+    const consent = {
+      essenciais: true, // Sempre obrigatório para login/carrinho/segurança
+      funcionais: Boolean(prefs.funcionais),
+      analiticos: Boolean(prefs.analiticos),
+      marketing: Boolean(prefs.marketing),
+      versao: "2026.1",
+      data_hora: new Date().toISOString()
+    };
+
+    try {
+      localStorage.setItem(COOKIE_CONSENT_KEY, JSON.stringify(consent));
+    } catch (e) {
+      console.warn("Não foi possível salvar cookies no localStorage:", e);
+    }
+
+    // Ocultar banner e fechar modal
+    const banner = document.getElementById("cookie-consent-banner");
+    if (banner) banner.style.display = "none";
+    fecharModalPreferenciasCookies();
+
+    // Ativar preferências globais
+    aplicarPreferenciasCookies(consent);
+
+    // Registro comprobatório assíncrono no banco de consentimentos (se online)
+    try {
+      if (window.SJ_SUPABASE?.consentimentos?.registrar) {
+        window.SJ_SUPABASE.consentimentos.registrar({
+          finalidade: "cookies_preferencias",
+          status: "concedido",
+          versao_termo: "v1.0-2026",
+          canal: "banner_cookies"
+        }).catch(() => {});
+      }
+    } catch (_) {}
+
+    mostrarToast("Preferências de privacidade e cookies salvas com sucesso!", "success");
+  }
+
+  function abrirModalPreferenciasCookies() {
+    const modal = document.getElementById("modal-cookie-preferences");
+    if (!modal) return;
+    const consent = obterConsentimentoCookies() || {
+      essenciais: true,
+      funcionais: true,
+      analiticos: false,
+      marketing: false
+    };
+
+    const chkFunc = document.getElementById("chk-cookie-funcionais");
+    const chkAnalit = document.getElementById("chk-cookie-analiticos");
+    const chkMkt = document.getElementById("chk-cookie-marketing");
+
+    if (chkFunc) chkFunc.checked = Boolean(consent.funcionais);
+    if (chkAnalit) chkAnalit.checked = Boolean(consent.analiticos);
+    if (chkMkt) chkMkt.checked = Boolean(consent.marketing);
+
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalPreferenciasCookies() {
+    const modal = document.getElementById("modal-cookie-preferences");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
   function alternarAbaAuthCliente(aba, opcoes = {}) {
     const tabLogin = document.getElementById("tab-client-login");
     const tabSignup = document.getElementById("tab-client-signup");
@@ -1505,6 +1603,65 @@
         btnConsultarProt.textContent = "🔍 Buscar";
       }
     });
+
+    // ========================================================================
+    // EVENTOS E INICIALIZAÇÃO DO BANNER E MODAL DE COOKIES LGPD
+    // ========================================================================
+    const bannerCookie = document.getElementById("cookie-consent-banner");
+    const btnCookieAcceptAll = document.getElementById("btn-cookie-accept-all");
+    const btnCookieRejectNonEssential = document.getElementById("btn-cookie-reject-nonessential");
+    const btnCookieOpenCustomize = document.getElementById("btn-cookie-open-customize");
+    const btnFooterCookiePref = document.getElementById("btn-footer-cookie-pref");
+    const closeCookiePrefBtn = document.getElementById("close-cookie-pref-btn");
+    const btnCookieRejectModal = document.getElementById("btn-cookie-reject-modal");
+    const btnCookieSavePreferences = document.getElementById("btn-cookie-save-preferences");
+    const modalCookiePref = document.getElementById("modal-cookie-preferences");
+
+    btnCookieAcceptAll?.addEventListener("click", () => {
+      salvarConsentimentoCookies({ funcionais: true, analiticos: true, marketing: true });
+    });
+
+    btnCookieRejectNonEssential?.addEventListener("click", () => {
+      salvarConsentimentoCookies({ funcionais: false, analiticos: false, marketing: false });
+    });
+
+    btnCookieOpenCustomize?.addEventListener("click", () => {
+      abrirModalPreferenciasCookies();
+    });
+
+    btnFooterCookiePref?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalPreferenciasCookies();
+    });
+
+    closeCookiePrefBtn?.addEventListener("click", fecharModalPreferenciasCookies);
+
+    btnCookieRejectModal?.addEventListener("click", () => {
+      salvarConsentimentoCookies({ funcionais: false, analiticos: false, marketing: false });
+    });
+
+    btnCookieSavePreferences?.addEventListener("click", () => {
+      const func = document.getElementById("chk-cookie-funcionais")?.checked;
+      const analit = document.getElementById("chk-cookie-analiticos")?.checked;
+      const mkt = document.getElementById("chk-cookie-marketing")?.checked;
+      salvarConsentimentoCookies({ funcionais: func, analiticos: analit, marketing: mkt });
+    });
+
+    modalCookiePref?.addEventListener("click", (e) => {
+      if (e.target.id === "modal-cookie-preferences") fecharModalPreferenciasCookies();
+    });
+
+    // Inicialização da verificação de consentimento de cookies
+    const consentimentoExistente = obterConsentimentoCookies();
+    if (consentimentoExistente) {
+      aplicarPreferenciasCookies(consentimentoExistente);
+    } else {
+      setTimeout(() => {
+        if (bannerCookie && !obterConsentimentoCookies()) {
+          bannerCookie.style.display = "block";
+        }
+      }, 1200);
+    }
 
     // Sincronizar checkboxes de Nota Fiscal no Carrinho Lateral e Gaveta
     const chkCartNf = document.getElementById("chk-cart-precisa-nf");

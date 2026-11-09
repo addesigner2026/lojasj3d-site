@@ -695,10 +695,107 @@
 
       <div class="footer-bottom">
         <span>© 2026 Loja SJ 3D — CNPJ: 66.275.129/0001-10 — Revendedor Autorizado Bambu Lab &amp; Masterprint — Umuarama / PR.</span>
-        <span>Atendimento para Umuarama e toda a Região Noroeste do PR • <a href="#modal-privacy-policy" id="footer-privacy-link" style="color:inherit; opacity:0.85; text-decoration:underline;" title="Política de Privacidade e Proteção de Dados LGPD">Política de Privacidade &amp; LGPD</a> • <a href="#modal-lgpd-titular-request" id="footer-lgpd-request-link" style="color:inherit; opacity:0.85; text-decoration:underline;" title="Solicitar ou Apagar Meus Dados (LGPD Art. 18)">Solicitar / Apagar Meus Dados</a> • <a href="#admin" id="footer-admin-link" style="color:inherit; opacity:0.55; text-decoration:none;" title="Acesso Administrativo (/admin)">Área Restrita</a></span>
+        <span>Atendimento para Umuarama e toda a Região Noroeste do PR • <a href="#modal-privacy-policy" id="footer-privacy-link" style="color:inherit; opacity:0.85; text-decoration:underline;" title="Política de Privacidade e Proteção de Dados LGPD">Política de Privacidade &amp; LGPD</a> • <a href="#modal-lgpd-titular-request" id="footer-lgpd-request-link" style="color:inherit; opacity:0.85; text-decoration:underline;" title="Solicitar ou Apagar Meus Dados (LGPD Art. 18)">Solicitar / Apagar Meus Dados</a> • <a href="#modal-cookie-preferences" id="btn-footer-cookie-pref" style="color:inherit; opacity:0.85; text-decoration:underline;" title="Gerenciar preferências de cookies e privacidade">Preferências de Cookies</a> • <a href="#admin" id="footer-admin-link" style="color:inherit; opacity:0.55; text-decoration:none;" title="Acesso Administrativo (/admin)">Área Restrita</a></span>
       </div>
     </div>
   </footer>
+
+  <!-- BANNER FLUTUANTE DE COOKIES LGPD -->
+  <aside class="cookie-banner-wrap" id="cookie-consent-banner" role="region" aria-label="Aviso de Cookies e Privacidade">
+    <div class="cookie-banner-container">
+      <div class="cookie-banner-text">
+        <span>🍪 <strong>Privacidade &amp; Uso de Cookies:</strong> Utilizamos cookies essenciais para o funcionamento do carrinho, pedidos e segurança. Cookies adicionais de preferências, desempenho e marketing dependem da sua autorização, em conformidade com a LGPD (Lei nº 13.709/2018). Consulte nossa <a href="privacidade.html" target="_blank" rel="noopener">Política de Privacidade</a>.</span>
+      </div>
+      <div class="cookie-banner-actions">
+        <button type="button" class="btn-cookie-accept" id="btn-cookie-accept-all">
+          Aceitar Todos
+        </button>
+        <button type="button" class="btn-cookie-reject" id="btn-cookie-reject-nonessential">
+          Recusar Não Essenciais
+        </button>
+        <button type="button" class="btn-cookie-customize" id="btn-cookie-open-customize">
+          Personalizar
+        </button>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MODAL DE PREFERÊNCIAS DE COOKIES E CONSENTIMENTO (ART. 8º DA LGPD) -->
+  <div class="modal-overlay" id="modal-cookie-preferences" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="cookie-pref-title">
+    <div class="client-auth-card" style="max-height: 92vh; overflow-y: auto; max-width: 640px; width: 100%; text-align: left;">
+      <button type="button" class="modal-close-btn" id="close-cookie-pref-btn" aria-label="Fechar painel de cookies">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div style="border-bottom: 1px solid #E5E7EB; padding-bottom: 12px; margin-bottom: 16px;">
+        <span style="font-size:0.75rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.5px;">PRIVACIDADE TRANSPARENTE • LEI Nº 13.709/2018</span>
+        <h3 id="cookie-pref-title" style="margin:4px 0 6px; font-size:1.25rem; color:#0F172A;">Gerenciador de Preferências de Cookies</h3>
+        <p style="margin:0; font-size:0.8rem; color:#64748B;">
+          Você tem total controle sobre os cookies e dados salvos no seu navegador. Ative ou desative cada categoria abaixo e salve suas preferências:
+        </p>
+      </div>
+
+      <div class="cookie-category-card">
+        <div class="cookie-category-info">
+          <h5>🔒 1. Cookies Estritamente Necessários (Essenciais)</h5>
+          <p>
+            Imprescindíveis para o funcionamento básico: sessão de login, segurança, integridade do carrinho de compras e conformidade com a LGPD. Não podem ser desativados.
+          </p>
+        </div>
+        <div>
+          <input type="checkbox" id="chk-cookie-essenciais" checked disabled style="width:18px; height:18px; accent-color:#0F172A; cursor:not-allowed;" />
+        </div>
+      </div>
+
+      <div class="cookie-category-card">
+        <div class="cookie-category-info">
+          <h5>⭐ 2. Cookies Funcionais &amp; Preferências</h5>
+          <p>
+            Permitem lembrar seus produtos favoritos, configurações de visualização do catálogo e histórico local para agilizar suas cotações e orçamentos.
+          </p>
+        </div>
+        <div>
+          <input type="checkbox" id="chk-cookie-funcionais" style="width:18px; height:18px; accent-color:#F04E23; cursor:pointer;" />
+        </div>
+      </div>
+
+      <div class="cookie-category-card">
+        <div class="cookie-category-info">
+          <h5>📊 3. Cookies Analíticos &amp; Desempenho</h5>
+          <p>
+            Coletam métricas anônimas de navegação para avaliarmos velocidade de carregamento, páginas mais visitadas e melhorias contínuas no site.
+          </p>
+        </div>
+        <div>
+          <input type="checkbox" id="chk-cookie-analiticos" style="width:18px; height:18px; accent-color:#F04E23; cursor:pointer;" />
+        </div>
+      </div>
+
+      <div class="cookie-category-card">
+        <div class="cookie-category-info">
+          <h5>📢 4. Cookies de Marketing &amp; Divulgação</h5>
+          <p>
+            Utilizados para apresentar ofertas personalizadas de filamentos, impressoras e cupons do sorteio com base no seu interesse prévio.
+          </p>
+        </div>
+        <div>
+          <input type="checkbox" id="chk-cookie-marketing" style="width:18px; height:18px; accent-color:#F04E23; cursor:pointer;" />
+        </div>
+      </div>
+
+      <div style="margin-top:16px; border-top:1px solid #E5E7EB; padding-top:14px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+        <button type="button" id="btn-cookie-reject-modal" style="background:#F1F5F9; color:#475569; border:1px solid #CBD5E1; padding:8px 16px; border-radius:8px; font-size:0.8rem; font-weight:700; cursor:pointer;">
+          Recusar Opcionais
+        </button>
+        <button type="button" class="btn-client-submit-auth" id="btn-cookie-save-preferences" style="width:auto; padding:8px 24px;">
+          💾 Salvar Minhas Preferências
+        </button>
+      </div>
+    </div>
+  </div>
 
   <!-- ====================================================================
        MODAL OFICIAL DE POLÍTICA DE PRIVACIDADE E TERMOS LGPD (ART. 9º DA LEI 13.709/2018)
