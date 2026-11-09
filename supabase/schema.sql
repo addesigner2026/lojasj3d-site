@@ -603,7 +603,166 @@ create trigger trg_audit_consentimento
   for each row execute function public.gravar_log_auditoria();
 
 -- ============================================================================
--- 12. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
+-- 12. RETENÇÃO, BLOQUEIO E ANONIMIZAÇÃO AUTOMÁTICA LGPD (ART. 16)
+-- ============================================================================
+
+-- Adição de colunas de controle de retenção em clientes e orçamentos
+alter table public.clientes add column if not exists ultima_interacao timestamptz not null default now();
+alter table public.clientes add column if not exists reter_ate timestamptz not null default (now() + interval '5 years');
+alter table public.clientes add column if not exists anonimizado boolean not null default false;
+alter table public.clientes add column if not exists bloqueado_para_uso boolean not null default false;
+
+alter table public.orcamentos add column if not exists ultima_interacao timestamptz not null default now();
+alter table public.orcamentos add column if not exists reter_ate timestamptz not null default (now() + interval '5 years');
+alter table public.orcamentos add column if not exists anonimizado boolean not null default false;
+alter table public.orcamentos add column if not exists bloqueado_para_uso boolean not null default false;
+alter table public.orcamentos add column if not exists motivo_bloqueio_legal text;
+
+create index if not exists idx_clientes_retencao on public.clientes(reter_ate, anonimizado);
+create index if not exists idx_orcamentos_retencao on public.orcamentos(reter_ate, anonimizado);
+
+-- Função oficial de execução da rotina de retenção e anonimização
+create or replace function public.executar_rotina_retencao_lgpd()
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_clientes_anonimizados integer := 0;
+  v_clientes_bloqueados integer := 0;
+  v_orcamentos_anonimizados integer := 0;
+  r_cli record;
+  r_orc record;
+  v_possui_obrigacao_fiscal boolean;
+begin
+  -- 1. Clientes com prazo expirado
+  for r_cli in 
+    select id, nome, email, cnpj_cpf 
+    from public.clientes 
+    where reter_ate <= now() and anonimizado = false
+  loop
+    -- Verifica se possui notas/orçamentos faturados ativos nos últimos 5 anos (obrigação legal fiscal)
+    select exists (
+      select 1 from public.orcamentos 
+      where cliente_id = r_cli.id 
+        and reter_ate > now()
+    ) into v_possui_obrigacao_fiscal;
+
+    if v_possui_obrigacao_fiscal then
+      -- Bloqueio legal: mantém estritamente para auditoria tributária (Art. 16, I LGPD c/c Art. 173 CTN)
+      update public.clientes
+      set bloqueado_para_uso = true,
+          atualizado_em = now()
+      where id = r_cli.id;
+
+      -- Revoga qualquer consentimento de marketing
+      update public.termos_consentimento
+      set consentimento_concedido = false,
+          revogado_em = now(),
+          motivo_revogacao = 'Bloqueio automático por expiração de retenção LGPD'
+      where titular_identificador = r_cli.email
+        and finalidade = 'comunicacoes_marketing'
+        and revogado_em is null;
+
+      insert into public.auditoria_logs (
+        tabela, operacao, registro_id, usuario_email, dados_novos
+      ) values (
+        'clientes',
+        'BLOQUEIO_LEGAL_FISCAL',
+        r_cli.id,
+        'sistema@lgpd.interno',
+        jsonb_build_object(
+          'motivo', 'Guarda obrigatória tributária de 5 anos (Art. 16, I LGPD c/c Art. 173 CTN)',
+          'cliente_id', r_cli.id
+        )
+      );
+
+      v_clientes_bloqueados := v_clientes_bloqueados + 1;
+    else
+      -- Sem pendências fiscais: anonimização irreversível dos dados cadastrais
+      update public.clientes
+      set nome = 'Titular Anonimizado #' || substr(md5(id), 1, 8),
+          cnpj_cpf = '000.***.***-00',
+          endereco = 'Expurgado por Prazo de Retenção LGPD',
+          bairro_cidade_uf = 'Retido / PR',
+          cep_telefone = null,
+          email = 'anonimizado_' || substr(md5(id), 1, 8) || '@lgpd.expirado',
+          anonimizado = true,
+          bloqueado_para_uso = true,
+          atualizado_em = now()
+      where id = r_cli.id;
+
+      insert into public.auditoria_logs (
+        tabela, operacao, registro_id, usuario_email, dados_novos
+      ) values (
+        'clientes',
+        'ANONIMIZACAO_RETENCAO',
+        r_cli.id,
+        'sistema@lgpd.interno',
+        jsonb_build_object(
+          'motivo', 'Decurso do prazo de retenção e ausência de obrigações fiscais pendentes (Art. 16 LGPD)',
+          'cliente_id', r_cli.id
+        )
+      );
+
+      v_clientes_anonimizados := v_clientes_anonimizados + 1;
+    end if;
+  end loop;
+
+  -- 2. Orçamentos que já ultrapassaram o prazo legal de 5 anos
+  for r_orc in
+    select id, metadados
+    from public.orcamentos
+    where reter_ate <= now() and anonimizado = false
+  loop
+    update public.orcamentos
+    set cliente_nome = 'Cliente Histórico Anonimizado',
+        metadados = jsonb_build_object(
+          'anonimizado', true,
+          'expurgado_em', now(),
+          'itens_resumo', coalesce(metadados->'itens_resumo', '[]'::jsonb)
+        ),
+        anonimizado = true,
+        bloqueado_para_uso = true,
+        motivo_bloqueio_legal = 'Expirado após 5 anos fiscais (Art. 173 CTN e Art. 16 LGPD)',
+        atualizado_em = now()
+    where id = r_orc.id;
+
+    insert into public.auditoria_logs (
+      tabela, operacao, registro_id, usuario_email, dados_novos
+    ) values (
+      'orcamentos',
+      'ANONIMIZACAO_FISCAL_5_ANOS',
+      r_orc.id,
+      'sistema@lgpd.interno',
+      jsonb_build_object(
+        'motivo', 'Prescrição do prazo fiscal de 5 anos (Art. 173/174 CTN)',
+        'orcamento_id', r_orc.id
+      )
+    );
+
+    v_orcamentos_anonimizados := v_orcamentos_anonimizados + 1;
+  end loop;
+
+  return jsonb_build_object(
+    'executado_em', now(),
+    'clientes_bloqueados', v_clientes_bloqueados,
+    'clientes_anonimizados', v_clientes_anonimizados,
+    'orcamentos_anonimizados', v_orcamentos_anonimizados
+  );
+end;
+$$;
+
+-- Permissão de execução restrita para administradores autenticados
+revoke execute on function public.executar_rotina_retencao_lgpd() from public, anon;
+grant execute on function public.executar_rotina_retencao_lgpd() to authenticated;
+
+-- Exemplo de agendamento via pg_cron (se habilitado no Supabase):
+-- select cron.schedule('rotina-retencao-lgpd-diaria', '0 3 * * *', 'select public.executar_rotina_retencao_lgpd()');
+
+-- ============================================================================
+-- 13. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
 -- ============================================================================
 insert into public.configuracoes_site (chave, valor)
 values 

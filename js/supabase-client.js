@@ -587,6 +587,25 @@
     }
   };
 
+  // Módulo de Retenção e Anonimização Automatizada (Art. 16)
+  const retencao = {
+    executar: async function () {
+      const client = inicializarCliente();
+      if (!client) {
+        return { sucesso: false, mensagem: "Supabase não conectado." };
+      }
+      try {
+        const { data, error } = await client.rpc("executar_rotina_retencao_lgpd");
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return { sucesso: true, resultado: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -610,6 +629,7 @@
     auth,
     clientes,
     consentimentos,
+    retencao,
     guardiao
   };
 });
