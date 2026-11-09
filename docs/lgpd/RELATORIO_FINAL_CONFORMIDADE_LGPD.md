@@ -112,3 +112,4 @@ Com as implementações entregues e auditadas, o sistema da **Loja SJ 3D** ating
 - ✅ **Princípio do *Privacy by Design* e *by Default*:** Implementado no código e nas interfaces.
 - ✅ **Segurança da Informação:** Criptografia ponta a ponta, RLS ativada em 100% das tabelas pessoais, mascaramento visual ativo e trilhas de auditoria contínua.
 - ✅ **Garantia dos Direitos do Titular:** Atendimento digital em até 15 dias com proteção legal fiscal.
+

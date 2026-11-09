@@ -159,3 +159,4 @@ Todas as ocorrências de segurança, contenções e notificações devem ser reg
 3. Evidências técnicas coletadas (hashes de arquivos, logs do servidor).
 4. Cópia dos comunicados emitidos e comprovante de envio à ANPD.
 5. Prazo de guarda obrigatória do dossiê: **5 (cinco) anos**.
+
