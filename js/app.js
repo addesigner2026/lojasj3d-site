@@ -1159,6 +1159,22 @@
     document.body.style.overflow = "";
   }
 
+  function abrirModalPoliticaPrivacidade() {
+    const modal = document.getElementById("modal-privacy-policy");
+    if (!modal) return;
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalPoliticaPrivacidade() {
+    const modal = document.getElementById("modal-privacy-policy");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
   function alternarAbaAuthCliente(aba, opcoes = {}) {
     const tabLogin = document.getElementById("tab-client-login");
     const tabSignup = document.getElementById("tab-client-signup");
@@ -1281,6 +1297,32 @@
     btnClose?.addEventListener("click", fecharModalAuthCliente);
     modal?.addEventListener("click", (e) => {
       if (e.target.id === "modal-client-auth") fecharModalAuthCliente();
+    });
+
+    // Abertura / Fechamento da Política de Privacidade LGPD
+    const btnOpenPrivacySignup = document.getElementById("btn-open-privacy-from-signup");
+    const btnOpenPrivacyComp = document.getElementById("btn-open-privacy-from-complete");
+    const footerPrivacyLink = document.getElementById("footer-privacy-link");
+    const closePrivacyBtn = document.getElementById("close-privacy-policy-btn");
+    const closePrivacyConfirm = document.getElementById("btn-close-privacy-policy-confirm");
+    const modalPrivacy = document.getElementById("modal-privacy-policy");
+
+    btnOpenPrivacySignup?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalPoliticaPrivacidade();
+    });
+    btnOpenPrivacyComp?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalPoliticaPrivacidade();
+    });
+    footerPrivacyLink?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalPoliticaPrivacidade();
+    });
+    closePrivacyBtn?.addEventListener("click", fecharModalPoliticaPrivacidade);
+    closePrivacyConfirm?.addEventListener("click", fecharModalPoliticaPrivacidade);
+    modalPrivacy?.addEventListener("click", (e) => {
+      if (e.target.id === "modal-privacy-policy") fecharModalPoliticaPrivacidade();
     });
 
     // Sincronizar checkboxes de Nota Fiscal no Carrinho Lateral e Gaveta
@@ -1520,6 +1562,15 @@
         return;
       }
 
+      // Validação obrigatória de aceite da Política de Privacidade (Art. 7º, II e V da LGPD)
+      const chkAceite = formSignup.querySelector('input[name="signup_aceite_termos"]');
+      if (chkAceite && !chkAceite.checked) {
+        mostrarToast("Você precisa ler e aceitar a Política de Privacidade e os Termos para criar sua conta.", "error");
+        chkAceite.focus();
+        return;
+      }
+      const aceitouMarketing = Boolean(formSignup.querySelector('input[name="signup_consent_marketing"]')?.checked);
+
       const btnSubmit = document.getElementById("btn-submit-client-signup");
       if (btnSubmit) {
         btnSubmit.disabled = true;
@@ -1558,6 +1609,30 @@
             endereco: formatarEnderecoCompletoCliente(novoCliente),
             bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
           });
+        }
+
+        // Registro da prova de consentimento e aceite na base de dados LGPD (Art. 7º e 8º)
+        if (window.SJ_SUPABASE?.consentimentos?.registrar) {
+          try {
+            await window.SJ_SUPABASE.consentimentos.registrar({
+              titularIdentificador: email,
+              titularTipo: "cliente",
+              finalidade: "termos_privacidade",
+              versaoTermo: "v1.0",
+              consentimentoConcedido: true,
+              canal: "web"
+            });
+            if (aceitouMarketing) {
+              await window.SJ_SUPABASE.consentimentos.registrar({
+                titularIdentificador: email,
+                titularTipo: "cliente",
+                finalidade: "comunicacoes_marketing",
+                versaoTermo: "v1.0",
+                consentimentoConcedido: true,
+                canal: "web"
+              });
+            }
+          } catch (_) {}
         }
 
         const tinhaAcaoPendente = Boolean(state.acaoPendenteAposLogin);
@@ -1636,6 +1711,15 @@
         return;
       }
 
+      // Validação obrigatória de confirmação da Política de Privacidade
+      const chkAceiteComp = formComplete.querySelector('input[name="comp_aceite_termos"]');
+      if (chkAceiteComp && !chkAceiteComp.checked) {
+        mostrarToast("Você precisa confirmar o aceite da Política de Privacidade para continuar.", "error");
+        chkAceiteComp.focus();
+        return;
+      }
+      const aceitouMarketingComp = Boolean(formComplete.querySelector('input[name="comp_consent_marketing"]')?.checked);
+
       clienteAtualizado.cadastroAprovado = true;
       state.precisaNotaFiscalPedido = precisaNotaFiscal;
 
@@ -1650,6 +1734,30 @@
             endereco: formatarEnderecoCompletoCliente(clienteAtualizado),
             bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
           });
+        } catch (_) {}
+      }
+
+      // Registro da prova de consentimento e aceite na base LGPD
+      if (window.SJ_SUPABASE?.consentimentos?.registrar) {
+        try {
+          await window.SJ_SUPABASE.consentimentos.registrar({
+            titularIdentificador: email,
+            titularTipo: "cliente",
+            finalidade: "termos_privacidade",
+            versaoTermo: "v1.0",
+            consentimentoConcedido: true,
+            canal: "web"
+          });
+          if (aceitouMarketingComp) {
+            await window.SJ_SUPABASE.consentimentos.registrar({
+              titularIdentificador: email,
+              titularTipo: "cliente",
+              finalidade: "comunicacoes_marketing",
+              versaoTermo: "v1.0",
+              consentimentoConcedido: true,
+              canal: "web"
+            });
+          }
         } catch (_) {}
       }
 
@@ -2180,6 +2288,30 @@
             <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
               💾 Salvar Meus Dados Cadastrais
             </button>
+
+            <!-- GESTÃO DE PRIVACIDADE E CONSENTIMENTO (LGPD ART. 8º § 5º) -->
+            <div style="margin-top:20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px;">
+              <div style="font-size:0.82rem; font-weight:700; color:#0F172A; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F04E23" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Privacidade &amp; Gestão de Consentimentos (LGPD)</span>
+              </div>
+              <p style="margin:0 0 12px; font-size:0.77rem; color:#64748B; line-height:1.45;">
+                Conforme o Art. 8º da Lei 13.709/2018, você pode revogar autorizações opcionais a qualquer momento com a mesma facilidade com que foram concedidas.
+                <a href="#modal-privacy-policy" id="link-abrir-privacidade-dados" style="color:#F04E23; text-decoration:underline; font-weight:600;">Ver Política de Privacidade Completa</a>.
+              </p>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:12px 14px; flex-wrap:wrap;">
+                <div>
+                  <strong style="font-size:0.8rem; color:#1E293B; display:block;">Comunicações e Ofertas (WhatsApp / E-mail)</strong>
+                  <span style="font-size:0.74rem; color:#64748B;" id="txt-status-consent-mkt">Verificando status de consentimento...</span>
+                </div>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" id="btn-toggle-consent-marketing" class="btn-client-explore" style="padding:6px 14px; font-size:0.75rem; width:auto; margin:0; background:#0F172A; color:#FFFFFF;">
+                    Alternar Autorização
+                  </button>
+                </div>
+              </div>
+            </div>
           </form>
         </div>
       </div>
@@ -2356,6 +2488,68 @@
 
         mostrarToastNotificacao("✅ Dados cadastrais e fiscais aprovados e salvos com sucesso!", "sucesso");
         renderizarAreaCliente("dados");
+      });
+    }
+
+    // Gestão de Consentimento LGPD (Área do Cliente)
+    const linkPrivacidadeDados = container.querySelector("#link-abrir-privacidade-dados");
+    linkPrivacidadeDados?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalPoliticaPrivacidade();
+    });
+
+    const txtStatusConsent = container.querySelector("#txt-status-consent-mkt");
+    const btnToggleConsent = container.querySelector("#btn-toggle-consent-marketing");
+
+    if (txtStatusConsent && btnToggleConsent && c.email) {
+      let consentimentoAtivo = false;
+      const verificarConsentimento = async () => {
+        if (window.SJ_SUPABASE?.consentimentos?.listar) {
+          try {
+            const lista = await window.SJ_SUPABASE.consentimentos.listar(c.email);
+            const mkt = lista.find((item) => item.finalidade === "comunicacoes_marketing");
+            consentimentoAtivo = Boolean(mkt && mkt.consentimento_concedido && !mkt.revogado_em);
+          } catch (_) {
+            consentimentoAtivo = false;
+          }
+        }
+        if (consentimentoAtivo) {
+          txtStatusConsent.innerHTML = '<span style="color:#059669; font-weight:700;">🟢 Ativo</span> — Você autorizou o recebimento de promoções e novidades.';
+          btnToggleConsent.textContent = "Revogar Consentimento";
+          btnToggleConsent.style.background = "#DC2626";
+        } else {
+          txtStatusConsent.innerHTML = '<span style="color:#64748B; font-weight:700;">⚪ Desativado</span> — Nenhuma mensagem comercial não solicitada será enviada.';
+          btnToggleConsent.textContent = "Autorizar Recebimento";
+          btnToggleConsent.style.background = "#0F172A";
+        }
+      };
+
+      verificarConsentimento();
+
+      btnToggleConsent.addEventListener("click", async () => {
+        btnToggleConsent.disabled = true;
+        btnToggleConsent.textContent = "Aguarde...";
+        try {
+          if (consentimentoAtivo) {
+            await window.SJ_SUPABASE.consentimentos.revogar(c.email, "comunicacoes_marketing", "Revogado pelo cliente na aba Meus Dados");
+            mostrarToast("Consentimento revogado com sucesso. Você não receberá mais ofertas.", "info");
+          } else {
+            await window.SJ_SUPABASE.consentimentos.registrar({
+              titularIdentificador: c.email,
+              titularTipo: "cliente",
+              finalidade: "comunicacoes_marketing",
+              versaoTermo: "v1.0",
+              consentimentoConcedido: true,
+              canal: "web"
+            });
+            mostrarToast("Consentimento concedido com sucesso!", "success");
+          }
+        } catch (err) {
+          mostrarToast("Erro ao atualizar consentimento: " + err.message, "error");
+        } finally {
+          btnToggleConsent.disabled = false;
+          await verificarConsentimento();
+        }
       });
     }
   }
@@ -10015,6 +10209,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       fecharModalRegrasSorteio();
       fecharModalCompararImpressoras();
       fecharModalAuthCliente();
+      fecharModalPoliticaPrivacidade();
       fecharGavetaPedido();
       if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
       if (searchDrop && searchDrop.classList.contains("open")) {

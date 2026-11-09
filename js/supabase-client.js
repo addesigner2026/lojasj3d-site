@@ -464,6 +464,129 @@
     }
   };
 
+  // Módulo de Consentimentos e Gestão LGPD (Art. 7º e 8º)
+  const consentimentos = {
+    // Registra a prova de consentimento ou aceite de termos no Supabase
+    registrar: async function (dados) {
+      if (!dados || !dados.titularIdentificador || !dados.finalidade) {
+        return { sucesso: false, mensagem: "Identificador e finalidade são obrigatórios." };
+      }
+
+      const client = inicializarCliente();
+      const registro = {
+        titular_identificador: String(dados.titularIdentificador).trim().toLowerCase(),
+        titular_tipo: dados.titularTipo || "cliente",
+        canal: dados.canal || "web",
+        finalidade: dados.finalidade,
+        versao_termo: dados.versaoTermo || "v1.0",
+        consentimento_concedido: dados.consentimentoConcedido !== undefined ? Boolean(dados.consentimentoConcedido) : true,
+        user_agent: typeof navigator !== "undefined" ? navigator.userAgent : null,
+        concedido_em: new Date().toISOString()
+      };
+
+      if (!client) {
+        try {
+          const chave = "sj_consentimentos_v1";
+          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
+          lista.unshift({ ...registro, id: "cons-" + Date.now() });
+          window.localStorage.setItem(chave, JSON.stringify(lista.slice(0, 50)));
+        } catch (_) {}
+        return { sucesso: true, local: true, registro };
+      }
+
+      try {
+        const { data, error } = await client
+          .from("termos_consentimento")
+          .insert(registro)
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return { sucesso: true, registro: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Revoga um consentimento anteriormente concedido
+    revogar: async function (titularIdentificador, finalidade, motivo = "Revogação a pedido do titular") {
+      if (!titularIdentificador || !finalidade) {
+        return { sucesso: false, mensagem: "Identificador e finalidade são obrigatórios." };
+      }
+
+      const idLimpo = String(titularIdentificador).trim().toLowerCase();
+      const client = inicializarCliente();
+
+      if (!client) {
+        try {
+          const chave = "sj_consentimentos_v1";
+          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
+          lista.forEach((c) => {
+            if (c.titular_identificador === idLimpo && c.finalidade === finalidade) {
+              c.consentimento_concedido = false;
+              c.revogado_em = new Date().toISOString();
+              c.motivo_revogacao = motivo;
+            }
+          });
+          window.localStorage.setItem(chave, JSON.stringify(lista));
+        } catch (_) {}
+        return { sucesso: true, local: true };
+      }
+
+      try {
+        const { error } = await client
+          .from("termos_consentimento")
+          .update({
+            consentimento_concedido: false,
+            revogado_em: new Date().toISOString(),
+            motivo_revogacao: motivo
+          })
+          .eq("titular_identificador", idLimpo)
+          .eq("finalidade", finalidade)
+          .is("revogado_em", null);
+
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Consulta os consentimentos de um titular
+    listar: async function (titularIdentificador) {
+      if (!titularIdentificador) return [];
+      const idLimpo = String(titularIdentificador).trim().toLowerCase();
+      const client = inicializarCliente();
+
+      if (!client) {
+        try {
+          const chave = "sj_consentimentos_v1";
+          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
+          return lista.filter((c) => c.titular_identificador === idLimpo);
+        } catch (_) {
+          return [];
+        }
+      }
+
+      try {
+        const { data, error } = await client
+          .from("termos_consentimento")
+          .select("*")
+          .eq("titular_identificador", idLimpo)
+          .order("concedido_em", { ascending: false });
+
+        if (error) return [];
+        return data || [];
+      } catch (_) {
+        return [];
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -486,6 +609,7 @@
     },
     auth,
     clientes,
+    consentimentos,
     guardiao
   };
 });

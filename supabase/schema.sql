@@ -543,7 +543,67 @@ create trigger trg_audit_produtos
   for each row execute function public.gravar_log_auditoria();
 
 -- ============================================================================
--- 11. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
+-- 11. GESTÃO DE CONSENTIMENTOS E PROVA DE ACEITE LGPD (ART. 7º E ART. 8º)
+-- ============================================================================
+create table if not exists public.termos_consentimento (
+  id uuid primary key default gen_random_uuid(),
+  titular_identificador text not null, -- e-mail ou documento do titular
+  titular_tipo text not null default 'cliente' check (titular_tipo in ('cliente', 'lead', 'operador', 'visitante')),
+  canal text not null default 'web',
+  finalidade text not null, -- 'termos_privacidade' | 'comunicacoes_marketing' | 'orcamento_comercial'
+  versao_termo text not null default 'v1.0',
+  consentimento_concedido boolean not null default true,
+  ip_origem text,
+  user_agent text,
+  concedido_em timestamptz not null default now(),
+  revogado_em timestamptz,
+  motivo_revogacao text
+);
+
+create index if not exists idx_termos_titular on public.termos_consentimento(titular_identificador);
+create index if not exists idx_termos_finalidade on public.termos_consentimento(finalidade, consentimento_concedido);
+
+alter table public.termos_consentimento enable row level security;
+
+-- Inserção de consentimento: visitantes e usuários podem registrar
+drop policy if exists "termos_consentimento_insert" on public.termos_consentimento;
+create policy "termos_consentimento_insert"
+  on public.termos_consentimento for insert
+  to anon, authenticated
+  with check (true);
+
+-- Leitura: equipe interna ou o próprio titular autenticado
+drop policy if exists "termos_consentimento_select" on public.termos_consentimento;
+create policy "termos_consentimento_select"
+  on public.termos_consentimento for select
+  to authenticated
+  using (
+    public.is_equipe_interna()
+    or titular_identificador = (select email from auth.users where id = auth.uid())
+  );
+
+-- Revogação: o próprio titular autenticado ou administrador
+drop policy if exists "termos_consentimento_update" on public.termos_consentimento;
+create policy "termos_consentimento_update"
+  on public.termos_consentimento for update
+  to authenticated
+  using (
+    public.is_admin()
+    or titular_identificador = (select email from auth.users where id = auth.uid())
+  )
+  with check (
+    public.is_admin()
+    or titular_identificador = (select email from auth.users where id = auth.uid())
+  );
+
+-- Trigger de auditoria automática em termos de consentimento
+drop trigger if exists trg_audit_consentimento on public.termos_consentimento;
+create trigger trg_audit_consentimento
+  after insert or update on public.termos_consentimento
+  for each row execute function public.gravar_log_auditoria();
+
+-- ============================================================================
+-- 12. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
 -- ============================================================================
 insert into public.configuracoes_site (chave, valor)
 values 
