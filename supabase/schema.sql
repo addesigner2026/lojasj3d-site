@@ -762,7 +762,182 @@ grant execute on function public.executar_rotina_retencao_lgpd() to authenticate
 -- select cron.schedule('rotina-retencao-lgpd-diaria', '0 3 * * *', 'select public.executar_rotina_retencao_lgpd()');
 
 -- ============================================================================
--- 13. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
+-- 13. CANAL DE ATENDIMENTO A DIREITOS DO TITULAR (ART. 18 E ART. 19 DA LGPD)
+-- ============================================================================
+create table if not exists public.solicitacoes_titular (
+  id uuid primary key default gen_random_uuid(),
+  protocolo text not null unique, -- ex: LGPD-2026-4821
+  titular_nome text not null,
+  titular_email text not null,
+  titular_cpf text,
+  tipo_solicitacao text not null check (tipo_solicitacao in (
+    'acesso_dados',
+    'correcao_dados',
+    'eliminacao_dados',
+    'portabilidade_dados',
+    'revogacao_consentimento',
+    'informacao_compartilhamento',
+    'outro'
+  )),
+  detalhes_solicitacao text,
+  status text not null default 'em_analise' check (status in (
+    'em_analise',
+    'concluida',
+    'rejeitada',
+    'cancelada'
+  )),
+  prazo_limite timestamptz not null default (now() + interval '15 days'), -- Art. 19, II (15 dias)
+  responsavel_email text,
+  resposta_texto text,
+  dados_exportados jsonb,
+  ip_solicitante text,
+  concluida_em timestamptz,
+  criado_em timestamptz not null default now(),
+  atualizado_em timestamptz not null default now()
+);
+
+create index if not exists idx_solic_protocolo on public.solicitacoes_titular(protocolo);
+create index if not exists idx_solic_email on public.solicitacoes_titular(titular_email);
+create index if not exists idx_solic_status on public.solicitacoes_titular(status, prazo_limite);
+
+alter table public.solicitacoes_titular enable row level security;
+
+-- Inserção pública: titulares podem submeter solicitações
+drop policy if exists "solicitacoes_titular_insert" on public.solicitacoes_titular;
+create policy "solicitacoes_titular_insert"
+  on public.solicitacoes_titular for insert
+  to anon, authenticated
+  with check (true);
+
+-- Leitura: equipe interna ou o titular pelo seu e-mail autenticado
+drop policy if exists "solicitacoes_titular_select" on public.solicitacoes_titular;
+create policy "solicitacoes_titular_select"
+  on public.solicitacoes_titular for select
+  to anon, authenticated
+  using (
+    public.is_equipe_interna()
+    or titular_email = (select email from auth.users where id = auth.uid())
+  );
+
+-- Atualização e resposta: somente equipe interna autorizada
+drop policy if exists "solicitacoes_titular_update" on public.solicitacoes_titular;
+create policy "solicitacoes_titular_update"
+  on public.solicitacoes_titular for update
+  to authenticated
+  using (public.is_equipe_interna())
+  with check (public.is_equipe_interna());
+
+-- Trigger de auditoria em solicitações do titular
+drop trigger if exists trg_audit_solicitacoes on public.solicitacoes_titular;
+create trigger trg_audit_solicitacoes
+  after insert or update on public.solicitacoes_titular
+  for each row execute function public.gravar_log_auditoria();
+
+-- Função oficial para processamento de eliminação assistida com trava fiscal
+create or replace function public.processar_eliminacao_titular(
+  p_solicitacao_id uuid,
+  p_email_ou_id text,
+  p_responsavel_email text default 'admin@lojasj.com'
+)
+returns jsonb
+language plpgsql
+security definer
+set search_path = public
+as $$
+declare
+  v_cliente record;
+  v_possui_fiscal boolean := false;
+  v_resposta text;
+begin
+  select * into v_cliente
+  from public.clientes
+  where email = lower(trim(p_email_ou_id)) or id = trim(p_email_ou_id)
+  limit 1;
+
+  if v_cliente.id is null then
+    return jsonb_build_object('sucesso', false, 'mensagem', 'Cliente não localizado na base.');
+  end if;
+
+  select exists (
+    select 1 from public.orcamentos
+    where (cliente_id = v_cliente.id or lower(trim(cliente_nome)) = lower(trim(v_cliente.nome)))
+      and reter_ate > now()
+  ) into v_possui_fiscal;
+
+  if v_possui_fiscal then
+    -- Bloqueio comercial com ressalva tributária (Art. 16, I LGPD c/c Art. 173 CTN)
+    update public.clientes
+    set bloqueado_para_uso = true,
+        atualizado_em = now()
+    where id = v_cliente.id;
+
+    update public.termos_consentimento
+    set consentimento_concedido = false,
+        revogado_em = now(),
+        motivo_revogacao = 'Eliminação solicitada pelo titular - bloqueio fiscal aplicado'
+    where titular_identificador = v_cliente.email;
+
+    v_resposta := 'Seus dados de cadastro foram bloqueados e o consentimento de marketing revogado. No entanto, os registros de pedidos e notas fiscais emitidas nos últimos 5 anos foram mantidos em cumprimento à obrigação legal tributária (Art. 16, I da LGPD c/c Art. 173 do Código Tributário Nacional).';
+  else
+    -- Anonimização total irreversível
+    update public.clientes
+    set nome = 'Titular Excluído #' || substr(md5(id), 1, 8),
+        cnpj_cpf = '000.***.***-00',
+        endereco = 'Excluído a pedido do titular (Art. 18 LGPD)',
+        bairro_cidade_uf = 'Retido / PR',
+        cep_telefone = null,
+        email = 'excluido_' || substr(md5(id), 1, 8) || '@lgpd.solicitado',
+        anonimizado = true,
+        bloqueado_para_uso = true,
+        atualizado_em = now()
+    where id = v_cliente.id;
+
+    update public.termos_consentimento
+    set consentimento_concedido = false,
+        revogado_em = now(),
+        motivo_revogacao = 'Exclusão total a pedido do titular'
+    where titular_identificador = v_cliente.email;
+
+    v_resposta := 'Seus dados pessoais foram integralmente eliminados e anonimizados do sistema com sucesso, em atendimento ao Art. 18 da LGPD.';
+  end if;
+
+  if p_solicitacao_id is not null then
+    update public.solicitacoes_titular
+    set status = 'concluida',
+        responsavel_email = p_responsavel_email,
+        resposta_texto = v_resposta,
+        concluida_em = now(),
+        atualizado_em = now()
+    where id = p_solicitacao_id;
+  end if;
+
+  insert into public.auditoria_logs (
+    tabela, operacao, registro_id, usuario_email, dados_novos
+  ) values (
+    'clientes',
+    'EXCLUSAO_TITULAR_ATENDIDA',
+    v_cliente.id,
+    p_responsavel_email,
+    jsonb_build_object(
+      'bloqueio_fiscal', v_possui_fiscal,
+      'cliente_id', v_cliente.id,
+      'solicitacao_id', p_solicitacao_id
+    )
+  );
+
+  return jsonb_build_object(
+    'sucesso', true,
+    'bloqueio_fiscal', v_possui_fiscal,
+    'resposta', v_resposta
+  );
+end;
+$$;
+
+revoke execute on function public.processar_eliminacao_titular(uuid, text, text) from public, anon;
+grant execute on function public.processar_eliminacao_titular(uuid, text, text) to authenticated;
+
+-- ============================================================================
+-- 14. DADOS INICIAIS DE CONFIGURAÇÃO (SEED INICIAL)
 -- ============================================================================
 insert into public.configuracoes_site (chave, valor)
 values 

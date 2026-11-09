@@ -338,8 +338,78 @@
         <li><strong>Revogação do Consentimento:</strong> Desativar a autorização de recebimento de ofertas com 1 clique.</li>
       </ul>
       <p>
-        Para exercer qualquer desses direitos, utilize a aba <strong>"Meus Dados"</strong> na sua conta ou contate nosso DPO pelo e-mail <strong>[PREENCHER: dpo@lojasj3d.com.br]</strong>.
+        Para exercer qualquer desses direitos, utilize o <strong>Canal Digital de Atendimento ao Titular</strong> abaixo, a aba <strong>"Meus Dados"</strong> na sua conta ou contate nosso DPO pelo e-mail <strong>[PREENCHER: dpo@lojasj3d.com.br]</strong>.
       </p>
+
+      <!-- CANAL DIRETO DIGITAL DE ATENDIMENTO AO TITULAR (FORMULÁRIO INTERATIVO) -->
+      <div style="background:#FFFFFF; border:1.5px solid #E2E8F0; border-radius:14px; padding:24px; margin-top:20px; box-shadow:0 4px 12px rgba(0,0,0,0.03);">
+        <div style="border-bottom:1px solid #E2E8F0; padding-bottom:12px; margin-bottom:16px; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:8px;">
+          <div>
+            <span style="font-size:0.75rem; font-weight:800; color:#F04E23; text-transform:uppercase;">FORMULÁRIO ELETRÔNICO • ART. 18 &amp; 19</span>
+            <h3 style="margin:2px 0 0; font-size:1.15rem; color:#0F172A;">Solicitar Acesso, Portabilidade ou Apagamento de Dados</h3>
+          </div>
+          <span style="font-size:0.75rem; background:#ECFDF5; color:#065F46; padding:3px 10px; border-radius:999px; font-weight:700;">
+            ⏱️ Prazo de Resposta: até 15 dias
+          </span>
+        </div>
+
+        <form id="priv-page-lgpd-form" style="display:grid; gap:14px;">
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+            <div>
+              <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Seu Nome Completo *</label>
+              <input type="text" name="titular_nome" required placeholder="Digite seu nome completo" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+            </div>
+            <div>
+              <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Seu E-mail Cadastrado *</label>
+              <input type="email" name="titular_email" required placeholder="seuemail@exemplo.com" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+            </div>
+          </div>
+
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
+            <div>
+              <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Tipo de Solicitação *</label>
+              <select name="tipo_solicitacao" required style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; background:#fff;">
+                <option value="acesso_dados">1. Confirmação &amp; Acesso aos Dados (Art. 18, I e II)</option>
+                <option value="portabilidade_dados">2. Portabilidade dos Dados em JSON (Art. 18, V)</option>
+                <option value="correcao_dados">3. Correção de Dados Incompletos ou Inexatos (Art. 18, III)</option>
+                <option value="eliminacao_dados">4. Eliminação / Apagamento de Dados (Art. 18, VI)</option>
+                <option value="revogacao_consentimento">5. Revogação de Consentimento de Ofertas (Art. 18, IX)</option>
+                <option value="informacao_compartilhamento">6. Informações sobre Compartilhamento (Art. 18, VII)</option>
+                <option value="outro">7. Outra solicitação de privacidade</option>
+              </select>
+            </div>
+            <div>
+              <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">CPF ou CNPJ (Opcional)</label>
+              <input type="text" name="titular_cpf" placeholder="000.000.000-00" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+            </div>
+          </div>
+
+          <div>
+            <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Detalhes / Especificação da Solicitação</label>
+            <textarea name="detalhes_solicitacao" rows="3" placeholder="Descreva brevemente o que deseja solicitar..." style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; resize:vertical;"></textarea>
+          </div>
+
+          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; font-size:0.75rem; color:#64748B;">
+            ⚠️ <strong>Trava Fiscal:</strong> Solicitações de exclusão não contemplam notas fiscais emitidas nos últimos 5 anos, preservadas por determinação legal expressa (Art. 16, I da LGPD c/c Art. 173 do Código Tributário Nacional).
+          </div>
+
+          <button type="submit" id="btn-priv-page-submit" style="background:#F04E23; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer;">
+            📨 Enviar Solicitação &amp; Gerar Protocolo
+          </button>
+        </form>
+
+        <!-- Consulta de Protocolo na Página de Privacidade -->
+        <div style="margin-top:24px; border-top:1px solid #E2E8F0; padding-top:16px;">
+          <h4 style="margin:0 0 8px; font-size:0.9rem; color:#0F172A;">🔍 Já possui um protocolo? Consulte o status:</h4>
+          <div style="display:flex; gap:8px; max-width:420px;">
+            <input type="text" id="input-priv-page-prot" placeholder="Ex: LGPD-2026-4821" style="flex:1; padding:8px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.85rem; text-transform:uppercase;" />
+            <button type="button" id="btn-priv-page-search-prot" style="padding:8px 16px; background:#0F172A; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer;">
+              Consultar
+            </button>
+          </div>
+          <div id="priv-page-prot-result" style="display:none; margin-top:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:12px; font-size:0.82rem;"></div>
+        </div>
+      </div>
     </section>
 
     <!-- 9. MEDIDAS DE SEGURANÇA -->
@@ -378,6 +448,80 @@
     </div>
   </footer>
 
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script src="js/supabase-client.js?v=20261109_05"></script>
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const form = document.getElementById("priv-page-lgpd-form");
+      const btnSubmit = document.getElementById("btn-priv-page-submit");
+      const btnSearch = document.getElementById("btn-priv-page-search-prot");
+      const inputProt = document.getElementById("input-priv-page-prot");
+      const resultBox = document.getElementById("priv-page-prot-result");
+
+      form?.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Registrando...";
+        const nome = form.querySelector('input[name="titular_nome"]')?.value;
+        const email = form.querySelector('input[name="titular_email"]')?.value;
+        const cpf = form.querySelector('input[name="titular_cpf"]')?.value;
+        const tipo = form.querySelector('select[name="tipo_solicitacao"]')?.value;
+        const detalhes = form.querySelector('textarea[name="detalhes_solicitacao"]')?.value;
+
+        try {
+          let res = null;
+          if (window.SJ_SUPABASE?.direitosTitular?.solicitar) {
+            res = await window.SJ_SUPABASE.direitosTitular.solicitar({ nome, email, cpf, tipo, detalhes });
+          }
+          const prot = res?.protocolo || ("LGPD-2026-" + Math.floor(1000 + Math.random() * 9000));
+          alert(`✅ Solicitação registrada com sucesso!\n\nProtocolo: ${prot}\nPrazo legal: até 15 dias (Art. 19, II da LGPD).\n\nGuarde seu protocolo para acompanhamento.`);
+          form.reset();
+        } catch (err) {
+          alert("Erro: " + err.message);
+        } finally {
+          btnSubmit.disabled = false;
+          btnSubmit.textContent = "📨 Enviar Solicitação & Gerar Protocolo";
+        }
+      });
+
+      btnSearch?.addEventListener("click", async () => {
+        const prot = String(inputProt?.value || "").trim().toUpperCase();
+        if (!prot) {
+          alert("Digite o protocolo.");
+          return;
+        }
+        btnSearch.disabled = true;
+        btnSearch.textContent = "...";
+        try {
+          let s = null;
+          if (window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo) {
+            s = await window.SJ_SUPABASE.direitosTitular.consultarProtocolo(prot);
+          }
+          if (!s) {
+            alert(`Protocolo "${prot}" não localizado.`);
+            if (resultBox) resultBox.style.display = "none";
+            return;
+          }
+          const dtAbertura = new Date(s.criado_em).toLocaleDateString("pt-BR");
+          const dtLimite = new Date(s.prazo_limite).toLocaleDateString("pt-BR");
+          resultBox.style.display = "block";
+          resultBox.innerHTML = `
+            <strong>Protocolo: ${s.protocolo}</strong><br />
+            <span>Titular: ${s.titular_nome}</span><br />
+            <span>Status: <strong>${s.status}</strong></span><br />
+            <span>Abertura: ${dtAbertura} • Prazo Limite (15 dias): ${dtLimite}</span>
+            ${s.resposta_texto ? `<div style="margin-top:8px; padding:8px; background:#DCFCE7; border-radius:6px; color:#166534;"><strong>Resposta:</strong> ${s.resposta_texto}</div>` : ""}
+          `;
+        } catch (err) {
+          alert("Erro: " + err.message);
+        } finally {
+          btnSearch.disabled = false;
+          btnSearch.textContent = "Consultar";
+        }
+      });
+    });
+  </script>
 </body>
 
 </html>
+

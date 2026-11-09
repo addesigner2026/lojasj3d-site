@@ -1175,6 +1175,22 @@
     document.body.style.overflow = "";
   }
 
+  function abrirModalLgpdSolicitacao() {
+    const modal = document.getElementById("modal-lgpd-titular-request");
+    if (!modal) return;
+    modal.style.display = "flex";
+    modal.setAttribute("aria-hidden", "false");
+    document.body.style.overflow = "hidden";
+  }
+
+  function fecharModalLgpdSolicitacao() {
+    const modal = document.getElementById("modal-lgpd-titular-request");
+    if (!modal) return;
+    modal.style.display = "none";
+    modal.setAttribute("aria-hidden", "true");
+    document.body.style.overflow = "";
+  }
+
   function alternarAbaAuthCliente(aba, opcoes = {}) {
     const tabLogin = document.getElementById("tab-client-login");
     const tabSignup = document.getElementById("tab-client-signup");
@@ -1323,6 +1339,144 @@
     closePrivacyConfirm?.addEventListener("click", fecharModalPoliticaPrivacidade);
     modalPrivacy?.addEventListener("click", (e) => {
       if (e.target.id === "modal-privacy-policy") fecharModalPoliticaPrivacidade();
+    });
+
+    // Abertura / Fechamento do Canal de Direitos do Titular LGPD
+    const footerLgpdLink = document.getElementById("footer-lgpd-request-link");
+    const closeLgpdBtn = document.getElementById("close-lgpd-request-btn");
+    const modalLgpd = document.getElementById("modal-lgpd-titular-request");
+    const tabLgpdNova = document.getElementById("tab-lgpd-nova-solic");
+    const tabLgpdConsultar = document.getElementById("tab-lgpd-consultar-solic");
+    const formLgpdSolic = document.getElementById("form-lgpd-solicitacao");
+    const paneLgpdConsultar = document.getElementById("pane-lgpd-consultar");
+    const btnConsultarProt = document.getElementById("btn-consultar-protocolo-exec");
+    const inputBuscaProt = document.getElementById("input-lgpd-busca-protocolo");
+    const resultadoConsultaProt = document.getElementById("lgpd-consulta-resultado");
+
+    footerLgpdLink?.addEventListener("click", (e) => {
+      e.preventDefault();
+      abrirModalLgpdSolicitacao();
+    });
+    closeLgpdBtn?.addEventListener("click", fecharModalLgpdSolicitacao);
+    modalLgpd?.addEventListener("click", (e) => {
+      if (e.target.id === "modal-lgpd-titular-request") fecharModalLgpdSolicitacao();
+    });
+
+    tabLgpdNova?.addEventListener("click", () => {
+      tabLgpdNova.classList.add("active");
+      tabLgpdConsultar?.classList.remove("active");
+      if (formLgpdSolic) formLgpdSolic.style.display = "flex";
+      if (paneLgpdConsultar) paneLgpdConsultar.style.display = "none";
+    });
+
+    tabLgpdConsultar?.addEventListener("click", () => {
+      tabLgpdConsultar.classList.add("active");
+      tabLgpdNova?.classList.remove("active");
+      if (formLgpdSolic) formLgpdSolic.style.display = "none";
+      if (paneLgpdConsultar) paneLgpdConsultar.style.display = "flex";
+    });
+
+    // Envio do formulário de solicitação de direitos
+    formLgpdSolic?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const btnSubmit = document.getElementById("btn-submit-lgpd-request");
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.innerHTML = "<span>⏳ Registrando solicitação...</span>";
+      }
+
+      const nome = formLgpdSolic.querySelector('input[name="titular_nome"]')?.value;
+      const email = formLgpdSolic.querySelector('input[name="titular_email"]')?.value;
+      const cpf = formLgpdSolic.querySelector('input[name="titular_cpf"]')?.value;
+      const tipo = formLgpdSolic.querySelector('select[name="tipo_solicitacao"]')?.value;
+      const detalhes = formLgpdSolic.querySelector('textarea[name="detalhes_solicitacao"]')?.value;
+
+      try {
+        let res = null;
+        if (window.SJ_SUPABASE?.direitosTitular?.solicitar) {
+          res = await window.SJ_SUPABASE.direitosTitular.solicitar({
+            nome,
+            email,
+            cpf,
+            tipo,
+            detalhes
+          });
+        }
+        const protocolo = res?.protocolo || ("LGPD-2026-" + Math.floor(1000 + Math.random() * 9000));
+        alert(`✅ Solicitação registrada com sucesso!\n\nSeu Protocolo: ${protocolo}\nPrazo de Resposta: até 15 dias (Art. 19, II da LGPD).\n\nGuarde este número para consultar o andamento a qualquer momento.`);
+        mostrarToast(`Protocolo ${protocolo} gerado com sucesso!`, "success");
+        formLgpdSolic.reset();
+        fecharModalLgpdSolicitacao();
+      } catch (err) {
+        alert("Erro ao enviar solicitação: " + err.message);
+      } finally {
+        if (btnSubmit) {
+          btnSubmit.disabled = false;
+          btnSubmit.innerHTML = "<span>📨 Registrar Solicitação &amp; Gerar Protocolo</span>";
+        }
+      }
+    });
+
+    // Consulta de status de protocolo existente
+    btnConsultarProt?.addEventListener("click", async () => {
+      const prot = String(inputBuscaProt?.value || "").trim().toUpperCase();
+      if (!prot) {
+        alert("Digite o número do protocolo.");
+        return;
+      }
+      btnConsultarProt.disabled = true;
+      btnConsultarProt.textContent = "Buscando...";
+      try {
+        let solic = null;
+        if (window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo) {
+          solic = await window.SJ_SUPABASE.direitosTitular.consultarProtocolo(prot);
+        }
+        if (!solic) {
+          alert(`Protocolo "${prot}" não localizado.`);
+          if (resultadoConsultaProt) resultadoConsultaProt.style.display = "none";
+          return;
+        }
+
+        const statusMap = {
+          em_analise: "🟡 Em Análise (No Prazo)",
+          concluida: "🟢 Concluída",
+          rejeitada: "🔴 Rejeitada",
+          cancelada: "⚪ Cancelada"
+        };
+        const statusTexto = statusMap[solic.status] || solic.status;
+        const dataAbertura = new Date(solic.criado_em).toLocaleDateString("pt-BR");
+        const dataLimite = new Date(solic.prazo_limite).toLocaleDateString("pt-BR");
+
+        if (resultadoConsultaProt) {
+          resultadoConsultaProt.style.display = "block";
+          resultadoConsultaProt.innerHTML = `
+            <div style="font-size:0.82rem; font-weight:800; color:#0F172A; margin-bottom:6px;">
+              Protocolo: ${escaparHtml(solic.protocolo)}
+            </div>
+            <div style="font-size:0.78rem; color:#475569; display:grid; gap:4px; line-height:1.5;">
+              <div><strong>Titular:</strong> ${escaparHtml(solic.titular_nome)}</div>
+              <div><strong>Status:</strong> ${statusTexto}</div>
+              <div><strong>Data de Abertura:</strong> ${dataAbertura}</div>
+              <div><strong>Prazo Limite Legal (15 dias):</strong> ${dataLimite}</div>
+              ${solic.resposta_texto ? `
+                <div style="margin-top:8px; padding:10px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; color:#166534;">
+                  <strong>Resposta Oficial da Loja SJ 3D:</strong><br />
+                  ${escaparHtml(solic.resposta_texto)}
+                </div>
+              ` : `
+                <div style="margin-top:6px; color:#92400E; font-size:0.75rem;">
+                  ⏳ Sua solicitação está em processamento pelo Encarregado de Dados. A resposta será concluída dentro do prazo legal de 15 dias.
+                </div>
+              `}
+            </div>
+          `;
+        }
+      } catch (err) {
+        alert("Erro ao consultar protocolo: " + err.message);
+      } finally {
+        btnConsultarProt.disabled = false;
+        btnConsultarProt.textContent = "🔍 Buscar";
+      }
     });
 
     // Sincronizar checkboxes de Nota Fiscal no Carrinho Lateral e Gaveta
@@ -8278,7 +8432,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       banner: "cms-pane-banner",
       exportar: "cms-pane-exportar",
       supabase: "cms-pane-supabase",
-      equipe: "cms-pane-equipe"
+      equipe: "cms-pane-equipe",
+      lgpd: "cms-pane-lgpd"
     };
     const mapTitles = {
       produtos: "Catálogo, Preços & Controle de Estoque",
@@ -8287,7 +8442,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       equipe: "Funcionários, Administradores & Acessos",
       banner: "Banner de Promoções & Sorteio",
       supabase: "Conexão Supabase & Nuvem",
-      exportar: "Backup & Exportação de Dados"
+      exportar: "Backup & Exportação de Dados",
+      lgpd: "Painel de Atendimento a Solicitações de Titulares (LGPD Art. 18)"
     };
     const titleEl = document.getElementById("admin-cms-title");
     if (titleEl && mapTitles[aba]) {
@@ -8313,6 +8469,195 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (aba === "equipe") {
       renderizarPainelEquipeCms();
     }
+    if (aba === "lgpd") {
+      renderizarPainelLgpdCms();
+    }
+  }
+
+  // =====================================================================
+  // PAINEL LGPD: ATENDIMENTO A DIREITOS DO TITULAR & SLA DE 15 DIAS
+  // =====================================================================
+  async function renderizarPainelLgpdCms() {
+    const listEl = document.getElementById("cms-lgpd-requests-list");
+    if (!listEl) return;
+
+    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748B;">Carregando solicitações de titulares...</div>';
+
+    let solicitacoes = [];
+    if (window.SJ_SUPABASE?.direitosTitular?.listarSolicitacoes) {
+      try {
+        solicitacoes = await window.SJ_SUPABASE.direitosTitular.listarSolicitacoes();
+      } catch (e) {
+        console.warn("[LGPD] Erro ao carregar solicitações:", e);
+      }
+    }
+
+    if (!Array.isArray(solicitacoes) || solicitacoes.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align:center; padding:32px 16px; color:#64748B;">
+          <div style="font-size:2rem; margin-bottom:8px;">🛡️</div>
+          <strong style="color:#0F172A; display:block; margin-bottom:4px;">Nenhuma solicitação de titular pendente</strong>
+          <span style="font-size:0.82rem;">Quando um cliente ou titular preencher o formulário de direitos da LGPD, o pedido aparecerá aqui com contagem regressiva do SLA de 15 dias.</span>
+        </div>
+      `;
+      return;
+    }
+
+    const agora = new Date();
+    const tipoMap = {
+      acesso_dados: "1. Confirmação & Acesso aos Dados",
+      portabilidade_dados: "2. Portabilidade (JSON)",
+      correcao_dados: "3. Correção de Dados",
+      eliminacao_dados: "4. Eliminação / Apagamento",
+      revogacao_consentimento: "5. Revogação de Consentimento",
+      informacao_compartilhamento: "6. Info sobre Compartilhamento",
+      outro: "7. Outro"
+    };
+
+    listEl.innerHTML = solicitacoes.map((s) => {
+      const dataAbertura = new Date(s.criado_em).toLocaleDateString("pt-BR");
+      const prazoLimite = new Date(s.prazo_limite);
+      const dataLimiteFmt = prazoLimite.toLocaleDateString("pt-BR");
+      const diasRestantes = Math.ceil((prazoLimite - agora) / (1000 * 60 * 60 * 24));
+
+      let badgeSla = "";
+      if (s.status === "concluida") {
+        badgeSla = '<span style="background:#DCFCE7; color:#166534; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">✅ Concluída</span>';
+      } else if (diasRestantes < 0) {
+        badgeSla = `<span style="background:#FEE2E2; color:#991B1B; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🔴 SLA Atrasado (${Math.abs(diasRestantes)}d)</span>`;
+      } else if (diasRestantes <= 5) {
+        badgeSla = `<span style="background:#FEF3C7; color:#92400E; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🟡 Atenção (${diasRestantes} dias restantes)</span>`;
+      } else {
+        badgeSla = `<span style="background:#DCFCE7; color:#166534; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🟢 No Prazo (${diasRestantes} dias)</span>`;
+      }
+
+      const tipoFormatado = tipoMap[s.tipo_solicitacao] || s.tipo_solicitacao;
+
+      return `
+        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin-bottom:12px;" data-solic-card="${s.id}">
+          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+            <div>
+              <span style="font-size:0.85rem; font-weight:900; color:#0F172A; margin-right:8px;">${escaparHtml(s.protocolo)}</span>
+              <span style="font-size:0.82rem; font-weight:700; color:#3B82F6;">${tipoFormatado}</span>
+            </div>
+            <div>${badgeSla}</div>
+          </div>
+
+          <div style="font-size:0.8rem; color:#475569; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:6px; margin-bottom:10px;">
+            <div><strong>Titular:</strong> ${escaparHtml(s.titular_nome)}</div>
+            <div><strong>E-mail:</strong> ${escaparHtml(s.titular_email)}</div>
+            ${s.titular_cpf ? `<div><strong>CPF/CNPJ:</strong> ${escaparHtml(s.titular_cpf)}</div>` : ""}
+            <div><strong>Data:</strong> ${dataAbertura} (Limite: ${dataLimiteFmt})</div>
+          </div>
+
+          ${s.detalhes_solicitacao ? `
+            <div style="font-size:0.78rem; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:8px 10px; color:#334155; margin-bottom:10px;">
+              <strong>Mensagem do Titular:</strong> ${escaparHtml(s.detalhes_solicitacao)}
+            </div>
+          ` : ""}
+
+          ${s.resposta_texto ? `
+            <div style="font-size:0.78rem; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:8px 10px; color:#166534; margin-bottom:10px;">
+              <strong>Resposta Registrada:</strong> ${escaparHtml(s.resposta_texto)}
+            </div>
+          ` : ""}
+
+          <div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid #E2E8F0; padding-top:10px; align-items:center;">
+            <button type="button" class="btn-cms-secondary btn-export-portabilidade" data-solic-email="${escaparHtml(s.titular_email)}" data-solic-prot="${escaparHtml(s.protocolo)}" style="padding:5px 12px; font-size:0.75rem; border-color:#CBD5E1;">
+              📥 Baixar Portabilidade (JSON)
+            </button>
+
+            ${s.tipo_solicitacao === "eliminacao_dados" && s.status !== "concluida" ? `
+              <button type="button" class="btn-cms-secondary btn-processar-eliminacao" data-solic-id="${s.id}" data-solic-email="${escaparHtml(s.titular_email)}" style="padding:5px 12px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">
+                🗑️ Atender Eliminação / Trava Fiscal
+              </button>
+            ` : ""}
+
+            ${s.status !== "concluida" ? `
+              <button type="button" class="btn-cms-save btn-responder-solic" data-solic-id="${s.id}" style="padding:5px 14px; font-size:0.75rem;">
+                ✅ Responder &amp; Concluir
+              </button>
+            ` : ""}
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    listEl.querySelectorAll(".btn-export-portabilidade").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const email = btn.dataset.solicEmail;
+        const prot = btn.dataset.solicProt;
+        btn.disabled = true;
+        btn.textContent = "Gerando JSON...";
+        try {
+          const dados = await window.SJ_SUPABASE.direitosTitular.exportarDadosTitular(email);
+          const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement("a");
+          a.href = url;
+          a.download = `portabilidade_lgpd_${prot}.json`;
+          a.click();
+          URL.revokeObjectURL(url);
+          mostrarToast(`Arquivo de portabilidade do protocolo ${prot} baixado com sucesso!`, "success");
+        } catch (err) {
+          alert("Erro ao exportar portabilidade: " + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "📥 Baixar Portabilidade (JSON)";
+        }
+      });
+    });
+
+    listEl.querySelectorAll(".btn-processar-eliminacao").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.solicId;
+        const email = btn.dataset.solicEmail;
+        const confirma = confirm(`Deseja realmente processar a eliminação/bloqueio dos dados de ${email}?\n\nO sistema checará se há notas fiscais obrigatórias de 5 anos antes de apagar.`);
+        if (!confirma) return;
+
+        btn.disabled = true;
+        btn.textContent = "Processando...";
+        try {
+          const res = await window.SJ_SUPABASE.direitosTitular.processarEliminacao(id, email);
+          if (res?.sucesso) {
+            alert(`✅ Solicitação atendida com sucesso!\n\n${res.resposta}`);
+            mostrarToast("Eliminação/bloqueio processado com sucesso!", "success");
+            renderizarPainelLgpdCms();
+          } else {
+            alert("Erro: " + (res?.mensagem || "Não foi possível processar."));
+          }
+        } catch (err) {
+          alert("Erro ao processar eliminação: " + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "🗑️ Atender Eliminação / Trava Fiscal";
+        }
+      });
+    });
+
+    listEl.querySelectorAll(".btn-responder-solic").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.solicId;
+        const texto = prompt("Digite a resposta oficial a ser registrada no protocolo:");
+        if (!texto || !texto.trim()) return;
+
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+        try {
+          await window.SJ_SUPABASE.direitosTitular.concluirSolicitacao(id, texto.trim());
+          mostrarToast("Solicitação concluída com sucesso!", "success");
+          renderizarPainelLgpdCms();
+        } catch (err) {
+          alert("Erro ao concluir: " + err.message);
+        } finally {
+          btn.disabled = false;
+          btn.textContent = "✅ Responder & Concluir";
+        }
+      });
+    });
+  }
+
+  document.getElementById("btn-cms-refresh-lgpd")?.addEventListener("click", renderizarPainelLgpdCms);
   }
 
   // =====================================================================
@@ -10210,6 +10555,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       fecharModalCompararImpressoras();
       fecharModalAuthCliente();
       fecharModalPoliticaPrivacidade();
+      fecharModalLgpdSolicitacao();
       fecharGavetaPedido();
       if (searchLiveDropdown) searchLiveDropdown.style.display = "none";
       if (searchDrop && searchDrop.classList.contains("open")) {

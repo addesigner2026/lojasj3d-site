@@ -606,6 +606,208 @@
     }
   };
 
+  // Módulo de Direitos do Titular LGPD (Art. 18 e Art. 19)
+  const direitosTitular = {
+    solicitar: async function (dados) {
+      if (!dados || !dados.nome || !dados.email || !dados.tipo) {
+        return { sucesso: false, mensagem: "Nome, e-mail e tipo de solicitação são obrigatórios." };
+      }
+
+      const client = inicializarCliente();
+      const protocolo = "LGPD-2026-" + Math.floor(1000 + Math.random() * 9000);
+      const emailLimpo = String(dados.email).trim().toLowerCase();
+      const nomeLimpo = String(dados.nome).trim();
+      const docLimpo = String(dados.cpf || dados.cnpjCpf || "").trim();
+
+      const registro = {
+        protocolo,
+        titular_nome: nomeLimpo,
+        titular_email: emailLimpo,
+        titular_cpf: docLimpo || null,
+        tipo_solicitacao: dados.tipo,
+        detalhes_solicitacao: String(dados.detalhes || "").trim(),
+        status: "em_analise",
+        prazo_limite: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+        criado_em: new Date().toISOString()
+      };
+
+      if (!client) {
+        try {
+          const chave = "sj_solicitacoes_titular_v1";
+          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
+          lista.unshift({ ...registro, id: "solic-" + Date.now() });
+          window.localStorage.setItem(chave, JSON.stringify(lista));
+        } catch (_) {}
+        return { sucesso: true, protocolo, local: true, registro };
+      }
+
+      try {
+        const { data, error } = await client
+          .from("solicitacoes_titular")
+          .insert(registro)
+          .select()
+          .maybeSingle();
+
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return { sucesso: true, protocolo, registro: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    consultarProtocolo: async function (protocolo) {
+      if (!protocolo) return null;
+      const protLimpo = String(protocolo).trim().toUpperCase();
+      const client = inicializarCliente();
+
+      if (!client) {
+        try {
+          const chave = "sj_solicitacoes_titular_v1";
+          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
+          return lista.find((s) => s.protocolo === protLimpo) || null;
+        } catch (_) {
+          return null;
+        }
+      }
+
+      try {
+        const { data, error } = await client
+          .from("solicitacoes_titular")
+          .select("*")
+          .eq("protocolo", protLimpo)
+          .maybeSingle();
+
+        if (error) return null;
+        return data;
+      } catch (_) {
+        return null;
+      }
+    },
+
+    listarSolicitacoes: async function () {
+      const client = inicializarCliente();
+      if (!client) {
+        try {
+          const chave = "sj_solicitacoes_titular_v1";
+          return JSON.parse(window.localStorage.getItem(chave) || "[]");
+        } catch (_) {
+          return [];
+        }
+      }
+
+      try {
+        const { data, error } = await client
+          .from("solicitacoes_titular")
+          .select("*")
+          .order("criado_em", { ascending: false });
+
+        if (error) return [];
+        return data || [];
+      } catch (_) {
+        return [];
+      }
+    },
+
+    exportarDadosTitular: async function (emailOuDoc) {
+      if (!emailOuDoc) return null;
+      const chave = String(emailOuDoc).trim().toLowerCase();
+      const client = inicializarCliente();
+
+      let cadastro = null;
+      let orcamentos = [];
+      let consentimentos = [];
+
+      if (client) {
+        try {
+          const resCli = await client
+            .from("clientes")
+            .select("*")
+            .or(`email.eq.${chave},cnpj_cpf.eq.${chave}`)
+            .maybeSingle();
+          cadastro = resCli.data;
+
+          if (cadastro?.id) {
+            const resOrc = await client
+              .from("orcamentos")
+              .select("*")
+              .eq("cliente_id", cadastro.id);
+            orcamentos = resOrc.data || [];
+          }
+
+          const resCons = await client
+            .from("termos_consentimento")
+            .select("*")
+            .eq("titular_identificador", chave);
+          consentimentos = resCons.data || [];
+        } catch (_) {}
+      }
+
+      if (!cadastro && window.SJ_DB?.clientes?.listar) {
+        const listaLocal = window.SJ_DB.clientes.listar();
+        cadastro = listaLocal.find((c) => (c.email || "").toLowerCase() === chave || (c.cnpjCpf || "") === chave) || null;
+      }
+
+      return {
+        exportado_em: new Date().toISOString(),
+        legislacao: "Lei Geral de Proteção de Dados (Lei 13.709/2018) - Art. 18, V",
+        controlador: "LOJA SJ 3D - Umuarama / PR",
+        titular_solicitante: chave,
+        dados_cadastrais: cadastro || {},
+        historico_pedidos_e_orcamentos: orcamentos,
+        historico_consentimentos: consentimentos
+      };
+    },
+
+    processarEliminacao: async function (solicitacaoId, emailOuId, responsavelEmail = "admin@lojasj.com") {
+      const client = inicializarCliente();
+      if (!client) {
+        return { sucesso: false, mensagem: "Supabase não conectado." };
+      }
+
+      try {
+        const { data, error } = await client.rpc("processar_eliminacao_titular", {
+          p_solicitacao_id: solicitacaoId,
+          p_email_ou_id: emailOuId,
+          p_responsavel_email: responsavelEmail
+        });
+
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return data;
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    concluirSolicitacao: async function (solicitacaoId, respostaTexto, responsavelEmail = "admin@lojasj.com") {
+      const client = inicializarCliente();
+      if (!client) {
+        return { sucesso: false, mensagem: "Supabase não conectado." };
+      }
+
+      try {
+        const { error } = await client
+          .from("solicitacoes_titular")
+          .update({
+            status: "concluida",
+            resposta_texto: respostaTexto,
+            responsavel_email: responsavelEmail,
+            concluida_em: new Date().toISOString(),
+            atualizado_em: new Date().toISOString()
+          })
+          .eq("id", solicitacaoId);
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -630,6 +832,7 @@
     clientes,
     consentimentos,
     retencao,
+    direitosTitular,
     guardiao
   };
 });
