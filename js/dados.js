@@ -1019,6 +1019,29 @@ window.SITE_DATA = {
         "Quantidade": "2 Peças de alta durabilidade"
       }
     },
+    {
+      id: "peca-spray-adesivo-150ml",
+      categoria: "pecas",
+      marca: "Oficina SJ 3D",
+      area: "Mesa de Impressão / Fixação",
+      paraQueServe: "Spray adesivo contendo solução ideal para auxiliar suas impressões. De fácil aplicação, sua composição é solúvel em água para tornar mais fácil a limpeza de seu vidro após o uso (quando necessário). Tem boa aderência em até 4 impressões com a mesma aplicação e possui alto rendimento.",
+      compatibilidade: "Universal (Vidro, PEI, Espelho, Aço Mola)",
+      nome: "Spray Adesivo Fixador para Impressão 3D (110g / 150ml)",
+      subtitulo: "Solução de alta aderência solúvel em água que previne o descolamento de peças e dura até 4 impressões",
+      precoVista: "Sob Consulta",
+      precoVistaValor: 0,
+      precoParcelado: "Consulte disponibilidade",
+      imagem: "assets/produtos/pecas/peca_spray_adesivo_150ml.jpg",
+      select1Opcoes: ["Lata 110g / 150ml"],
+      select2Opcoes: ["Solúvel em Água"],
+      botaoTexto: "Consultar no WhatsApp",
+      fichaTecnica: {
+        "Volume / Peso": "150 ml / 110 g",
+        "Rendimento": "Boa aderência em até 4 impressões com a mesma aplicação",
+        "Limpeza": "100% Solúvel em água para limpeza rápida sem resíduos",
+        "Compatibilidade": "Universal para superfícies de vidro, chapas flexíveis e plataformas 3D"
+      }
+    },
     // -------------------- 4. MANUTENÇÃO & ASSISTÊNCIA TÉCNICA --------------------
     {
       id: "manut-revisao-preventiva",
