@@ -623,7 +623,7 @@ window.SITE_DATA = {
       precoVista: "Sob Consulta",
       precoVistaValor: 0,
       precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_04.jpg",
+      imagem: "assets/produtos/pecas/hotend_bambu_a1_kit_completo.jpg",
       select1Label: "Diâmetro do Bico",
       select1Opcoes: ["0.2 mm", "0.4 mm", "0.6 mm", "0.8 mm"],
       select2Label: "Material do Bico",
@@ -632,28 +632,28 @@ window.SITE_DATA = {
         {
           diametro: "0.2 mm",
           material: "Aço Inoxidável",
-          imagem: "assets/produtos/pecas/hotend_bambu_a1_inox_02.jpg",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_kit_completo.jpg",
           destaque: "Ultra Precisão",
           instrucao: "Ultra precisão e acabamento impecável. Ideal para miniaturas RPG, action figures, esculturas detalhadas e textos milimétricos com camadas ultrafinas."
         },
         {
           diametro: "0.4 mm",
           material: "Aço Temperado",
-          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_04.jpg",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_kit_completo.jpg",
           destaque: "Padrão Versátil",
           instrucao: "Diâmetro padrão e mais versátil. Perfeito para 95% das impressões diárias, oferecendo equilíbrio perfeito entre velocidade e acabamento impecável."
         },
         {
           diametro: "0.6 mm",
           material: "Aço Temperado",
-          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_06.jpg",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_kit_completo.jpg",
           destaque: "Alta Vazão & Abrasivos",
           instrucao: "Alta vazão volumétrica e resistência extrema ao desgaste abrasivo. Recomendado para filamentos com Fibra de Carbono, Madeira, Glow e menor tempo de impressão."
         },
         {
           diametro: "0.8 mm",
           material: "Aço Temperado",
-          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_08.jpg",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_kit_completo.jpg",
           destaque: "Máximo Fluxo High-Speed",
           instrucao: "Máxima velocidade e fluxo de plástico. Ideal para prototipagem rápida em grande escala, peças mecânicas gigantes e vasos estruturais de parede grossa."
         }
