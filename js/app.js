@@ -2747,8 +2747,15 @@
 
     const priceLineHtml = item.categoria === "pecas"
       ? `
-        <div class="combo-card-peca-sub-wrap">
-          <p class="combo-card-peca-sub">${escaparHtml(item.subtitulo || "")}</p>
+        <div class="combo-card-peca-info">
+          <div class="peca-card-tags">
+            <span class="peca-area-badge">Área: ${escaparHtml(item.area || "Componentes")}</span>
+            <span class="peca-compat-badge">${escaparHtml(item.compatibilidade || item.select2Opcoes?.[0] || "Universal")}</span>
+          </div>
+          <div class="peca-card-funcao">
+            <span class="peca-funcao-rotulo">Para que serve:</span>
+            <p class="peca-funcao-texto">${escaparHtml(item.paraQueServe || item.subtitulo || "")}</p>
+          </div>
         </div>
       `
       : (precoInicialExibicao
@@ -5019,7 +5026,18 @@
           </div>
 
           <h1 class="pdp-title">${tituloPagina}</h1>
-          <p class="pdp-subtitle">${item.subtitulo}</p>
+          ${item.categoria === "pecas" ? `
+            <div class="pdp-peca-meta-box">
+              <span class="pdp-peca-area-tag">📍 Área: ${escaparHtml(item.area || "Componente Original")}</span>
+              <span class="pdp-peca-compat-tag">⚙️ Compatível com: ${escaparHtml(item.compatibilidade || item.select2Opcoes?.[0] || "Bambu Lab")}</span>
+            </div>
+            <div class="pdp-peca-funcao-block">
+              <span class="pdp-peca-funcao-lbl">Para que serve esta peça:</span>
+              <p class="pdp-peca-funcao-desc">${escaparHtml(item.paraQueServe || item.subtitulo || "")}</p>
+            </div>
+          ` : `
+            <p class="pdp-subtitle">${item.subtitulo}</p>
+          `}
 
           <!-- Bloco de Preço -->
           ${item.categoria === "pecas" ? `
