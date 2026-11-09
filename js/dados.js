@@ -830,21 +830,22 @@ window.SITE_DATA = {
       id: "peca-placa-peo-pei-257",
       categoria: "pecas",
       area: "Mesa de Impressão / Plataforma",
-      paraQueServe: "Dois tipos de textura no mesmo produto: Face A com padrão diamante geométrico espelhado e Face B com textura jateada fosca PEI.",
+      paraQueServe: "Transfere dois acabamentos estéticos premium diretamente para a base da peça: padrão geométrico de diamante facetado de um lado e textura entrelaçada de fibra de carbono do outro.",
       compatibilidade: "Bambu Lab A1, P1S, P1P, X1-Carbon (257×257 mm)",
-      nome: "Placa Híbrida Dupla Face: PEO Diamante + PEI Texturizado (257×257mm)",
-      subtitulo: "Um lado com acabamento diamante liso e o outro com PEI texturizado clássico",
+      nome: "Placa Híbrida Dupla Face: PEO Diamante + Fibra de Carbono (257×257mm)",
+      subtitulo: "Acabamento duplo: Face PEO com padrão diamante facetado e Face com textura de fibra de carbono",
       precoVista: "Sob Consulta",
       precoVistaValor: 0,
       precoParcelado: "Consulte disponibilidade",
       imagem: "assets/produtos/pecas/peca_placa_peo_pei_257.jpg",
       select1Opcoes: ["257×257mm"],
-      select2Opcoes: ["PEO Diamante + PEI"],
+      select2Opcoes: ["PEO Diamante + Carbono"],
       botaoTexto: "Consultar no WhatsApp",
       fichaTecnica: {
         "Compatibilidade": "Bambu Lab A1, P1P, P1S e X1C (257×257 mm)",
-        "Face A": "PEO com microtextura geométrica espelhada diamante",
-        "Face B": "PEI texturizado jateado fosco tradicional"
+        "Face A": "PEO com microtextura geométrica facetada diamante espelhada",
+        "Face B": "PET com textura entrelaçada estilo fibra de carbono",
+        "Material Base": "Chapa de aço mola magnético de alta flexibilidade"
       }
     },
     {
