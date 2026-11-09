@@ -855,6 +855,191 @@ button, select, input {
   margin: 0;
 }
 
+/* Pílulas de Seleção Rápida de Diâmetro no Card de Peças */
+.peca-card-diam-section {
+  margin: 10px 0 6px;
+  background: #f8fafc;
+  padding: 8px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.peca-card-diam-label {
+  display: block;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #64748b;
+  margin-bottom: 6px;
+}
+
+.peca-card-diam-pills {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 5px;
+}
+
+.peca-card-diam-pill {
+  padding: 5px 2px;
+  background: #ffffff;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.76rem;
+  font-weight: 700;
+  color: #334155;
+  cursor: pointer;
+  text-align: center;
+  transition: all 0.15s ease;
+}
+
+.peca-card-diam-pill:hover {
+  border-color: #f04e23;
+  color: #f04e23;
+}
+
+.peca-card-diam-pill.active {
+  background: #fff7ed;
+  border-color: #f04e23;
+  color: #ea580c;
+  box-shadow: 0 0 0 1px #f04e23 inset;
+}
+
+/* Seleção de Diâmetros e Instruções na Página do Produto (PDP) */
+.pdp-diam-selection-group {
+  margin-bottom: 20px;
+}
+
+.pdp-diam-active-highlight {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.82rem;
+  font-weight: 800;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid #fed7aa;
+}
+
+.pdp-diam-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  margin: 10px 0 14px;
+}
+
+@media (max-width: 600px) {
+  .pdp-diam-cards-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.pdp-diam-card-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 12px 8px;
+  background: #ffffff;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: center;
+  position: relative;
+}
+
+.pdp-diam-card-btn:hover {
+  border-color: #fdba74;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(240, 78, 35, 0.08);
+}
+
+.pdp-diam-card-btn.active {
+  border-color: #f04e23;
+  background: #fffaf5;
+  box-shadow: 0 4px 14px rgba(240, 78, 35, 0.16);
+}
+
+.pdp-diam-size {
+  font-size: 1.15rem;
+  font-weight: 900;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+}
+
+.pdp-diam-card-btn.active .pdp-diam-size {
+  color: #ea580c;
+}
+
+.pdp-diam-material {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  margin-top: 2px;
+}
+
+.pdp-diam-tag {
+  display: inline-block;
+  margin-top: 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  background: #f1f5f9;
+  color: #475569;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pdp-diam-card-btn.active .pdp-diam-tag {
+  background: #ea580c;
+  color: #ffffff;
+}
+
+/* Caixa de Instrução e Recomendação para o Diâmetro */
+.pdp-diam-instruction-box {
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-left: 4px solid #ea580c;
+  border-radius: 8px;
+  padding: 12px 14px;
+  transition: all 0.2s ease;
+}
+
+.pdp-diam-instruction-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 6px;
+}
+
+.pdp-diam-instruction-badge {
+  font-size: 0.8rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.pdp-diam-mat-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  background: #e2e8f0;
+  color: #334155;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.pdp-diam-instruction-text {
+  font-size: 0.88rem;
+  color: #334155;
+  line-height: 1.5;
+  margin: 0;
+}
+
 /* Botões de Alternar Marca Direto no Card de Filamento (Bambu Lab | MaxPrint) */
 .card-brand-switch {
   display: grid;

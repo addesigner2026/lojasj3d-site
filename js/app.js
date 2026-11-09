@@ -2783,14 +2783,44 @@
     const opcoesSelect2 = item.select2Opcoes || ["Padrão"];
     const mostrarSel1 =
       item.categoria !== "impressoras" &&
+      !item.variantesDiametro &&
       Array.isArray(opcoesSelect1) &&
       opcoesSelect1.length > 1;
     const mostrarSel2 =
-      Boolean(item.tipoFilamento) ||
+      !item.variantesDiametro &&
+      (Boolean(item.tipoFilamento) ||
       (Array.isArray(opcoesSelect2) &&
         opcoesSelect2.length > 1 &&
-        !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão"));
+        !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão")));
     const ocultarLinhaSelects = !mostrarSel1 && !mostrarSel2;
+
+    let diametrosCardHtml = "";
+    if (item.variantesDiametro && item.variantesDiametro.length > 0) {
+      diametrosCardHtml = `
+        <div class="peca-card-diam-section" id="diam-section-${item.id}">
+          <span class="peca-card-diam-label">Diâmetro do Bico:</span>
+          <div class="peca-card-diam-pills" role="radiogroup" aria-label="Escolher diâmetro">
+            ${item.variantesDiametro
+              .map(
+                (v, idx) => `
+                <button
+                  type="button"
+                  class="peca-card-diam-pill ${idx === 1 ? "active" : ""}"
+                  data-card-diam-btn="${item.id}"
+                  data-card-diam-val="${v.diametro}"
+                  data-card-diam-img="${v.imagem}"
+                  title="${v.diametro} (${v.material}) — ${v.destaque}"
+                  aria-label="Diâmetro ${v.diametro}"
+                >
+                  ${v.diametro}
+                </button>
+              `
+              )
+              .join("")}
+          </div>
+        </div>
+      `;
+    }
 
     return `
       <article
@@ -2827,6 +2857,7 @@
         <h3 class="combo-card-title" data-open-modal="${item.id}">${tituloCard}</h3>
 
         ${priceLineHtml}
+        ${diametrosCardHtml}
         ${swatchesHtml}
 
         <div class="combo-selects-row ${mostrarSel1 && mostrarSel2 ? "" : "single-select-row"}" style="${ocultarLinhaSelects ? "display:none;" : ""}">
@@ -3578,6 +3609,33 @@
     container.querySelectorAll("[data-add-item]").forEach((btn) => {
       btn.addEventListener("click", () => {
         adicionarItemNaCaixa(btn.dataset.addItem, btn);
+      });
+    });
+
+    // Troca rápida de diâmetro direto no card da peça (Hotends Bambu Lab 0.2, 0.4, 0.6, 0.8 mm)
+    container.querySelectorAll("[data-card-diam-btn]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemId = btn.dataset.cardDiamBtn;
+        const diamVal = btn.dataset.cardDiamVal;
+        const diamImg = btn.dataset.cardDiamImg;
+
+        const imgEl = document.getElementById(`img-${itemId}`);
+        if (imgEl && diamImg) {
+          imgEl.src = diamImg;
+        }
+
+        const sel1 = document.getElementById(`sel1-${itemId}`);
+        if (sel1) {
+          sel1.value = diamVal;
+        }
+
+        const cardEl = btn.closest(".combo-filament-card");
+        if (cardEl) {
+          cardEl.querySelectorAll("[data-card-diam-btn]").forEach((b) => {
+            b.classList.toggle("active", b === btn);
+          });
+        }
       });
     });
 
@@ -4618,6 +4676,17 @@
     let opcao2Ativa = !item.tipoFilamento && item.select2Opcoes ? item.select2Opcoes[0] : "";
     let qtdAtiva = 1;
 
+    let varDiamAtiva = null;
+    if (item.variantesDiametro && item.variantesDiametro.length > 0) {
+      varDiamAtiva =
+        item.variantesDiametro.find((v) => v.diametro === opcao1Ativa) ||
+        item.variantesDiametro[1] ||
+        item.variantesDiametro[0];
+      opcao1Ativa = varDiamAtiva.diametro;
+      opcao2Ativa = varDiamAtiva.material;
+      imgPrincipalSrc = varDiamAtiva.imagem;
+    }
+
     // Se for Refil na Bambu Lab, garante que a opção 1 esteja sincronizada
     if (item.tipoFilamento && isBambu && corAtiva) {
       if ((corAtiva.nome || "").toLowerCase().includes("refil")) {
@@ -4702,28 +4771,66 @@
     // Seletores para produtos normais (impressoras, peças, etc.)
     let seletor1Html = "";
     if (!item.tipoFilamento) {
-      seletor1Html =
-        opcoesSelect1 && opcoesSelect1.length > 1
-          ? `
-            <div class="pdp-option-group">
-              <div class="pdp-option-header">
-                <span>${item.select1Label || "Condição:"}</span>
-                <strong id="pdp-sel1-label">${opcao1Ativa}</strong>
-              </div>
-              <div class="pdp-pills-wrap" id="pdp-sel1-pills">
-                ${opcoesSelect1
-            .map(
-              (op) => `
-                    <button type="button" class="pdp-pill-btn ${op === opcao1Ativa ? "active" : ""}" data-pdp-sel1="${op}">
-                      ${op}
-                    </button>
-                  `
-            )
-            .join("")}
-              </div>
+      if (item.variantesDiametro && item.variantesDiametro.length > 0) {
+        seletor1Html = `
+          <div class="pdp-option-group pdp-diam-selection-group">
+            <div class="pdp-option-header">
+              <span>Diâmetro do Bico:</span>
+              <strong id="pdp-diam-active-title" class="pdp-diam-active-highlight">${varDiamAtiva.diametro} — ${varDiamAtiva.material}</strong>
             </div>
-          `
-          : "";
+            <div class="pdp-diam-cards-grid" role="radiogroup" aria-label="Escolher diâmetro do bico">
+              ${item.variantesDiametro
+                .map(
+                  (v) => `
+                  <button
+                    type="button"
+                    class="pdp-diam-card-btn ${v.diametro === varDiamAtiva.diametro ? "active" : ""}"
+                    data-pdp-diam-btn="${v.diametro}"
+                    title="${v.diametro} (${v.material}) — ${v.destaque}"
+                    aria-label="Bico ${v.diametro}"
+                  >
+                    <span class="pdp-diam-size">${v.diametro}</span>
+                    <span class="pdp-diam-material">${v.material}</span>
+                    <span class="pdp-diam-tag">${v.destaque}</span>
+                  </button>
+                `
+                )
+                .join("")}
+            </div>
+
+            <div class="pdp-diam-instruction-box" id="pdp-diam-instruction-box">
+              <div class="pdp-diam-instruction-head">
+                <span class="pdp-diam-instruction-badge">💡 Para que serve o bico <strong id="pdp-inst-diam-label">${varDiamAtiva.diametro}</strong>:</span>
+                <span class="pdp-diam-mat-pill" id="pdp-inst-mat-label">${varDiamAtiva.material}</span>
+              </div>
+              <p class="pdp-diam-instruction-text" id="pdp-inst-text">${varDiamAtiva.instrucao}</p>
+            </div>
+          </div>
+        `;
+      } else {
+        seletor1Html =
+          opcoesSelect1 && opcoesSelect1.length > 1
+            ? `
+              <div class="pdp-option-group">
+                <div class="pdp-option-header">
+                  <span>${item.select1Label || "Condição:"}</span>
+                  <strong id="pdp-sel1-label">${opcao1Ativa}</strong>
+                </div>
+                <div class="pdp-pills-wrap" id="pdp-sel1-pills">
+                  ${opcoesSelect1
+              .map(
+                (op) => `
+                      <button type="button" class="pdp-pill-btn ${op === opcao1Ativa ? "active" : ""}" data-pdp-sel1="${op}">
+                        ${op}
+                      </button>
+                    `
+              )
+              .join("")}
+                </div>
+              </div>
+            `
+            : "";
+      }
     }
 
     // Seletor 2 (Paleta de Cores Circular Clean sem repetir dropdown abaixo)
@@ -4776,7 +4883,7 @@
             </select>
           </div>
         `
-        : item.select2Opcoes && item.select2Opcoes.length > 1
+        : item.select2Opcoes && item.select2Opcoes.length > 1 && !item.variantesDiametro
           ? `
           <div class="pdp-option-group">
             <div class="pdp-option-header">
@@ -5065,10 +5172,9 @@
           </div>
           `}
 
-          <!-- Seletores Interativos (Cores primeiro para troca imediata, depois linha/apresentação da própria marca) -->
+          <!-- Seletores Interativos -->
           ${seletor2Html}
           ${seletor1Html}
-          ${seletorLinhasFilamentoHtml}
 
           <!-- Quantidade + Botões de Ação -->
           <div class="pdp-actions-block">
@@ -5436,6 +5542,47 @@
       });
     });
 
+    // Interação com a troca de diâmetro em Peças (Hotends Bambu Lab 0.2, 0.4, 0.6, 0.8 mm)
+    if (item.variantesDiametro && item.variantesDiametro.length > 0) {
+      pdpView.querySelectorAll("[data-pdp-diam-btn]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const diam = btn.dataset.pdpDiamBtn;
+          const v = item.variantesDiametro.find((x) => x.diametro === diam);
+          if (!v) return;
+
+          varDiamAtiva = v;
+          opcao1Ativa = v.diametro;
+          opcao2Ativa = v.material;
+
+          pdpView.querySelectorAll("[data-pdp-diam-btn]").forEach((b) => {
+            b.classList.toggle("active", b === btn);
+          });
+
+          const mainImg = document.getElementById("pdp-main-img");
+          if (mainImg && v.imagem) {
+            mainImg.src = v.imagem;
+            mainImg.style.filter = "none";
+          }
+
+          const activeTitleEl = document.getElementById("pdp-diam-active-title");
+          if (activeTitleEl) {
+            activeTitleEl.textContent = `${v.diametro} — ${v.material}`;
+          }
+
+          const instDiamLbl = document.getElementById("pdp-inst-diam-label");
+          if (instDiamLbl) instDiamLbl.textContent = v.diametro;
+
+          const instMatLbl = document.getElementById("pdp-inst-mat-label");
+          if (instMatLbl) instMatLbl.textContent = v.material;
+
+          const instTxtEl = document.getElementById("pdp-inst-text");
+          if (instTxtEl) instTxtEl.textContent = v.instrucao;
+
+          sincronizarEstadoPDP();
+        });
+      });
+    }
+
     // Interação com as bolinhas circulares de cor: Hover instantâneo e Clique
     const colorLabelEl = document.getElementById("pdp-color-name-label");
     const dotIndicatorEl = document.getElementById("pdp-color-dot-indicator");
@@ -5526,10 +5673,12 @@
       const { whatsapp } = window.SITE_DATA.loja;
 
       if (item.categoria === "pecas") {
+        const diamMsg = item.variantesDiametro
+          ? `\n• *Diâmetro do Bico:* ${opcao1Ativa} (${opcao2Ativa})`
+          : `\n• *Opção / Modelo:* ${opcao1Ativa || opcao2Ativa || "Padrão"}`;
         const msgPeca = encodeURIComponent(
           `Olá *Loja SJ 3D*! Gostaria de consultar a disponibilidade e valores da peça:\n\n` +
-          `• *Peça:* ${tituloPagina}\n` +
-          `• *Opção / Modelo:* ${opcao1Ativa || opcao2Ativa || "Padrão"}\n\n` +
+          `• *Peça:* ${tituloPagina}${diamMsg}\n\n` +
           `Vocês têm a pronta entrega na loja de Umuarama?`
         );
         window.open(`https://wa.me/${whatsapp}?text=${msgPeca}`, "_blank");

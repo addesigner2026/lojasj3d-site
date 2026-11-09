@@ -613,25 +613,61 @@ window.SITE_DATA = {
       }
     },
     {
-      id: "peca-kit-hotend-inox-02",
+      id: "peca-kit-hotend-bambu-a1",
       categoria: "pecas",
-      area: "Cabeçote & Extrusão de Precisão",
-      paraQueServe: "Impressões de altíssima definição, miniaturas RPG, detalhes esculturais minuciosos e textos milimétricos com troca rápida magnética.",
-      compatibilidade: "Bambu Lab A1 / A1 Mini",
-      nome: "Hotend com Bico de Aço Inox 0.2mm Integrado (Kit 4 Unidades)",
-      subtitulo: "Hotends de ultra precisão para miniaturas, action figures, detalhes finos e textos milimétricos",
+      area: "Cabeçote & Extrusão",
+      paraQueServe: "Troca rápida magnética de hotend original com bico integrado. Permite alternar rapidamente entre diferentes diâmetros (0.2, 0.4, 0.6 e 0.8 mm) e materiais (Aço Temperado / Inox) conforme a necessidade de acabamento, velocidade e tipo de filamento.",
+      compatibilidade: "Bambu Lab A1 / A1 Mini / A2L",
+      nome: "Kit de Hotend com Bico Bambu A1 / A2L",
+      subtitulo: "Bico de Aço Temperado & Inox 0.2 / 0.4 / 0.6 / 0.8 mm • Fixação Magnética Quick-Swap",
       precoVista: "Sob Consulta",
       precoVistaValor: 0,
       precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/peca_kit_hotend_inox_02.jpg",
-      select1Opcoes: ["Kit 4 Peças 0.2mm"],
-      select2Opcoes: ["Aço Inox"],
+      imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_04.jpg",
+      select1Label: "Diâmetro do Bico",
+      select1Opcoes: ["0.2 mm", "0.4 mm", "0.6 mm", "0.8 mm"],
+      select2Label: "Material do Bico",
+      select2Opcoes: ["Aço Temperado", "Aço Inoxidável"],
+      variantesDiametro: [
+        {
+          diametro: "0.2 mm",
+          material: "Aço Inoxidável",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_inox_02.jpg",
+          destaque: "Ultra Precisão",
+          instrucao: "Ultra precisão e acabamento impecável. Ideal para miniaturas RPG, action figures, esculturas detalhadas e textos milimétricos com camadas ultrafinas."
+        },
+        {
+          diametro: "0.4 mm",
+          material: "Aço Temperado",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_04.jpg",
+          destaque: "Padrão Versátil",
+          instrucao: "Diâmetro padrão e mais versátil. Perfeito para 95% das impressões diárias, oferecendo equilíbrio perfeito entre velocidade e acabamento impecável."
+        },
+        {
+          diametro: "0.6 mm",
+          material: "Aço Temperado",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_06.jpg",
+          destaque: "Alta Vazão & Abrasivos",
+          instrucao: "Alta vazão volumétrica e resistência extrema ao desgaste abrasivo. Recomendado para filamentos com Fibra de Carbono, Madeira, Glow e menor tempo de impressão."
+        },
+        {
+          diametro: "0.8 mm",
+          material: "Aço Temperado",
+          imagem: "assets/produtos/pecas/hotend_bambu_a1_aco_08.jpg",
+          destaque: "Máximo Fluxo High-Speed",
+          instrucao: "Máxima velocidade e fluxo de plástico. Ideal para prototipagem rápida em grande escala, peças mecânicas gigantes e vasos estruturais de parede grossa."
+        }
+      ],
       botaoTexto: "Consultar no WhatsApp",
       fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
-        "Diâmetro do Bico": "0.2 mm",
-        "Material": "Aço Inoxidável de alta precisão",
-        "Quantidade": "4 Unidades com capa protetora de silicone"
+        "Nome do Produto": "Kit de hotend com bico Bambu A1/A2L",
+        "Modelo Adaptável": "Bambu Lab A1 / A1 Mini / A2L",
+        "Modo de Instalação": "Fixação magnética Quick-Swap (troca instantânea sem fios)",
+        "Diâmetro do Bico": "0,2 mm / 0,4 mm / 0,6 mm / 0,8 mm",
+        "Diâmetro do Filamento": "1,75 mm",
+        "Tamanho do Produto": "21 * 16,5 * 49,4 mm",
+        "Peso": "30 g",
+        "Tipo de Filamento": "PLA, ABS, PETG, TPU, PPC, PC, Nylon, Fibra de Carbono, etc."
       }
     },
     {
@@ -677,50 +713,6 @@ window.SITE_DATA = {
       }
     },
     {
-      id: "peca-hotend-aprimorado-06",
-      categoria: "pecas",
-      area: "Cabeçote & Extrusão de Alto Rendimento",
-      paraQueServe: "Aumento da velocidade de impressão e compatibilidade total com filamentos compostos abrasivos (Fibra de Carbono, Madeira, Glow).",
-      compatibilidade: "Bambu Lab A1 / A1 Mini",
-      nome: "Hotend Aprimorado de Alta Vazão — Bico 0.6mm (Aço Endurecido)",
-      subtitulo: "Bico reforçado resistente a filamentos abrasivos (Carbono, Madeira, Glow) com alto fluxo",
-      precoVista: "Sob Consulta",
-      precoVistaValor: 0,
-      precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/peca_hotend_aprimorado_06.jpg",
-      select1Opcoes: ["Bico 0.6mm"],
-      select2Opcoes: ["Aço Endurecido"],
-      botaoTexto: "Consultar no WhatsApp",
-      fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
-        "Diâmetro": "0.6 mm de alta vazão",
-        "Material": "Aço Endurecido (Hardened Steel)",
-        "Indicação": "Filamentos abrasivos como PLA Fibra de Carbono, Madeira e Glow"
-      }
-    },
-    {
-      id: "peca-hotend-aprimorado-08",
-      categoria: "pecas",
-      area: "Cabeçote & Extrusão High-Flow",
-      paraQueServe: "Máxima vazão volumétrica de plástico para prototipagem rápida em grande escala e peças estruturais ultrarresistentes.",
-      compatibilidade: "Bambu Lab A1 / A1 Mini",
-      nome: "Hotend Aprimorado de Máximo Fluxo — Bico 0.8mm (Aço Endurecido)",
-      subtitulo: "Vazão volumétrica máxima para impressões gigantes, protótipos industriais e peças técnicas",
-      precoVista: "Sob Consulta",
-      precoVistaValor: 0,
-      precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/peca_hotend_aprimorado_08.jpg",
-      select1Opcoes: ["Bico 0.8mm"],
-      select2Opcoes: ["Aço Endurecido"],
-      botaoTexto: "Consultar no WhatsApp",
-      fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
-        "Diâmetro": "0.8 mm ultra rápido",
-        "Material": "Aço Endurecido (Hardened Steel)",
-        "Destaque": "Reduz o tempo de impressão de peças volumosas em até 50%"
-      }
-    },
-    {
       id: "peca-tubo-ptfe-teflon-15m",
       categoria: "pecas",
       area: "Sistema de Alimentação de Filamento",
@@ -739,28 +731,6 @@ window.SITE_DATA = {
         "Compatibilidade": "Bambu Lab X1C, P1P, P1S, A1, A1 Mini e AMS / AMS Lite",
         "Dimensões": "Diâmetro interno 2.0 mm / Diâmetro externo 4.0 mm",
         "Comprimento": "15 Metros contínuos de Teflon virgem de alta tolerância"
-      }
-    },
-    {
-      id: "peca-kit-hotend-inox-04",
-      categoria: "pecas",
-      area: "Cabeçote & Extrusão Padrão",
-      paraQueServe: "Substituição original do bico principal para 95% dos projetos diários, oferecendo equilíbrio perfeito entre velocidade e acabamento.",
-      compatibilidade: "Bambu Lab A1 / A1 Mini",
-      nome: "Hotend com Bico Integrado 0.4mm Padrão (Kit 4 Unidades)",
-      subtitulo: "O diâmetro padrão mais versátil para impressões do dia a dia com troca magnética instantânea",
-      precoVista: "Sob Consulta",
-      precoVistaValor: 0,
-      precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/peca_kit_hotend_inox_04.jpg",
-      select1Opcoes: ["Kit 4 Peças 0.4mm"],
-      select2Opcoes: ["Aço Inox"],
-      botaoTexto: "Consultar no WhatsApp",
-      fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
-        "Diâmetro do Bico": "0.4 mm Padrão",
-        "Quantidade": "Kit com 4 Unidades completas com meias de silicone",
-        "Sistema": "Troca rápida magnética sem parafusos ou conexões de fios"
       }
     },
     {
@@ -910,28 +880,6 @@ window.SITE_DATA = {
         "Velocidade": "20.000 RPM de rotação contínua",
         "Conector": "Conector original plug-and-play de 2 pinos micro",
         "Quantidade": "Par (2 Unidades)"
-      }
-    },
-    {
-      id: "peca-hotend-aco-temperado-04",
-      categoria: "pecas",
-      area: "Cabeçote & Extrusão de Alta Durabilidade",
-      paraQueServe: "Alta resistência ao desgaste abrasivo em filamentos carregados com fibra de carbono, brilho glow, partículas metálicas ou madeira.",
-      compatibilidade: "Bambu Lab A1 / A1 Mini",
-      nome: "Hotends de Aço Temperado Reforçado 0.4mm (Kit 4 Peças)",
-      subtitulo: "Máxima durabilidade e resistência ao desgaste em filamentos reforçados",
-      precoVista: "Sob Consulta",
-      precoVistaValor: 0,
-      precoParcelado: "Consulte disponibilidade",
-      imagem: "assets/produtos/pecas/peca_hotend_aco_temperado_04.jpg",
-      select1Opcoes: ["Kit 4 Peças 0.4mm"],
-      select2Opcoes: ["Aço Temperado"],
-      botaoTexto: "Consultar no WhatsApp",
-      fichaTecnica: {
-        "Compatibilidade": "Bambu Lab A1 e Bambu Lab A1 Mini",
-        "Diâmetro": "0.4 mm",
-        "Material": "Aço Temperado Aprimorado de alta condutividade térmica",
-        "Quantidade": "4 Peças completas com meias de silicone"
       }
     },
     {
