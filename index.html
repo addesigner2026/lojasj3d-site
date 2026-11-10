@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261110_06" />
+  <link rel="stylesheet" href="css/styles.css?v=20261110_07" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -2216,7 +2216,10 @@
               <!-- KPI 1: TOTAL DE PRODUTOS -->
               <button type="button" class="cms-kpi-clean-card active-kpi" data-cms-stock-kpi="todos" title="Exibe todo o catálogo">
                 <div class="cms-kpi-top">
-                  <span class="cms-kpi-title">📦 Total de Produtos</span>
+                  <span class="cms-kpi-title">
+                    <span class="cms-kpi-icon-pill" style="background:#f1f5f9; color:#475569;">📦</span>
+                    Total de Produtos
+                  </span>
                 </div>
                 <div class="cms-kpi-main-number">
                   <span id="cms-kpi-total">132</span>
@@ -2229,7 +2232,10 @@
               <!-- KPI 2: EM ESTOQUE -->
               <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="disponivel" title="Filtrar pronta entrega">
                 <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#166534;">🟢 Em Estoque</span>
+                  <span class="cms-kpi-title" style="color:#166534;">
+                    <span class="cms-kpi-icon-pill" style="background:#ecfdf5; color:#16a34a;">🟢</span>
+                    Em Estoque
+                  </span>
                 </div>
                 <div class="cms-kpi-main-number">
                   <span id="cms-kpi-ok" style="color:#15803d;">119</span>
@@ -2242,7 +2248,10 @@
               <!-- KPI 3: POUCAS UNIDADES -->
               <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="poucas_unidades" title="Filtrar estoque baixo">
                 <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#b45309;">🟠 Poucas Unidades</span>
+                  <span class="cms-kpi-title" style="color:#b45309;">
+                    <span class="cms-kpi-icon-pill" style="background:#fffbeb; color:#d97706;">🟠</span>
+                    Poucas Unidades
+                  </span>
                 </div>
                 <div class="cms-kpi-main-number">
                   <span id="cms-kpi-low" style="color:#d97706;">13</span>
@@ -2255,7 +2264,10 @@
               <!-- KPI 4: ESGOTADOS -->
               <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="esgotado" title="Filtrar esgotados">
                 <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#b91c1c;">🔴 Esgotados</span>
+                  <span class="cms-kpi-title" style="color:#b91c1c;">
+                    <span class="cms-kpi-icon-pill" style="background:#fef2f2; color:#dc2626;">🔴</span>
+                    Esgotados
+                  </span>
                 </div>
                 <div class="cms-kpi-main-number">
                   <span id="cms-kpi-out" style="color:#dc2626;">0</span>
@@ -2267,26 +2279,26 @@
             </div>
 
             <!-- BARRA DE FERRAMENTAS UNIFICADA & CLEAN (DESIGN LINEAR / APPLE) -->
-            <div class="cms-toolbar-row" style="background:#ffffff; padding:14px 18px; border-radius:14px; border:1.5px solid #e2e8f0; margin-bottom:18px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:12px;">
+            <div class="cms-toolbar-row">
               <!-- Linha Superior: Filtros de Categoria + Botão de Novo Produto -->
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%;">
+              <div class="cms-toolbar-top-row">
                 <div class="cms-cat-pills" id="cms-cat-filter-pills">
                   <button type="button" class="cms-cat-pill active" data-cms-cat="todos">Todos</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">Filamentos</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">Impressoras 3D</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="pecas">Peças &amp; Acessórios</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">Serviços</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">🎨 Filamentos</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">🖨️ Impressoras 3D</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="pecas">⚙️ Peças &amp; Acessórios</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">🔧 Serviços &amp; Manutenção</button>
                 </div>
 
-                <div style="display:flex; align-items:center; gap:8px;">
-                  <button type="button" class="btn-cms-primary" id="btn-cms-new-product" style="height:36px; padding:0 16px; font-size:0.8rem; border-radius:8px; box-shadow:0 4px 12px rgba(240,78,35,0.22);">
-                    + Novo Produto
+                <div>
+                  <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-product">
+                    <span>+ Novo Produto</span>
                   </button>
                 </div>
               </div>
 
               <!-- Linha Inferior: Alternador de Visão (Modelos / SKUs) + Filtro de Status + Busca Rápida -->
-              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%; border-top:1px solid #f1f5f9; padding-top:10px;">
+              <div class="cms-toolbar-bottom-row">
                 <div class="cms-view-mode-toggle" id="cms-view-mode-toggle">
                   <button type="button" class="cms-view-btn active" data-cms-view-mode="modelos" title="Agrupado por modelo principal e bobinas">
                     <span>🗂️ Modelos &amp; Famílias</span>
@@ -2298,14 +2310,14 @@
                   </button>
                 </div>
 
-                <div class="cms-toolbar-right" style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <select id="cms-stock-filter-select" style="height:36px; padding:0 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.78rem; font-weight:700; background:#fff; color:#1e293b; outline:none; cursor:pointer;">
-                    <option value="todos">Todos os Status</option>
+                <div class="cms-toolbar-right">
+                  <select id="cms-stock-filter-select" class="cms-select-clean">
+                    <option value="todos">📦 Todos os Status</option>
                     <option value="disponivel">🟢 Em Estoque</option>
                     <option value="poucas_unidades">🟠 Poucas Unidades</option>
                     <option value="esgotado">🔴 Esgotados</option>
                   </select>
-                  <input type="text" id="cms-product-search" class="cms-search-input" placeholder="🔍 Buscar cor, código, impressora, peça..." style="height:36px; min-width:260px; padding:0 12px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.78rem; outline:none; background:#ffffff; color:#0f172a;" />
+                  <input type="text" id="cms-product-search" class="cms-search-input-clean" placeholder="🔍 Buscar cor, código, impressora, peça..." />
                 </div>
               </div>
             </div>
@@ -3065,7 +3077,7 @@
   <script src="js/supabase-client.js?v=20261110_01"></script>
   <script src="js/dados.js?v=20261110_01"></script>
   <script src="js/database.js?v=20261110_01"></script>
-  <script src="js/app.js?v=20261110_06"></script>
+  <script src="js/app.js?v=20261110_07"></script>
 </body>
 
 </html>

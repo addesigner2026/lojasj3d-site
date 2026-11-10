@@ -11173,8 +11173,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       renderizarListaProdutosCms();
     });
 
-    document.getElementById("btn-cms-new-product")?.addEventListener("click", () => {
-      abrirEditorProdutoCms(null);
+    document.querySelectorAll("#btn-cms-new-product, #btn-novo-produto-cms").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        abrirEditorProdutoCms(null);
+      });
     });
 
     document.getElementById("btn-cms-back-to-list")?.addEventListener("click", () => {
