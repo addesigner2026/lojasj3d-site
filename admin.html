@@ -1,0 +1,935 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Painel de Gestão &amp; Estoque • Loja SJ 3D</title>
+  <meta name="description" content="Plataforma de gestão integrada, catálogo, estoque em tempo real e orçamentos da Loja SJ 3D Umuarama." />
+  <meta name="robots" content="noindex, nofollow" />
+  <link rel="icon" type="image/png" href="assets/img/icone-laranja.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/styles.css?v=20261110_06" />
+</head>
+
+<body class="admin-standalone-body">
+
+  <div class="admin-standalone-shell" id="admin-standalone-app">
+
+    <!-- COLUNA ESQUERDA: MENU LATERAL PERMANENTE (FULL SAAS SIDEBAR) -->
+    <aside class="admin-standalone-sidebar">
+      <div>
+        <!-- Logo e Identidade da Loja SJ -->
+        <div class="sj-crm-brand" style="margin-bottom:18px;">
+          <div class="sj-crm-brand-icon">SJ</div>
+          <div>
+            <div style="font-size:0.96rem; font-weight:900; letter-spacing:0.3px; color:#ffffff;">LOJA SJ 3D</div>
+            <div style="font-size:0.72rem; color:#a1a1aa; font-weight:600;">Plataforma de Gestão Oficial</div>
+          </div>
+        </div>
+
+        <!-- Box do Operador Autenticado -->
+        <div class="sj-crm-admin-box" style="margin-bottom:20px;">
+          <div style="display:flex; align-items:center; gap:6px; margin-bottom:4px;">
+            <span style="width:8px; height:8px; border-radius:50%; background:#22c55e; display:inline-block;"></span>
+            <span id="crm-sidebar-role-badge" style="font-size:0.68rem; font-weight:800; color:#f59e0b; text-transform:uppercase; letter-spacing:0.4px;">👑 Admin / Equipe</span>
+          </div>
+          <div id="crm-sidebar-admin-email" style="font-size:0.78rem; font-weight:700; color:#ffffff; word-break:break-all;">jt.designer21@gmail.com</div>
+          <div style="font-size:0.68rem; color:#a1a1aa; margin-top:2px;">Sessão Autenticada • Umuarama / PR</div>
+        </div>
+
+        <div style="font-size:0.66rem; font-weight:800; color:#71717a; text-transform:uppercase; letter-spacing:0.8px; padding:0 8px 8px;">Módulos de Gestão</div>
+
+        <!-- Navegação por Abas -->
+        <nav class="sj-crm-nav" role="tablist">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
+            <span>📦 Catálogo, Filamentos &amp; Preços</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" role="tab">
+            <span>🔍 Consulta de Preço &amp; QR Code</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes" role="tab">
+            <span>📇 Clientes &amp; Leads (Banco)</span>
+            <span id="cms-clients-count-badge" style="background:rgba(255,255,255,0.16); color:#fff; font-size:0.68rem; padding:1px 7px; border-radius:999px; font-weight:800;">0</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="banner" role="tab">
+            <span>🎨 Banner &amp; Sorteio</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
+            <span>👥 Funcionários &amp; Acessos</span>
+            <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
+            <span>⚡ Supabase &amp; Nuvem</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
+            <span>💾 Backup &amp; Dados</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="lgpd" role="tab">
+            <span>🛡️ Solicitações LGPD</span>
+          </button>
+        </nav>
+      </div>
+
+      <!-- Rodapé da Barra Lateral: Ações de Balcão e Link da Loja Pública -->
+      <div class="sj-crm-sidebar-footer" style="border-top:1px solid rgba(255,255,255,0.08); padding-top:14px; display:flex; flex-direction:column; gap:8px;">
+        <button type="button" id="crm-btn-open-scanner-quick" style="width:100%; padding:10px 14px; border-radius:9px; border:1px solid rgba(240,78,35,0.45); background:rgba(240,78,35,0.16); color:#fff; font-size:0.78rem; font-weight:800; cursor:pointer; text-align:left;">
+          📷 Ler QR Code (Câmera)
+        </button>
+        <button type="button" id="crm-btn-open-quote" style="width:100%; padding:10px 14px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer; text-align:left;">
+          📄 Emitir Orçamento Timbrado
+        </button>
+        <button type="button" id="crm-btn-open-history" style="width:100%; padding:10px 14px; border-radius:9px; border:1px solid rgba(255,255,255,0.14); background:rgba(255,255,255,0.05); color:#fff; font-size:0.78rem; font-weight:700; cursor:pointer; text-align:left;">
+          🕒 Histórico de Orçamentos
+        </button>
+        <a href="index.html" target="_blank" style="width:100%; box-sizing:border-box; padding:10px 14px; border-radius:9px; border:1px solid #3b82f6; background:rgba(59,130,246,0.14); color:#93c5fd; font-size:0.78rem; font-weight:800; text-decoration:none; display:inline-block; text-align:left;">
+          🌐 Ver Loja Pública (Abrir Site) ↗
+        </a>
+      </div>
+    </aside>
+
+    <!-- COLUNA DIREITA: TOPBAR SAAS + ÁREA ROLÁVEL DE TRABALHO -->
+    <main class="admin-standalone-main">
+      <header class="admin-standalone-topbar">
+        <div>
+          <span style="font-size:0.68rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.6px;">PAINEL DEDICADO DE OPERAÇÕES • LOJA SJ 3D</span>
+          <h3 id="admin-cms-title" style="margin:2px 0 0; font-size:1.18rem; font-weight:900; color:#0f172a;">Catálogo, Preços &amp; Controle de Estoque</h3>
+        </div>
+
+        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+          <button type="button" id="crm-top-btn-qr-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #fed7aa; background:#fff7ed; color:#c2410c; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <span>📷 Ler QR / Preço</span>
+          </button>
+          <button type="button" id="crm-top-btn-clients-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #e2e8f0; background:#ffffff; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <span>📇 Clientes &amp; Leads</span>
+          </button>
+          <button type="button" id="crm-top-btn-equipe-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #e2e8f0; background:#ffffff; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
+            <span>👥 Equipe</span>
+            <span id="crm-top-pending-pill" style="background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; font-weight:800; display:none;">0</span>
+          </button>
+          <a href="index.html" target="_blank" style="padding:8px 14px; border-radius:9px; border:1.5px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-size:0.78rem; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
+            <span>🌐 Ver Loja Pública ↗</span>
+          </a>
+        </div>
+      </header>
+
+      <!-- CORPO DE TRABALHO ROLÁVEL -->
+      <div class="admin-standalone-workspace admin-cms-body">
+
+        <!-- ==============================================================
+             ABA 1: PRODUTOS, PREÇOS, FOTOS, ESTOQUE E CORES DE FILAMENTO
+             ============================================================== -->
+        <div class="admin-cms-pane active" id="cms-pane-produtos" style="display: block;">
+
+          <!-- SUB-VIEW 1A: LISTA DE PRODUTOS DO CATÁLOGO -->
+          <div id="cms-products-list-view">
+            <!-- KPIs BENTO ULTRA CLEAN (MINIMALISTAS & SEM POLUIÇÃO VISUAL) -->
+            <div class="sj-crm-kpi-row">
+              <!-- KPI 1: TOTAL DE PRODUTOS -->
+              <button type="button" class="cms-kpi-clean-card active-kpi" data-cms-stock-kpi="todos" title="Exibe todo o catálogo">
+                <div class="cms-kpi-top">
+                  <span class="cms-kpi-title">📦 Total de Produtos</span>
+                </div>
+                <div class="cms-kpi-main-number">
+                  <span id="cms-kpi-total">132</span>
+                </div>
+                <div class="cms-kpi-footer-text" id="cms-kpi-sub-total">
+                  Itens ativos no catálogo
+                </div>
+              </button>
+
+              <!-- KPI 2: EM ESTOQUE -->
+              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="disponivel" title="Filtrar pronta entrega">
+                <div class="cms-kpi-top">
+                  <span class="cms-kpi-title" style="color:#166534;">🟢 Em Estoque</span>
+                </div>
+                <div class="cms-kpi-main-number">
+                  <span id="cms-kpi-ok" style="color:#15803d;">119</span>
+                </div>
+                <div class="cms-kpi-footer-text" style="color:#15803d;">
+                  Pronta entrega ativa
+                </div>
+              </button>
+
+              <!-- KPI 3: POUCAS UNIDADES -->
+              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="poucas_unidades" title="Filtrar estoque baixo">
+                <div class="cms-kpi-top">
+                  <span class="cms-kpi-title" style="color:#b45309;">🟠 Poucas Unidades</span>
+                </div>
+                <div class="cms-kpi-main-number">
+                  <span id="cms-kpi-low" style="color:#d97706;">13</span>
+                </div>
+                <div class="cms-kpi-footer-text" style="color:#b45309;">
+                  Aviso no site
+                </div>
+              </button>
+
+              <!-- KPI 4: ESGOTADOS -->
+              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="esgotado" title="Filtrar esgotados">
+                <div class="cms-kpi-top">
+                  <span class="cms-kpi-title" style="color:#b91c1c;">🔴 Esgotados</span>
+                </div>
+                <div class="cms-kpi-main-number">
+                  <span id="cms-kpi-out" style="color:#dc2626;">0</span>
+                </div>
+                <div class="cms-kpi-footer-text" style="color:#dc2626;">
+                  Pausados no site
+                </div>
+              </button>
+            </div>
+
+            <!-- BARRA DE FERRAMENTAS UNIFICADA & CLEAN (DESIGN LINEAR / APPLE) -->
+            <div class="cms-toolbar-row" style="background:#ffffff; padding:16px 20px; border-radius:14px; border:1.5px solid #e2e8f0; margin-bottom:20px; box-shadow:0 1px 3px rgba(0,0,0,0.02); display:flex; flex-direction:column; gap:14px;">
+              <!-- Linha Superior: Filtros de Categoria + Botão de Novo Produto -->
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%;">
+                <div class="cms-cat-pills" id="cms-cat-filter-pills">
+                  <button type="button" class="cms-cat-pill active" data-cms-cat="todos">Todos</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">Filamentos</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">Impressoras 3D</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="pecas">Peças &amp; Acessórios</button>
+                  <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">Serviços</button>
+                </div>
+
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <button type="button" class="btn-cms-primary" id="btn-cms-new-product" style="height:38px; padding:0 18px; font-size:0.82rem; border-radius:8px; box-shadow:0 4px 12px rgba(240,78,35,0.22);">
+                    + Novo Produto
+                  </button>
+                </div>
+              </div>
+
+              <!-- Linha Inferior: Alternador de Visão (Modelos / SKUs) + Filtro de Status + Busca Rápida -->
+              <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; width:100%; border-top:1px solid #f1f5f9; padding-top:12px;">
+                <div class="cms-view-mode-toggle" id="cms-view-mode-toggle">
+                  <button type="button" class="cms-view-btn active" data-cms-view-mode="modelos" title="Agrupado por modelo principal e bobinas">
+                    <span>🗂️ Modelos &amp; Famílias</span>
+                    <span class="cms-badge-count" id="cms-badge-count-modelos">34</span>
+                  </button>
+                  <button type="button" class="cms-view-btn" data-cms-view-mode="skus" title="Ver cada cor e peça individualmente">
+                    <span>🎨 Todas as Cores &amp; SKUs</span>
+                    <span class="cms-badge-count" id="cms-badge-count-skus">132</span>
+                  </button>
+                </div>
+
+                <div class="cms-toolbar-right" style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                  <select id="cms-stock-filter-select" style="height:38px; padding:0 14px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.78rem; font-weight:700; background:#fff; color:#1e293b; outline:none; cursor:pointer;">
+                    <option value="todos">Todos os Status</option>
+                    <option value="disponivel">🟢 Em Estoque</option>
+                    <option value="poucas_unidades">🟠 Poucas Unidades</option>
+                    <option value="esgotado">🔴 Esgotados</option>
+                  </select>
+                  <input type="text" id="cms-product-search" class="cms-search-input" placeholder="🔍 Buscar cor, código, impressora, peça..." style="height:38px; min-width:280px; padding:0 14px; border:1.5px solid #cbd5e1; border-radius:8px; font-size:0.8rem; outline:none; background:#ffffff; color:#0f172a;" />
+                </div>
+              </div>
+            </div>
+
+            <!-- Grade Dinâmica de Produtos ou SKUs -->
+            <div class="cms-products-grid" id="cms-products-grid"></div>
+          </div>
+
+          <!-- SUB-VIEW 1B: EDITOR COMPLETO DE UM PRODUTO -->
+          <div id="cms-product-editor-view" style="display: none;">
+            <div class="cms-editor-top-bar">
+              <button type="button" class="btn-cms-back" id="btn-cms-back-to-list">
+                ← Voltar para o Catálogo
+              </button>
+              <span class="cms-editor-badge" id="cms-editor-mode-badge">Editando Produto</span>
+            </div>
+
+            <form id="form-cms-product" class="cms-editor-form">
+              <input type="hidden" id="cms-prod-id" />
+
+              <div class="cms-editor-2col-top">
+                <div class="cms-photo-upload-box">
+                  <label class="cms-section-label">📷 Foto Principal do Produto</label>
+                  <div class="cms-photo-preview-frame">
+                    <img id="cms-prod-img-preview" src="assets/produtos/impressora-a1_mini.jpg" alt="Prévia do Produto" />
+                  </div>
+                  <label class="btn-cms-upload-photo">
+                    📤 Enviar Foto do Computador / Celular
+                    <input type="file" id="input-cms-prod-file" accept="image/*" style="display: none;" />
+                  </label>
+                  <div class="cms-field" style="margin-top:8px;">
+                    <label for="cms-prod-imagem">Ou Caminho / URL da Imagem:</label>
+                    <input type="text" id="cms-prod-imagem" placeholder="Ex: assets/produtos/impressora-a1.jpg" required />
+                  </div>
+                </div>
+
+                <div class="cms-main-fields-col">
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-nome">Título / Nome do Produto *</label>
+                      <input type="text" id="cms-prod-nome" placeholder="Ex: Bambu Lab A1 MINI" required />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-categoria">Categoria no Site *</label>
+                      <select id="cms-prod-categoria">
+                        <option value="filamentos">Filamentos</option>
+                        <option value="impressoras">Impressoras 3D</option>
+                        <option value="pecas">Peças &amp; Acessórios</option>
+                        <option value="manutencao">Serviços &amp; Manutenção</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="cms-field">
+                    <label for="cms-prod-subtitulo">Subtítulo / Descrição Resumida *</label>
+                    <input type="text" id="cms-prod-subtitulo" placeholder="Ex: CUSTO-BENEFÍCIO • COMPACTA • Calibração 100% Automática" required />
+                  </div>
+
+                  <div class="cms-field-row-3">
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-vista">Preço Principal Exibido *</label>
+                      <input type="text" id="cms-prod-preco-vista" placeholder="Ex: R$ 1.961,00 ou R$ 79,90" required />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-valor">Valor Numérico (R$ p/ Cálculo)</label>
+                      <input type="number" step="0.01" id="cms-prod-preco-valor" placeholder="Ex: 1961.00" />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-marca">Marca / Fabricante</label>
+                      <input type="text" id="cms-prod-marca" placeholder="Ex: Bambu Lab, Masterprint..." />
+                    </div>
+                  </div>
+
+                  <div class="cms-field-row-3">
+                    <div class="cms-field">
+                      <label for="cms-prod-preco-parcelado">Texto de Parcelamento</label>
+                      <input type="text" id="cms-prod-preco-parcelado" placeholder="Ex: ou 10x de R$ 217,90" />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-tag">Selo de Destaque (Opcional)</label>
+                      <input type="text" id="cms-prod-tag" placeholder="Ex: ESCOLHA INTELIGENTE" />
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-estoque">📦 Estoque</label>
+                      <select id="cms-prod-estoque" style="font-weight:700;">
+                        <option value="disponivel">🟢 Em Estoque (Pronta Entrega)</option>
+                        <option value="poucas_unidades">🟠 Poucas Unidades (Últimas Peças)</option>
+                        <option value="esgotado">🔴 Esgotado (Indisponível)</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-select1">Opções do 1º Seletor (separadas por vírgula)</label>
+                      <input type="text" id="cms-prod-select1" placeholder="Ex: À Vista (R$ 1.961,00), 10x de R$ 217,90" />
+                    </div>
+                    <div class="cms-field" id="cms-prod-select2-wrap">
+                      <label for="cms-prod-select2">Opções do 2º Seletor (separadas por vírgula)</label>
+                      <input type="text" id="cms-prod-select2" placeholder="Ex: Somente Impressora, Incluir Filamento" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ETIQUETA QR CODE -->
+              <div class="cms-block-card" id="cms-product-qrcode-block" style="background:linear-gradient(135deg, #fff7ed 0%, #ffffff 100%); border:1.5px solid #fed7aa;">
+                <div class="cms-block-header" style="align-items:center;">
+                  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
+                    <div id="cms-editor-qr-preview" style="width:88px; height:88px; background:#fff; border:1.5px solid #e4e4e7; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:6px; flex-shrink:0;"></div>
+                    <div>
+                      <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.66rem; font-weight:800; padding:2px 8px; border-radius:999px; margin-bottom:4px;">🏷️ QR CODE EXCLUSIVO DESTE PRODUTO</span>
+                      <h4 style="margin:0;">Etiqueta QR Code para Balcão</h4>
+                      <p style="margin:3px 0 0; font-size:0.8rem; color:#52525b;">Imprima esta etiqueta para prateleiras, mostruários e leitura rápida pelo vendedor.</p>
+                      <div id="cms-editor-qr-code-text" style="font-family:monospace; font-size:0.75rem; font-weight:700; color:#c2410c; margin-top:4px;">SJ3D:PROD:...</div>
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="btn-cms-primary" id="btn-cms-print-single-qr">
+                      🖨️ Imprimir Etiqueta QR
+                    </button>
+                    <button type="button" class="btn-cms-secondary" id="btn-cms-print-filament-colors-qr" style="display:none;">
+                      🏷️ Imprimir QR Codes de Todas as Cores
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- FICHA TÉCNICA -->
+              <div class="cms-block-card">
+                <div class="cms-block-header">
+                  <div>
+                    <h4>📋 Ficha Técnica &amp; Descrições Detalhadas</h4>
+                    <p>Especificações exibidas na página pública do produto.</p>
+                  </div>
+                  <button type="button" class="btn-cms-secondary" id="btn-cms-add-spec">
+                    + Adicionar Linha
+                  </button>
+                </div>
+                <div id="cms-specs-list" class="cms-specs-list"></div>
+              </div>
+
+              <!-- TABELA DE CORES PARA FILAMENTOS -->
+              <div class="cms-block-card" id="cms-filament-colors-block" style="display: none;">
+                <div class="cms-block-header">
+                  <div>
+                    <h4>🎨 Cores, Preços e Fotos desta Linha de Filamento</h4>
+                    <p>Altere o preço, código ou foto de qualquer cor individualmente ou aplique em lote.</p>
+                  </div>
+                  <div class="cms-bulk-price-bar">
+                    <input type="text" id="cms-bulk-color-price" placeholder="Ex: R$ 84,90" class="cms-bulk-input" />
+                    <button type="button" class="btn-cms-secondary" id="btn-cms-apply-bulk-price">
+                      ⚡ Aplicar Preço em Lote
+                    </button>
+                    <button type="button" class="btn-cms-primary" id="btn-cms-add-color">
+                      + Nova Cor
+                    </button>
+                  </div>
+                </div>
+                <div id="cms-filament-colors-list" class="cms-filament-colors-list"></div>
+              </div>
+
+              <div class="cms-editor-footer-actions">
+                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-product">Cancelar</button>
+                <button type="submit" class="btn-cms-save">
+                  💾 Salvar Alterações do Produto
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- ABA 2: CONSULTA DE PREÇO & QR CODE -->
+        <div class="admin-cms-pane" id="cms-pane-consulta-qr" style="display: none;">
+          <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:15px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
+            <div>
+              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:5px;">📱 TERMINAL DE CONSULTA &amp; QR CODE</span>
+              <h4 style="margin:0; font-size:1.08rem; font-weight:900; color:#fff;">Consulta Rápida de Preço, Estoque &amp; Etiquetas</h4>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:#d4d4d8;">Aponte a câmera para o QR Code da caixa ou digite o código/nome abaixo.</p>
+            </div>
+            <div style="display:flex; gap:10px; flex-wrap:wrap;">
+              <button type="button" id="btn-cms-start-qr-camera" style="padding:11px 18px; border-radius:11px; border:none; background:#F04E23; color:#fff; font-size:0.86rem; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 8px 20px rgba(240,78,35,0.35);">
+                <span>📷 Ler QR Code com a Câmera</span>
+              </button>
+              <button type="button" id="btn-cms-print-all-qr" style="padding:11px 16px; border-radius:11px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.1); color:#fff; font-size:0.84rem; font-weight:800; cursor:pointer;">
+                🖨️ Imprimir Todas as Etiquetas
+              </button>
+            </div>
+          </div>
+
+          <div id="cms-price-lookup-spotlight" style="display:none;"></div>
+
+          <div class="cms-toolbar-row" style="background:#fff; padding:14px 16px; border-radius:12px; border:1px solid #e4e4e7; margin-bottom:16px;">
+            <div class="cms-cat-pills" id="cms-qr-cat-pills">
+              <button type="button" class="cms-cat-pill active" data-cms-qr-cat="todos">Todos</button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="cores">🎨 Cores de Filamento</button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="impressoras">🖨️ Impressoras 3D</button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="pecas">⚙️ Peças &amp; Acessórios</button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="manutencao">🔧 Manutenção</button>
+            </div>
+            <div class="cms-toolbar-right">
+              <input type="text" id="cms-qr-search-input" class="cms-search-input" placeholder="🔍 Digite código (ex: 137) ou nome da cor..." style="min-width:320px;" />
+            </div>
+          </div>
+
+          <div id="cms-qr-lookup-grid" class="sj-qr-lookup-grid"></div>
+        </div>
+
+        <!-- ABA 3: CLIENTES & LEADS (CRM) -->
+        <div class="admin-cms-pane" id="cms-pane-clientes" style="display: none;">
+          <div style="background:#fff; border:1.5px solid #e4e4e7; border-radius:14px; padding:16px 18px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+              <span style="font-size:0.7rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.5px;">BANCO DE CLIENTES &amp; LEADS</span>
+              <h4 style="margin:2px 0 0; font-size:1.05rem; font-weight:900;">Clientes Cadastrados pelo WhatsApp e Balcão</h4>
+              <p style="margin:2px 0 0; font-size:0.78rem; color:#6b7280;">Dados sincronizados em tempo real no banco local e nuvem Supabase.</p>
+            </div>
+            <div style="display:flex; gap:8px;">
+              <button type="button" class="btn-cms-primary" id="btn-cms-new-client">+ Novo Cliente</button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients">📥 Exportar Planilha (CSV)</button>
+            </div>
+          </div>
+          <div id="cms-clients-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
+        <!-- ABA 4: BANNER & PROMOÇÕES -->
+        <div class="admin-cms-pane" id="cms-pane-banner" style="display: none;">
+          <div class="cms-editor-top-bar">
+            <h4>🎨 Editor do Banner Principal e Campanhas</h4>
+            <span class="cms-editor-badge">Configuração Visual da Capa</span>
+          </div>
+          <form id="form-cms-banner" class="cms-editor-form">
+            <div class="cms-editor-2col-top">
+              <div class="cms-photo-upload-box">
+                <label class="cms-section-label">📷 Imagem de Fundo do Banner</label>
+                <div class="cms-photo-preview-frame" style="height:140px;">
+                  <img id="cms-ban-img-preview" src="assets/produtos/banner-sorteio-natal-wide.jpg" alt="Prévia do Banner" />
+                </div>
+                <div class="cms-field" style="margin-top:8px;">
+                  <label for="cms-ban-imagem">Caminho da Imagem:</label>
+                  <input type="text" id="cms-ban-imagem" placeholder="assets/produtos/banner-sorteio-natal-wide.jpg" />
+                </div>
+              </div>
+              <div class="cms-main-fields-col">
+                <div class="cms-field-row-3">
+                  <div class="cms-field">
+                    <label for="cms-ban-badge">Badge Superior</label>
+                    <input type="text" id="cms-ban-badge" placeholder="🎁 SORTEIO OFICIAL" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-ban-data">Data / Prazo</label>
+                    <input type="text" id="cms-ban-data" placeholder="SORTEIO: 20 DE DEZEMBRO" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-ban-estilo">Estilo Visual</label>
+                    <select id="cms-ban-estilo">
+                      <option value="sorteio">Sorteio / Natal</option>
+                      <option value="promocao">Promoção Padrão</option>
+                    </select>
+                  </div>
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-titulo">Título Principal (HTML permitido)</label>
+                  <input type="text" id="cms-ban-titulo" placeholder="SORTEIO <em>BAMBU LAB A1 MINI</em>" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-ban-subtitulo">Subtítulo do Prêmio</label>
+                  <input type="text" id="cms-ban-subtitulo" placeholder="+ KIT COM 4 KG DE FILAMENTOS" />
+                </div>
+              </div>
+            </div>
+            <div class="cms-editor-footer-actions">
+              <button type="submit" class="btn-cms-save">💾 Salvar &amp; Publicar Banner</button>
+            </div>
+          </form>
+        </div>
+
+        <!-- ABA 5: EQUIPE & FUNCIONÁRIOS -->
+        <div class="admin-cms-pane" id="cms-pane-equipe" style="display: none;">
+          <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:14px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+            <div>
+              <span style="display:inline-block; background:#E84520; color:#fff; font-size:0.7rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:6px;">👑 ADMINISTRADOR MASTER</span>
+              <div style="font-size:1.05rem; font-weight:800;">jt.designer21@gmail.com</div>
+              <div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">Controle de Funcionários, Vendedores e Administradores com acesso ao Painel.</div>
+            </div>
+            <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.22);">
+              🔄 Atualizar Equipe
+            </button>
+          </div>
+          <div id="cms-equipe-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+
+        <!-- ABA 6: SUPABASE & NUVEM -->
+        <div class="admin-cms-pane" id="cms-pane-supabase" style="display: none;">
+          <div class="cms-block-card">
+            <h4>⚡ Conexão com o Backend Supabase (PostgreSQL + Auth + Storage)</h4>
+            <p style="font-size:0.86rem; color:var(--text-body); line-height:1.55; margin-top:6px;">
+              Sincronize produtos, preços, banners e orçamentos em tempo real na nuvem entre todos os vendedores e clientes.
+            </p>
+            <div id="cms-supabase-status-badge" class="supabase-status-badge not-connected" style="margin: 14px 0 16px;">
+              <span class="status-indicator"></span>
+              <span id="cms-supabase-status-text">Status: Supabase não conectado (operando no modo local)</span>
+            </div>
+            <div class="cms-field-row" style="display:flex; flex-direction:column; gap:12px;">
+              <div class="cms-field">
+                <label for="cms-supabase-url">Project URL do Supabase *</label>
+                <input type="url" id="cms-supabase-url" placeholder="Ex: https://xyzcompany.supabase.co" autocomplete="off" />
+              </div>
+              <div class="cms-field">
+                <label for="cms-supabase-key">Anon / Publishable Key (Chave Pública) *</label>
+                <input type="text" id="cms-supabase-key" placeholder="Ex: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." autocomplete="off" />
+              </div>
+            </div>
+            <div class="cms-export-actions-grid" style="margin-top:16px;">
+              <button type="button" class="btn-cms-save" id="btn-cms-save-supabase">⚡ Salvar Credenciais &amp; Conectar</button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-test-supabase">🔍 Testar Conexão</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 7: BACKUP & DADOS -->
+        <div class="admin-cms-pane" id="cms-pane-exportar" style="display: none;">
+          <div class="cms-block-card">
+            <h4>💾 Backup &amp; Gestão Permanente do Banco de Dados</h4>
+            <p style="font-size:0.86rem; color:var(--text-body); line-height:1.55; margin-top:6px;">
+              Todas as alterações são salvas automaticamente no servidor local (<code>data/db.json</code>). Baixe cópias completas quando desejar:
+            </p>
+            <div class="cms-export-actions-grid" style="margin-top:18px;">
+              <button type="button" class="btn-cms-save" id="btn-cms-download-dados">📥 Baixar Arquivo dados.js Atualizado</button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-export-json">📦 Baixar Backup Completo (.json)</button>
+              <button type="button" class="btn-cms-danger" id="btn-cms-reset-factory">🔄 Restaurar Padrão de Fábrica</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 8: LGPD & PRIVACIDADE -->
+        <div class="admin-cms-pane" id="cms-pane-lgpd" style="display: none;">
+          <div class="cms-block-card">
+            <h4>🛡️ Gestão de Solicitações LGPD (Direitos do Titular — Art. 18)</h4>
+            <p style="font-size:0.86rem; color:var(--text-body); line-height:1.55; margin-top:6px;">
+              Visualize e processe pedidos de acesso, retificação ou exclusão de dados enviados pelos clientes.
+            </p>
+            <div id="cms-lgpd-requests-list" style="margin-top:16px;">
+              <div style="text-align:center; padding:24px; color:#64748B; font-size:0.85rem;">Carregando solicitações de titulares...</div>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    </main>
+  </div>
+
+  <!-- CONTAINER DE TOASTS VISUAIS -->
+  <div id="sj-toast-container" class="sj-toast-container" aria-live="polite"></div>
+
+  <!-- MODAL: AUTENTICAÇÃO DO OPERADOR / ADMIN -->
+  <div class="modal-overlay" id="modal-google-auth" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="google-auth-title">
+    <div class="google-auth-card">
+      <div class="google-auth-glow-bar" aria-hidden="true"></div>
+      <button type="button" class="modal-close-btn" id="close-google-auth-btn" aria-label="Fechar janela de acesso">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+      
+      <div class="google-auth-header">
+        <div class="auth-portal-badge">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+          </svg>
+          <span>ÁREA RESTRITA • LOJA SJ 3D</span>
+        </div>
+
+        <div class="google-auth-logos">
+          <div class="auth-logo-squircle sj-squircle">
+            <img src="assets/img/icone-laranja.png" alt="Loja SJ" class="google-auth-brand-logo" />
+          </div>
+        </div>
+
+        <h3 id="google-auth-title">Acesso Restrito da Administração</h3>
+        <p class="google-auth-sub">Área exclusiva para a equipe e administração da Loja SJ 3D gerenciar produtos, preços e pedidos.</p>
+      </div>
+
+      <div class="auth-tabs-bar" role="tablist" aria-label="Acesso à Área Restrita">
+        <button type="button" class="auth-tab-btn active" id="tab-auth-email" data-auth-tab="email" role="tab" aria-selected="true">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>🔑 Login Administrador</span>
+        </button>
+        <button type="button" class="auth-tab-btn" id="tab-auth-register" data-auth-tab="register" role="tab" aria-selected="false">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+          <span>📩 Solicitar Autorização</span>
+        </button>
+      </div>
+
+      <div id="auth-feedback-box" class="auth-feedback-box" style="display: none;" role="alert"></div>
+
+      <div class="google-auth-body">
+        <div class="auth-pane-content" id="pane-auth-email" style="display: block;">
+          <form id="form-email-auth" class="operator-quick-form" autocomplete="on">
+            <div class="operator-field">
+              <label for="email-login-input">E-mail do Administrador</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <input type="email" id="email-login-input" placeholder="Ex: jt.designer21@gmail.com" value="" autocomplete="username" required />
+              </div>
+            </div>
+            <div class="operator-field">
+              <label for="senha-login-input">Senha Administrativa</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input type="password" id="senha-login-input" placeholder="Digite sua senha administrativa" value="" autocomplete="current-password" required />
+                <button type="button" class="auth-toggle-pwd" data-toggle-pwd="senha-login-input" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+            </div>
+            <button type="submit" class="btn-operator-submit">
+              <span>Entrar na Área Restrita</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <div class="auth-credential-hint">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+              <span>🔒 Acesso exclusivo do Administrador Oficial. Outros usuários devem pedir permissão na aba "Solicitar Autorização".</span>
+            </div>
+          </form>
+        </div>
+
+        <div class="auth-pane-content" id="pane-auth-register" style="display: none;">
+          <form id="form-register-auth" class="operator-quick-form">
+            <div class="operator-field">
+              <label for="reg-name-input">Seu Nome Completo</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <input type="text" id="reg-name-input" placeholder="Ex: Lucas Silva" autocomplete="name" required />
+              </div>
+            </div>
+            <div class="operator-field">
+              <label for="reg-email-input">Seu E-mail (que será autorizado)</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+                <input type="email" id="reg-email-input" placeholder="seuemail@exemplo.com" autocomplete="email" required />
+              </div>
+            </div>
+            <div class="operator-field">
+              <label for="reg-senha-input">Criar Senha de Acesso</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <input type="password" id="reg-senha-input" placeholder="Mín. 4 caracteres" minlength="4" autocomplete="new-password" required />
+                <button type="button" class="auth-toggle-pwd" data-toggle-pwd="reg-senha-input" aria-label="Mostrar ou ocultar senha" title="Mostrar ou ocultar senha">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                </button>
+              </div>
+            </div>
+            <div class="operator-field">
+              <label for="reg-cargo-input">Função / Motivo da Solicitação</label>
+              <div class="auth-input-group">
+                <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+                <input type="text" id="reg-cargo-input" placeholder="Ex: Vendedor do balcão, gerente..." maxlength="120" />
+              </div>
+            </div>
+            <button type="submit" class="btn-operator-submit">
+              <span>📩 Solicitar Autorização ao Administrador</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+            </button>
+            <div class="auth-credential-hint">
+              <span>Sua solicitação ficará pendente até o Administrador Oficial liberar o acesso no painel.</span>
+            </div>
+          </form>
+        </div>
+
+        <div class="google-auth-security-note" id="auth-sync-status-pill">
+          <span class="status-pulse-dot" id="auth-sync-dot"></span>
+          <span id="auth-sync-status-txt">Conectado ao Servidor Local — Sincronização Ativa</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL ASSISTENTE RÁPIDO DE ORÇAMENTO -->
+  <div class="modal-overlay" id="modal-quote-wizard" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quote-wizard-title">
+    <div class="google-auth-card quote-wizard-card">
+      <div class="google-auth-glow-bar" aria-hidden="true"></div>
+      <button type="button" class="modal-close-btn" id="close-quote-wizard-btn" aria-label="Fechar assistente de orçamento">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+
+      <div class="quote-wizard-header">
+        <div class="quote-wizard-top-row">
+          <div class="auth-portal-badge" style="margin-bottom:0;">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+              <polyline points="14 2 14 8 20 8"></polyline>
+            </svg>
+            <span>NOVO ORÇAMENTO TIMBRADO</span>
+          </div>
+          <button type="button" class="wizard-history-link-btn" id="btn-wizard-open-history" title="Consultar orçamentos já salvos">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <circle cx="12" cy="12" r="10"></circle>
+              <polyline points="12 6 12 12 16 14"></polyline>
+            </svg>
+            <span>Ver Histórico</span>
+          </button>
+        </div>
+        <h3 id="quote-wizard-title">Dados do Cliente &amp; Pagamento</h3>
+        <p class="google-auth-sub" id="wizard-items-summary-txt">Preencha os dados abaixo para gerar a folha timbrada pronta para compartilhar.</p>
+      </div>
+
+      <form id="form-quote-wizard" class="operator-quick-form">
+        <div class="wizard-section-title">1. Identificação do Cliente</div>
+        <div class="operator-field">
+          <label for="wiz-client-name">Nome Completo ou Razão Social *</label>
+          <div class="auth-input-group">
+            <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <input type="text" id="wiz-client-name" list="wiz-clients-datalist" placeholder="Digite o nome do cliente..." autocomplete="off" required />
+            <datalist id="wiz-clients-datalist"></datalist>
+          </div>
+        </div>
+
+        <div class="operator-form-row-2col">
+          <div class="operator-field">
+            <label for="wiz-client-phone">Telefone / WhatsApp</label>
+            <div class="auth-input-group">
+              <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path>
+              </svg>
+              <input type="tel" id="wiz-client-phone" placeholder="(44) 99999-9999" />
+            </div>
+          </div>
+          <div class="operator-field">
+            <label for="wiz-client-cpf">CPF ou CNPJ</label>
+            <div class="auth-input-group">
+              <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
+                <line x1="7" y1="8" x2="17" y2="8"></line>
+                <line x1="7" y1="12" x2="17" y2="12"></line>
+                <line x1="7" y1="16" x2="12" y2="16"></line>
+              </svg>
+              <input type="text" id="wiz-client-cpf" placeholder="000.000.000-00" />
+            </div>
+          </div>
+        </div>
+
+        <div class="wizard-section-title" style="margin-top:4px;">2. Forma de Pagamento</div>
+        <div class="wizard-payment-grid" role="radiogroup" aria-label="Forma de pagamento">
+          <button type="button" class="wizard-pay-btn active" data-pay-method="pix">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+            </svg>
+            <span>PIX</span>
+          </button>
+          <button type="button" class="wizard-pay-btn" data-pay-method="dinheiro">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
+              <circle cx="12" cy="12" r="2"></circle>
+              <path d="M6 12h.01M18 12h.01"></path>
+            </svg>
+            <span>Dinheiro</span>
+          </button>
+          <button type="button" class="wizard-pay-btn" data-pay-method="debito">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            <span>Cartão Débito</span>
+          </button>
+          <button type="button" class="wizard-pay-btn" data-pay-method="credito">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+              <line x1="5" y1="15" x2="9" y2="15"></line>
+            </svg>
+            <span>Cartão Crédito</span>
+          </button>
+        </div>
+
+        <div id="wiz-credit-installments-wrap" class="operator-field" style="display: none;">
+          <label for="wiz-credit-installments">Parcelamento no Cartão de Crédito</label>
+          <div class="auth-input-group">
+            <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <rect x="1" y="4" width="22" height="16" rx="2"></rect>
+              <line x1="1" y1="10" x2="23" y2="10"></line>
+            </svg>
+            <select id="wiz-credit-installments" class="auth-select-field">
+              <option value="Cartão de Crédito em 1x">1x no Cartão de Crédito</option>
+              <option value="Cartão de Crédito em até 2x">Em até 2x no Cartão de Crédito</option>
+              <option value="Cartão de Crédito em até 3x" selected>Em até 3x no Cartão de Crédito</option>
+              <option value="Cartão de Crédito em até 6x">Em até 6x no Cartão de Crédito</option>
+              <option value="Cartão de Crédito em até 10x">Em até 10x no Cartão de Crédito</option>
+              <option value="Cartão de Crédito em até 12x">Em até 12x no Cartão de Crédito</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="wizard-section-title" style="margin-top:4px;">3. Desconto à Vista</div>
+        <div class="wizard-discount-toggle-grid">
+          <button type="button" class="wizard-discount-btn active" data-wiz-discount="0" id="btn-wiz-disc-0">
+            <span class="disc-title">Sem Desconto</span>
+            <span class="disc-sub">Valor integral de tabela</span>
+          </button>
+          <button type="button" class="wizard-discount-btn discount-highlight" data-wiz-discount="5" id="btn-wiz-disc-5">
+            <span class="disc-badge">5% OFF</span>
+            <span class="disc-title">Aplicar 5% à Vista</span>
+            <span class="disc-sub" id="wiz-disc-5-amount-txt">- R$ 0,00 no total</span>
+          </button>
+        </div>
+
+        <div class="wizard-live-summary">
+          <div class="wizard-sum-line">
+            <span>Subtotal dos Itens:</span>
+            <strong id="wiz-sum-subtotal">R$ 0,00</strong>
+          </div>
+          <div class="wizard-sum-line discount-line" id="wiz-sum-discount-row" style="display: none;">
+            <span>Desconto à Vista (5%):</span>
+            <strong id="wiz-sum-discount">- R$ 0,00</strong>
+          </div>
+          <div class="wizard-sum-total">
+            <span>Total do Orçamento:</span>
+            <strong id="wiz-sum-total">R$ 0,00</strong>
+          </div>
+        </div>
+
+        <button type="submit" class="btn-operator-submit">
+          <span>Gerar Orçamento Timbrado</span>
+          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="5" y1="12" x2="19" y2="12"></line>
+            <polyline points="12 5 19 12 12 19"></polyline>
+          </svg>
+        </button>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL DE HISTÓRICO DE ORÇAMENTOS -->
+  <div class="modal-overlay" id="modal-quote-history" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quote-history-title">
+    <div class="quote-history-card">
+      <div class="quote-history-header">
+        <div>
+          <h3 id="quote-history-title">Histórico de Propostas &amp; Banco de Dados</h3>
+          <p>Consulte, filtre por status comercial e gerencie o banco de dados da Loja SJ 3D.</p>
+        </div>
+        <button type="button" class="modal-close-btn" id="close-quote-history-btn" aria-label="Fechar">&times;</button>
+      </div>
+
+      <div class="quote-history-filter-bar">
+        <div class="history-status-pills">
+          <button type="button" class="history-pill active" data-status-filter="todos">Todos</button>
+          <button type="button" class="history-pill" data-status-filter="pendente">Pendentes</button>
+          <button type="button" class="history-pill" data-status-filter="aprovado">Aprovados</button>
+          <button type="button" class="history-pill" data-status-filter="faturado">Faturados</button>
+          <button type="button" class="history-pill" data-status-filter="cancelado">Cancelados</button>
+        </div>
+        <input type="text" id="history-search-input" class="history-search-input" placeholder="🔍 Buscar por cliente ou número (ex: SJ-2026)..." />
+      </div>
+
+      <div class="quote-history-body" id="quote-history-list"></div>
+
+      <div class="quote-history-footer">
+        <div style="font-size:0.75rem; color:var(--text-muted);">
+          <span>Banco de Dados: <strong>data/db.json</strong></span>
+        </div>
+        <div style="display:flex; gap:8px;">
+          <button type="button" class="btn-db-backup" id="btn-backup-export" title="Baixar arquivo JSON com todos os orçamentos e clientes">
+            📥 Exportar Backup (.json)
+          </button>
+          <label class="btn-db-backup" style="cursor:pointer;" title="Restaurar backup a partir de arquivo JSON">
+            📤 Importar Backup
+            <input type="file" id="input-backup-import" accept=".json" style="display:none;" />
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SCANNER DE QR CODE PELA CÂMERA -->
+  <div class="modal-overlay" id="modal-camera-scanner-qr" style="display: none;" role="dialog" aria-modal="true">
+    <div style="background:#18181b; color:#fff; border-radius:18px; padding:20px; max-width:480px; width:92%; margin:auto; border:2px solid #F04E23; text-align:center;">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px;">
+        <strong style="font-size:0.95rem;">📷 Leitor de QR Code / Código de Barras</strong>
+        <button type="button" id="btn-close-camera-scanner" style="background:transparent; border:none; color:#fff; font-size:1.2rem; cursor:pointer;">✕</button>
+      </div>
+      <div class="sj-qr-video-box">
+        <video id="qr-camera-video" playsinline></video>
+        <div class="sj-qr-scan-frame"></div>
+      </div>
+      <p style="font-size:0.78rem; color:#a1a1aa; margin:8px 0 0;">Aponte a câmera para o QR Code da caixa ou etiqueta.</p>
+    </div>
+  </div>
+
+  <!-- SCRIPTS ESSENCIAIS -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
+  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
+  <script src="js/supabase-client.js?v=20261110_06"></script>
+  <script src="js/dados.js?v=20261110_06"></script>
+  <script src="js/database.js?v=20261110_06"></script>
+  <script src="js/app.js?v=20261110_06"></script>
+
+</body>
+
+</html>

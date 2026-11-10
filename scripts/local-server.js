@@ -550,9 +550,9 @@ const server = http.createServer(async (req, res) => {
   // SERVIDOR DE ARQUIVOS ESTÁTICOS DO SITE
   // =========================================================================
 
-  const cleanUrl = (pathname === "/" || pathname === "/admin" || pathname === "/admin/")
-    ? "/index.html"
-    : pathname;
+  const cleanUrl = (pathname === "/admin" || pathname === "/admin/")
+    ? "/admin.html"
+    : (pathname === "/" ? "/index.html" : pathname);
   const filePath = path.join(ROOT, decodeURIComponent(cleanUrl));
 
   if (!filePath.startsWith(ROOT)) {

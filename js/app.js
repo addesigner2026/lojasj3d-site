@@ -9882,9 +9882,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
   function abrirPainelAdminCms(abaInicial = "produtos", produtoIdParaEditar = null) {
     const executarAbertura = () => {
-      const modal = document.getElementById("modal-admin-cms");
-      if (!modal) return;
-      modal.style.display = "flex";
+      const isStandaloneAdmin = window.location.pathname.includes("admin.html") || !!document.getElementById("admin-standalone-app");
+      if (!isStandaloneAdmin) {
+        let targetUrl = `admin.html?aba=${encodeURIComponent(abaInicial || "produtos")}`;
+        if (produtoIdParaEditar) targetUrl += `&edit=${encodeURIComponent(produtoIdParaEditar)}`;
+        window.open(targetUrl, "_blank");
+        return;
+      }
 
       selecionarAbaCms(abaInicial || "produtos");
       configurarFormularioSenhaAdmin();
@@ -10005,47 +10009,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     contagemPorCat.todos = totalSkus;
 
-    // Atualiza KPIs principais
-    const elTotal = document.getElementById("cms-kpi-total");
-    const elSubTotal = document.getElementById("cms-kpi-sub-total");
-    const elOk = document.getElementById("cms-kpi-ok");
-    const elLow = document.getElementById("cms-kpi-low");
-    const elOut = document.getElementById("cms-kpi-out");
-
-    if (elTotal) elTotal.textContent = String(totalSkus);
-    if (elSubTotal) elSubTotal.textContent = `${totalModelos} Famílias & Modelos Cadastrados`;
-    if (elOk) elOk.textContent = String(ok);
-    if (elLow) elLow.textContent = String(low);
-    if (elOut) elOut.textContent = String(out);
-
-    // Atualiza chips de detalhe do KPI
-    const chipCores = document.getElementById("kpi-chip-cores");
-    const chipImp = document.getElementById("kpi-chip-imp");
-    const chipPecas = document.getElementById("kpi-chip-pecas");
-    const chipServ = document.getElementById("kpi-chip-serv");
-    if (chipCores) chipCores.textContent = `🎨 ${totalCoresFilamento} Cores`;
-    if (chipImp) chipImp.textContent = `🖨️ ${modelosPorCat.impressoras || 6} Impressoras`;
-    if (chipPecas) chipPecas.textContent = `⚙️ ${modelosPorCat.pecas || 19} Peças`;
-    if (chipServ) chipServ.textContent = `🔧 ${modelosPorCat.manutencao || 3} Serviços`;
+    // Atualiza KPIs principais sem poluição visual (Ultra-Clean UI/UX Pro Max)
+    document.querySelectorAll("#cms-kpi-total").forEach((el) => { el.textContent = String(totalSkus); });
+    document.querySelectorAll("#cms-kpi-sub-total").forEach((el) => { el.textContent = "Itens ativos no catálogo"; });
+    document.querySelectorAll("#cms-kpi-ok").forEach((el) => { el.textContent = String(ok); });
+    document.querySelectorAll("#cms-kpi-low").forEach((el) => { el.textContent = String(low); });
+    document.querySelectorAll("#cms-kpi-out").forEach((el) => { el.textContent = String(out); });
 
     // Atualiza badges no View Switcher
-    const badgeModelos = document.getElementById("cms-badge-count-modelos");
-    const badgeSkus = document.getElementById("cms-badge-count-skus");
-    if (badgeModelos) badgeModelos.textContent = String(totalModelos);
-    if (badgeSkus) badgeSkus.textContent = String(totalSkus);
+    document.querySelectorAll("#cms-badge-count-modelos").forEach((el) => { el.textContent = String(totalModelos); });
+    document.querySelectorAll("#cms-badge-count-skus").forEach((el) => { el.textContent = String(totalSkus); });
 
     // Atualiza badges nos filtros de categoria
-    const pillTodos = document.getElementById("cat-pill-num-todos");
-    const pillFil = document.getElementById("cat-pill-num-filamentos");
-    const pillImp = document.getElementById("cat-pill-num-impressoras");
-    const pillPecas = document.getElementById("cat-pill-num-pecas");
-    const pillManut = document.getElementById("cat-pill-num-manutencao");
     const isSkusMode = cmsState.modoVisao === "skus";
-    if (pillTodos) pillTodos.textContent = String(isSkusMode ? totalSkus : totalModelos);
-    if (pillFil) pillFil.textContent = String(isSkusMode ? totalCoresFilamento : (modelosPorCat.filamentos || 6));
-    if (pillImp) pillImp.textContent = String(modelosPorCat.impressoras || 6);
-    if (pillPecas) pillPecas.textContent = String(modelosPorCat.pecas || 19);
-    if (pillManut) pillManut.textContent = String(modelosPorCat.manutencao || 3);
+    document.querySelectorAll("#cat-pill-num-todos").forEach((el) => { el.textContent = String(isSkusMode ? totalSkus : totalModelos); });
+    document.querySelectorAll("#cat-pill-num-filamentos").forEach((el) => { el.textContent = String(isSkusMode ? totalCoresFilamento : (modelosPorCat.filamentos || 6)); });
+    document.querySelectorAll("#cat-pill-num-impressoras").forEach((el) => { el.textContent = String(modelosPorCat.impressoras || 6); });
+    document.querySelectorAll("#cat-pill-num-pecas").forEach((el) => { el.textContent = String(modelosPorCat.pecas || 19); });
+    document.querySelectorAll("#cat-pill-num-manutencao").forEach((el) => { el.textContent = String(modelosPorCat.manutencao || 3); });
   }
 
   function gerarListaSkusCms() {
@@ -10278,11 +10259,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 <span style="font-size:0.7rem; font-weight:700; color:#64748b;">${escaparHtml(nomesCat[p.categoria] || p.categoria)}</span>
               </div>
 
-              <!-- Foto do Produto com Badge de Cores ou Categoria -->
+              <!-- Foto do Produto Limpa & Em Alta Definição -->
               <div class="cms-prod-card-thumb">
                 <img src="${escaparHtml(p.imagem || "assets/produtos/impressora-a1_mini.jpg")}" alt="${escaparHtml(p.nome)}" loading="lazy" />
-                <span class="cms-prod-cat-tag">${escaparHtml(nomesCat[p.categoria] || p.categoria)}</span>
-                ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">🎨 ${qtdCores} Cores Oficiais</span>` : ""}
+                ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">🎨 ${qtdCores} Cores</span>` : ""}
               </div>
 
               <!-- Corpo com Título, Subtítulo, Swatches e Preço -->
@@ -10732,6 +10712,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     atualizarCaixaLateral();
     atualizarVisaoPrincipal();
     configurarEventosNovosModulosCms();
+
+    // Inicialização do Painel Standalone (/admin ou admin.html)
+    const isStandaloneAdmin = window.location.pathname.includes("admin.html") || !!document.getElementById("admin-standalone-app");
+    if (isStandaloneAdmin) {
+      const urlParams = new URLSearchParams(window.location.search);
+      const aba = urlParams.get("aba") || "produtos";
+      const editId = urlParams.get("edit");
+
+      selecionarAbaCms(aba);
+      configurarFormularioSenhaAdmin();
+      atualizarBadgesSolicitacoesPendentes();
+      renderizarListaProdutosCms();
+      preencherFormularioBannerCms();
+      atualizarStatusSupabaseNoCms();
+      atualizarContadoresEstoqueKpiCms();
+
+      if (editId) {
+        abrirEditorProdutoCms(editId);
+      }
+    }
 
     // Eventos de Autenticação Google & Operador
     document.getElementById("close-google-auth-btn")?.addEventListener("click", () => {

@@ -5829,6 +5829,175 @@ body.is-admin-logged-in .admin-quick-edit-btn {
 }
 
 /* ==========================================================================
+   DASHBOARD ADMIN STANDALONE (admin.html) — FULLSCREEN SAAS LAYOUT (UI/UX PRO MAX)
+   ========================================================================== */
+body.admin-standalone-body {
+  margin: 0;
+  padding: 0;
+  height: 100vh;
+  width: 100vw;
+  overflow: hidden;
+  background: #f8fafc;
+  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  color: #0f172a;
+}
+
+.admin-standalone-shell {
+  display: grid;
+  grid-template-columns: 260px 1fr;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.admin-standalone-sidebar {
+  background: #111114;
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 20px 16px;
+  border-right: 1px solid rgba(255, 255, 255, 0.08);
+  overflow-y: auto;
+}
+
+.admin-standalone-main {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  min-width: 0;
+  overflow: hidden;
+  background: #f8fafc;
+}
+
+.admin-standalone-topbar {
+  height: 68px;
+  flex-shrink: 0;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.admin-standalone-workspace {
+  flex: 1 1 auto;
+  height: calc(100vh - 68px);
+  overflow-y: auto;
+  padding: 24px 28px 48px;
+  box-sizing: border-box;
+}
+
+/* Minimalist Clean Bento KPI Cards */
+.cms-kpi-clean-card {
+  position: relative;
+  background: #ffffff;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 16px 18px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  text-align: left;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+.cms-kpi-clean-card:hover {
+  transform: translateY(-2px);
+  border-color: #cbd5e1;
+  box-shadow: 0 10px 24px -4px rgba(0, 0, 0, 0.06);
+}
+
+.cms-kpi-clean-card.active-kpi {
+  border-color: #F04E23;
+  box-shadow: 0 10px 24px -4px rgba(240, 78, 35, 0.14);
+}
+
+.cms-kpi-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+
+.cms-kpi-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #64748b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.cms-kpi-badge {
+  font-size: 0.65rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.cms-kpi-badge.badge-green {
+  background: #ecfdf5;
+  color: #047857;
+  border: 1px solid #a7f3d0;
+}
+
+.cms-kpi-badge.badge-amber {
+  background: #fffbeb;
+  color: #b45309;
+  border: 1px solid #fde68a;
+}
+
+.cms-kpi-badge.badge-red {
+  background: #fef2f2;
+  color: #dc2626;
+  border: 1px solid #fecaca;
+}
+
+.cms-kpi-main-number {
+  font-size: 1.85rem;
+  font-weight: 900;
+  line-height: 1.1;
+  color: #0f172a;
+  letter-spacing: -0.6px;
+  margin: 4px 0;
+}
+
+.cms-kpi-footer-text {
+  font-size: 0.73rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+@media (max-width: 900px) {
+  .admin-standalone-shell {
+    grid-template-columns: 1fr;
+    height: 100dvh;
+  }
+  .admin-standalone-sidebar {
+    padding: 12px 14px;
+    border-right: none;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  }
+  .admin-standalone-workspace {
+    padding: 16px 14px 32px;
+  }
+  .admin-standalone-topbar {
+    padding: 0 14px;
+  }
+}
+
+/* ==========================================================================
    GRADE DE PRODUTOS & SKUs NO CMS — DESIGN ULTRA CLEAN & MODERNO (BENTO SaaS)
    ========================================================================== */
 .cms-products-grid {
