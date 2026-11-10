@@ -8919,7 +8919,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   document.getElementById("btn-cms-refresh-lgpd")?.addEventListener("click", renderizarPainelLgpdCms);
-  }
 
   // =====================================================================
   // PAINEL: ADMINISTRADORES & SENHA (aprovação / bloqueio / troca de senha)
