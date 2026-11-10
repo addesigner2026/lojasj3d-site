@@ -8299,6 +8299,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
   const cmsState = {
     abaAtiva: "produtos",
+    modoVisao: "modelos", // "modelos" (famílias/linhas) ou "skus" (todas as cores e itens individuais)
     categoriaFiltro: "todos",
     estoqueFiltro: "todos",
     busca: "",
@@ -9951,23 +9952,158 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   function atualizarContadoresEstoqueKpiCms() {
     if (!window.SITE_DATA) return;
     const catalogo = window.SITE_DATA.catalogo || [];
+
+    let totalModelos = catalogo.length;
+    let totalSkus = 0;
     let ok = 0;
     let low = 0;
     let out = 0;
+
+    let totalCoresFilamento = 0;
+    const contagemPorCat = {
+      todos: 0,
+      filamentos: 0,
+      impressoras: 0,
+      pecas: 0,
+      manutencao: 0
+    };
+    const modelosPorCat = {
+      todos: catalogo.length,
+      filamentos: 0,
+      impressoras: 0,
+      pecas: 0,
+      manutencao: 0
+    };
+
     catalogo.forEach((p) => {
-      const st = p.estoqueStatus || "disponivel";
-      if (st === "esgotado") out++;
-      else if (st === "poucas_unidades") low++;
-      else ok++;
+      const cat = p.categoria || "pecas";
+      modelosPorCat[cat] = (modelosPorCat[cat] || 0) + 1;
+      const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+      const paleta = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+
+      if (paleta && paleta.length > 0) {
+        // Cada cor da paleta é um produto físico / SKU real
+        totalSkus += paleta.length;
+        totalCoresFilamento += paleta.length;
+        contagemPorCat[cat] = (contagemPorCat[cat] || 0) + paleta.length;
+
+        paleta.forEach((c) => {
+          const st = c.estoqueStatus || p.estoqueStatus || "disponivel";
+          if (st === "esgotado") out++;
+          else if (st === "poucas_unidades") low++;
+          else ok++;
+        });
+      } else {
+        totalSkus += 1;
+        contagemPorCat[cat] = (contagemPorCat[cat] || 0) + 1;
+        const st = p.estoqueStatus || "disponivel";
+        if (st === "esgotado") out++;
+        else if (st === "poucas_unidades") low++;
+        else ok++;
+      }
     });
+
+    contagemPorCat.todos = totalSkus;
+
+    // Atualiza KPIs principais
     const elTotal = document.getElementById("cms-kpi-total");
+    const elSubTotal = document.getElementById("cms-kpi-sub-total");
     const elOk = document.getElementById("cms-kpi-ok");
     const elLow = document.getElementById("cms-kpi-low");
     const elOut = document.getElementById("cms-kpi-out");
-    if (elTotal) elTotal.textContent = String(catalogo.length);
+
+    if (elTotal) elTotal.textContent = String(totalSkus);
+    if (elSubTotal) elSubTotal.textContent = `${totalModelos} Famílias & Modelos Cadastrados`;
     if (elOk) elOk.textContent = String(ok);
     if (elLow) elLow.textContent = String(low);
     if (elOut) elOut.textContent = String(out);
+
+    // Atualiza chips de detalhe do KPI
+    const chipCores = document.getElementById("kpi-chip-cores");
+    const chipImp = document.getElementById("kpi-chip-imp");
+    const chipPecas = document.getElementById("kpi-chip-pecas");
+    const chipServ = document.getElementById("kpi-chip-serv");
+    if (chipCores) chipCores.textContent = `🎨 ${totalCoresFilamento} Cores`;
+    if (chipImp) chipImp.textContent = `🖨️ ${modelosPorCat.impressoras || 6} Impressoras`;
+    if (chipPecas) chipPecas.textContent = `⚙️ ${modelosPorCat.pecas || 19} Peças`;
+    if (chipServ) chipServ.textContent = `🔧 ${modelosPorCat.manutencao || 3} Serviços`;
+
+    // Atualiza badges no View Switcher
+    const badgeModelos = document.getElementById("cms-badge-count-modelos");
+    const badgeSkus = document.getElementById("cms-badge-count-skus");
+    if (badgeModelos) badgeModelos.textContent = String(totalModelos);
+    if (badgeSkus) badgeSkus.textContent = String(totalSkus);
+
+    // Atualiza badges nos filtros de categoria
+    const pillTodos = document.getElementById("cat-pill-num-todos");
+    const pillFil = document.getElementById("cat-pill-num-filamentos");
+    const pillImp = document.getElementById("cat-pill-num-impressoras");
+    const pillPecas = document.getElementById("cat-pill-num-pecas");
+    const pillManut = document.getElementById("cat-pill-num-manutencao");
+    const isSkusMode = cmsState.modoVisao === "skus";
+    if (pillTodos) pillTodos.textContent = String(isSkusMode ? totalSkus : totalModelos);
+    if (pillFil) pillFil.textContent = String(isSkusMode ? totalCoresFilamento : (modelosPorCat.filamentos || 6));
+    if (pillImp) pillImp.textContent = String(modelosPorCat.impressoras || 6);
+    if (pillPecas) pillPecas.textContent = String(modelosPorCat.pecas || 19);
+    if (pillManut) pillManut.textContent = String(modelosPorCat.manutencao || 3);
+  }
+
+  function gerarListaSkusCms() {
+    const catalogo = window.SITE_DATA?.catalogo || [];
+    const lista = [];
+
+    catalogo.forEach((p) => {
+      const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+      const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+
+      if (paletaCores && paletaCores.length > 0) {
+        paletaCores.forEach((c, idx) => {
+          lista.push({
+            tipo: "cor",
+            id: `${p.id}-${c.cod || idx}`,
+            produtoId: p.id,
+            chavePaleta: chavePaleta,
+            corIndex: idx,
+            nome: `${p.nome} — ${c.nome}`,
+            modeloNome: p.nome,
+            corNome: c.nome,
+            codigo: c.cod ? `CÓD. ${c.cod}` : `COR ${idx + 1}`,
+            codNumero: String(c.cod || ""),
+            corHex: c.hex || "#F04E23",
+            preco: c.preco || p.precoVista,
+            precoParcelado: p.precoParcelado || "",
+            categoria: p.categoria || "filamentos",
+            marca: p.marca || "Loja SJ 3D",
+            imagem: c.imgCatalogo || p.imagem || "assets/produtos/pla-maxprint.jpg",
+            estoqueStatus: c.estoqueStatus || p.estoqueStatus || "disponivel",
+            qrPayload: `SJ3D:FIL:${p.id}:${c.cod || c.nome}`
+          });
+        });
+      } else {
+        lista.push({
+          tipo: "produto",
+          id: p.id,
+          produtoId: p.id,
+          chavePaleta: null,
+          corIndex: null,
+          nome: p.nome,
+          modeloNome: p.nome,
+          corNome: null,
+          codigo: p.id,
+          codNumero: "",
+          corHex: null,
+          preco: p.precoVista,
+          precoParcelado: p.precoParcelado || "",
+          categoria: p.categoria || "pecas",
+          marca: p.marca || "Loja SJ 3D",
+          imagem: p.imagem || "assets/produtos/impressora-a1_mini.jpg",
+          estoqueStatus: p.estoqueStatus || "disponivel",
+          qrPayload: `SJ3D:PROD:${p.id}`
+        });
+      }
+    });
+
+    return lista;
   }
 
   function renderizarListaProdutosCms() {
@@ -9978,21 +10114,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     const catalogo = window.SITE_DATA.catalogo || [];
     const termo = (cmsState.busca || "").toLowerCase().trim();
-
-    const filtrados = catalogo.filter((item) => {
-      if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
-        return false;
-      }
-      const st = item.estoqueStatus || "disponivel";
-      if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
-        return false;
-      }
-      if (termo) {
-        const texto = `${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
-        if (!texto.includes(termo)) return false;
-      }
-      return true;
-    });
+    const isSkusMode = cmsState.modoVisao === "skus";
 
     const nomesCat = {
       filamentos: "Filamentos",
@@ -10001,79 +10123,303 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       manutencao: "Serviços & Manutenção"
     };
 
-    if (filtrados.length === 0) {
-      grid.innerHTML = `<div style="padding:32px; text-align:center; color:var(--text-muted); grid-column:1/-1;">Nenhum produto encontrado para este filtro.</div>`;
-      return;
-    }
+    if (isSkusMode) {
+      // -------------------------------------------------------------
+      // VISÃO 1: TODAS AS CORES & SKUs INDIVIDUAIS (100+ CORES REAIS)
+      // -------------------------------------------------------------
+      const todosSkus = gerarListaSkusCms();
+      const filtrados = todosSkus.filter((item) => {
+        if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+          return false;
+        }
+        const st = item.estoqueStatus || "disponivel";
+        if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
+          return false;
+        }
+        if (termo) {
+          const texto = `${item.nome || ""} ${item.modeloNome || ""} ${item.corNome || ""} ${item.codigo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
+          if (!texto.includes(termo)) return false;
+        }
+        return true;
+      });
 
-    grid.innerHTML = filtrados
-      .map((p) => {
-        const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
-        const qtdCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])
-          ? window.SITE_DATA[chavePaleta].length
-          : 0;
-        const statusEst = p.estoqueStatus || "disponivel";
+      if (filtrados.length === 0) {
+        grid.innerHTML = `<div style="padding:48px 24px; text-align:center; color:#64748b; grid-column:1/-1; background:#ffffff; border-radius:14px; border:1.5px dashed #cbd5e1;">
+          <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
+          <strong style="color:#0f172a; font-size:1rem;">Nenhum SKU encontrado para este filtro.</strong>
+          <p style="font-size:0.82rem; margin:6px 0 0;">Tente buscar por código (ex: 137), nome da cor ou altere a categoria selecionada.</p>
+        </div>`;
+        return;
+      }
 
-        return `
-          <div class="cms-product-item-card">
-            <div class="cms-prod-card-thumb">
-              <img src="${p.imagem || "assets/produtos/impressora-a1_mini.jpg"}" alt="${p.nome}" loading="lazy" />
-              <span class="cms-prod-cat-tag">${nomesCat[p.categoria] || p.categoria}</span>
-            </div>
-            <div class="cms-prod-card-body">
-              <strong>${p.nome}</strong>
-              <p>${p.subtitulo || ""}</p>
-              <div class="cms-prod-card-meta">
-                <span class="cms-prod-price-badge">${p.precoVista || "Sob consulta"}</span>
-                ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">🎨 ${qtdCores} cores</span>` : ""}
+      grid.innerHTML = filtrados
+        .map((sku) => {
+          const statusEst = sku.estoqueStatus || "disponivel";
+          const brandClass = (sku.marca || "").toLowerCase().includes("bambu")
+            ? "brand-bambu"
+            : (sku.marca || "").toLowerCase().includes("max") || (sku.marca || "").toLowerCase().includes("master")
+            ? "brand-maxprint"
+            : "brand-sj";
+
+          return `
+            <div class="cms-sku-item-card">
+              <div class="cms-sku-card-thumb">
+                <img src="${escaparHtml(sku.imagem || 'assets/produtos/pla-maxprint.jpg')}" alt="${escaparHtml(sku.nome)}" loading="lazy" />
+                <span class="cms-sku-code-tag">${escaparHtml(sku.codigo || 'SKU')}</span>
+                ${sku.corHex ? `<span style="position:absolute; bottom:6px; right:6px; width:18px; height:18px; border-radius:50%; background:${escaparHtml(sku.corHex)}; border:2px solid #ffffff; box-shadow:0 0 0 1px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(sku.corNome || '')}"></span>` : ''}
               </div>
-              <div style="margin-top:8px;">
-                <select class="cms-quick-stock-select stock-${statusEst}" data-cms-quick-stock="${p.id}" title="Alterar status de estoque deste produto">
+
+              <div>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:3px;">
+                  <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(sku.marca || 'Loja SJ')}</span>
+                  <span style="font-size:0.68rem; font-weight:700; color:#64748b;">${escaparHtml(nomesCat[sku.categoria] || sku.categoria)}</span>
+                </div>
+                <strong style="font-size:0.86rem; font-weight:800; color:#0f172a; display:block; line-height:1.25; margin-bottom:2px;">${escaparHtml(sku.nome)}</strong>
+                <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin:4px 0;">
+                  <span class="cms-prod-price-badge">${escaparHtml(sku.preco || 'Sob consulta')}</span>
+                  ${sku.corNome ? `<span style="font-size:0.7rem; font-weight:700; color:#475569; background:#f1f5f9; padding:1px 6px; border-radius:4px;">${escaparHtml(sku.corNome)}</span>` : ''}
+                </div>
+              </div>
+
+              <div style="margin-top:2px;">
+                <select class="cms-quick-stock-select stock-${statusEst}" 
+                  data-cms-quick-stock="${escaparHtml(sku.id)}" 
+                  data-cms-stock-tipo="${escaparHtml(sku.tipo)}" 
+                  data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || '')}" 
+                  data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ''}" 
+                  title="Alterar estoque desta cor/SKU individual">
                   <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>🟢 Em Estoque</option>
                   <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>🟠 Poucas Unidades</option>
                   <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
                 </select>
               </div>
-            </div>
-            <div class="cms-prod-card-actions">
-              <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${p.id}">
-                ✏️ Editar Produto / Preço / Foto
-              </button>
-              <button type="button" class="btn-cms-del-item" data-cms-del-id="${p.id}" title="Excluir produto">
-                🗑️
-              </button>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
 
-    // Troca rápida de status de estoque direto na grade do Painel Admin
+              <div class="cms-prod-card-actions">
+                <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${escaparHtml(sku.produtoId)}" title="Editar modelo e todas as cores">
+                  ✏️ Editar Produto
+                </button>
+                <button type="button" class="btn-cms-qr-item" data-cms-qr-payload="${escaparHtml(sku.qrPayload)}" data-cms-qr-title="${escaparHtml(sku.nome)}" title="Imprimir etiqueta com QR Code deste SKU">
+                  🏷️
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+
+    } else {
+      // -------------------------------------------------------------
+      // VISÃO 2: MODELOS & FAMÍLIAS DE PRODUTOS (34 FAMÍLIAS)
+      // -------------------------------------------------------------
+      const filtrados = catalogo.filter((item) => {
+        if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+          return false;
+        }
+        const st = item.estoqueStatus || "disponivel";
+        if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
+          return false;
+        }
+        if (termo) {
+          const texto = `${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
+          if (!texto.includes(termo)) return false;
+        }
+        return true;
+      });
+
+      if (filtrados.length === 0) {
+        grid.innerHTML = `<div style="padding:48px 24px; text-align:center; color:#64748b; grid-column:1/-1; background:#ffffff; border-radius:14px; border:1.5px dashed #cbd5e1;">
+          <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
+          <strong style="color:#0f172a; font-size:1rem;">Nenhum produto encontrado para este filtro.</strong>
+          <p style="font-size:0.82rem; margin:6px 0 0;">Tente outro termo de busca ou altere a categoria acima.</p>
+        </div>`;
+        return;
+      }
+
+      grid.innerHTML = filtrados
+        .map((p) => {
+          const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+          const qtdCores = paletaCores ? paletaCores.length : 0;
+          const statusEst = p.estoqueStatus || "disponivel";
+
+          const brandClass = (p.marca || "").toLowerCase().includes("bambu")
+            ? "brand-bambu"
+            : (p.marca || "").toLowerCase().includes("max") || (p.marca || "").toLowerCase().includes("master")
+            ? "brand-maxprint"
+            : "brand-sj";
+
+          // Renderização dos primeiros swatches de cor para visualização instantânea
+          let swatchesHtml = "";
+          if (qtdCores > 0 && paletaCores) {
+            const amostra = paletaCores.slice(0, 6);
+            const restantes = qtdCores - amostra.length;
+            swatchesHtml = `
+              <div class="cms-colors-swatch-row" title="Clique para gerenciar a paleta de cores deste filamento">
+                ${amostra
+                  .map(
+                    (c) => `
+                      <span class="cms-color-mini-dot" 
+                        style="background:${escaparHtml(c.hex || '#ccc')};" 
+                        title="${escaparHtml(c.nome)} (${escaparHtml(c.cod ? 'CÓD. ' + c.cod : '')})"
+                        data-cms-open-color="${escaparHtml(p.id)}"></span>
+                    `
+                  )
+                  .join("")}
+                ${restantes > 0 ? `<span class="cms-colors-more-chip" data-cms-open-color="${escaparHtml(p.id)}" title="Ver todas as ${qtdCores} cores">+${restantes} cores</span>` : ""}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="cms-product-item-card">
+              <!-- Topo do Card: Categoria & Marca Oficial -->
+              <div class="cms-prod-card-top-bar">
+                <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(p.marca || "Loja SJ 3D")}</span>
+                <span style="font-size:0.7rem; font-weight:700; color:#64748b;">${escaparHtml(nomesCat[p.categoria] || p.categoria)}</span>
+              </div>
+
+              <!-- Foto do Produto com Badge de Cores ou Categoria -->
+              <div class="cms-prod-card-thumb">
+                <img src="${escaparHtml(p.imagem || "assets/produtos/impressora-a1_mini.jpg")}" alt="${escaparHtml(p.nome)}" loading="lazy" />
+                <span class="cms-prod-cat-tag">${escaparHtml(nomesCat[p.categoria] || p.categoria)}</span>
+                ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">🎨 ${qtdCores} Cores Oficiais</span>` : ""}
+              </div>
+
+              <!-- Corpo com Título, Subtítulo, Swatches e Preço -->
+              <div class="cms-prod-card-body">
+                <strong>${escaparHtml(p.nome)}</strong>
+                <p>${escaparHtml(p.subtitulo || "")}</p>
+                ${swatchesHtml}
+                <div class="cms-prod-card-meta">
+                  <span class="cms-prod-price-badge">${escaparHtml(p.precoVista || "Sob consulta")}</span>
+                  ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">🎨 ${qtdCores} cores</span>` : `<span style="font-size:0.72rem; color:#64748b;">${escaparHtml(p.precoParcelado || "Pronta entrega")}</span>`}
+                </div>
+                <div style="margin-top:8px;">
+                  <select class="cms-quick-stock-select stock-${statusEst}" data-cms-quick-stock="${escaparHtml(p.id)}" data-cms-stock-tipo="produto" title="Alterar status de estoque deste produto">
+                    <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>🟢 Em Estoque</option>
+                    <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>🟠 Poucas Unidades</option>
+                    <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+                  </select>
+                </div>
+              </div>
+
+              <!-- Ações Modernas: Editar, Imprimir QR e Excluir -->
+              <div class="cms-prod-card-actions">
+                <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${escaparHtml(p.id)}">
+                  ${qtdCores > 0 ? "✏️ Editar Preço & Cores" : "✏️ Editar Produto & Detalhes"}
+                </button>
+                <button type="button" class="btn-cms-qr-item" data-cms-qr-prod-id="${escaparHtml(p.id)}" title="Imprimir etiquetas de QR Code deste produto">
+                  🏷️
+                </button>
+                <button type="button" class="btn-cms-del-item" data-cms-del-id="${escaparHtml(p.id)}" title="Excluir produto do catálogo">
+                  🗑️
+                </button>
+              </div>
+            </div>
+          `;
+        })
+        .join("");
+    }
+
+    // Eventos da grade dinâmica (troca rápida de estoque, abrir editor, imprimir QR, deletar)
     grid.querySelectorAll("[data-cms-quick-stock]").forEach((sel) => {
       sel.addEventListener("change", async (e) => {
         const id = sel.dataset.cmsQuickStock;
+        const tipo = sel.dataset.cmsStockTipo || "produto";
         const novoStatus = e.target.value;
-        const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
-        if (!prod) return;
-        prod.estoqueStatus = novoStatus;
-        sel.className = `cms-quick-stock-select stock-${novoStatus}`;
-        if (window.SJ_DB && window.SJ_DB.catalogo) {
-          await window.SJ_DB.catalogo.salvarProduto(prod);
+
+        if (tipo === "cor") {
+          const chavePaleta = sel.dataset.cmsChavePaleta;
+          const corIdx = parseInt(sel.dataset.cmsCorIdx, 10);
+          if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) && window.SITE_DATA[chavePaleta][corIdx]) {
+            window.SITE_DATA[chavePaleta][corIdx].estoqueStatus = novoStatus;
+            sel.className = `cms-quick-stock-select stock-${novoStatus}`;
+            if (window.SJ_DB && window.SJ_DB.catalogo) {
+              await window.SJ_DB.catalogo.salvarPaletaCores(chavePaleta, window.SITE_DATA[chavePaleta]);
+            }
+            atualizarContadoresEstoqueKpiCms();
+            atualizarSiteAposEdicaoCms();
+            const labelMap = {
+              disponivel: "🟢 Em Estoque",
+              poucas_unidades: "🟠 Poucas Unidades",
+              esgotado: "🔴 Esgotado"
+            };
+            mostrarToast(`📦 Estoque de <strong>"${window.SITE_DATA[chavePaleta][corIdx].nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
+          }
+        } else {
+          const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
+          if (!prod) return;
+          prod.estoqueStatus = novoStatus;
+          sel.className = `cms-quick-stock-select stock-${novoStatus}`;
+          if (window.SJ_DB && window.SJ_DB.catalogo) {
+            await window.SJ_DB.catalogo.salvarProduto(prod);
+          }
+          atualizarContadoresEstoqueKpiCms();
+          atualizarSiteAposEdicaoCms();
+          const labelMap = {
+            disponivel: "🟢 Em Estoque",
+            poucas_unidades: "🟠 Poucas Unidades",
+            esgotado: "🔴 Esgotado"
+          };
+          mostrarToast(`📦 Estoque de <strong>"${prod.nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
         }
-        atualizarContadoresEstoqueKpiCms();
-        atualizarSiteAposEdicaoCms();
-        const labelMap = {
-          disponivel: "🟢 Em Estoque",
-          poucas_unidades: "🟠 Poucas Unidades",
-          esgotado: "🔴 Esgotado"
-        };
-        mostrarToast(`📦 Estoque de <strong>"${prod.nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
       });
     });
 
     grid.querySelectorAll("[data-cms-edit-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
         abrirEditorProdutoCms(btn.dataset.cmsEditId);
+      });
+    });
+
+    grid.querySelectorAll("[data-cms-open-color]").forEach((el) => {
+      el.addEventListener("click", (e) => {
+        e.stopPropagation();
+        abrirEditorProdutoCms(el.dataset.cmsOpenColor);
+      });
+    });
+
+    grid.querySelectorAll("[data-cms-qr-prod-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const pId = btn.dataset.cmsQrProdId;
+        const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === pId);
+        if (!prod) return;
+        const chavePaleta = prod.tipoFilamento ? mapearChavePaletaSiteData(prod.usaCoresDinamicas) : null;
+        if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
+          imprimirCartelaQrCodes(
+            window.SITE_DATA[chavePaleta].map((c) => ({
+              id: `${prod.id}-${c.cod}`,
+              nome: `${prod.nome} (${c.nome})`,
+              codigo: c.cod ? `CÓD. ${c.cod}` : prod.id,
+              preco: c.preco || prod.precoVista,
+              qrPayload: `SJ3D:FIL:${prod.id}:${c.cod || c.nome}`
+            }))
+          );
+        } else {
+          imprimirCartelaQrCodes([
+            {
+              id: prod.id,
+              nome: prod.nome,
+              codigo: prod.id,
+              preco: prod.precoVista,
+              qrPayload: `SJ3D:PROD:${prod.id}`
+            }
+          ]);
+        }
+      });
+    });
+
+    grid.querySelectorAll("[data-cms-qr-payload]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        imprimirCartelaQrCodes([
+          {
+            id: "sku-quick",
+            nome: btn.dataset.cmsQrTitle || "SKU Loja SJ 3D",
+            codigo: "SKU",
+            preco: "Sob consulta",
+            qrPayload: btn.dataset.cmsQrPayload
+          }
+        ]);
       });
     });
 
@@ -10796,6 +11142,19 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         c.classList.toggle("active", c.dataset.cmsStockKpi === val);
       });
       renderizarListaProdutosCms();
+    });
+
+    // Switcher de Modo de Visão: Famílias de Produtos vs Todas as Cores e SKUs Individuais
+    document.querySelectorAll("[data-cms-view-mode]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const modo = btn.dataset.cmsViewMode || "modelos";
+        cmsState.modoVisao = modo;
+        document.querySelectorAll("[data-cms-view-mode]").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+        atualizarContadoresEstoqueKpiCms();
+        renderizarListaProdutosCms();
+      });
     });
 
     // Filtros de categoria e busca dentro do CMS
