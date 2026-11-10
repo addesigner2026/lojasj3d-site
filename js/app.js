@@ -397,24 +397,38 @@
     const faltando = [];
     const nome = String(cliente.nome || "").trim();
     const whatsappDigitos = String(cliente.whatsapp || "").replace(/\D/g, "");
-    const docCheck = validarDocumentoCpfOuCnpj(cliente.cpf || cliente.cnpjCpf || "");
     const email = String(cliente.email || "").trim();
 
-    if (nome.length < 3) faltando.push("Nome Completo ou Razão Social");
-    if (whatsappDigitos.length < 10) faltando.push("WhatsApp / Telefone com DDD");
-    if (!docCheck.valido) {
-      if (docCheck.digitos.length === 11) {
-        faltando.push("CPF inválido (verifique os números digitados)");
-      } else if (docCheck.digitos.length === 14) {
-        faltando.push("CNPJ inválido (verifique os números digitados)");
-      } else {
-        faltando.push("CPF (11 dígitos) ou CNPJ (14 dígitos) válido");
+    // Verificação estrita de CPF no bloco superior de identificação
+    const cpfDigitos = String(cliente.cpf || cliente.cnpjCpf || "").replace(/\D/g, "");
+    if (!cpfDigitos) {
+      faltando.push("CPF do Titular");
+    } else if (cpfDigitos.length === 11) {
+      if (!validarCpfOficial(cpfDigitos)) {
+        faltando.push("CPF inválido (verifique os 11 números digitados)");
       }
+    } else if (cpfDigitos.length === 14) {
+      // Caso legado de registro anterior como CNPJ
+      if (!validarCnpjOficial(cpfDigitos)) {
+        faltando.push("CNPJ inválido (verifique os 14 números digitados)");
+      }
+    } else {
+      faltando.push("CPF do Titular (digite os 11 números do CPF)");
     }
+
+    if (nome.length < 3) faltando.push("Nome Completo");
+    if (whatsappDigitos.length < 10) faltando.push("WhatsApp / Telefone com DDD");
     if (!email || !email.includes("@")) faltando.push("E-mail válido");
 
     const precisaNf = Boolean(exigirNotaFiscal || cliente.precisaNotaFiscal);
     if (precisaNf) {
+      const cnpjDigitos = String(cliente.cnpj || "").replace(/\D/g, "");
+      if (cnpjDigitos) {
+        if (cnpjDigitos.length !== 14 || !validarCnpjOficial(cnpjDigitos)) {
+          faltando.push("CNPJ da Empresa (14 números válidos)");
+        }
+      }
+
       const cepDigitos = String(cliente.cep || "").replace(/\D/g, "");
       const logradouro = String(cliente.logradouro || "").trim();
       const numero = String(cliente.numero || "").trim();
@@ -432,8 +446,6 @@
 
     return {
       valido: faltando.length === 0,
-      docValido: docCheck.valido,
-      docMensagem: docCheck.mensagem,
       precisaNf,
       faltando,
       mensagem:
@@ -686,13 +698,14 @@
     const pedidoTag = pedidoSalvo && pedidoSalvo.id ? `\n*Cód. Pedido:* ${pedidoSalvo.id}` : "";
 
     // Bloco com os Dados Completos do Cliente & Dados Fiscais Aprovados
-    const docNumeros = String(c.cpf || c.cnpjCpf || "").replace(/\D/g, "");
-    const labelDoc = docNumeros.length === 14 ? "CNPJ" : "CPF";
     const enderecoStr = formatarEnderecoCompletoCliente(c);
     const linhasCliente = [
       `\n\n📋 *DADOS DO CLIENTE (CADASTRO APROVADO):*`,
-      `• *Nome / Razão Social:* ${c.nome}`,
-      `• *${labelDoc}:* ${c.cpf || c.cnpjCpf}`,
+      `• *Nome do Titular:* ${c.nome}`,
+      c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (c.cnpjCpf ? `• *CPF:* ${c.cnpjCpf}` : ""),
+      c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
+      c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
+      c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
       c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
       `• *WhatsApp:* ${c.whatsapp}`,
       `• *E-mail:* ${c.email}`,
@@ -1131,6 +1144,256 @@
     });
   }
 
+  // =========================================================================
+  // CONSULTA PÚBLICA DE CNPJ NA RECEITA FEDERAL (BRASILAPI + MINHARECEITA)
+  // =========================================================================
+  async function consultarCnpjReceita(cnpjRaw) {
+    const digitos = String(cnpjRaw || "").replace(/\D/g, "");
+    if (digitos.length !== 14) {
+      throw new Error("CNPJ incompleto (informe os 14 números).");
+    }
+
+    if (!validarCnpjOficial(digitos)) {
+      throw new Error("CNPJ inválido (dígitos verificadores incorretos).");
+    }
+
+    // Provedor Primário: BrasilAPI (Rápido, dados oficiais da RFB, CORS aberto)
+    try {
+      const resp = await fetch(`https://brasilapi.com.br/api/cnpj/v1/${digitos}`);
+      if (resp.ok) {
+        const d = await resp.json();
+        const cepFmt = d.cep ? (String(d.cep).length === 8 ? `${String(d.cep).slice(0, 5)}-${String(d.cep).slice(5)}` : String(d.cep)) : "";
+        const telFmt = d.ddd_telefone_1 ? (d.ddd_telefone_1.length === 10 ? `(${d.ddd_telefone_1.slice(0, 2)}) ${d.ddd_telefone_1.slice(2, 6)}-${d.ddd_telefone_1.slice(6)}` : `(${d.ddd_telefone_1.slice(0, 2)}) ${d.ddd_telefone_1.slice(2, 7)}-${d.ddd_telefone_1.slice(7)}`) : "";
+        const tipoLog = d.descricao_tipo_de_logradouro ? `${d.descricao_tipo_de_logradouro} ` : "";
+        return {
+          sucesso: true,
+          cnpj: d.cnpj || digitos,
+          razaoSocial: d.razao_social || "",
+          nomeFantasia: d.nome_fantasia || d.razao_social || "",
+          situacao: d.descricao_situacao_cadastral || "ATIVA",
+          cep: cepFmt,
+          logradouro: `${tipoLog}${d.logradouro || ""}`.trim(),
+          numero: d.numero || "",
+          complemento: d.complemento || "",
+          bairro: d.bairro || "",
+          cidade: d.municipio || "",
+          uf: (d.uf || "").toUpperCase(),
+          telefone: telFmt,
+          email: d.email || ""
+        };
+      }
+    } catch (e) {
+      console.warn("BrasilAPI falhou, tentando fallback MinhaReceita...", e);
+    }
+
+    // Provedor Secundário: MinhaReceita (Fallback gratuito e aberto)
+    try {
+      const resp2 = await fetch(`https://minhareceita.org/${digitos}`);
+      if (resp2.ok) {
+        const d2 = await resp2.json();
+        const cepFmt2 = d2.cep ? (String(d2.cep).length === 8 ? `${String(d2.cep).slice(0, 5)}-${String(d2.cep).slice(5)}` : String(d2.cep)) : "";
+        const tipoLog2 = d2.descricao_tipo_de_logradouro ? `${d2.descricao_tipo_de_logradouro} ` : "";
+        return {
+          sucesso: true,
+          cnpj: d2.cnpj || digitos,
+          razaoSocial: d2.razao_social || "",
+          nomeFantasia: d2.nome_fantasia || d2.razao_social || "",
+          situacao: d2.descricao_situacao_cadastral || "ATIVA",
+          cep: cepFmt2,
+          logradouro: `${tipoLog2}${d2.logradouro || ""}`.trim(),
+          numero: d2.numero || "",
+          complemento: d2.complemento || "",
+          bairro: d2.bairro || "",
+          cidade: d2.municipio || "",
+          uf: (d2.uf || "").toUpperCase(),
+          telefone: d2.ddd_telefone_1 || "",
+          email: d2.email || ""
+        };
+      }
+    } catch (e2) {
+      console.warn("MinhaReceita falhou...", e2);
+    }
+
+    throw new Error("Não foi possível localizar os dados deste CNPJ na Receita Federal. Você pode preencher os campos manualmente.");
+  }
+
+  function atualizarFeedbackVisualCpf(input, forcarExibicao = false) {
+    if (!input) return;
+    const containerField = input.closest(".auth-field") || input.parentElement;
+    const visualBox = input.closest(".auth-input-wrap") || input;
+
+    let feedbackEl = containerField?.querySelector(".cpf-live-feedback");
+    if (!feedbackEl && containerField) {
+      feedbackEl = document.createElement("small");
+      feedbackEl.className = "cpf-live-feedback";
+      feedbackEl.style.display = "none";
+      feedbackEl.style.fontSize = "0.75rem";
+      feedbackEl.style.fontWeight = "700";
+      feedbackEl.style.marginTop = "5px";
+      feedbackEl.style.lineHeight = "1.3";
+      containerField.appendChild(feedbackEl);
+    }
+
+    const digitos = String(input.value || "").replace(/\D/g, "");
+    if (!digitos) {
+      visualBox.style.borderColor = "";
+      visualBox.style.backgroundColor = "";
+      input.setCustomValidity?.("");
+      if (feedbackEl) feedbackEl.style.display = "none";
+      return;
+    }
+
+    if (digitos.length === 11 || (forcarExibicao && digitos.length > 0)) {
+      const ok = digitos.length === 11 && validarCpfOficial(digitos);
+      if (ok) {
+        visualBox.style.borderColor = "#16a34a";
+        visualBox.style.backgroundColor = "#f0fdf4";
+        input.setCustomValidity?.("");
+        if (feedbackEl) {
+          feedbackEl.style.display = "block";
+          feedbackEl.style.color = "#15803d";
+          feedbackEl.textContent = "✓ CPF válido";
+        }
+      } else {
+        visualBox.style.borderColor = "#dc2626";
+        visualBox.style.backgroundColor = "#fef2f2";
+        input.setCustomValidity?.("CPF inválido");
+        if (feedbackEl) {
+          feedbackEl.style.display = "block";
+          feedbackEl.style.color = "#dc2626";
+          feedbackEl.textContent = digitos.length === 11 ? "❌ CPF inválido (verifique os números digitados)" : "❌ CPF incompleto (digite os 11 números)";
+        }
+      }
+    } else {
+      visualBox.style.borderColor = "";
+      visualBox.style.backgroundColor = "";
+      input.setCustomValidity?.("");
+      if (feedbackEl) feedbackEl.style.display = "none";
+    }
+  }
+
+  function aplicarMascaraCpfApenas(input) {
+    if (!input) return;
+    input.addEventListener("input", () => {
+      let v = input.value.replace(/\D/g, "");
+      if (v.length > 11) v = v.slice(0, 11);
+      if (v.length > 9) {
+        input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9)}`;
+      } else if (v.length > 6) {
+        input.value = `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+      } else if (v.length > 3) {
+        input.value = `${v.slice(0, 3)}.${v.slice(3)}`;
+      } else {
+        input.value = v;
+      }
+      atualizarFeedbackVisualCpf(input, false);
+    });
+
+    input.addEventListener("blur", () => {
+      atualizarFeedbackVisualCpf(input, true);
+    });
+  }
+
+  function aplicarMascaraCnpjComAutoBusca(input, aoCompletarCnpj = null, btnBuscaManual = null, statusEl = null, spinnerEl = null) {
+    if (!input) return;
+
+    const formatar = () => {
+      let v = input.value.replace(/\D/g, "");
+      if (v.length > 14) v = v.slice(0, 14);
+      if (v.length > 12) {
+        input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12)}`;
+      } else if (v.length > 8) {
+        input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8)}`;
+      } else if (v.length > 5) {
+        input.value = `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
+      } else if (v.length > 2) {
+        input.value = `${v.slice(0, 2)}.${v.slice(2)}`;
+      } else {
+        input.value = v;
+      }
+      return v;
+    };
+
+    let debounceTimer = null;
+    let buscandoCnpj = false;
+
+    const executarBusca = async (forcar = false) => {
+      const digitos = input.value.replace(/\D/g, "");
+      if (digitos.length !== 14) {
+        if (forcar) {
+          if (statusEl) {
+            statusEl.style.display = "block";
+            statusEl.style.background = "#FEF2F2";
+            statusEl.style.color = "#991B1B";
+            statusEl.style.border = "1px solid #FECACA";
+            statusEl.innerHTML = "⚠️ Digite os 14 números do CNPJ para buscar.";
+          }
+        }
+        return;
+      }
+
+      if (buscandoCnpj) return;
+      buscandoCnpj = true;
+
+      if (spinnerEl) spinnerEl.style.display = "inline-block";
+      if (btnBuscaManual) {
+        btnBuscaManual.disabled = true;
+        btnBuscaManual.textContent = "Buscando...";
+      }
+      if (statusEl) {
+        statusEl.style.display = "block";
+        statusEl.style.background = "#EFF6FF";
+        statusEl.style.color = "#1D4ED8";
+        statusEl.style.border = "1px solid #BFDBFE";
+        statusEl.innerHTML = "⏳ <strong>Consultando Receita Federal e dados da empresa na internet...</strong>";
+      }
+
+      try {
+        const dados = await consultarCnpjReceita(digitos);
+        if (spinnerEl) spinnerEl.style.display = "none";
+        if (statusEl) {
+          statusEl.style.display = "block";
+          statusEl.style.background = "#ECFDF5";
+          statusEl.style.color = "#065F46";
+          statusEl.style.border = "1px solid #A7F3D0";
+          const fantasiaTxt = dados.nomeFantasia && dados.nomeFantasia !== dados.razaoSocial ? ` (${escaparHtml(dados.nomeFantasia)})` : "";
+          statusEl.innerHTML = `✅ <strong>${escaparHtml(dados.razaoSocial)}</strong>${fantasiaTxt} • <em>Situação: ${escaparHtml(dados.situacao)}</em><br /><small style="color:#047857;">Endereço, Razão Social e dados fiscais preenchidos automaticamente!</small>`;
+        }
+        if (typeof aoCompletarCnpj === "function") {
+          aoCompletarCnpj(dados);
+        }
+      } catch (err) {
+        if (spinnerEl) spinnerEl.style.display = "none";
+        if (statusEl) {
+          statusEl.style.display = "block";
+          statusEl.style.background = "#FEF2F2";
+          statusEl.style.color = "#991B1B";
+          statusEl.style.border = "1px solid #FECACA";
+          statusEl.innerHTML = `⚠️ ${escaparHtml(err.message)}`;
+        }
+      } finally {
+        buscandoCnpj = false;
+        if (btnBuscaManual) {
+          btnBuscaManual.disabled = false;
+          btnBuscaManual.textContent = "🔍 Buscar CNPJ";
+        }
+      }
+    };
+
+    input.addEventListener("input", () => {
+      const digitos = formatar();
+      clearTimeout(debounceTimer);
+      if (digitos.length === 14) {
+        debounceTimer = setTimeout(() => executarBusca(false), 350);
+      }
+    });
+
+    btnBuscaManual?.addEventListener("click", () => {
+      formatar();
+      executarBusca(true);
+    });
+  }
+
   function aplicarMascaraCep(input, aoCompletarCep = null) {
     if (!input) return;
     input.addEventListener("input", async () => {
@@ -1362,10 +1625,23 @@
           const el = formComplete.querySelector(`input[name="${name}"]`);
           if (el && val != null && val !== "") el.value = val;
         };
+
+        const docLimpo = String(c.cpf || c.cnpjCpf || "").replace(/\D/g, "");
+        let cpfVal = "";
+        let cnpjVal = String(c.cnpj || "").replace(/\D/g, "");
+        if (docLimpo.length === 11) {
+          cpfVal = formatarCpf(docLimpo);
+        } else if (docLimpo.length === 14 && !cnpjVal) {
+          cnpjVal = docLimpo;
+        }
+
         setVal("comp_nome", c.nome || "");
         setVal("comp_whatsapp", c.whatsapp || "");
-        setVal("comp_cpf", c.cpf || c.cnpjCpf || "");
+        setVal("comp_cpf", cpfVal);
         setVal("comp_email", c.email || "");
+        setVal("comp_cnpj", cnpjVal ? formatarCnpj(cnpjVal) : "");
+        setVal("comp_razao_social", c.razaoSocial || (cnpjVal ? c.nome || "" : ""));
+        setVal("comp_nome_fantasia", c.nomeFantasia || "");
         setVal("comp_cep", c.cep || "");
         setVal("comp_ie", c.inscricaoEstadual || "");
         setVal("comp_logradouro", c.logradouro || "");
@@ -1375,10 +1651,11 @@
         setVal("comp_cidade", c.cidade || "Umuarama");
         setVal("comp_uf", c.uf || "PR");
 
+        const temEmpresa = Boolean(precisaNf || cnpjVal);
         const chkCompNf = document.getElementById("chk-complete-precisa-nf");
         const wrapCompNf = document.getElementById("complete-nf-fields-wrap");
-        if (chkCompNf) chkCompNf.checked = precisaNf;
-        if (wrapCompNf) wrapCompNf.style.display = precisaNf ? "flex" : "none";
+        if (chkCompNf) chkCompNf.checked = temEmpresa;
+        if (wrapCompNf) wrapCompNf.style.display = temEmpresa ? "flex" : "none";
 
         const btnSubComp = document.getElementById("btn-submit-client-complete");
         if (btnSubComp) {
@@ -1691,10 +1968,47 @@
       if (wrapCompNf) wrapCompNf.style.display = chkCompNf.checked ? "flex" : "none";
     });
 
-    // Máscaras nos campos de cadastro e busca automática de CEP (ViaCEP)
+    // Máscaras nos campos de cadastro, busca automática de CEP (ViaCEP) e CNPJ (Receita Federal)
     if (formSignup) {
       aplicarMascaraTelefone(formSignup.querySelector('input[name="signup_whatsapp"]'));
-      aplicarMascaraCpfCnpj(formSignup.querySelector('input[name="signup_cpf"]'));
+      aplicarMascaraCpfApenas(formSignup.querySelector('input[name="signup_cpf"]'));
+      aplicarMascaraCnpjComAutoBusca(
+        formSignup.querySelector('input[name="signup_cnpj"]'),
+        (dados) => {
+          if (!dados) return;
+          const razaoInp = formSignup.querySelector('input[name="signup_razao_social"]');
+          const fantInp = formSignup.querySelector('input[name="signup_nome_fantasia"]');
+          const cepInp = formSignup.querySelector('input[name="signup_cep"]');
+          const logInp = formSignup.querySelector('input[name="signup_logradouro"]');
+          const numInp = formSignup.querySelector('input[name="signup_numero"]');
+          const baiInp = formSignup.querySelector('input[name="signup_bairro"]');
+          const compInp = formSignup.querySelector('input[name="signup_complemento"]');
+          const cidInp = formSignup.querySelector('input[name="signup_cidade"]');
+          const ufInp = formSignup.querySelector('input[name="signup_uf"]');
+          const zapInp = formSignup.querySelector('input[name="signup_whatsapp"]');
+
+          if (razaoInp && dados.razao_social) razaoInp.value = dados.razao_social;
+          if (fantInp && (dados.nome_fantasia || dados.razao_social)) fantInp.value = dados.nome_fantasia || dados.razao_social;
+          if (cepInp && dados.cep) cepInp.value = formatarCep(dados.cep);
+          if (logInp && dados.logradouro) {
+            logInp.value = dados.descricao_tipo_de_logradouro
+              ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}`.trim()
+              : dados.logradouro;
+          }
+          if (numInp && dados.numero) numInp.value = dados.numero;
+          if (baiInp && dados.bairro) baiInp.value = dados.bairro;
+          if (compInp && dados.complemento) compInp.value = dados.complemento;
+          if (cidInp && dados.municipio) cidInp.value = dados.municipio;
+          if (ufInp && dados.uf) ufInp.value = dados.uf;
+          if (zapInp && !zapInp.value && dados.ddd_telefone_1) {
+            zapInp.value = dados.ddd_telefone_1;
+            aplicarMascaraTelefone(zapInp);
+          }
+        },
+        document.getElementById("btn-buscar-cnpj-signup"),
+        document.getElementById("status-cnpj-signup"),
+        document.getElementById("spinner-cnpj-signup")
+      );
       aplicarMascaraCep(formSignup.querySelector('input[name="signup_cep"]'), (dadosCep) => {
         const logInp = formSignup.querySelector('input[name="signup_logradouro"]');
         const baiInp = formSignup.querySelector('input[name="signup_bairro"]');
@@ -1709,7 +2023,44 @@
 
     if (formComplete) {
       aplicarMascaraTelefone(formComplete.querySelector('input[name="comp_whatsapp"]'));
-      aplicarMascaraCpfCnpj(formComplete.querySelector('input[name="comp_cpf"]'));
+      aplicarMascaraCpfApenas(formComplete.querySelector('input[name="comp_cpf"]'));
+      aplicarMascaraCnpjComAutoBusca(
+        formComplete.querySelector('input[name="comp_cnpj"]'),
+        (dados) => {
+          if (!dados) return;
+          const razaoInp = formComplete.querySelector('input[name="comp_razao_social"]');
+          const fantInp = formComplete.querySelector('input[name="comp_nome_fantasia"]');
+          const cepInp = formComplete.querySelector('input[name="comp_cep"]');
+          const logInp = formComplete.querySelector('input[name="comp_logradouro"]');
+          const numInp = formComplete.querySelector('input[name="comp_numero"]');
+          const baiInp = formComplete.querySelector('input[name="comp_bairro"]');
+          const compInp = formComplete.querySelector('input[name="comp_complemento"]');
+          const cidInp = formComplete.querySelector('input[name="comp_cidade"]');
+          const ufInp = formComplete.querySelector('input[name="comp_uf"]');
+          const zapInp = formComplete.querySelector('input[name="comp_whatsapp"]');
+
+          if (razaoInp && dados.razao_social) razaoInp.value = dados.razao_social;
+          if (fantInp && (dados.nome_fantasia || dados.razao_social)) fantInp.value = dados.nome_fantasia || dados.razao_social;
+          if (cepInp && dados.cep) cepInp.value = formatarCep(dados.cep);
+          if (logInp && dados.logradouro) {
+            logInp.value = dados.descricao_tipo_de_logradouro
+              ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}`.trim()
+              : dados.logradouro;
+          }
+          if (numInp && dados.numero) numInp.value = dados.numero;
+          if (baiInp && dados.bairro) baiInp.value = dados.bairro;
+          if (compInp && dados.complemento) compInp.value = dados.complemento;
+          if (cidInp && dados.municipio) cidInp.value = dados.municipio;
+          if (ufInp && dados.uf) ufInp.value = dados.uf;
+          if (zapInp && !zapInp.value && dados.ddd_telefone_1) {
+            zapInp.value = dados.ddd_telefone_1;
+            aplicarMascaraTelefone(zapInp);
+          }
+        },
+        document.getElementById("btn-buscar-cnpj-comp"),
+        document.getElementById("status-cnpj-comp"),
+        document.getElementById("spinner-cnpj-comp")
+      );
       aplicarMascaraCep(formComplete.querySelector('input[name="comp_cep"]'), (dadosCep) => {
         const logInp = formComplete.querySelector('input[name="comp_logradouro"]');
         const baiInp = formComplete.querySelector('input[name="comp_bairro"]');
@@ -1850,6 +2201,9 @@
       const email = String(formSignup.querySelector('input[name="signup_email"]')?.value || "").trim().toLowerCase();
       const password = String(formSignup.querySelector('input[name="signup_password"]')?.value || "").trim();
       const precisaNotaFiscal = Boolean(formSignup.querySelector('input[name="signup_precisa_nf"]')?.checked);
+      const cnpj = String(formSignup.querySelector('input[name="signup_cnpj"]')?.value || "").trim();
+      const razaoSocial = String(formSignup.querySelector('input[name="signup_razao_social"]')?.value || "").trim();
+      const nomeFantasia = String(formSignup.querySelector('input[name="signup_nome_fantasia"]')?.value || "").trim();
 
       const cep = String(formSignup.querySelector('input[name="signup_cep"]')?.value || "").trim();
       const inscricaoEstadual = String(formSignup.querySelector('input[name="signup_ie"]')?.value || "").trim();
@@ -1865,11 +2219,39 @@
         return;
       }
 
+      // Validação estrita do CPF do Titular (11 dígitos)
+      const checkCpfSignup = validarCpfOficial(cpf);
+      if (!checkCpfSignup) {
+        const inpCpf = formSignup.querySelector('input[name="signup_cpf"]');
+        atualizarFeedbackVisualCpf(inpCpf, true);
+        inpCpf?.focus();
+        const msg = "CPF do Titular inválido. Digite um CPF válido com 11 dígitos.";
+        mostrarToast(msg, "error");
+        alert(msg);
+        return;
+      }
+
+      // Se informou CNPJ, valida o CNPJ da empresa
+      if (precisaNotaFiscal && cnpj) {
+        const checkCnpjSignup = validarCnpjOficial(cnpj);
+        if (!checkCnpjSignup) {
+          const inpCnpj = formSignup.querySelector('input[name="signup_cnpj"]');
+          inpCnpj?.focus();
+          const msg = "CNPJ informado inválido. Verifique os 14 dígitos da empresa.";
+          mostrarToast(msg, "error");
+          alert(msg);
+          return;
+        }
+      }
+
       const candidatoCliente = {
         nome,
         whatsapp,
         cpf,
         cnpjCpf: cpf,
+        cnpj,
+        razaoSocial,
+        nomeFantasia,
         email,
         precisaNotaFiscal,
         cep,
@@ -1882,16 +2264,6 @@
         uf,
         cidadeUf: `${cidade} / ${uf}`
       };
-
-      const checkDocSignup = validarDocumentoCpfOuCnpj(cpf);
-      if (!checkDocSignup.valido) {
-        const inpCpf = formSignup.querySelector('input[name="signup_cpf"]');
-        atualizarFeedbackVisualCpfCnpj(inpCpf, true);
-        inpCpf?.focus();
-        mostrarToast(checkDocSignup.mensagem, "error");
-        alert(checkDocSignup.mensagem);
-        return;
-      }
 
       const validacao = validarDadosCliente(candidatoCliente, precisaNotaFiscal);
       if (!validacao.valido) {
@@ -2001,6 +2373,9 @@
       const cpf = String(formComplete.querySelector('input[name="comp_cpf"]')?.value || "").trim();
       const email = String(formComplete.querySelector('input[name="comp_email"]')?.value || "").trim().toLowerCase();
       const precisaNotaFiscal = Boolean(formComplete.querySelector('input[name="comp_precisa_nf"]')?.checked);
+      const cnpj = String(formComplete.querySelector('input[name="comp_cnpj"]')?.value || "").trim();
+      const razaoSocial = String(formComplete.querySelector('input[name="comp_razao_social"]')?.value || "").trim();
+      const nomeFantasia = String(formComplete.querySelector('input[name="comp_nome_fantasia"]')?.value || "").trim();
 
       const cep = String(formComplete.querySelector('input[name="comp_cep"]')?.value || "").trim();
       const inscricaoEstadual = String(formComplete.querySelector('input[name="comp_ie"]')?.value || "").trim();
@@ -2011,6 +2386,31 @@
       const cidade = String(formComplete.querySelector('input[name="comp_cidade"]')?.value || "Umuarama").trim();
       const uf = String(formComplete.querySelector('input[name="comp_uf"]')?.value || "PR").trim().toUpperCase();
 
+      // Validação estrita do CPF do Titular (11 dígitos)
+      const checkCpfComp = validarCpfOficial(cpf);
+      if (!checkCpfComp) {
+        const inpCpf = formComplete.querySelector('input[name="comp_cpf"]');
+        atualizarFeedbackVisualCpf(inpCpf, true);
+        inpCpf?.focus();
+        const msg = "CPF do Titular inválido. Digite um CPF válido com 11 dígitos.";
+        mostrarToast(msg, "error");
+        alert(msg);
+        return;
+      }
+
+      // Se informou CNPJ, valida o CNPJ da empresa
+      if (precisaNotaFiscal && cnpj) {
+        const checkCnpjComp = validarCnpjOficial(cnpj);
+        if (!checkCnpjComp) {
+          const inpCnpj = formComplete.querySelector('input[name="comp_cnpj"]');
+          inpCnpj?.focus();
+          const msg = "CNPJ informado inválido. Verifique os 14 dígitos da empresa.";
+          mostrarToast(msg, "error");
+          alert(msg);
+          return;
+        }
+      }
+
       const clienteAtualizado = {
         ...(state.clienteLogado || {}),
         id: state.clienteLogado?.id || ("cli-" + Date.now()),
@@ -2018,6 +2418,9 @@
         whatsapp,
         cpf,
         cnpjCpf: cpf,
+        cnpj,
+        razaoSocial,
+        nomeFantasia,
         email,
         precisaNotaFiscal,
         cep,
@@ -2031,16 +2434,6 @@
         cidadeUf: `${cidade} / ${uf}`,
         tipo: "cliente"
       };
-
-      const checkDocComp = validarDocumentoCpfOuCnpj(cpf);
-      if (!checkDocComp.valido) {
-        const inpCpf = formComplete.querySelector('input[name="comp_cpf"]');
-        atualizarFeedbackVisualCpfCnpj(inpCpf, true);
-        inpCpf?.focus();
-        mostrarToast(checkDocComp.mensagem, "error");
-        alert(checkDocComp.mensagem);
-        return;
-      }
 
       const validacao = validarDadosCliente(clienteAtualizado, precisaNotaFiscal);
       if (!validacao.valido) {
@@ -2201,7 +2594,21 @@
     const emailSeguro = escaparHtml(c.email || "");
     const whatsappSeguro = escaparHtml(c.whatsapp || "");
     const cidadeUfSeguro = escaparHtml(c.cidadeUf || "Umuarama / PR");
-    const cpfSeguro = escaparHtml(c.cpf || "");
+
+    const docLimpo = String(c.cpf || c.cnpjCpf || "").replace(/\D/g, "");
+    let cpfInicial = "";
+    let cnpjInicial = String(c.cnpj || "").replace(/\D/g, "");
+    if (docLimpo.length === 11) {
+      cpfInicial = docLimpo;
+    } else if (docLimpo.length === 14 && !cnpjInicial) {
+      cnpjInicial = docLimpo;
+    }
+    const cpfSeguro = cpfInicial ? escaparHtml(formatarCpf(cpfInicial)) : "";
+    const cnpjSeguro = cnpjInicial ? escaparHtml(formatarCnpj(cnpjInicial)) : "";
+    const razaoSocialSegura = escaparHtml(c.razaoSocial || (cnpjInicial ? c.nome || "" : ""));
+    const nomeFantasiaSeguro = escaparHtml(c.nomeFantasia || "");
+    const precisaNfSegura = Boolean(c.precisaNotaFiscal || cnpjInicial || state.precisaNotaFiscalPedido);
+
     const fotoSegura = (c.foto && /^(https?:\/\/|data:image\/)/i.test(String(c.foto).trim())) ? escaparHtml(String(c.foto).trim()) : null;
     const totalFavoritos = (state.favoritos || []).length;
 
@@ -2404,13 +2811,14 @@
                 });
                 const totalMsg = Number(ped.total) > 0 ? `\n*Total Estimado:* ${totalFmt}` : "";
                 const solicitaNfPed = Boolean(ped.precisaNotaFiscal || c.precisaNotaFiscal);
-                const docNum = String(c.cpf || c.cnpjCpf || ped.clienteCpfCnpj || "").replace(/\D/g, "");
-                const labelDocPed = docNum.length === 14 ? "CNPJ" : "CPF";
                 const endCompletoPed = formatarEnderecoCompletoCliente(c) || ped.clienteEnderecoFiscal || "";
                 const blocoCliPed = [
                   `\n\n📋 *DADOS DO CLIENTE:*`,
-                  `• *Nome / Razão Social:* ${c.nome || ped.clienteNome}`,
-                  (c.cpf || c.cnpjCpf || ped.clienteCpfCnpj) ? `• *${labelDocPed}:* ${c.cpf || c.cnpjCpf || ped.clienteCpfCnpj}` : "",
+                  `• *Nome do Titular:* ${c.nome || ped.clienteNome}`,
+                  c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (ped.clienteCpfCnpj ? `• *Documento:* ${ped.clienteCpfCnpj}` : ""),
+                  c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
+                  c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
+                  c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
                   c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
                   c.whatsapp ? `• *WhatsApp:* ${c.whatsapp}` : "",
                   c.email ? `• *E-mail:* ${c.email}` : "",
@@ -2545,19 +2953,19 @@
 
           <form id="form-client-edit-profile" class="client-auth-form">
             <div class="auth-field">
-              <label>Nome Completo ou Razão Social *</label>
-              <input type="text" name="edit_nome" value="${nomeSeguro}" required />
+              <label>Nome Completo do Titular *</label>
+              <input type="text" name="edit_nome" value="${nomeSeguro}" placeholder="Nome Completo do Titular" required />
             </div>
 
             <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
               <div class="auth-field">
                 <label>WhatsApp / Celular *</label>
-                <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" required />
+                <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" placeholder="(44) 99999-9999" required />
               </div>
 
               <div class="auth-field">
-                <label>CPF ou CNPJ *</label>
-                <input type="text" name="edit_cpf" value="${cpfSeguro}" placeholder="000.000.000-00 ou CNPJ" required />
+                <label>CPF do Titular *</label>
+                <input type="text" name="edit_cpf" value="${cpfSeguro}" placeholder="000.000.000-00" required inputmode="numeric" />
               </div>
             </div>
 
@@ -2568,20 +2976,47 @@
 
             <div style="padding:4px 2px; margin:2px 0;">
               <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.8rem; font-weight:600; color:#71717a; margin:0;">
-                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${c.precisaNotaFiscal ? "checked" : ""} style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
-                <span>Adicionar endereço completo para entrega (opcional)</span>
+                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${precisaNfSegura ? "checked" : ""} style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
+                <span>Preciso de Nota Fiscal / Adicionar Dados da Empresa (CNPJ) ou Endereço</span>
               </label>
             </div>
 
-            <div id="edit-nf-fields-wrap" style="display:grid; gap:10px; background:#F9FAFB; border:1px solid #E5E7EB; border-radius:12px; padding:14px;">
-              <div style="font-size:0.76rem; font-weight:700; color:#374151; border-bottom:1px solid #E5E7EB; padding-bottom:6px;">
-                Endereço de Entrega
+            <div id="edit-nf-fields-wrap" style="display:${precisaNfSegura ? "grid" : "none"}; gap:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px;">
+              <div style="font-size:0.78rem; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
+                🏢 Dados da Empresa (CNPJ) &amp; Endereço para Faturamento
+              </div>
+
+              <!-- Busca Automática por CNPJ -->
+              <div class="auth-field">
+                <label style="display:flex; justify-content:space-between; align-items:center;">
+                  <span style="font-weight:700; color:#0F172A;">CNPJ da Empresa (Preenchimento Automático)</span>
+                  <span style="font-size:0.72rem; color:#64748B; font-weight:500;">Receita Federal</span>
+                </label>
+                <div style="display:flex; gap:8px;">
+                  <input type="text" name="edit_cnpj" id="edit-cnpj-input" value="${cnpjSeguro}" placeholder="00.000.000/0000-00" inputmode="numeric" style="flex:1;" />
+                  <button type="button" id="btn-buscar-cnpj-edit" style="background:#0F172A; color:#FFFFFF; border:none; border-radius:8px; padding:0 14px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
+                    <span id="spinner-cnpj-edit" style="display:none;">⏳</span>
+                    <span>🔍 Buscar CNPJ</span>
+                  </button>
+                </div>
+                <div id="status-cnpj-edit" style="display:none; margin-top:6px; font-size:0.76rem; padding:6px 10px; border-radius:6px; font-weight:600;"></div>
+              </div>
+
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
+                <div class="auth-field">
+                  <label>Razão Social (Nome Oficial) *</label>
+                  <input type="text" name="edit_razao_social" value="${razaoSocialSegura}" placeholder="Razão Social da Empresa" />
+                </div>
+                <div class="auth-field">
+                  <label>Nome Fantasia (Nome Comercial)</label>
+                  <input type="text" name="edit_nome_fantasia" value="${nomeFantasiaSeguro}" placeholder="Nome Fantasia" />
+                </div>
               </div>
 
               <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
                 <div class="auth-field">
                   <label>CEP *</label>
-                  <input type="text" name="edit_cep" value="${escaparHtml(c.cep || "")}" placeholder="87501-000" />
+                  <input type="text" name="edit_cep" value="${escaparHtml(c.cep || "")}" placeholder="87501-000" inputmode="numeric" />
                 </div>
                 <div class="auth-field">
                   <label>Inscrição Estadual (se CNPJ)</label>
@@ -2743,7 +3178,52 @@
     const formEdit = container.querySelector("#form-client-edit-profile");
     if (formEdit) {
       aplicarMascaraTelefone(formEdit.querySelector('input[name="edit_whatsapp"]'));
-      aplicarMascaraCpfCnpj(formEdit.querySelector('input[name="edit_cpf"]'));
+      aplicarMascaraCpfApenas(formEdit.querySelector('input[name="edit_cpf"]'));
+
+      const chkEditNf = formEdit.querySelector("#chk-edit-precisa-nf");
+      const wrapEditNf = formEdit.querySelector("#edit-nf-fields-wrap");
+      chkEditNf?.addEventListener("change", () => {
+        if (wrapEditNf) wrapEditNf.style.display = chkEditNf.checked ? "grid" : "none";
+      });
+
+      aplicarMascaraCnpjComAutoBusca(
+        formEdit.querySelector('input[name="edit_cnpj"]'),
+        (dados) => {
+          if (!dados) return;
+          const razaoInp = formEdit.querySelector('input[name="edit_razao_social"]');
+          const fantInp = formEdit.querySelector('input[name="edit_nome_fantasia"]');
+          const cepInp = formEdit.querySelector('input[name="edit_cep"]');
+          const logInp = formEdit.querySelector('input[name="edit_logradouro"]');
+          const numInp = formEdit.querySelector('input[name="edit_numero"]');
+          const baiInp = formEdit.querySelector('input[name="edit_bairro"]');
+          const compInp = formEdit.querySelector('input[name="edit_complemento"]');
+          const cidInp = formEdit.querySelector('input[name="edit_cidade_nome"]');
+          const ufInp = formEdit.querySelector('input[name="edit_uf"]');
+          const zapInp = formEdit.querySelector('input[name="edit_whatsapp"]');
+
+          if (razaoInp && dados.razao_social) razaoInp.value = dados.razao_social;
+          if (fantInp && (dados.nome_fantasia || dados.razao_social)) fantInp.value = dados.nome_fantasia || dados.razao_social;
+          if (cepInp && dados.cep) cepInp.value = formatarCep(dados.cep);
+          if (logInp && dados.logradouro) {
+            logInp.value = dados.descricao_tipo_de_logradouro
+              ? `${dados.descricao_tipo_de_logradouro} ${dados.logradouro}`.trim()
+              : dados.logradouro;
+          }
+          if (numInp && dados.numero) numInp.value = dados.numero;
+          if (baiInp && dados.bairro) baiInp.value = dados.bairro;
+          if (compInp && dados.complemento) compInp.value = dados.complemento;
+          if (cidInp && dados.municipio) cidInp.value = dados.municipio;
+          if (ufInp && dados.uf) ufInp.value = dados.uf;
+          if (zapInp && !zapInp.value && dados.ddd_telefone_1) {
+            zapInp.value = dados.ddd_telefone_1;
+            aplicarMascaraTelefone(zapInp);
+          }
+        },
+        formEdit.querySelector("#btn-buscar-cnpj-edit"),
+        formEdit.querySelector("#status-cnpj-edit"),
+        formEdit.querySelector("#spinner-cnpj-edit")
+      );
+
       aplicarMascaraCep(formEdit.querySelector('input[name="edit_cep"]'), (dadosCep) => {
         const logInp = formEdit.querySelector('input[name="edit_logradouro"]');
         const baiInp = formEdit.querySelector('input[name="edit_bairro"]');
@@ -2761,6 +3241,9 @@
         const whatsapp = String(formEdit.querySelector('input[name="edit_whatsapp"]')?.value || "").trim();
         const cpf = String(formEdit.querySelector('input[name="edit_cpf"]')?.value || "").trim();
         const precisaNotaFiscal = Boolean(formEdit.querySelector('input[name="edit_precisa_nf"]')?.checked);
+        const cnpj = String(formEdit.querySelector('input[name="edit_cnpj"]')?.value || "").trim();
+        const razaoSocial = String(formEdit.querySelector('input[name="edit_razao_social"]')?.value || "").trim();
+        const nomeFantasia = String(formEdit.querySelector('input[name="edit_nome_fantasia"]')?.value || "").trim();
         const cep = String(formEdit.querySelector('input[name="edit_cep"]')?.value || "").trim();
         const inscricaoEstadual = String(formEdit.querySelector('input[name="edit_ie"]')?.value || "").trim();
         const logradouro = String(formEdit.querySelector('input[name="edit_logradouro"]')?.value || "").trim();
@@ -2770,12 +3253,38 @@
         const cidade = String(formEdit.querySelector('input[name="edit_cidade_nome"]')?.value || "Umuarama").trim();
         const uf = String(formEdit.querySelector('input[name="edit_uf"]')?.value || "PR").trim().toUpperCase();
 
+        const checkCpfEdit = validarCpfOficial(cpf);
+        if (!checkCpfEdit) {
+          const inpCpf = formEdit.querySelector('input[name="edit_cpf"]');
+          atualizarFeedbackVisualCpf(inpCpf, true);
+          inpCpf?.focus();
+          const msg = "CPF do Titular inválido. Digite um CPF válido com 11 dígitos.";
+          mostrarToast(msg, "error");
+          alert(msg);
+          return;
+        }
+
+        if (precisaNotaFiscal && cnpj) {
+          const checkCnpjEdit = validarCnpjOficial(cnpj);
+          if (!checkCnpjEdit) {
+            const inpCnpj = formEdit.querySelector('input[name="edit_cnpj"]');
+            inpCnpj?.focus();
+            const msg = "CNPJ informado inválido. Verifique os 14 dígitos da empresa.";
+            mostrarToast(msg, "error");
+            alert(msg);
+            return;
+          }
+        }
+
         const atualizado = {
           ...state.clienteLogado,
           nome,
           whatsapp,
           cpf,
           cnpjCpf: cpf,
+          cnpj,
+          razaoSocial,
+          nomeFantasia,
           precisaNotaFiscal,
           cep,
           inscricaoEstadual,
@@ -2787,16 +3296,6 @@
           uf,
           cidadeUf: `${cidade} / ${uf}`
         };
-
-        const checkDocEdit = validarDocumentoCpfOuCnpj(cpf);
-        if (!checkDocEdit.valido) {
-          const inpCpf = formEdit.querySelector('input[name="edit_cpf"]');
-          atualizarFeedbackVisualCpfCnpj(inpCpf, true);
-          inpCpf?.focus();
-          mostrarToast(checkDocEdit.mensagem, "error");
-          alert(checkDocEdit.mensagem);
-          return;
-        }
 
         const validacao = validarDadosCliente(atualizado, precisaNotaFiscal);
         if (!validacao.valido) {
@@ -2815,7 +3314,7 @@
             await window.SJ_SUPABASE.clientes.cadastrar({
               id: atualizado.id,
               nome,
-              cnpjCpf: cpf,
+              cnpjCpf: cnpj ? `${cpf} | CNPJ: ${cnpj}` : cpf,
               whatsapp,
               email: atualizado.email,
               endereco: formatarEnderecoCompletoCliente(atualizado),
