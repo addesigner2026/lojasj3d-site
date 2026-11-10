@@ -52,3 +52,4 @@ O checkout analisa automaticamente os 5 pilares de blindagem do projeto e só pe
 2. `node scripts/security-check.js` (Checkout de blindagem 100% verde).
 3. Se houver atualização em `js/app.js`, incrementar o cache buster em `index.html` (ex: `?v=...`).
 4. Realizar o push para os remotes autorizados do projeto.
+

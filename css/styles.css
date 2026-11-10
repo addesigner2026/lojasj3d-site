@@ -8283,6 +8283,18 @@ button.color-swatch-more:hover {
   color: #ffffff;
 }
 
+.header-account-pill-btn.nav-active {
+  box-shadow: 0 0 0 2px var(--sj-orange);
+  background: #fff7ed;
+  color: var(--sj-orange);
+}
+
+.header-account-pill-btn.nav-active .account-pill-avatar {
+  background: var(--sj-orange);
+  border-color: var(--sj-orange);
+  color: #ffffff;
+}
+
 .header-fav-btn-wrap {
   position: relative;
 }
@@ -9217,6 +9229,617 @@ button.color-swatch-more:hover {
     padding: 22px 18px;
   }
 }
+
+/* ==========================================================================
+   PAINEL DO CLIENTE & CADASTRO LÚDICO, CLEAN E MODULAR (UX TOP LOJA SJ 3D)
+   ========================================================================== */
+
+.client-ludic-hero {
+  background: linear-gradient(135deg, #0F172A 0%, #1E293B 100%);
+  border-radius: 24px;
+  padding: 32px 36px;
+  color: #FFFFFF;
+  margin-bottom: 22px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 20px 40px -10px rgba(15, 23, 42, 0.35);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 24px;
+  flex-wrap: wrap;
+}
+
+.client-ludic-hero::before {
+  content: "";
+  position: absolute;
+  top: -90px;
+  right: -90px;
+  width: 300px;
+  height: 300px;
+  background: radial-gradient(circle, rgba(240, 78, 35, 0.35) 0%, rgba(240, 78, 35, 0) 70%);
+  pointer-events: none;
+}
+
+.client-ludic-hero-main {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.client-ludic-avatar-ring {
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #F04E23 0%, #FF8A65 100%);
+  color: #FFFFFF;
+  font-size: 1.8rem;
+  font-weight: 900;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 0 4px rgba(240, 78, 35, 0.25), 0 8px 24px rgba(240, 78, 35, 0.4);
+  flex-shrink: 0;
+  overflow: hidden;
+  position: relative;
+}
+
+.client-ludic-avatar-ring img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.client-maker-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(240, 78, 35, 0.2);
+  border: 1px solid rgba(240, 78, 35, 0.45);
+  color: #FF8A65;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+}
+
+.client-ludic-hero h2 {
+  font-size: 1.7rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 0 0 6px;
+  color: #FFFFFF;
+}
+
+.client-ludic-meta {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.client-meta-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  padding: 5px 12px;
+  border-radius: 999px;
+  font-size: 0.78rem;
+  color: #E2E8F0;
+  font-weight: 500;
+}
+
+/* 3 Cards de Métricas / KPIs Lúdicos */
+.client-stats-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.client-stat-card {
+  border-radius: 18px;
+  padding: 20px 22px;
+  position: relative;
+  overflow: hidden;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  border: 1.5px solid transparent;
+  cursor: pointer;
+  text-decoration: none;
+}
+
+.client-stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 12px 28px rgba(0, 0, 0, 0.08);
+}
+
+.client-stat-card.card-amber {
+  background: linear-gradient(135deg, #FFFBEB 0%, #FEF3C7 100%);
+  border-color: #FDE68A;
+  color: #92400E;
+}
+
+.client-stat-card.card-blue {
+  background: linear-gradient(135deg, #F0F9FF 0%, #E0F2FE 100%);
+  border-color: #BAE6FD;
+  color: #0369A1;
+}
+
+.client-stat-card.card-emerald {
+  background: linear-gradient(135deg, #ECFDF5 0%, #D1FAE5 100%);
+  border-color: #A7F3D0;
+  color: #065F46;
+}
+
+.client-stat-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.client-stat-icon-wrap {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  background: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+}
+
+.client-stat-tag {
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.7);
+}
+
+.client-stat-val {
+  font-size: 1.85rem;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+  margin-bottom: 4px;
+}
+
+.client-stat-card.card-amber .client-stat-val { color: #B45309; }
+.client-stat-card.card-blue .client-stat-val { color: #0284C7; }
+.client-stat-card.card-emerald .client-stat-val { color: #059669; }
+
+.client-stat-desc {
+  font-size: 0.8rem;
+  font-weight: 600;
+  opacity: 0.9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+/* Abas de Navegação Estilo Dock */
+.client-ludic-tabs {
+  background: #F1F5F9;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 6px;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  margin-bottom: 24px;
+  scrollbar-width: none;
+}
+
+.client-ludic-tabs::-webkit-scrollbar {
+  display: none;
+}
+
+.client-ludic-tab-btn {
+  background: transparent;
+  border: none;
+  padding: 12px 20px;
+  border-radius: 12px;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+}
+
+.client-ludic-tab-btn:hover {
+  color: #0F172A;
+  background: rgba(255, 255, 255, 0.6);
+}
+
+.client-ludic-tab-btn.active {
+  background: #FFFFFF;
+  color: #F04E23;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.06);
+}
+
+.client-ludic-tab-btn .tab-badge {
+  background: #E2E8F0;
+  color: #475569;
+  padding: 2px 8px;
+  border-radius: 999px;
+  font-size: 0.72rem;
+  font-weight: 800;
+  transition: all 0.2s ease;
+}
+
+.client-ludic-tab-btn.active .tab-badge {
+  background: #FEE2E2;
+  color: #EF4444;
+}
+
+/* Cards Modulares de Dados Cadastrais */
+.client-modular-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 20px;
+  padding: 26px 28px;
+  margin-bottom: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.03);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.client-modular-card:hover {
+  border-color: #CBD5E1;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.05);
+}
+
+.client-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding-bottom: 18px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #F1F5F9;
+  flex-wrap: wrap;
+}
+
+.client-card-head-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.client-card-icon-bubble {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: #FFF7ED;
+  color: #F04E23;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.3rem;
+  border: 1px solid #FFEDD5;
+  flex-shrink: 0;
+}
+
+.client-card-head h4 {
+  font-size: 1.12rem;
+  font-weight: 800;
+  color: #0F172A;
+  margin: 0 0 3px;
+  letter-spacing: -0.01em;
+}
+
+.client-card-head p {
+  font-size: 0.8rem;
+  color: #64748B;
+  margin: 0;
+  font-weight: 500;
+}
+
+/* Campos de Formulário Lúdicos e Modernos */
+.ludic-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.ludic-field label {
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #1E293B;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.ludic-field-badge {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.ludic-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.ludic-input-icon {
+  position: absolute;
+  left: 14px;
+  color: #94A3B8;
+  font-size: 1.05rem;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.ludic-input {
+  width: 100%;
+  padding: 12px 14px 12px 42px;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 12px;
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: #0F172A;
+  background: #FFFFFF;
+  transition: all 0.2s ease;
+  outline: none;
+  font-family: inherit;
+}
+
+.ludic-input:hover {
+  border-color: #CBD5E1;
+}
+
+.ludic-input:focus {
+  border-color: #F04E23;
+  box-shadow: 0 0 0 4px rgba(240, 78, 35, 0.12);
+  background: #FFFFFF;
+}
+
+.ludic-input:disabled {
+  background: #F8FAFC;
+  color: #64748B;
+  border-color: #E2E8F0;
+  cursor: not-allowed;
+}
+
+/* Grid de Campos em 2 Colunas */
+.ludic-grid-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+.ludic-grid-2-1 {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+/* Card Interativo de Toggle Switch para NF / Empresa */
+.ludic-switch-card {
+  background: #F8FAFC;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 18px 20px;
+  margin: 12px 0 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.ludic-switch-card:hover {
+  background: #F1F5F9;
+  border-color: #CBD5E1;
+}
+
+.ludic-switch-left {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.ludic-switch-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  background: #FFFFFF;
+  color: #F04E23;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.ludic-switch-card strong {
+  display: block;
+  font-size: 0.92rem;
+  color: #0F172A;
+  margin-bottom: 2px;
+}
+
+.ludic-switch-card p {
+  font-size: 0.78rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Toggle Switch Lúdico Estilo iOS */
+.ludic-switch-toggle {
+  position: relative;
+  width: 48px;
+  height: 26px;
+  flex-shrink: 0;
+}
+
+.ludic-switch-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.ludic-switch-slider {
+  position: absolute;
+  cursor: pointer;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #CBD5E1;
+  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 999px;
+}
+
+.ludic-switch-slider:before {
+  position: absolute;
+  content: "";
+  height: 20px;
+  width: 20px;
+  left: 3px;
+  bottom: 3px;
+  background-color: white;
+  transition: 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  border-radius: 50%;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.ludic-switch-toggle input:checked + .ludic-switch-slider {
+  background-color: #F04E23;
+}
+
+.ludic-switch-toggle input:checked + .ludic-switch-slider:before {
+  transform: translateX(22px);
+}
+
+/* Super Botão Turbo para CNPJ / CEP */
+.btn-ludic-turbo {
+  background: #0F172A;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 12px;
+  padding: 0 18px;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  height: 46px;
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.15);
+}
+
+.btn-ludic-turbo:hover {
+  background: #1E293B;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.22);
+}
+
+.btn-ludic-turbo:active {
+  transform: translateY(0);
+}
+
+/* Botão Principal de Salvar */
+.btn-ludic-submit {
+  background: linear-gradient(135deg, #F04E23 0%, #EA580C 100%);
+  color: #FFFFFF;
+  border: none;
+  border-radius: 16px;
+  padding: 16px 32px;
+  font-size: 1.05rem;
+  font-weight: 900;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  box-shadow: 0 10px 28px rgba(240, 78, 35, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  margin-top: 24px;
+}
+
+.btn-ludic-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 14px 34px rgba(240, 78, 35, 0.45);
+}
+
+.btn-ludic-submit:active {
+  transform: translateY(0);
+}
+
+/* Card Informativo de Blindagem e Segurança no Rodapé */
+.client-security-badge-footer {
+  margin-top: 18px;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 14px 18px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.78rem;
+  color: #64748B;
+  line-height: 1.4;
+}
+
+.client-security-badge-footer svg {
+  color: #10B981;
+  flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .client-ludic-hero {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 24px 20px;
+  }
+  .client-ludic-hero-actions {
+    width: 100%;
+    display: flex;
+    justify-content: flex-end;
+  }
+  .client-stats-overview {
+    grid-template-columns: 1fr;
+  }
+  .ludic-grid-2,
+  .ludic-grid-2-1 {
+    grid-template-columns: 1fr;
+  }
+  .client-modular-card {
+    padding: 20px 18px;
+  }
+}
+
 
 /* ==========================================================================
    STATUS DE ESTOQUE (DISPONÍVEL, POUCAS UNIDADES, ESGOTADO) & PAINEL ADMIN

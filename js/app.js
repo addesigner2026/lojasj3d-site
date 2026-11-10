@@ -2665,51 +2665,101 @@
     );
 
     container.innerHTML = `
-      <!-- 1. HERO DO PERFIL -->
-      <div class="client-profile-hero">
-        <div class="client-profile-main-col">
-          <div class="client-avatar-circle">
+      <!-- 1. HERO DO PERFIL MAKER SJ 3D -->
+      <div class="client-ludic-hero">
+        <div class="client-ludic-hero-main">
+          <div class="client-ludic-avatar-ring">
             ${fotoSegura ? `<img src="${fotoSegura}" alt="${nomeSeguro}" />` : `<span>${avatarLetra}</span>`}
           </div>
-          <div class="client-profile-text">
-            <h2>Olá, ${primeiroNomeSeguro}!</h2>
-            <div class="client-profile-meta">
-              <span>📧 ${emailSeguro}</span>
-              ${whatsappSeguro ? `<span>📱 ${whatsappSeguro}</span>` : ""}
-              <span>📍 ${cidadeUfSeguro}</span>
-              <span style="color:#ff8a65; font-weight:700;">🎟️ ${totalCupons} cupons no Sorteio</span>
+          <div>
+            <div class="client-maker-chip">
+              <span>⭐ Maker VIP • Clube Loja SJ 3D</span>
+            </div>
+            <h2>Olá, ${primeiroNomeSeguro}! 👋</h2>
+            <div class="client-ludic-meta">
+              <span class="client-meta-pill">📧 ${emailSeguro}</span>
+              ${whatsappSeguro ? `<span class="client-meta-pill">📱 ${whatsappSeguro}</span>` : ""}
+              <span class="client-meta-pill">📍 ${cidadeUfSeguro}</span>
             </div>
           </div>
         </div>
 
-        <div class="client-profile-hero-actions">
+        <div class="client-ludic-hero-actions">
+          <button type="button" class="btn-client-logout" id="btn-cliente-voltar-loja" style="background:rgba(255,255,255,0.12); margin-right:8px;">
+            ← Voltar para a Loja
+          </button>
           <button type="button" class="btn-client-logout" id="btn-cliente-sair">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
               <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
               <polyline points="16 17 21 12 16 7"></polyline>
               <line x1="21" y1="12" x2="9" y2="12"></line>
             </svg>
-            <span>Sair da Conta</span>
+            <span>Sair</span>
           </button>
         </div>
       </div>
 
-      <!-- 2. ABAS DE NAVEGAÇÃO -->
-      <div class="client-tabs-nav">
-        <button type="button" class="client-tab-nav-btn ${abaAtiva === "favoritos" ? "active" : ""}" data-target-tab="favoritos">
-          <span>❤️ Meus Favoritos</span>
-          <span class="tab-badge">${totalFavoritos}</span>
+      <!-- 2. TRÊS CARDS DE VISÃO GERAL / KPIS LÚDICOS -->
+      <div class="client-stats-overview">
+        <div class="client-stat-card card-amber" data-target-tab="cupons">
+          <div class="client-stat-top">
+            <div class="client-stat-icon-wrap">🎟️</div>
+            <span class="client-stat-tag">Sorteio A1 Mini</span>
+          </div>
+          <div class="client-stat-val">${totalCupons} Cupons</div>
+          <div class="client-stat-desc">
+            <span>Concorrendo à Bambu Lab A1 Mini</span>
+            <span>Ver regras →</span>
+          </div>
+        </div>
+
+        <div class="client-stat-card card-blue" data-target-tab="pedidos">
+          <div class="client-stat-top">
+            <div class="client-stat-icon-wrap">📦</div>
+            <span class="client-stat-tag">Pedidos Salvos</span>
+          </div>
+          <div class="client-stat-val">${pedidosCliente.length}</div>
+          <div class="client-stat-desc">
+            <span>Histórico de compras e orçamentos</span>
+            <span>Ver lista →</span>
+          </div>
+        </div>
+
+        <div class="client-stat-card card-emerald" data-target-tab="dados">
+          <div class="client-stat-top">
+            <div class="client-stat-icon-wrap">🛡️</div>
+            <span class="client-stat-tag">Blindagem &amp; Dados</span>
+          </div>
+          <div class="client-stat-val">${(() => {
+            const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+            return val.valido ? "100% OK" : "Pendente";
+          })()}</div>
+          <div class="client-stat-desc">
+            <span>${(() => {
+              const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+              return val.valido ? "Cadastro aprovado e seguro" : "Clique para completar dados";
+            })()}</span>
+            <span>Editar →</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 3. ABAS DE NAVEGAÇÃO LÚDICAS -->
+      <div class="client-ludic-tabs">
+        <button type="button" class="client-ludic-tab-btn ${abaAtiva === "dados" ? "active" : ""}" data-target-tab="dados">
+          <span>👤 Meus Dados Cadastrais</span>
         </button>
-        <button type="button" class="client-tab-nav-btn ${abaAtiva === "pedidos" ? "active" : ""}" data-target-tab="pedidos">
-          <span>📦 Meus Pedidos & Orçamentos</span>
+        <button type="button" class="client-ludic-tab-btn ${abaAtiva === "pedidos" ? "active" : ""}" data-target-tab="pedidos">
+          <span>📦 Meus Pedidos &amp; Orçamentos</span>
           <span class="tab-badge">${pedidosCliente.length}</span>
         </button>
-        <button type="button" class="client-tab-nav-btn ${abaAtiva === "cupons" ? "active" : ""}" data-target-tab="cupons">
-          <span>🎟️ Meus Cupons no Sorteio</span>
+        <button type="button" class="client-ludic-tab-btn ${abaAtiva === "cupons" ? "active" : ""}" data-target-tab="cupons">
+          <span>🎟️ Cupons do Sorteio</span>
           <span class="tab-badge">${totalCupons}</span>
         </button>
-        <button type="button" class="client-tab-nav-btn ${abaAtiva === "dados" ? "active" : ""}" data-target-tab="dados">
-          <span>👤 Meus Dados</span>
+        <button type="button" class="client-ludic-tab-btn ${abaAtiva === "favoritos" ? "active" : ""}" data-target-tab="favoritos">
+          <span>❤️ Meus Favoritos</span>
+          <span class="tab-badge">${totalFavoritos}</span>
         </button>
       </div>
 
@@ -2932,158 +2982,285 @@
         </div>
       </div>
 
-      <!-- ABA D: MEUS DADOS CADASTRAIS -->
+      <!-- ABA D: MEUS DADOS CADASTRAIS (CARDS MODULARES LÚDICOS) -->
       <div class="client-tab-pane ${abaAtiva === "dados" ? "active" : ""}" id="pane-client-dados">
-        <div class="client-reg-card-wrap" style="max-width: 720px; margin: 0 auto; box-shadow: 0 4px 18px rgba(0,0,0,0.06);">
-          <div class="client-reg-card-head">
-            <h3>Meus Dados Cadastrais</h3>
-            <p>Mantenha seus dados atualizados para envio rápido dos seus pedidos no WhatsApp.</p>
-          </div>
+        <div style="max-width: 820px; margin: 0 auto;">
 
           ${(() => {
             const valAtual = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
             return valAtual.valido
-              ? `<div style="margin:0 0 14px; padding:10px 14px; background:#ECFDF5; border:1px solid #A7F3D0; border-radius:10px; color:#065F46; font-size:0.82rem; font-weight:700;">
-                   ✅ Cadastro Aprovado! Seus dados completos já vão prontos quando você finalizar no WhatsApp.
+              ? `<div style="margin:0 0 20px; padding:14px 18px; background:#ECFDF5; border:1.5px solid #A7F3D0; border-radius:16px; color:#065F46; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(16,185,129,0.1);">
+                   <span style="font-size:1.3rem;">✅</span>
+                   <div>
+                     <div>Cadastro Aprovado e Blindado!</div>
+                     <small style="font-weight:500; opacity:0.9;">Seus dados cadastrais e fiscais já vão completos e prontos quando você finalizar pedidos no WhatsApp.</small>
+                   </div>
                  </div>`
-              : `<div style="margin:0 0 14px; padding:10px 14px; background:#FEF2F2; border:1px solid #FECACA; border-radius:10px; color:#991B1B; font-size:0.82rem; font-weight:700;">
-                   ⚠️ Cadastro Pendente: preencha ${escaparHtml(valAtual.faltando.join(", "))} abaixo para aprovar seu cadastro.
+              : `<div style="margin:0 0 20px; padding:14px 18px; background:#FEF2F2; border:1.5px solid #FECACA; border-radius:16px; color:#991B1B; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(239,68,68,0.1);">
+                   <span style="font-size:1.3rem;">⚠️</span>
+                   <div>
+                     <div>Cadastro Pendente de Informações</div>
+                     <small style="font-weight:500; opacity:0.9;">Preencha os campos obrigatórios abaixo (${escaparHtml(valAtual.faltando.join(", "))}) para aprovar seu cadastro e garantir agilidade no envio.</small>
+                   </div>
                  </div>`;
           })()}
 
           <form id="form-client-edit-profile" class="client-auth-form">
-            <div class="auth-field">
-              <label>Nome Completo do Titular *</label>
-              <input type="text" name="edit_nome" value="${nomeSeguro}" placeholder="Nome Completo do Titular" required />
-            </div>
-
-            <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-              <div class="auth-field">
-                <label>WhatsApp / Celular *</label>
-                <input type="tel" name="edit_whatsapp" value="${whatsappSeguro}" placeholder="(44) 99999-9999" required />
+            <!-- CARD 1: DADOS PESSOAIS DO TITULAR -->
+            <div class="client-modular-card">
+              <div class="client-card-head">
+                <div class="client-card-head-left">
+                  <div class="client-card-icon-bubble">👤</div>
+                  <div>
+                    <h4>Titular da Conta (Pessoa Física)</h4>
+                    <p>Responsável legal pelos pedidos, chave Pix e concorrência no sorteio</p>
+                  </div>
+                </div>
+                <span class="client-stat-tag" style="background:#F1F5F9; color:#475569;">Obrigatório</span>
               </div>
 
-              <div class="auth-field">
-                <label>CPF do Titular *</label>
-                <input type="text" name="edit_cpf" value="${cpfSeguro}" placeholder="000.000.000-00" required inputmode="numeric" />
-              </div>
-            </div>
-
-            <div class="auth-field">
-              <label>E-mail *</label>
-              <input type="email" name="edit_email" value="${emailSeguro}" disabled style="background:#f3f4f6; cursor:not-allowed;" />
-            </div>
-
-            <div style="padding:4px 2px; margin:2px 0;">
-              <label style="display:inline-flex; align-items:center; gap:7px; cursor:pointer; font-size:0.8rem; font-weight:600; color:#71717a; margin:0;">
-                <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${precisaNfSegura ? "checked" : ""} style="width:15px; height:15px; accent-color:#F04E23; cursor:pointer;" />
-                <span>Preciso de Nota Fiscal / Adicionar Dados da Empresa (CNPJ) ou Endereço</span>
-              </label>
-            </div>
-
-            <div id="edit-nf-fields-wrap" style="display:${precisaNfSegura ? "grid" : "none"}; gap:12px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px;">
-              <div style="font-size:0.78rem; font-weight:700; color:#1E293B; border-bottom:1px solid #E2E8F0; padding-bottom:8px;">
-                🏢 Dados da Empresa (CNPJ) &amp; Endereço para Faturamento
-              </div>
-
-              <!-- Busca Automática por CNPJ -->
-              <div class="auth-field">
-                <label style="display:flex; justify-content:space-between; align-items:center;">
-                  <span style="font-weight:700; color:#0F172A;">CNPJ da Empresa (Preenchimento Automático)</span>
-                  <span style="font-size:0.72rem; color:#64748B; font-weight:500;">Receita Federal</span>
+              <div class="ludic-field">
+                <label>
+                  <span>Nome Completo do Titular *</span>
+                  <span class="ludic-field-badge">Como no documento oficial</span>
                 </label>
-                <div style="display:flex; gap:8px;">
-                  <input type="text" name="edit_cnpj" id="edit-cnpj-input" value="${cnpjSeguro}" placeholder="00.000.000/0000-00" inputmode="numeric" style="flex:1;" />
-                  <button type="button" id="btn-buscar-cnpj-edit" style="background:#0F172A; color:#FFFFFF; border:none; border-radius:8px; padding:0 14px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:6px; white-space:nowrap;">
-                    <span id="spinner-cnpj-edit" style="display:none;">⏳</span>
-                    <span>🔍 Buscar CNPJ</span>
-                  </button>
-                </div>
-                <div id="status-cnpj-edit" style="display:none; margin-top:6px; font-size:0.76rem; padding:6px 10px; border-radius:6px; font-weight:600;"></div>
-              </div>
-
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <div class="auth-field">
-                  <label>Razão Social (Nome Oficial) *</label>
-                  <input type="text" name="edit_razao_social" value="${razaoSocialSegura}" placeholder="Razão Social da Empresa" />
-                </div>
-                <div class="auth-field">
-                  <label>Nome Fantasia (Nome Comercial)</label>
-                  <input type="text" name="edit_nome_fantasia" value="${nomeFantasiaSeguro}" placeholder="Nome Fantasia" />
+                <div class="ludic-input-wrap">
+                  <span class="ludic-input-icon">👤</span>
+                  <input type="text" name="edit_nome" class="ludic-input" value="${nomeSeguro}" placeholder="Nome Completo do Titular" required />
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <div class="auth-field">
-                  <label>CEP *</label>
-                  <input type="text" name="edit_cep" value="${escaparHtml(c.cep || "")}" placeholder="87501-000" inputmode="numeric" />
+              <div class="ludic-grid-2">
+                <div class="ludic-field">
+                  <label>
+                    <span>WhatsApp / Celular com DDD *</span>
+                    <span class="ludic-field-badge">Envio de atualizações</span>
+                  </label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">📱</span>
+                    <input type="tel" name="edit_whatsapp" class="ludic-input" value="${whatsappSeguro}" placeholder="(44) 99999-9999" required />
+                  </div>
                 </div>
-                <div class="auth-field">
-                  <label>Inscrição Estadual (se CNPJ)</label>
-                  <input type="text" name="edit_ie" value="${escaparHtml(c.inscricaoEstadual || "")}" placeholder="Nº da IE ou ISENTO" />
+
+                <div class="ludic-field">
+                  <label>
+                    <span>CPF do Titular *</span>
+                    <span class="ludic-field-badge">11 dígitos (apenas titular)</span>
+                  </label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🪪</span>
+                    <input type="text" name="edit_cpf" class="ludic-input" value="${cpfSeguro}" placeholder="000.000.000-00" required inputmode="numeric" />
+                  </div>
                 </div>
               </div>
 
-              <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
-                <div class="auth-field">
-                  <label>Endereço (Rua / Avenida) *</label>
-                  <input type="text" name="edit_logradouro" value="${escaparHtml(c.logradouro || "")}" placeholder="Ex: Av. Portugal" />
-                </div>
-                <div class="auth-field">
-                  <label>Número *</label>
-                  <input type="text" name="edit_numero" value="${escaparHtml(c.numero || "")}" placeholder="Ex: 6759" />
-                </div>
-              </div>
-
-              <div style="display:grid; grid-template-columns:1fr 1fr; gap:12px;">
-                <div class="auth-field">
-                  <label>Bairro *</label>
-                  <input type="text" name="edit_bairro" value="${escaparHtml(c.bairro || "")}" placeholder="Ex: Zona I-A" />
-                </div>
-                <div class="auth-field">
-                  <label>Complemento (Opcional)</label>
-                  <input type="text" name="edit_complemento" value="${escaparHtml(c.complemento || "")}" placeholder="Sala, Apto, Bloco..." />
-                </div>
-              </div>
-
-              <div style="display:grid; grid-template-columns:2fr 1fr; gap:12px;">
-                <div class="auth-field">
-                  <label>Cidade *</label>
-                  <input type="text" name="edit_cidade_nome" value="${escaparHtml(c.cidade || "Umuarama")}" placeholder="Umuarama" />
-                </div>
-                <div class="auth-field">
-                  <label>UF (Estado) *</label>
-                  <input type="text" name="edit_uf" value="${escaparHtml(c.uf || "PR")}" placeholder="PR" maxlength="2" style="text-transform:uppercase;" />
+              <div class="ludic-field" style="margin-bottom:0;">
+                <label>
+                  <span>E-mail de Login *</span>
+                  <span class="ludic-field-badge">🔒 Chave de Acesso Única</span>
+                </label>
+                <div class="ludic-input-wrap">
+                  <span class="ludic-input-icon">📧</span>
+                  <input type="email" name="edit_email" class="ludic-input" value="${emailSeguro}" disabled />
                 </div>
               </div>
             </div>
 
-            <button type="submit" class="btn-client-submit-auth" style="margin-top:14px;">
-              💾 Salvar Meus Dados Cadastrais
-            </button>
-
-            <!-- GESTÃO DE PRIVACIDADE E CONSENTIMENTO (LGPD ART. 8º § 5º) -->
-            <div style="margin-top:20px; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px;">
-              <div style="font-size:0.82rem; font-weight:700; color:#0F172A; display:flex; align-items:center; gap:6px; margin-bottom:6px;">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#F04E23" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                <span>Privacidade &amp; Gestão de Consentimentos (LGPD)</span>
+            <!-- CARD 2: FATURAMENTO EMPRESARIAL & NOTA FISCAL (CNPJ) -->
+            <div class="client-modular-card">
+              <div class="client-card-head">
+                <div class="client-card-head-left">
+                  <div class="client-card-icon-bubble" style="background:#EFF6FF; color:#0284C7; border-color:#DBEAFE;">🏢</div>
+                  <div>
+                    <h4>Faturamento Empresarial &amp; CNPJ (Opcional)</h4>
+                    <p>Emissão de Nota Fiscal em nome de Pessoa Jurídica com busca na Receita</p>
+                  </div>
+                </div>
+                <span class="client-stat-tag" style="background:#EFF6FF; color:#0284C7;">Receita Federal</span>
               </div>
-              <p style="margin:0 0 12px; font-size:0.77rem; color:#64748B; line-height:1.45;">
-                Conforme o Art. 8º da Lei 13.709/2018, você pode revogar autorizações opcionais a qualquer momento com a mesma facilidade com que foram concedidas.
-                <a href="#modal-privacy-policy" id="link-abrir-privacidade-dados" style="color:#F04E23; text-decoration:underline; font-weight:600;">Ver Política de Privacidade Completa</a>.
+
+              <!-- Switch Lúdico para Ativar/Desativar Faturamento Empresarial -->
+              <label class="ludic-switch-card" for="chk-edit-precisa-nf">
+                <div class="ludic-switch-left">
+                  <div class="ludic-switch-icon">🧾</div>
+                  <div>
+                    <strong>Desejo cadastrar Empresa (CNPJ) e emitir Nota Fiscal</strong>
+                    <p>Ative para preencher Razão Social, Nome Fantasia e buscar dados automáticos da Receita Federal.</p>
+                  </div>
+                </div>
+                <div class="ludic-switch-toggle">
+                  <input type="checkbox" name="edit_precisa_nf" id="chk-edit-precisa-nf" ${precisaNfSegura ? "checked" : ""} />
+                  <span class="ludic-switch-slider"></span>
+                </div>
+              </label>
+
+              <!-- Bloco Expansível de CNPJ -->
+              <div id="edit-nf-fields-wrap" style="display:${precisaNfSegura ? "block" : "none"}; margin-top:16px;">
+                <div class="ludic-field">
+                  <label>
+                    <span style="font-weight:800; color:#0F172A;">CNPJ da Empresa (Preenchimento Turbo)</span>
+                    <span class="ludic-field-badge">Consulta oficial BrasilAPI</span>
+                  </label>
+                  <div style="display:flex; gap:10px;">
+                    <div class="ludic-input-wrap" style="flex:1;">
+                      <span class="ludic-input-icon">🏢</span>
+                      <input type="text" name="edit_cnpj" id="edit-cnpj-input" class="ludic-input" value="${cnpjSeguro}" placeholder="00.000.000/0000-00" inputmode="numeric" />
+                    </div>
+                    <button type="button" id="btn-buscar-cnpj-edit" class="btn-ludic-turbo" title="Consultar dados da empresa na Receita Federal">
+                      <span id="spinner-cnpj-edit" style="display:none;">⏳</span>
+                      <span>🔍 Consultar CNPJ</span>
+                    </button>
+                  </div>
+                  <div id="status-cnpj-edit" style="display:none; margin-top:8px; font-size:0.8rem; padding:8px 12px; border-radius:10px; font-weight:700;"></div>
+                </div>
+
+                <div class="ludic-grid-2">
+                  <div class="ludic-field">
+                    <label>Razão Social (Nome Oficial) *</label>
+                    <div class="ludic-input-wrap">
+                      <span class="ludic-input-icon">🏛️</span>
+                      <input type="text" name="edit_razao_social" class="ludic-input" value="${razaoSocialSegura}" placeholder="Razão Social da Empresa" />
+                    </div>
+                  </div>
+                  <div class="ludic-field">
+                    <label>Nome Fantasia (Nome Comercial)</label>
+                    <div class="ludic-input-wrap">
+                      <span class="ludic-input-icon">🏷️</span>
+                      <input type="text" name="edit_nome_fantasia" class="ludic-input" value="${nomeFantasiaSeguro}" placeholder="Nome Fantasia" />
+                    </div>
+                  </div>
+                </div>
+
+                <div class="ludic-field" style="margin-bottom:0;">
+                  <label>Inscrição Estadual (IE)</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">📑</span>
+                    <input type="text" name="edit_ie" class="ludic-input" value="${escaparHtml(c.inscricaoEstadual || "")}" placeholder="Nº da Inscrição Estadual ou ISENTO" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 3: ENDEREÇO DE ENTREGA DAS IMPRESSORAS E FILAMENTOS -->
+            <div class="client-modular-card">
+              <div class="client-card-head">
+                <div class="client-card-head-left">
+                  <div class="client-card-icon-bubble" style="background:#ECFDF5; color:#059669; border-color:#D1FAE5;">📍</div>
+                  <div>
+                    <h4>Endereço de Entrega &amp; Logística</h4>
+                    <p>Onde você receberá suas impressoras 3D, filamentos e peças com agilidade</p>
+                  </div>
+                </div>
+                <span class="client-stat-tag" style="background:#ECFDF5; color:#059669;">Entrega Rápida</span>
+              </div>
+
+              <div class="ludic-grid-2">
+                <div class="ludic-field">
+                  <label>
+                    <span>CEP *</span>
+                    <span class="ludic-field-badge">Busca automática ViaCEP</span>
+                  </label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">📫</span>
+                    <input type="text" name="edit_cep" class="ludic-input" value="${escaparHtml(c.cep || "")}" placeholder="87501-000" inputmode="numeric" />
+                  </div>
+                </div>
+
+                <div class="ludic-field">
+                  <label>Número *</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🔢</span>
+                    <input type="text" name="edit_numero" class="ludic-input" value="${escaparHtml(c.numero || "")}" placeholder="Ex: 6759" />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ludic-field">
+                <label>Endereço (Rua / Avenida) *</label>
+                <div class="ludic-input-wrap">
+                  <span class="ludic-input-icon">🛣️</span>
+                  <input type="text" name="edit_logradouro" class="ludic-input" value="${escaparHtml(c.logradouro || "")}" placeholder="Ex: Av. Portugal" />
+                </div>
+              </div>
+
+              <div class="ludic-grid-2">
+                <div class="ludic-field">
+                  <label>Bairro *</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🏘️</span>
+                    <input type="text" name="edit_bairro" class="ludic-input" value="${escaparHtml(c.bairro || "")}" placeholder="Ex: Zona I-A" />
+                  </div>
+                </div>
+
+                <div class="ludic-field">
+                  <label>Complemento (Opcional)</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🚪</span>
+                    <input type="text" name="edit_complemento" class="ludic-input" value="${escaparHtml(c.complemento || "")}" placeholder="Sala, Apto, Galpão..." />
+                  </div>
+                </div>
+              </div>
+
+              <div class="ludic-grid-2-1" style="margin-bottom:0;">
+                <div class="ludic-field" style="margin-bottom:0;">
+                  <label>Cidade *</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🏙️</span>
+                    <input type="text" name="edit_cidade_nome" class="ludic-input" value="${escaparHtml(c.cidade || "Umuarama")}" placeholder="Umuarama" />
+                  </div>
+                </div>
+
+                <div class="ludic-field" style="margin-bottom:0;">
+                  <label>UF (Estado) *</label>
+                  <div class="ludic-input-wrap">
+                    <span class="ludic-input-icon">🇧🇷</span>
+                    <input type="text" name="edit_uf" class="ludic-input" value="${escaparHtml(c.uf || "PR")}" placeholder="PR" maxlength="2" style="text-transform:uppercase;" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- CARD 4: PRIVACIDADE & LGPD -->
+            <div class="client-modular-card">
+              <div class="client-card-head">
+                <div class="client-card-head-left">
+                  <div class="client-card-icon-bubble" style="background:#FEF3C7; color:#D97706; border-color:#FDE68A;">🛡️</div>
+                  <div>
+                    <h4>Privacidade &amp; Gestão de Consentimentos (LGPD)</h4>
+                    <p>Lei Geral de Proteção de Dados (Lei 13.709/2018) • Art. 8º e 18</p>
+                  </div>
+                </div>
+                <span class="client-stat-tag" style="background:#FEF3C7; color:#D97706;">Art. 8º LGPD</span>
+              </div>
+
+              <p style="margin:0 0 16px; font-size:0.8rem; color:#64748B; line-height:1.5;">
+                Você tem autonomia total para revogar autorizações a qualquer momento com um único clique.
+                <a href="#modal-privacy-policy" id="link-abrir-privacidade-dados" style="color:#F04E23; text-decoration:underline; font-weight:700;">Ver Política de Privacidade Completa da Loja SJ 3D</a>.
               </p>
 
-              <div style="display:flex; justify-content:space-between; align-items:center; gap:12px; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:10px; padding:12px 14px; flex-wrap:wrap;">
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:16px; background:#F8FAFC; border:1.5px solid #E2E8F0; border-radius:14px; padding:16px 18px; flex-wrap:wrap;">
                 <div>
-                  <strong style="font-size:0.8rem; color:#1E293B; display:block;">Comunicações e Ofertas (WhatsApp / E-mail)</strong>
-                  <span style="font-size:0.74rem; color:#64748B;" id="txt-status-consent-mkt">Verificando status de consentimento...</span>
+                  <strong style="font-size:0.88rem; color:#0F172A; display:block; margin-bottom:2px;">Comunicações e Ofertas (WhatsApp / E-mail)</strong>
+                  <span style="font-size:0.78rem; color:#64748B;" id="txt-status-consent-mkt">Verificando status de consentimento...</span>
                 </div>
-                <div style="display:flex; gap:8px;">
-                  <button type="button" id="btn-toggle-consent-marketing" class="btn-client-explore" style="padding:6px 14px; font-size:0.75rem; width:auto; margin:0; background:#0F172A; color:#FFFFFF;">
-                    Alternar Autorização
-                  </button>
-                </div>
+                <button type="button" id="btn-toggle-consent-marketing" class="btn-ludic-turbo" style="height:40px; padding:0 16px; font-size:0.8rem;">
+                  Alternar Autorização
+                </button>
               </div>
+            </div>
+
+            <!-- BOTÃO PRINCIPAL DE SALVAR DADOS -->
+            <button type="submit" class="btn-ludic-submit">
+              <span>💾 Salvar Meus Dados Cadastrais &amp; Aprovar</span>
+            </button>
+
+            <!-- SELO DE SEGURANÇA E BLINDAGEM -->
+            <div class="client-security-badge-footer">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                <path d="m9 12 2 2 4-4"></path>
+              </svg>
+              <span>Seus dados são protegidos com hash criptográfico, isolamento estrito (RLS) e regras oficiais de blindagem e segurança da Loja SJ 3D.</span>
             </div>
           </form>
         </div>
@@ -3095,6 +3272,11 @@
       btn.addEventListener("click", () => {
         renderizarAreaCliente(btn.dataset.targetTab);
       });
+    });
+
+    // Evento de Voltar para a Loja
+    container.querySelector("#btn-cliente-voltar-loja")?.addEventListener("click", () => {
+      navegarParaCategoria("home");
     });
 
     // Evento de Logout do Cliente
@@ -5643,11 +5825,15 @@
     document.querySelectorAll(".header-nav-link[data-nav-cat]").forEach((l) => {
       l.classList.toggle("active", l.dataset.navCat === cat);
     });
+    const headerAccBtn = document.getElementById("header-account-btn");
+    if (headerAccBtn) {
+      headerAccBtn.classList.toggle("nav-active", cat === "minha-conta");
+    }
     atualizarVisaoPrincipal();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (updateHistory && window.history && window.history.pushState) {
-      window.history.pushState({ view: "cat", cat }, "", cat === "home" ? "#home" : `#cat-${cat}`);
+      window.history.pushState({ view: "cat", cat }, "", cat === "home" ? "#home" : (cat === "minha-conta" ? "#minha-conta" : `#cat-${cat}`));
     }
   }
 
@@ -10980,6 +11166,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       } else if (initialHash.startsWith("#cat-")) {
         const cat = initialHash.replace("#cat-", "");
         navegarParaCategoria(cat, false);
+      } else if (
+        initialHash === "#minha-conta" ||
+        initialHash === "#conta" ||
+        initialHash === "#dados" ||
+        initialHash === "#cadastro"
+      ) {
+        navegarParaCategoria("minha-conta", false);
+        if (initialHash === "#dados" || initialHash === "#cadastro") {
+          renderizarAreaCliente("dados");
+        }
       }
     }
 
@@ -11013,6 +11209,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const cat = hash.replace("#cat-", "");
           fecharPaginaProduto(false, false);
           navegarParaCategoria(cat, false);
+        } else if (
+          hash === "#minha-conta" ||
+          hash === "#conta" ||
+          hash === "#dados" ||
+          hash === "#cadastro"
+        ) {
+          fecharPaginaProduto(false, false);
+          navegarParaCategoria("minha-conta", false);
+          if (hash === "#dados" || hash === "#cadastro") {
+            renderizarAreaCliente("dados");
+          }
         } else {
           fecharPaginaProduto(false, false);
           navegarParaCategoria("home", false);
