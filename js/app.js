@@ -35,7 +35,7 @@
     // Área do Cliente & Minha Conta
     clienteLogado: null,
     favoritos: [],
-    abaClienteAtiva: "favoritos"
+    abaClienteAtiva: "dados"
   };
 
   const secoesDefinicao = [
@@ -382,6 +382,32 @@
       return `(${ddd}) 9****-**${ultimos}`;
     }
     return "(**) *****-****";
+  }
+
+  function formatarCpf(valor) {
+    if (!valor) return "";
+    const v = String(valor).replace(/\D/g, "").slice(0, 11);
+    if (v.length <= 3) return v;
+    if (v.length <= 6) return `${v.slice(0, 3)}.${v.slice(3)}`;
+    if (v.length <= 9) return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6)}`;
+    return `${v.slice(0, 3)}.${v.slice(3, 6)}.${v.slice(6, 9)}-${v.slice(9, 11)}`;
+  }
+
+  function formatarCnpj(valor) {
+    if (!valor) return "";
+    const v = String(valor).replace(/\D/g, "").slice(0, 14);
+    if (v.length <= 2) return v;
+    if (v.length <= 5) return `${v.slice(0, 2)}.${v.slice(2)}`;
+    if (v.length <= 8) return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5)}`;
+    if (v.length <= 12) return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8)}`;
+    return `${v.slice(0, 2)}.${v.slice(2, 5)}.${v.slice(5, 8)}/${v.slice(8, 12)}-${v.slice(12, 14)}`;
+  }
+
+  function formatarCep(valor) {
+    if (!valor) return "";
+    const v = String(valor).replace(/\D/g, "").slice(0, 8);
+    if (v.length <= 5) return v;
+    return `${v.slice(0, 5)}-${v.slice(5, 8)}`;
   }
 
   // Valida se o cadastro do cliente (e os dados de Nota Fiscal, quando solicitada) estão 100% preenchidos e aprovados
@@ -2510,7 +2536,7 @@
   // ÁREA DO CLIENTE / MINHA CONTA (PÁGINA DEDICADA: FAVORITOS, COMPRAS, CUPONS)
   // =========================================================================
 
-  function renderizarAreaCliente(abaAtiva = state.abaClienteAtiva || "favoritos") {
+  function renderizarAreaCliente(abaAtiva = state.abaClienteAtiva || "dados") {
     const container = document.getElementById("client-account-view");
     if (!container) return;
 
@@ -3598,7 +3624,9 @@
     if (btnHeaderAcc) {
       e.preventDefault();
       if (state.clienteLogado) {
+        state.abaClienteAtiva = "dados";
         navegarParaCategoria("minha-conta");
+        renderizarAreaCliente("dados");
       } else {
         abrirModalAuthCliente("login");
       }
