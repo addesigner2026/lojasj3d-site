@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261110_09" />
+  <link rel="stylesheet" href="css/styles.css?v=20261110_10" />
 </head>
 
 <body class="admin-standalone-body">
@@ -460,52 +460,121 @@
           <!-- SPOTLIGHT DE PREÇO EM DESTAQUE (RESULTADO DA LEITURA OU SELEÇÃO) -->
           <div id="cms-price-lookup-spotlight" class="sj-qr-spotlight-card" style="display:none;"></div>
 
-          <!-- BARRA DE BUSCA ULTRARRÁPIDA & FILTROS DE CONSULTA -->
+          <!-- BARRA DE BUSCA ULTRARRÁPIDA & FILTROS DE CONSULTA (CLEAN SAAS) -->
           <div class="cms-toolbar-row" style="background:#fff; padding:16px 18px; border-radius:14px; border:1.5px solid #e2e8f0; margin-bottom:16px; display:flex; flex-direction:column; gap:12px;">
-            <!-- LINHA 1: CAMPO DE BUSCA COM BOTÃO DE LIMPAR E PREÇO NA ETIQUETA -->
-            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; width:100%;">
-              <div style="position:relative; flex:1; min-width:280px;">
+            <!-- LINHA 1: CAMPO DE BUSCA, BOTÃO FILTRAR POR COR (POPOVER) E PREÇO NA ETIQUETA -->
+            <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap; width:100%;">
+              <div style="position:relative; flex:1; min-width:260px;">
                 <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1.1rem; pointer-events:none; color:#94a3b8;">🔍</span>
-                <input type="text" id="cms-qr-search-input" class="cms-search-input" placeholder="Buscar filamento por cor (ex: Preto, Silk Dourado), código (ex: 137, 34), tipo (PLA, PETG) ou impressora..." style="width:100%; padding-left:42px; padding-right:40px; height:46px; font-size:0.92rem; border-radius:10px; border:1.5px solid #cbd5e1; background:#f8fafc; transition:all 0.15s ease;" />
+                <input type="text" id="cms-qr-search-input" class="cms-search-input" placeholder="Buscar por código (ex: 137, 34), cor, tipo ou modelo..." style="width:100%; padding-left:42px; padding-right:38px; height:44px; font-size:0.9rem; border-radius:10px; border:1.5px solid #cbd5e1; background:#f8fafc; transition:all 0.15s ease;" />
                 <button type="button" id="btn-cms-qr-search-clear" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:1.15rem; cursor:pointer; padding:4px 8px; display:none; line-height:1;" title="Limpar busca">&times;</button>
               </div>
+
+              <!-- BOTÃO DE FILTRO DE COR EM POPOVER MODERNO (MANTÉM O CAMPO LIMPO) -->
+              <div style="position:relative;">
+                <button type="button" id="btn-cms-qr-color-filter-toggle" class="btn-cms-color-filter" title="Clique para filtrar filamentos por cor">
+                  <span id="cms-qr-color-filter-label" style="display:inline-flex; align-items:center; gap:6px;">
+                    <span>🎨</span>
+                    <span>Filtrar por Cor</span>
+                  </span>
+                  <span id="cms-qr-color-filter-arrow" style="font-size:0.68rem; color:#94a3b8;">▼</span>
+                </button>
+
+                <!-- POPOVER FLUTUANTE DE CORES COM BUSCA INTERNA -->
+                <div id="cms-qr-color-popover" class="cms-color-popover" style="display:none;">
+                  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:8px; padding-bottom:6px; border-bottom:1px solid #f1f5f9;">
+                    <strong style="font-size:0.8rem; color:#0f172a;">🎨 Escolha uma Cor</strong>
+                    <button type="button" id="btn-cms-qr-close-color-popover" style="background:none; border:none; color:#94a3b8; font-size:1.1rem; cursor:pointer; line-height:1; padding:2px 6px;">&times;</button>
+                  </div>
+                  
+                  <div style="position:relative; margin-bottom:8px;">
+                    <input type="text" id="cms-qr-color-popover-search" placeholder="Digitar nome da cor..." style="width:100%; height:32px; padding:0 8px; font-size:0.78rem; border-radius:6px; border:1px solid #cbd5e1; background:#f8fafc;" />
+                  </div>
+
+                  <div id="cms-qr-color-popover-list" style="max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:4px; padding-right:2px;">
+                    <button type="button" class="cms-color-popover-item active" data-qr-color="">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#e2e8f0; border:1px solid #94a3b8; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Todas as Cores</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="preto">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#18181b; border:1px solid #d4d4d8; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Preto</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="branco">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#ffffff; border:1px solid #94a3b8; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Branco</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="cinza">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#64748b; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Cinza / Prata</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="vermelho">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#dc2626; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Vermelho</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="azul">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#2563eb; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Azul</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="verde">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#16a34a; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Verde</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="amarelo">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#eab308; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Amarelo</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="laranja">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#F04E23; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Laranja</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="dourado">
+                      <span style="width:12px; height:12px; border-radius:50%; background:#d4af37; display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Dourado</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="silk">
+                      <span style="width:12px; height:12px; border-radius:50%; background:linear-gradient(135deg, #d4af37, #fef08a); display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Silk / Metalizado</span>
+                    </button>
+                    <button type="button" class="cms-color-popover-item" data-qr-color="dual">
+                      <span style="width:12px; height:12px; border-radius:50%; background:linear-gradient(135deg, #ef4444, #3b82f6); display:inline-block;"></span>
+                      <span style="flex:1; text-align:left;">Dual &amp; Tri Color</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- PREÇO NA ETIQUETA -->
               <div style="display:flex; align-items:center; gap:8px;">
-                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:700; color:#475569; cursor:pointer; background:#f1f5f9; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; white-space:nowrap;">
+                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:700; color:#475569; cursor:pointer; background:#f1f5f9; padding:11px 14px; border-radius:10px; border:1px solid #e2e8f0; white-space:nowrap;">
                   <input type="checkbox" id="chk-cms-qr-print-price" checked />
                   <span>Preço na Etiqueta</span>
                 </label>
               </div>
             </div>
 
-            <!-- LINHA 2: CATEGORIAS & LINHAS DE FILAMENTO COM CONTADORES -->
-            <div class="cms-cat-pills" id="cms-qr-cat-pills" style="display:flex; flex-wrap:wrap; gap:8px;">
-              <button type="button" class="cms-cat-pill active" data-cms-qr-cat="todos">🌟 Todos <span class="badge" id="qr-count-todos">138</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="cores">🎨 Cores de Filamento <span class="badge" id="qr-count-cores">104</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="bambu">⚡ Bambu Lab RFID <span class="badge" id="qr-count-bambu">13</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="maxprint">🧵 Masterprint PLA <span class="badge" id="qr-count-maxprint">40</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="plasilk">✨ Silk &amp; Dual <span class="badge" id="qr-count-plasilk">21</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="petg">🛡️ PETG <span class="badge" id="qr-count-petg">19</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="tpu">🔄 TPU <span class="badge" id="qr-count-tpu">5</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="absespeciais">🧱 ABS &amp; Especiais <span class="badge" id="qr-count-absespeciais">6</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="impressoras">🖨️ Impressoras 3D <span class="badge" id="qr-count-impressoras">6</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="pecas">⚙️ Peças &amp; Bicos <span class="badge" id="qr-count-pecas">19</span></button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="manutencao">🔧 Manutenção <span class="badge" id="qr-count-manutencao">3</span></button>
-            </div>
+            <!-- LINHA 2: CATEGORIAS PRINCIPAIS & SELETOR DE LINHAS DE FILAMENTO -->
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+              <div class="cms-cat-pills" id="cms-qr-cat-pills" style="display:flex; flex-wrap:wrap; gap:6px;">
+                <button type="button" class="cms-cat-pill active" data-cms-qr-cat="todos">🌟 Todos <span class="badge" id="qr-count-todos">138</span></button>
+                <button type="button" class="cms-cat-pill" data-cms-qr-cat="cores">🎨 Cores de Filamento <span class="badge" id="qr-count-cores">104</span></button>
+                <button type="button" class="cms-cat-pill" data-cms-qr-cat="impressoras">🖨️ Impressoras 3D <span class="badge" id="qr-count-impressoras">6</span></button>
+                <button type="button" class="cms-cat-pill" data-cms-qr-cat="pecas">⚙️ Peças &amp; Bicos <span class="badge" id="qr-count-pecas">19</span></button>
+                <button type="button" class="cms-cat-pill" data-cms-qr-cat="manutencao">🔧 Manutenção <span class="badge" id="qr-count-manutencao">3</span></button>
+              </div>
 
-            <!-- LINHA 3: ATALHOS RÁPIDOS POR COR (AO CLICAR JÁ APARECEM OS FILAMENTOS!) -->
-            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-top:6px; border-top:1px dashed #e2e8f0;">
-              <span style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Atalhos por Cor:</span>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="preto" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#18181b; display:inline-block; border:1px solid #d4d4d8;"></span> Preto</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="branco" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#ffffff; display:inline-block; border:1px solid #94a3b8;"></span> Branco</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="vermelho" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#dc2626; display:inline-block;"></span> Vermelho</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="azul" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#2563eb; display:inline-block;"></span> Azul</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="verde" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#16a34a; display:inline-block;"></span> Verde</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="amarelo" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#eab308; display:inline-block;"></span> Amarelo</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="laranja" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#F04E23; display:inline-block;"></span> Laranja</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="cinza" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#64748b; display:inline-block;"></span> Cinza / Prata</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="dourado" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#d4af37; display:inline-block;"></span> Dourado</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="silk" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;">✨ Silk / Metalizado</button>
-              <button type="button" class="cms-color-quick-chip" data-qr-color="dual" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;">🌈 Dual &amp; Tri Color</button>
+              <!-- FILTRO RÁPIDO POR TIPO DE FILAMENTO -->
+              <div style="display:inline-flex; align-items:center; gap:6px;">
+                <select id="cms-qr-filament-line-select" style="height:36px; padding:0 12px; border-radius:8px; border:1px solid #cbd5e1; background:#f8fafc; font-size:0.78rem; font-weight:700; color:#334155; cursor:pointer;">
+                  <option value="todos">📦 Todas as Linhas de Filamento</option>
+                  <option value="bambu">⚡ Bambu Lab RFID (13)</option>
+                  <option value="maxprint">🧵 Masterprint PLA (40)</option>
+                  <option value="plasilk">✨ Silk &amp; Dual Color (21)</option>
+                  <option value="petg">🛡️ PETG Alta Resistência (19)</option>
+                  <option value="tpu">🔄 TPU Flexível (5)</option>
+                  <option value="absespeciais">🧱 ABS &amp; Especiais (6)</option>
+                </select>
+              </div>
             </div>
           </div>
 
@@ -1012,7 +1081,7 @@
   <script src="js/supabase-client.js?v=20261110_07"></script>
   <script src="js/dados.js?v=20261110_07"></script>
   <script src="js/database.js?v=20261110_07"></script>
-  <script src="js/app.js?v=20261110_09"></script>
+  <script src="js/app.js?v=20261110_10"></script>
 
 </body>
 

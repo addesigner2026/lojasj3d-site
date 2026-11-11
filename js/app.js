@@ -8743,6 +8743,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   let consultaQrState = {
     categoria: "todos",
     busca: "",
+    corFiltro: "",
     itemSelecionado: null
   };
 
@@ -9011,7 +9012,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         }
       }
 
-      // 2. Busca ultrarrápida multitermo
+      // 2. Filtro por Cor Específica (do Popover / Filtro Limpo)
+      if (consultaQrState.corFiltro) {
+        if (it.tipo !== "cor") return false;
+        const textoCor = normalizarTextoBusca(`${it.corNome || ""} ${it.nome || ""}`);
+        const filtroCor = normalizarTextoBusca(consultaQrState.corFiltro);
+        if (!textoCor.includes(filtroCor)) return false;
+      }
+
+      // 3. Busca ultrarrápida multitermo digitada no campo
       if (termos.length > 0) {
         const textoBusca = normalizarTextoBusca(
           `${it.nome} ${it.subtitulo || ""} ${it.corNome || ""} ${it.codigo || ""} ${it.codNumero || ""} ${it.marca || ""} ${it.categoria || ""} ${it.id}`
@@ -9023,10 +9032,31 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       return true;
     });
 
+    // Atualiza estado visual do Botão de Filtro por Cor
+    const filterBtn = document.getElementById("btn-cms-qr-color-filter-toggle");
+    const filterLabel = document.getElementById("cms-qr-color-filter-label");
+    if (filterBtn && filterLabel) {
+      if (consultaQrState.corFiltro) {
+        filterBtn.classList.add("active");
+        const corCapital = consultaQrState.corFiltro.charAt(0).toUpperCase() + consultaQrState.corFiltro.slice(1);
+        filterLabel.innerHTML = `
+          <span>🎨</span>
+          <span>Cor: <strong>${escaparHtml(corCapital)}</strong></span>
+          <span id="btn-cms-qr-remove-color-x" style="margin-left:4px; font-size:1.15rem; line-height:1; font-weight:900; cursor:pointer;" title="Remover filtro de cor">&times;</span>
+        `;
+      } else {
+        filterBtn.classList.remove("active");
+        filterLabel.innerHTML = `<span>🎨</span><span>Filtrar por Cor</span>`;
+      }
+    }
+
     // Atualiza barra de resultados e botão de limpar
     const counterEls = document.querySelectorAll("#cms-qr-results-counter");
-    const msg = termoRaw
-      ? `Exibindo <strong>${filtrados.length}</strong> itens encontrados para "<strong>${escaparHtml(termoRaw)}</strong>"`
+    let msgFiltros = [];
+    if (termoRaw) msgFiltros.push(`"<strong>${escaparHtml(termoRaw)}</strong>"`);
+    if (consultaQrState.corFiltro) msgFiltros.push(`cor <strong>${escaparHtml(consultaQrState.corFiltro)}</strong>`);
+    const msg = msgFiltros.length > 0
+      ? `Exibindo <strong>${filtrados.length}</strong> itens encontrados para ${msgFiltros.join(" + ")}`
       : `Exibindo <strong>${filtrados.length}</strong> itens disponíveis para consulta imediata`;
     counterEls.forEach(el => { el.innerHTML = msg; });
 
@@ -9052,12 +9082,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       document.querySelectorAll("#btn-cms-qr-reset-search").forEach(btn => {
         btn.addEventListener("click", () => {
           consultaQrState.busca = "";
+          consultaQrState.corFiltro = "";
           consultaQrState.categoria = "todos";
           document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach(i => { i.value = ""; });
           document.querySelectorAll("[data-cms-qr-cat], [data-qr-cat]").forEach(b => {
             b.classList.toggle("active", (b.dataset.cmsQrCat || b.dataset.qrCat) === "todos");
           });
-          document.querySelectorAll("[data-qr-color]").forEach(c => c.classList.remove("active"));
+          document.querySelectorAll(".cms-color-popover-item").forEach(item => {
+            item.classList.toggle("active", (item.dataset.qrColor || "") === "");
+          });
+          const filSel = document.getElementById("cms-qr-filament-line-select");
+          if (filSel) filSel.value = "todos";
           renderizarGradeConsultaQr();
         });
       });
@@ -9534,29 +9569,94 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Atalhos Rápidos por Cor (ao clicar já aparecem os filamentos!)
-    document.querySelectorAll("[data-qr-color]").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const cor = chip.dataset.qrColor || "";
-        const jaAtivo = chip.classList.contains("active");
+    // =========================================================================
+    // FILTRO LIMPO DE COR EM POPOVER (UI/UX PRO MAX - CAMPO LIMPO E MINIMALISTA)
+    // =========================================================================
+    const btnToggleColor = document.getElementById("btn-cms-qr-color-filter-toggle");
+    const popoverColor = document.getElementById("cms-qr-color-popover");
+    const popoverSearch = document.getElementById("cms-qr-color-popover-search");
+    const arrowColor = document.getElementById("cms-qr-color-filter-arrow");
 
-        if (jaAtivo) {
-          chip.classList.remove("active");
-          consultaQrState.busca = "";
-          document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
-            inp.value = "";
-          });
-          renderizarGradeConsultaQr("");
+    btnToggleColor?.addEventListener("click", (e) => {
+      // Se clicou no botão "x" de remover o filtro de cor
+      if (e.target.closest("#btn-cms-qr-remove-color-x")) {
+        e.stopPropagation();
+        consultaQrState.corFiltro = "";
+        document.querySelectorAll(".cms-color-popover-item").forEach((item) => {
+          item.classList.toggle("active", (item.dataset.qrColor || "") === "");
+        });
+        renderizarGradeConsultaQr();
+        return;
+      }
+
+      if (!popoverColor) return;
+      const aberto = popoverColor.style.display === "block";
+      popoverColor.style.display = aberto ? "none" : "block";
+      if (arrowColor) arrowColor.textContent = aberto ? "▼" : "▲";
+      if (!aberto && popoverSearch) {
+        popoverSearch.value = "";
+        filtrarItensPopoverCor("");
+        setTimeout(() => popoverSearch.focus(), 60);
+      }
+    });
+
+    document.getElementById("btn-cms-qr-close-color-popover")?.addEventListener("click", () => {
+      if (popoverColor) popoverColor.style.display = "none";
+      if (arrowColor) arrowColor.textContent = "▼";
+    });
+
+    function filtrarItensPopoverCor(termo) {
+      const q = normalizarTextoBusca(termo);
+      document.querySelectorAll(".cms-color-popover-item").forEach((btn) => {
+        if (!q || !btn.dataset.qrColor) {
+          btn.style.display = "flex";
         } else {
-          document.querySelectorAll("[data-qr-color]").forEach((c) => c.classList.remove("active"));
-          chip.classList.add("active");
-          consultaQrState.busca = cor;
-          document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
-            inp.value = cor;
-          });
-          renderizarGradeConsultaQr(cor);
+          const txt = normalizarTextoBusca(btn.textContent || "");
+          btn.style.display = txt.includes(q) ? "flex" : "none";
         }
       });
+    }
+
+    popoverSearch?.addEventListener("input", (e) => {
+      filtrarItensPopoverCor(e.target.value);
+    });
+
+    // Clique em uma cor no popover
+    document.querySelectorAll(".cms-color-popover-item").forEach((itemBtn) => {
+      itemBtn.addEventListener("click", () => {
+        const cor = itemBtn.dataset.qrColor || "";
+        consultaQrState.corFiltro = cor;
+
+        document.querySelectorAll(".cms-color-popover-item").forEach((b) => {
+          b.classList.toggle("active", (b.dataset.qrColor || "") === cor);
+        });
+
+        if (popoverColor) popoverColor.style.display = "none";
+        if (arrowColor) arrowColor.textContent = "▼";
+
+        renderizarGradeConsultaQr();
+      });
+    });
+
+    // Fechar popover ao clicar fora
+    document.addEventListener("click", (e) => {
+      if (popoverColor && popoverColor.style.display === "block") {
+        if (!popoverColor.contains(e.target) && !btnToggleColor?.contains(e.target)) {
+          popoverColor.style.display = "none";
+          if (arrowColor) arrowColor.textContent = "▼";
+        }
+      }
+    });
+
+    // Seletor Dropdown de Linhas de Filamento (Bambu Lab, Masterprint, etc.)
+    document.getElementById("cms-qr-filament-line-select")?.addEventListener("change", (e) => {
+      const val = e.target.value || "todos";
+      consultaQrState.categoria = val;
+      document.querySelectorAll("[data-cms-qr-cat], [data-qr-cat]").forEach((b) => {
+        const bCat = b.dataset.cmsQrCat || b.dataset.qrCat;
+        b.classList.toggle("active", bCat === (val === "todos" ? "todos" : "cores"));
+      });
+      renderizarGradeConsultaQr();
     });
 
     // Clientes & Leads
