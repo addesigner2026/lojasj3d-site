@@ -8785,6 +8785,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             tipo: "cor",
             id: `${p.id}-${c.cod || cIdx}`,
             produtoId: p.id,
+            corIndex: cIdx,
             chavePaleta: chavePaleta,
             subLinha: p.usaCoresDinamicas || "",
             nome: `${p.nome} — ${c.nome}`,
@@ -8823,56 +8824,103 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const economiaPix = valorNum > 0 ? (valorNum * 0.05).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "5% OFF";
     const st = item.estoqueStatus || "disponivel";
     const statusMap = {
-      disponivel: { label: "🟢 EM ESTOQUE (PRONTA ENTREGA)", bg: "#166534" },
-      poucas_unidades: { label: "🟠 POUCAS UNIDADES (ÚLTIMAS PEÇAS)", bg: "#b45309" },
-      esgotado: { label: "🔴 ESGOTADO (INDISPONÍVEL)", bg: "#b91c1c" }
+      disponivel: { label: "🟢 Em Estoque (Pronta Entrega)", bg: "#f0fdf4", color: "#166534", border: "#bbf7d0" },
+      poucas_unidades: { label: "🟠 Poucas Unidades (Últimas Peças)", bg: "#fffbeb", color: "#92400e", border: "#fde68a" },
+      esgotado: { label: "🔴 Esgotado (Indisponível)", bg: "#fef2f2", color: "#991b1b", border: "#fecaca" }
     };
     const stBadge = statusMap[st] || statusMap.disponivel;
-    const qrSvgGrande = gerarQrSvgOuCanvas(item.qrPayload, 95);
+    const qrSvgGrande = gerarQrSvgOuCanvas(item.qrPayload, 110);
+    const isCor = item.tipo === "cor";
+    const brandClass = (item.marca || "").toLowerCase().includes("bambu")
+      ? "brand-bambu"
+      : (item.marca || "").toLowerCase().includes("max") || (item.marca || "").toLowerCase().includes("master")
+      ? "brand-maxprint"
+      : "brand-sj";
 
+    card.className = "sj-qr-spotlight-card";
     card.style.display = "block";
     card.innerHTML = `
-      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:14px; border-bottom:1px solid rgba(255,255,255,0.12); padding-bottom:12px;">
-        <div style="display:flex; align-items:center; gap:8px;">
-          <span style="background:${stBadge.bg}; color:#fff; font-size:0.72rem; font-weight:800; padding:3px 10px; border-radius:999px;">
-            ${stBadge.label}
-          </span>
-          <span style="font-family:ui-monospace, monospace; background:rgba(255,255,255,0.18); padding:3px 8px; border-radius:6px; font-size:0.78rem; font-weight:800; letter-spacing:0.5px;">
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; margin-bottom:16px; border-bottom:1px solid #f1f5f9; padding-bottom:12px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(item.marca || 'Loja SJ 3D')}</span>
+          <span style="font-family:ui-monospace, monospace; background:#0f172a; color:#ffffff; padding:3px 9px; border-radius:6px; font-size:0.78rem; font-weight:800; letter-spacing:0.5px;">
             ${item.codigo ? String(item.codigo).toUpperCase() : item.id}
           </span>
-          ${item.corHex ? `<span style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:700;"><span style="width:12px; height:12px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:1.5px solid #fff;"></span> ${escaparHtml(item.corNome || '')}</span>` : ''}
+          ${isCor && item.corHex ? `
+            <span style="display:inline-flex; align-items:center; gap:6px; background:#f8fafc; border:1px solid #e2e8f0; padding:3px 10px; border-radius:999px; font-size:0.78rem; font-weight:700; color:#334155;">
+              <span style="width:14px; height:14px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:2px solid #ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.2);"></span>
+              ${escaparHtml(item.corNome || '')}
+            </span>
+          ` : ''}
+          <span style="font-size:0.74rem; font-weight:800; color:${stBadge.color}; background:${stBadge.bg}; border:1px solid ${stBadge.border}; padding:3px 10px; border-radius:999px;">
+            ${stBadge.label}
+          </span>
         </div>
-        <button type="button" id="btn-cms-close-spotlight" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:28px; height:28px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="Fechar consulta">&times;</button>
+        <button type="button" id="btn-cms-close-spotlight" style="background:#f1f5f9; border:none; color:#64748b; width:32px; height:32px; border-radius:50%; font-size:1.3rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; transition:all 0.15s ease;" title="Fechar detalhes">&times;</button>
       </div>
 
-      <div style="display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center;" class="spotlight-body-grid">
-        <div style="width:110px; height:110px; border-radius:12px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;">
-          <img src="${item.imagem}" alt="${escaparHtml(item.nome)}" style="width:100%; height:100%; object-fit:contain; padding:4px;" />
-          ${item.corHex ? `<span style="position:absolute; bottom:5px; right:5px; width:22px; height:22px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>` : ''}
+      <div class="spotlight-body-grid">
+        <!-- FOTO DO PRODUTO / COR -->
+        <div style="width:120px; height:120px; border-radius:14px; overflow:hidden; background:#f8fafc; border:1.5px solid #e2e8f0; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative; box-shadow:0 2px 6px rgba(0,0,0,0.04);">
+          <img src="${item.imagem}" alt="${escaparHtml(item.nome)}" style="width:100%; height:100%; object-fit:contain; padding:6px;" />
+          ${isCor && item.corHex ? `
+            <span style="position:absolute; bottom:6px; right:6px; width:26px; height:26px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:2.5px solid #fff; box-shadow:0 2px 6px rgba(0,0,0,0.3);"></span>
+          ` : ''}
         </div>
 
+        <!-- DADOS, PREÇOS E GESTÃO DE ESTOQUE -->
         <div>
-          <div style="font-size:0.78rem; color:#F04E23; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">${escaparHtml(item.marca || "Loja SJ 3D")}</div>
-          <h3 style="margin:2px 0 4px; font-size:1.3rem; font-weight:900; color:#fff; line-height:1.2;">${escaparHtml(item.nome)}</h3>
-          <p style="margin:0 0 10px; font-size:0.84rem; color:#d4d4d8;">${escaparHtml(item.subtitulo)}</p>
+          <div style="font-size:0.75rem; color:#F04E23; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">${escaparHtml(item.marca || "Loja SJ 3D")}</div>
+          <h3 style="margin:2px 0 4px; font-size:1.35rem; font-weight:900; color:#0f172a; line-height:1.2;">${escaparHtml(item.nome)}</h3>
+          <p style="margin:0 0 12px; font-size:0.84rem; color:#64748b;">${escaparHtml(item.subtitulo)}</p>
 
-          <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
-            <div style="font-size:1.75rem; font-weight:900; color:#fff;">${escaparHtml(item.preco || "R$ 0,00")}</div>
-            <div style="font-size:0.95rem; font-weight:800; color:#4ade80;">À Vista no PIX: ${precoPix} (Economia de ${economiaPix})</div>
+          <!-- PREÇOS & DESCONTO PIX -->
+          <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap; margin-bottom:14px; background:#f8fafc; border:1px solid #e2e8f0; padding:10px 14px; border-radius:10px;">
+            <div>
+              <div style="font-size:0.7rem; font-weight:700; color:#64748b; text-transform:uppercase;">Preço Normal</div>
+              <div style="font-size:1.6rem; font-weight:900; color:#0f172a; line-height:1.1;">${escaparHtml(item.preco || "R$ 0,00")}</div>
+            </div>
+            <div style="border-left:1px solid #cbd5e1; padding-left:14px;">
+              <div style="font-size:0.7rem; font-weight:800; color:#16a34a; text-transform:uppercase;">À Vista no PIX (5% OFF)</div>
+              <div style="font-size:1.35rem; font-weight:900; color:#16a34a; line-height:1.1;">${precoPix} <span style="font-size:0.75rem; font-weight:700; color:#15803d;">(Economia de ${economiaPix})</span></div>
+            </div>
+            ${item.precoParcelado ? `<div style="font-size:0.78rem; color:#64748b; width:100%; margin-top:2px;">💳 ${escaparHtml(item.precoParcelado)}</div>` : ""}
           </div>
-          ${item.precoParcelado ? `<div style="font-size:0.8rem; color:#a1a1aa; margin-top:3px;">${escaparHtml(item.precoParcelado)}</div>` : ""}
+
+          <!-- ALTERAÇÃO DE ESTOQUE (INTERATIVO) -->
+          <div>
+            <div style="font-size:0.75rem; font-weight:800; color:#334155; margin-bottom:6px; display:flex; align-items:center; gap:6px;">
+              <span>📦 Alterar Disponibilidade / Estoque:</span>
+              <span style="font-size:0.7rem; font-weight:600; color:#64748b;">(Clique para atualizar no sistema e site)</span>
+            </div>
+            <div class="spotlight-stock-selector">
+              <button type="button" class="btn-spotlight-stock-opt ${st === 'disponivel' ? 'active-disponivel' : ''}" data-change-stock="disponivel">
+                🟢 Em Estoque
+              </button>
+              <button type="button" class="btn-spotlight-stock-opt ${st === 'poucas_unidades' ? 'active-poucas_unidades' : ''}" data-change-stock="poucas_unidades">
+                🟠 Poucas Unidades
+              </button>
+              <button type="button" class="btn-spotlight-stock-opt ${st === 'esgotado' ? 'active-esgotado' : ''}" data-change-stock="esgotado">
+                🔴 Esgotado
+              </button>
+            </div>
+          </div>
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:8px; align-items:center;">
-          <div style="background:#fff; border-radius:10px; padding:6px; cursor:pointer;" id="spotlight-qr-click" title="Clique para imprimir etiqueta">
+        <!-- QR CODE & AÇÕES -->
+        <div style="display:flex; flex-direction:column; gap:10px; align-items:center; border-left:1px solid #f1f5f9; padding-left:20px;">
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:12px; padding:8px; cursor:pointer; box-shadow:0 2px 6px rgba(0,0,0,0.05); transition:transform 0.15s ease;" id="spotlight-qr-click" title="Clique para imprimir etiqueta QR">
             ${qrSvgGrande}
           </div>
-          <div style="display:flex; gap:6px; width:100%;">
-            <button type="button" class="btn-cms-primary" id="btn-spotlight-print-qr" style="flex:1; justify-content:center; font-size:0.78rem; padding:8px 12px;">
-              🖨️ Etiqueta
+          <div style="font-size:0.7rem; color:#64748b; font-weight:600; text-align:center;">
+            QR Code Oficial de Venda
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; width:100%;">
+            <button type="button" class="btn-cms-primary" id="btn-spotlight-print-qr" style="width:100%; justify-content:center; font-size:0.8rem; padding:8px 14px;">
+              🖨️ Imprimir Etiqueta
             </button>
-            <button type="button" class="btn-cms-secondary" id="btn-spotlight-add-cart" style="flex:1; background:rgba(255,255,255,0.12); color:#4ade80; border-color:rgba(74,222,128,0.4); justify-content:center; font-size:0.78rem; padding:8px 12px;">
-              🛒+ Pedido
+            <button type="button" class="btn-cms-secondary" id="btn-spotlight-add-cart" style="width:100%; background:#f0fdf4; color:#16a34a; border-color:#bbf7d0; justify-content:center; font-size:0.8rem; padding:8px 14px;">
+              🛒 + Adicionar ao Pedido
             </button>
           </div>
         </div>
@@ -8892,7 +8940,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
 
     card.querySelector("#btn-spotlight-add-cart")?.addEventListener("click", () => {
-      const prodOriginal = (window.SITE_DATA.catalogo || []).find((p) => p.id === item.produtoId) || item;
       adicionarAoCarrinho({
         id: item.id,
         nome: item.nome,
@@ -8900,6 +8947,47 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         imagem: item.imagem
       }, 1, item.corNome || "Padrão", "À Vista");
       mostrarToast(`🛒 <strong>${item.nome}</strong> adicionado ao carrinho de vendas!`, "success");
+    });
+
+    // Eventos dos botões de troca rápida de estoque dentro do spotlight
+    card.querySelectorAll("[data-change-stock]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const novoStatus = btn.dataset.changeStock;
+        if (novoStatus === item.estoqueStatus) return;
+
+        item.estoqueStatus = novoStatus;
+
+        if (item.tipo === "cor") {
+          const chavePaleta = item.chavePaleta;
+          const cIdx = item.corIndex !== undefined ? item.corIndex : (window.SITE_DATA[chavePaleta] || []).findIndex(c => String(c.cod) === String(item.codNumero) || c.nome === item.corNome);
+          if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) && cIdx >= 0 && window.SITE_DATA[chavePaleta][cIdx]) {
+            window.SITE_DATA[chavePaleta][cIdx].estoqueStatus = novoStatus;
+            if (window.SJ_DB && window.SJ_DB.catalogo) {
+              await window.SJ_DB.catalogo.salvarPaletaCores(chavePaleta, window.SITE_DATA[chavePaleta]);
+            }
+          }
+        } else {
+          const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === item.produtoId || i.id === item.id);
+          if (prod) {
+            prod.estoqueStatus = novoStatus;
+            if (window.SJ_DB && window.SJ_DB.catalogo) {
+              await window.SJ_DB.catalogo.salvarProduto(prod);
+            }
+          }
+        }
+
+        atualizarContadoresEstoqueKpiCms();
+        atualizarSiteAposEdicaoCms();
+        renderizarGradeConsultaQr();
+        renderizarSpotlightPreco(item);
+
+        const labelMap = {
+          disponivel: "🟢 Em Estoque",
+          poucas_unidades: "🟠 Poucas Unidades",
+          esgotado: "🔴 Esgotado"
+        };
+        mostrarToast(`📦 Estoque de <strong>"${item.nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
+      });
     });
 
     // Rola suavemente até o spotlight
@@ -9107,10 +9195,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         esgotado: { label: "Esgotado", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" }
       };
       const stInfo = statusMap[st] || statusMap.disponivel;
-      const qrSvgMini = gerarQrSvgOuCanvas(it.qrPayload, 48);
-
-      const valorNum = it.precoValor || extrairNumeroDePrecoBR(it.preco);
-      const precoPix = valorNum > 0 ? (valorNum * 0.95).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : it.preco;
 
       const isCor = it.tipo === "cor";
       const brandClass = (it.marca || "").toLowerCase().includes("bambu")
@@ -9120,11 +9204,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         : "brand-sj";
 
       return `
-        <div class="sj-qr-item-card" data-qr-select-id="${escaparHtml(it.id)}">
+        <div class="sj-qr-item-card" data-qr-select-id="${escaparHtml(it.id)}" title="Clique para ver QR Code, preços e alterar estoque">
           <!-- TOP ROW: MARCA + STATUS ESTOQUE -->
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;">
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px;">
             <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(it.marca || 'Loja SJ 3D')}</span>
-            <span style="font-size:0.7rem; font-weight:700; color:${stInfo.cor}; background:${stInfo.bg}; border:1px solid ${stInfo.border}; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
+            <span style="font-size:0.72rem; font-weight:800; color:${stInfo.cor}; background:${stInfo.bg}; border:1px solid ${stInfo.border}; padding:2px 8px; border-radius:999px; display:inline-flex; align-items:center; gap:5px;">
               <span style="width:6px; height:6px; border-radius:50%; background:${stInfo.cor};"></span>
               ${stInfo.label}
             </span>
@@ -9135,7 +9219,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             <div style="position:relative; width:58px; height:58px; border-radius:10px; overflow:hidden; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
               <img src="${escaparHtml(it.imagem)}" alt="${escaparHtml(it.nome)}" style="width:100%; height:100%; object-fit:contain; padding:2px;" loading="lazy" />
               ${isCor && it.corHex ? `
-                <span style="position:absolute; bottom:3px; right:3px; width:18px; height:18px; border-radius:50%; background:${escaparHtml(it.corHex)}; border:2px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(it.corNome || '')}"></span>
+                <span style="position:absolute; bottom:2px; right:2px; width:16px; height:16px; border-radius:50%; background:${escaparHtml(it.corHex)}; border:2px solid #ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(it.corNome || '')}"></span>
               ` : ''}
             </div>
 
@@ -9144,44 +9228,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 <span style="font-family:ui-monospace, monospace; font-size:0.72rem; font-weight:800; background:#0f172a; color:#ffffff; padding:2px 7px; border-radius:5px; letter-spacing:0.3px;">
                   ${escaparHtml(it.codigo ? String(it.codigo).toUpperCase() : it.id)}
                 </span>
-                ${isCor && it.corNome ? `<span style="font-size:0.74rem; font-weight:700; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;">${escaparHtml(it.corNome)}</span>` : ''}
+                ${isCor && it.corNome ? `<span style="font-size:0.74rem; font-weight:700; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:130px;">${escaparHtml(it.corNome)}</span>` : ''}
               </div>
-              <strong style="font-size:0.88rem; font-weight:800; color:#0f172a; display:block; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escaparHtml(it.nome)}">
+              <strong style="font-size:0.92rem; font-weight:800; color:#0f172a; display:block; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escaparHtml(it.nome)}">
                 ${escaparHtml(it.nome)}
               </strong>
-              <div style="font-size:0.72rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;">
+              <div style="font-size:0.74rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:2px;">
                 ${escaparHtml(it.subtitulo || it.categoria || '')}
               </div>
             </div>
-
-            <!-- QR CODE MINI INTERATIVO -->
-            <div style="width:48px; height:48px; flex-shrink:0; cursor:pointer; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:2px; display:flex; align-items:center; justify-content:center; transition:transform 0.15s ease;" data-print-single-qr="${escaparHtml(it.id)}" title="Clique para imprimir etiqueta QR deste item">
-              ${qrSvgMini}
-            </div>
           </div>
 
-          <!-- BOTTOM ROW: PREÇO & BOTÕES DE AÇÃO RÁPIDA -->
-          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid #f1f5f9;">
-            <div>
-              <div style="font-size:1.1rem; font-weight:900; color:#F04E23; line-height:1;">
-                ${escaparHtml(it.preco)}
-              </div>
-              <div style="font-size:0.68rem; font-weight:700; color:#16a34a; margin-top:2px;">
-                À Vista PIX: ${escaparHtml(precoPix)}
-              </div>
-            </div>
-
-            <div style="display:flex; gap:6px;">
-              <button type="button" class="btn-cms-primary" style="padding:6px 10px; font-size:0.74rem; border-radius:8px;" data-open-spotlight="${escaparHtml(it.id)}" title="Ver detalhes completos e preços">
-                🔍 Consultar
-              </button>
-              <button type="button" class="btn-cms-secondary" style="padding:6px 8px; font-size:0.74rem; border-radius:8px;" data-print-single-qr="${escaparHtml(it.id)}" title="Imprimir etiqueta deste item">
-                🖨️
-              </button>
-              <button type="button" class="btn-cms-secondary" style="padding:6px 8px; font-size:0.74rem; border-radius:8px; color:#16a34a; border-color:#bbf7d0; background:#f0fdf4;" data-add-quote-direct="${escaparHtml(it.id)}" title="Adicionar ao Orçamento / WhatsApp">
-                🛒+
-              </button>
-            </div>
+          <!-- FOOTER HINT: CLIQUE PARA DETALHES -->
+          <div style="display:flex; align-items:center; justify-content:space-between; margin-top:2px; padding-top:6px; border-top:1px dashed #f1f5f9; font-size:0.72rem; color:#94a3b8; font-weight:600;">
+            <span>Toque para ver QR, Preço & Estoque</span>
+            <span style="color:#F04E23; font-weight:800;">Ver Detalhes →</span>
           </div>
         </div>
       `;
@@ -9190,36 +9251,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     grids.forEach(grid => {
       grid.innerHTML = htmlCards;
 
-      grid.querySelectorAll("[data-open-spotlight]").forEach((btn) => {
-        btn.addEventListener("click", () => {
-          const id = btn.dataset.openSpotlight;
+      grid.querySelectorAll(".sj-qr-item-card").forEach((cardEl) => {
+        cardEl.addEventListener("click", () => {
+          const id = cardEl.dataset.qrSelectId;
           const item = itens.find((it) => it.id === id);
           if (item) renderizarSpotlightPreco(item);
-        });
-      });
-
-      grid.querySelectorAll("[data-print-single-qr]").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.printSingleQr;
-          const item = itens.find((it) => it.id === id);
-          if (item) imprimirEtiquetaQrIndividual(item);
-        });
-      });
-
-      grid.querySelectorAll("[data-add-quote-direct]").forEach((btn) => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          const id = btn.dataset.addQuoteDirect;
-          const item = itens.find((it) => it.id === id);
-          if (!item) return;
-          adicionarAoCarrinho({
-            id: item.id,
-            nome: item.nome,
-            precoVista: item.preco,
-            imagem: item.imagem
-          }, 1, item.corNome || "Padrão", "À Vista");
-          mostrarToast(`🛒 <strong>${item.nome}</strong> adicionado ao carrinho!`, "success");
         });
       });
     });
