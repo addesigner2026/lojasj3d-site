@@ -11414,7 +11414,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     configurarEventosNovosModulosCms();
 
     // Inicialização do Painel Standalone (/admin ou admin.html)
-    const isStandaloneAdmin = window.location.pathname.includes("admin.html") || !!document.getElementById("admin-standalone-app");
+    const isStandaloneAdmin =
+      window.location.pathname.includes("admin") ||
+      !!document.getElementById("admin-standalone-app") ||
+      !!document.getElementById("admin-standalone-auth-gate");
     if (isStandaloneAdmin) {
       inicializarPainelAdminStandalone();
     }
@@ -12203,19 +12206,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     // Verifica se acessou via /admin, ?admin ou #admin para abrir Login & Senha ou Painel Admin
     function verificarRotaAdminOuHash() {
+      // Se já estiver no painel administrativo (/admin ou admin.html), NUNCA executa redirecionamento
+      if (document.getElementById("admin-standalone-app") || document.getElementById("admin-standalone-auth-gate")) {
+        return false;
+      }
+
       const path = (window.location.pathname || "").toLowerCase();
-      const search = (window.location.search || "").toLowerCase();
       const hash = (window.location.hash || "").toLowerCase();
 
-      const ehRotaAdmin =
-        path.endsWith("/admin") ||
-        path.endsWith("/admin/") ||
-        search.includes("admin") ||
-        hash === "#admin" ||
-        hash === "#login";
+      // Se a URL já contiver "admin", já está na página de gestão
+      if (path.includes("admin")) {
+        return false;
+      }
 
-      if (ehRotaAdmin) {
-        // Redireciona diretamente para a página exclusiva de gestão (/admin.html)
+      // Se estiver no site público (index.html) e acessar via hash #admin ou #login
+      const ehHashAdmin = hash === "#admin" || hash === "#login" || hash === "#painel";
+      if (ehHashAdmin) {
         window.location.href = "admin.html";
         return true;
       }
