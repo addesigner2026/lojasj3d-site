@@ -8730,8 +8730,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       buscaTexto = partes[3] || partes[2] || limpo;
     }
 
-    const input = document.getElementById("cms-price-lookup-input");
-    if (input) input.value = buscaTexto;
+    const inputs = document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input");
+    inputs.forEach((inp) => { inp.value = buscaTexto; });
 
     executarConsultaPreco(buscaTexto, true);
   }
@@ -8745,6 +8745,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     busca: "",
     itemSelecionado: null
   };
+
+  function normalizarTextoBusca(txt) {
+    return String(txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
 
   function obterListaTodosItensCatalogoParaConsulta() {
     const catalogo = (window.SITE_DATA && window.SITE_DATA.catalogo) || [];
@@ -8776,6 +8784,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             tipo: "cor",
             id: `${p.id}-${c.cod || cIdx}`,
             produtoId: p.id,
+            chavePaleta: chavePaleta,
+            subLinha: p.usaCoresDinamicas || "",
             nome: `${p.nome} — ${c.nome}`,
             subtitulo: `Linha ${p.nome} • Cor ${c.nome}`,
             categoria: "cores",
@@ -8809,6 +8819,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     const valorNum = item.precoValor || extrairNumeroDePrecoBR(item.preco);
     const precoPix = valorNum > 0 ? (valorNum * 0.95).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : item.preco;
+    const economiaPix = valorNum > 0 ? (valorNum * 0.05).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : "5% OFF";
     const st = item.estoqueStatus || "disponivel";
     const statusMap = {
       disponivel: { label: "🟢 EM ESTOQUE (PRONTA ENTREGA)", bg: "#166534" },
@@ -8816,6 +8827,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       esgotado: { label: "🔴 ESGOTADO (INDISPONÍVEL)", bg: "#b91c1c" }
     };
     const stBadge = statusMap[st] || statusMap.disponivel;
+    const qrSvgGrande = gerarQrSvgOuCanvas(item.qrPayload, 95);
 
     card.style.display = "block";
     card.innerHTML = `
@@ -8824,40 +8836,44 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           <span style="background:${stBadge.bg}; color:#fff; font-size:0.72rem; font-weight:800; padding:3px 10px; border-radius:999px;">
             ${stBadge.label}
           </span>
-          <span style="font-family:monospace; background:rgba(255,255,255,0.14); padding:3px 8px; border-radius:6px; font-size:0.75rem; font-weight:700;">
+          <span style="font-family:ui-monospace, monospace; background:rgba(255,255,255,0.18); padding:3px 8px; border-radius:6px; font-size:0.78rem; font-weight:800; letter-spacing:0.5px;">
             ${item.codigo ? String(item.codigo).toUpperCase() : item.id}
           </span>
+          ${item.corHex ? `<span style="display:inline-flex; align-items:center; gap:6px; background:rgba(255,255,255,0.1); padding:2px 8px; border-radius:999px; font-size:0.75rem; font-weight:700;"><span style="width:12px; height:12px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:1.5px solid #fff;"></span> ${escaparHtml(item.corNome || '')}</span>` : ''}
         </div>
-        <button type="button" id="btn-cms-close-spotlight" style="background:transparent; border:none; color:#a1a1aa; font-size:1.1rem; cursor:pointer;" title="Fechar consulta">&times;</button>
+        <button type="button" id="btn-cms-close-spotlight" style="background:rgba(255,255,255,0.1); border:none; color:#fff; width:28px; height:28px; border-radius:50%; font-size:1.2rem; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1;" title="Fechar consulta">&times;</button>
       </div>
 
       <div style="display:grid; grid-template-columns:auto 1fr auto; gap:18px; align-items:center;" class="spotlight-body-grid">
-        <div style="width:110px; height:110px; border-radius:12px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-          <img src="${item.imagem}" alt="${item.nome}" style="width:100%; height:100%; object-fit:contain; padding:4px;" />
+        <div style="width:110px; height:110px; border-radius:12px; overflow:hidden; background:#fff; display:flex; align-items:center; justify-content:center; flex-shrink:0; position:relative;">
+          <img src="${item.imagem}" alt="${escaparHtml(item.nome)}" style="width:100%; height:100%; object-fit:contain; padding:4px;" />
+          ${item.corHex ? `<span style="position:absolute; bottom:5px; right:5px; width:22px; height:22px; border-radius:50%; background:${escaparHtml(item.corHex)}; border:2px solid #fff; box-shadow:0 1px 4px rgba(0,0,0,0.3);"></span>` : ''}
         </div>
 
         <div>
-          <div style="font-size:0.78rem; color:#F04E23; font-weight:800; text-transform:uppercase;">${item.marca || "Loja SJ 3D"}</div>
-          <h3 style="margin:2px 0 4px; font-size:1.35rem; font-weight:900; color:#fff; line-height:1.2;">${item.nome}</h3>
-          <p style="margin:0 0 10px; font-size:0.84rem; color:#d4d4d8;">${item.subtitulo}</p>
+          <div style="font-size:0.78rem; color:#F04E23; font-weight:800; text-transform:uppercase; letter-spacing:0.5px;">${escaparHtml(item.marca || "Loja SJ 3D")}</div>
+          <h3 style="margin:2px 0 4px; font-size:1.3rem; font-weight:900; color:#fff; line-height:1.2;">${escaparHtml(item.nome)}</h3>
+          <p style="margin:0 0 10px; font-size:0.84rem; color:#d4d4d8;">${escaparHtml(item.subtitulo)}</p>
 
-          <div style="display:flex; align-items:baseline; gap:12px; flex-wrap:wrap;">
-            <div style="font-size:1.75rem; font-weight:900; color:#fff;">${item.preco || "R$ 0,00"}</div>
-            <div style="font-size:0.95rem; font-weight:800; color:#4ade80;">À Vista no PIX: ${precoPix} (5% OFF)</div>
+          <div style="display:flex; align-items:baseline; gap:14px; flex-wrap:wrap;">
+            <div style="font-size:1.75rem; font-weight:900; color:#fff;">${escaparHtml(item.preco || "R$ 0,00")}</div>
+            <div style="font-size:0.95rem; font-weight:800; color:#4ade80;">À Vista no PIX: ${precoPix} (Economia de ${economiaPix})</div>
           </div>
-          ${item.precoParcelado ? `<div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">${item.precoParcelado}</div>` : ""}
+          ${item.precoParcelado ? `<div style="font-size:0.8rem; color:#a1a1aa; margin-top:3px;">${escaparHtml(item.precoParcelado)}</div>` : ""}
         </div>
 
-        <div style="display:flex; flex-direction:column; gap:8px; align-items:flex-end;">
-          <button type="button" class="btn-cms-primary" id="btn-spotlight-print-qr" style="width:100%; justify-content:center;">
-            🖨️ Imprimir Etiqueta QR
-          </button>
-          <button type="button" class="btn-cms-secondary" id="btn-spotlight-add-cart" style="width:100%; background:rgba(255,255,255,0.1); color:#fff; border-color:rgba(255,255,255,0.22); justify-content:center;">
-            🛒 + Adicionar ao Orçamento
-          </button>
-          <button type="button" class="btn-cms-secondary" id="btn-spotlight-edit-prod" style="width:100%; background:transparent; color:#d4d4d8; border-color:rgba(255,255,255,0.18); font-size:0.76rem; justify-content:center;">
-            ✏️ Editar Produto no Catálogo
-          </button>
+        <div style="display:flex; flex-direction:column; gap:8px; align-items:center;">
+          <div style="background:#fff; border-radius:10px; padding:6px; cursor:pointer;" id="spotlight-qr-click" title="Clique para imprimir etiqueta">
+            ${qrSvgGrande}
+          </div>
+          <div style="display:flex; gap:6px; width:100%;">
+            <button type="button" class="btn-cms-primary" id="btn-spotlight-print-qr" style="flex:1; justify-content:center; font-size:0.78rem; padding:8px 12px;">
+              🖨️ Etiqueta
+            </button>
+            <button type="button" class="btn-cms-secondary" id="btn-spotlight-add-cart" style="flex:1; background:rgba(255,255,255,0.12); color:#4ade80; border-color:rgba(74,222,128,0.4); justify-content:center; font-size:0.78rem; padding:8px 12px;">
+              🛒+ Pedido
+            </button>
+          </div>
         </div>
       </div>
     `;
@@ -8867,6 +8883,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
 
     card.querySelector("#btn-spotlight-print-qr")?.addEventListener("click", () => {
+      imprimirEtiquetaQrIndividual(item);
+    });
+
+    card.querySelector("#spotlight-qr-click")?.addEventListener("click", () => {
       imprimirEtiquetaQrIndividual(item);
     });
 
@@ -8881,14 +8901,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       mostrarToast(`🛒 <strong>${item.nome}</strong> adicionado ao carrinho de vendas!`, "success");
     });
 
-    card.querySelector("#btn-spotlight-edit-prod")?.addEventListener("click", () => {
-      selecionarAbaCms("produtos");
-      abrirEditorProdutoCms(item.produtoId);
-    });
+    // Rola suavemente até o spotlight
+    try {
+      card.scrollIntoView({ behavior: "smooth", block: "nearest" });
+    } catch (_) {}
   }
 
   function executarConsultaPreco(termoBusca, abrirSpotlightAutomatico = false) {
-    const q = (termoBusca || "").toLowerCase().trim();
+    const q = normalizarTextoBusca(termoBusca);
     const todosItens = obterListaTodosItensCatalogoParaConsulta();
 
     if (!q) {
@@ -8896,16 +8916,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       return;
     }
 
-    // Procura exato por código (ex: 149 ou CÓD. 149 ou SJ3D:PROD:...)
+    // Procura exato por código (ex: 137, 34, 149 ou CÓD. 149 ou SJ3D:PROD:...)
     const itemExato = todosItens.find((it) => {
-      const codLimpo = (it.codNumero || "").toLowerCase();
-      const codCompleto = (it.codigo || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+      const codLimpo = normalizarTextoBusca(it.codNumero || "");
+      const codCompleto = normalizarTextoBusca(it.codigo || "").replace(/[^a-z0-9]/g, "");
       const qLimpo = q.replace(/[^a-z0-9]/g, "");
       return (
         codLimpo === q ||
         codCompleto === qLimpo ||
-        (it.qrPayload && it.qrPayload.toLowerCase() === q) ||
-        (it.id && it.id.toLowerCase() === q)
+        (it.qrPayload && normalizarTextoBusca(it.qrPayload) === q) ||
+        (it.id && normalizarTextoBusca(it.id) === q)
       );
     });
 
@@ -8913,85 +8933,259 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       renderizarSpotlightPreco(itemExato);
     }
 
-    renderizarGradeConsultaQr(q);
+    renderizarGradeConsultaQr(termoBusca);
   }
 
   function renderizarGradeConsultaQr(filtroTermo = "") {
-    const grid = document.getElementById("cms-price-lookup-grid");
-    if (!grid) return;
+    const grids = document.querySelectorAll("#cms-qr-lookup-grid, #cms-price-lookup-grid");
+    if (grids.length === 0) return;
 
     const itens = obterListaTodosItensCatalogoParaConsulta();
-    const cat = consultaQrState.categoria;
-    const termo = (filtroTermo || consultaQrState.busca || "").toLowerCase().trim();
+    const cat = consultaQrState.categoria || "todos";
+    const termoRaw = (filtroTermo !== undefined ? filtroTermo : consultaQrState.busca) || "";
+    const termoNorm = normalizarTextoBusca(termoRaw);
+    const termos = termoNorm.split(/\s+/).filter(Boolean);
+
+    // Contadores para os botões de categoria
+    const countTodos = itens.length;
+    const countCores = itens.filter(i => i.tipo === "cor").length;
+    const countBambu = itens.filter(i => (i.subLinha === "bambu" || (i.marca || "").toLowerCase().includes("bambu"))).length;
+    const countMax = itens.filter(i => i.subLinha === "maxprint").length;
+    const countSilk = itens.filter(i => i.subLinha === "plasilk").length;
+    const countPetg = itens.filter(i => i.subLinha === "petg").length;
+    const countTpu = itens.filter(i => i.subLinha === "tpu").length;
+    const countAbs = itens.filter(i => i.subLinha === "absespeciais").length;
+    const countImp = itens.filter(i => i.categoria === "impressoras").length;
+    const countPecas = itens.filter(i => i.categoria === "pecas").length;
+    const countManut = itens.filter(i => i.categoria === "manutencao").length;
+
+    document.querySelectorAll("#qr-count-todos").forEach(el => { el.textContent = String(countTodos); });
+    document.querySelectorAll("#qr-count-cores").forEach(el => { el.textContent = String(countCores); });
+    document.querySelectorAll("#qr-count-bambu").forEach(el => { el.textContent = String(countBambu); });
+    document.querySelectorAll("#qr-count-maxprint").forEach(el => { el.textContent = String(countMax); });
+    document.querySelectorAll("#qr-count-plasilk").forEach(el => { el.textContent = String(countSilk); });
+    document.querySelectorAll("#qr-count-petg").forEach(el => { el.textContent = String(countPetg); });
+    document.querySelectorAll("#qr-count-tpu").forEach(el => { el.textContent = String(countTpu); });
+    document.querySelectorAll("#qr-count-absespeciais").forEach(el => { el.textContent = String(countAbs); });
+    document.querySelectorAll("#qr-count-impressoras").forEach(el => { el.textContent = String(countImp); });
+    document.querySelectorAll("#qr-count-pecas").forEach(el => { el.textContent = String(countPecas); });
+    document.querySelectorAll("#qr-count-manutencao").forEach(el => { el.textContent = String(countManut); });
 
     const filtrados = itens.filter((it) => {
+      // 1. Filtro por Categoria / Linha
       if (cat !== "todos") {
         if (cat === "cores" && it.tipo !== "cor") return false;
-        if (cat !== "cores" && it.categoria !== cat) return false;
+        if (cat === "bambu") {
+          const m = (it.marca || "").toLowerCase();
+          const n = (it.nome || "").toLowerCase();
+          const sl = (it.subLinha || "").toLowerCase();
+          if (!m.includes("bambu") && !n.includes("bambu") && sl !== "bambu") return false;
+        } else if (cat === "maxprint") {
+          const sl = (it.subLinha || "").toLowerCase();
+          const pid = (it.produtoId || it.id || "").toLowerCase();
+          if (sl !== "maxprint" && !pid.includes("maxprint")) return false;
+        } else if (cat === "plasilk") {
+          const sl = (it.subLinha || "").toLowerCase();
+          const pid = (it.produtoId || it.id || "").toLowerCase();
+          if (sl !== "plasilk" && !pid.includes("silk")) return false;
+        } else if (cat === "petg") {
+          const sl = (it.subLinha || "").toLowerCase();
+          const pid = (it.produtoId || it.id || "").toLowerCase();
+          if (sl !== "petg" && !pid.includes("petg")) return false;
+        } else if (cat === "tpu") {
+          const sl = (it.subLinha || "").toLowerCase();
+          const pid = (it.produtoId || it.id || "").toLowerCase();
+          if (sl !== "tpu" && !pid.includes("tpu")) return false;
+        } else if (cat === "absespeciais") {
+          const sl = (it.subLinha || "").toLowerCase();
+          const pid = (it.produtoId || it.id || "").toLowerCase();
+          if (sl !== "absespeciais" && !pid.includes("abs")) return false;
+        } else if (cat === "impressoras" && it.categoria !== "impressoras") {
+          return false;
+        } else if (cat === "pecas" && it.categoria !== "pecas") {
+          return false;
+        } else if (cat === "manutencao" && it.categoria !== "manutencao") {
+          return false;
+        } else if (cat === "filamentos" && it.categoria !== "filamentos" && it.tipo !== "cor") {
+          return false;
+        }
       }
-      if (termo) {
-        const texto = `${it.nome} ${it.subtitulo} ${it.codigo || ""} ${it.codNumero || ""} ${it.marca || ""} ${it.id}`.toLowerCase();
-        return texto.includes(termo);
+
+      // 2. Busca ultrarrápida multitermo
+      if (termos.length > 0) {
+        const textoBusca = normalizarTextoBusca(
+          `${it.nome} ${it.subtitulo || ""} ${it.corNome || ""} ${it.codigo || ""} ${it.codNumero || ""} ${it.marca || ""} ${it.categoria || ""} ${it.id}`
+        );
+        const match = termos.every((t) => textoBusca.includes(t));
+        if (!match) return false;
       }
+
       return true;
     });
 
+    // Atualiza barra de resultados e botão de limpar
+    const counterEls = document.querySelectorAll("#cms-qr-results-counter");
+    const msg = termoRaw
+      ? `Exibindo <strong>${filtrados.length}</strong> itens encontrados para "<strong>${escaparHtml(termoRaw)}</strong>"`
+      : `Exibindo <strong>${filtrados.length}</strong> itens disponíveis para consulta imediata`;
+    counterEls.forEach(el => { el.innerHTML = msg; });
+
+    const clearBtns = document.querySelectorAll("#btn-cms-qr-search-clear");
+    clearBtns.forEach(btn => {
+      btn.style.display = termoRaw ? "block" : "none";
+    });
+
     if (filtrados.length === 0) {
-      grid.innerHTML = `<div style="grid-column:1/-1; padding:30px; text-align:center; color:#71717a; background:#fff; border-radius:12px; border:1px solid #e4e4e7;">Nenhum item encontrado com o código ou nome pesquisado.</div>`;
+      grids.forEach(grid => {
+        grid.innerHTML = `
+          <div style="grid-column:1/-1; padding:44px 20px; text-align:center; background:#ffffff; border-radius:14px; border:1.5px dashed #cbd5e1;">
+            <div style="font-size:2.2rem; margin-bottom:8px;">🔍</div>
+            <strong style="font-size:1rem; color:#0f172a; display:block;">Nenhum item ou filamento encontrado para "${escaparHtml(termoRaw)}".</strong>
+            <p style="font-size:0.82rem; color:#64748b; margin:6px 0 16px;">Tente pesquisar por código numérico (ex: 137, 34), nome da cor (ex: Preto, Azul) ou clique nos atalhos coloridos acima.</p>
+            <button type="button" class="btn-cms-secondary" id="btn-cms-qr-reset-search" style="font-size:0.82rem; padding:8px 16px; border-radius:8px; margin:0 auto; cursor:pointer;">
+              🔄 Limpar Busca e Ver Todos os Itens
+            </button>
+          </div>
+        `;
+      });
+
+      document.querySelectorAll("#btn-cms-qr-reset-search").forEach(btn => {
+        btn.addEventListener("click", () => {
+          consultaQrState.busca = "";
+          consultaQrState.categoria = "todos";
+          document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach(i => { i.value = ""; });
+          document.querySelectorAll("[data-cms-qr-cat], [data-qr-cat]").forEach(b => {
+            b.classList.toggle("active", (b.dataset.cmsQrCat || b.dataset.qrCat) === "todos");
+          });
+          document.querySelectorAll("[data-qr-color]").forEach(c => c.classList.remove("active"));
+          renderizarGradeConsultaQr();
+        });
+      });
       return;
     }
 
-    grid.innerHTML = filtrados.slice(0, 80).map((it) => {
+    const htmlCards = filtrados.slice(0, 100).map((it) => {
       const st = it.estoqueStatus || "disponivel";
-      const corSt = st === "esgotado" ? "#dc2626" : (st === "poucas_unidades" ? "#d97706" : "#16a34a");
-      const qrSvgMini = gerarQrSvgOuCanvas(it.qrPayload, 60);
+      const statusMap = {
+        disponivel: { label: "Em Estoque", cor: "#16a34a", bg: "#f0fdf4", border: "#bbf7d0" },
+        poucas_unidades: { label: "Poucas Unid.", cor: "#d97706", bg: "#fffbeb", border: "#fde68a" },
+        esgotado: { label: "Esgotado", cor: "#dc2626", bg: "#fef2f2", border: "#fecaca" }
+      };
+      const stInfo = statusMap[st] || statusMap.disponivel;
+      const qrSvgMini = gerarQrSvgOuCanvas(it.qrPayload, 48);
+
+      const valorNum = it.precoValor || extrairNumeroDePrecoBR(it.preco);
+      const precoPix = valorNum > 0 ? (valorNum * 0.95).toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : it.preco;
+
+      const isCor = it.tipo === "cor";
+      const brandClass = (it.marca || "").toLowerCase().includes("bambu")
+        ? "brand-bambu"
+        : (it.marca || "").toLowerCase().includes("max") || (it.marca || "").toLowerCase().includes("master")
+        ? "brand-maxprint"
+        : "brand-sj";
 
       return `
-        <div class="sj-qr-item-card" data-qr-select-id="${it.id}">
-          <div style="display:flex; gap:10px; align-items:center;">
-            <div style="width:58px; height:58px; border-radius:8px; overflow:hidden; background:#f4f4f5; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <img src="${it.imagem}" alt="${it.nome}" style="width:100%; height:100%; object-fit:contain;" />
+        <div class="sj-qr-item-card" data-qr-select-id="${escaparHtml(it.id)}">
+          <!-- TOP ROW: MARCA + STATUS ESTOQUE -->
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:6px; margin-bottom:8px;">
+            <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(it.marca || 'Loja SJ 3D')}</span>
+            <span style="font-size:0.7rem; font-weight:700; color:${stInfo.cor}; background:${stInfo.bg}; border:1px solid ${stInfo.border}; padding:2px 7px; border-radius:999px; display:inline-flex; align-items:center; gap:4px;">
+              <span style="width:6px; height:6px; border-radius:50%; background:${stInfo.cor};"></span>
+              ${stInfo.label}
+            </span>
+          </div>
+
+          <!-- MIDDLE ROW: IMAGEM/SWATCH + CÓDIGO + TÍTULO -->
+          <div style="display:flex; gap:12px; align-items:center;">
+            <div style="position:relative; width:58px; height:58px; border-radius:10px; overflow:hidden; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
+              <img src="${escaparHtml(it.imagem)}" alt="${escaparHtml(it.nome)}" style="width:100%; height:100%; object-fit:contain; padding:2px;" loading="lazy" />
+              ${isCor && it.corHex ? `
+                <span style="position:absolute; bottom:3px; right:3px; width:18px; height:18px; border-radius:50%; background:${escaparHtml(it.corHex)}; border:2px solid #ffffff; box-shadow:0 1px 4px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(it.corNome || '')}"></span>
+              ` : ''}
             </div>
+
             <div style="flex:1; min-width:0;">
-              <div style="display:flex; align-items:center; gap:6px; margin-bottom:2px;">
-                <span style="font-family:monospace; font-size:0.72rem; font-weight:800; background:#f4f4f5; padding:2px 6px; border-radius:4px; color:#18181b;">
-                  ${it.codigo ? String(it.codigo).toUpperCase() : it.id}
+              <div style="display:flex; align-items:center; gap:6px; margin-bottom:3px;">
+                <span style="font-family:ui-monospace, monospace; font-size:0.72rem; font-weight:800; background:#0f172a; color:#ffffff; padding:2px 7px; border-radius:5px; letter-spacing:0.3px;">
+                  ${escaparHtml(it.codigo ? String(it.codigo).toUpperCase() : it.id)}
                 </span>
-                <span style="width:7px; height:7px; border-radius:50%; background:${corSt}; display:inline-block;" title="Status de estoque"></span>
+                ${isCor && it.corNome ? `<span style="font-size:0.74rem; font-weight:700; color:#475569; background:#f1f5f9; padding:2px 6px; border-radius:4px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:110px;">${escaparHtml(it.corNome)}</span>` : ''}
               </div>
-              <strong style="font-size:0.86rem; color:#18181b; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${it.nome}</strong>
-              <div style="font-size:1.05rem; font-weight:900; color:#F04E23; margin-top:2px;">${it.preco}</div>
+              <strong style="font-size:0.88rem; font-weight:800; color:#0f172a; display:block; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;" title="${escaparHtml(it.nome)}">
+                ${escaparHtml(it.nome)}
+              </strong>
+              <div style="font-size:0.72rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; margin-top:1px;">
+                ${escaparHtml(it.subtitulo || it.categoria || '')}
+              </div>
             </div>
-            <div style="width:48px; height:48px; flex-shrink:0; cursor:pointer;" data-print-single-qr="${it.id}" title="Clique para imprimir etiqueta deste item">
+
+            <!-- QR CODE MINI INTERATIVO -->
+            <div style="width:48px; height:48px; flex-shrink:0; cursor:pointer; background:#ffffff; border:1px solid #e2e8f0; border-radius:8px; padding:2px; display:flex; align-items:center; justify-content:center; transition:transform 0.15s ease;" data-print-single-qr="${escaparHtml(it.id)}" title="Clique para imprimir etiqueta QR deste item">
               ${qrSvgMini}
             </div>
           </div>
-          <div style="display:flex; gap:6px; margin-top:4px;">
-            <button type="button" class="btn-cms-primary" style="flex:1; padding:6px 10px; font-size:0.74rem;" data-open-spotlight="${it.id}">
-              🔍 Consultar Preço
-            </button>
-            <button type="button" class="btn-cms-secondary" style="padding:6px 10px; font-size:0.74rem;" data-print-single-qr="${it.id}" title="Imprimir etiqueta">
-              🖨️ Etiqueta
-            </button>
+
+          <!-- BOTTOM ROW: PREÇO & BOTÕES DE AÇÃO RÁPIDA -->
+          <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-top:8px; padding-top:8px; border-top:1px solid #f1f5f9;">
+            <div>
+              <div style="font-size:1.1rem; font-weight:900; color:#F04E23; line-height:1;">
+                ${escaparHtml(it.preco)}
+              </div>
+              <div style="font-size:0.68rem; font-weight:700; color:#16a34a; margin-top:2px;">
+                À Vista PIX: ${escaparHtml(precoPix)}
+              </div>
+            </div>
+
+            <div style="display:flex; gap:6px;">
+              <button type="button" class="btn-cms-primary" style="padding:6px 10px; font-size:0.74rem; border-radius:8px;" data-open-spotlight="${escaparHtml(it.id)}" title="Ver detalhes completos e preços">
+                🔍 Consultar
+              </button>
+              <button type="button" class="btn-cms-secondary" style="padding:6px 8px; font-size:0.74rem; border-radius:8px;" data-print-single-qr="${escaparHtml(it.id)}" title="Imprimir etiqueta deste item">
+                🖨️
+              </button>
+              <button type="button" class="btn-cms-secondary" style="padding:6px 8px; font-size:0.74rem; border-radius:8px; color:#16a34a; border-color:#bbf7d0; background:#f0fdf4;" data-add-quote-direct="${escaparHtml(it.id)}" title="Adicionar ao Orçamento / WhatsApp">
+                🛒+
+              </button>
+            </div>
           </div>
         </div>
       `;
     }).join("");
 
-    grid.querySelectorAll("[data-open-spotlight]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const id = btn.dataset.openSpotlight;
-        const item = itens.find((it) => it.id === id);
-        if (item) renderizarSpotlightPreco(item);
-      });
-    });
+    grids.forEach(grid => {
+      grid.innerHTML = htmlCards;
 
-    grid.querySelectorAll("[data-print-single-qr]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        const id = btn.dataset.printSingleQr;
-        const item = itens.find((it) => it.id === id);
-        if (item) imprimirEtiquetaQrIndividual(item);
+      grid.querySelectorAll("[data-open-spotlight]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.openSpotlight;
+          const item = itens.find((it) => it.id === id);
+          if (item) renderizarSpotlightPreco(item);
+        });
+      });
+
+      grid.querySelectorAll("[data-print-single-qr]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.printSingleQr;
+          const item = itens.find((it) => it.id === id);
+          if (item) imprimirEtiquetaQrIndividual(item);
+        });
+      });
+
+      grid.querySelectorAll("[data-add-quote-direct]").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const id = btn.dataset.addQuoteDirect;
+          const item = itens.find((it) => it.id === id);
+          if (!item) return;
+          adicionarAoCarrinho({
+            id: item.id,
+            nome: item.nome,
+            precoVista: item.preco,
+            imagem: item.imagem
+          }, 1, item.corNome || "Padrão", "À Vista");
+          mostrarToast(`🛒 <strong>${item.nome}</strong> adicionado ao carrinho!`, "success");
+        });
       });
     });
   }
@@ -9290,23 +9484,78 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       iniciarCameraLeitorQr();
     });
 
-    document.getElementById("btn-cms-print-batch-qr")?.addEventListener("click", () => {
-      const itens = obterListaTodosItensCatalogoParaConsulta();
-      imprimirCartelaQrCodes(itens);
+    document.querySelectorAll("#btn-cms-print-batch-qr, #btn-cms-print-all-qr").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const itens = obterListaTodosItensCatalogoParaConsulta();
+        imprimirCartelaQrCodes(itens);
+      });
     });
 
-    document.getElementById("cms-price-lookup-input")?.addEventListener("input", (e) => {
-      consultaQrState.busca = e.target.value || "";
-      executarConsultaPreco(consultaQrState.busca, false);
+    // Inputs de busca ultrarrápida (suporte tanto no admin.html quanto no index.html)
+    document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
+      inp.addEventListener("input", (e) => {
+        const val = e.target.value || "";
+        consultaQrState.busca = val;
+        // Sincroniza ambos os inputs se existirem
+        document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((other) => {
+          if (other !== inp) other.value = val;
+        });
+        // Sincroniza estado ativo dos chips de cor
+        document.querySelectorAll("[data-qr-color]").forEach((c) => {
+          c.classList.toggle("active", c.dataset.qrColor.toLowerCase() === val.trim().toLowerCase());
+        });
+        executarConsultaPreco(val, false);
+      });
     });
 
-    document.querySelectorAll("[data-qr-cat]").forEach((pill) => {
+    // Botão de Limpar Busca Instantânea
+    document.querySelectorAll("#btn-cms-qr-search-clear").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        consultaQrState.busca = "";
+        document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
+          inp.value = "";
+          inp.focus();
+        });
+        document.querySelectorAll("[data-qr-color]").forEach((c) => c.classList.remove("active"));
+        renderizarGradeConsultaQr("");
+      });
+    });
+
+    // Pills de Categoria (suporte a data-cms-qr-cat e data-qr-cat)
+    document.querySelectorAll("[data-cms-qr-cat], [data-qr-cat]").forEach((pill) => {
       pill.addEventListener("click", () => {
-        consultaQrState.categoria = pill.dataset.qrCat;
-        document.querySelectorAll("[data-qr-cat]").forEach((b) => {
-          b.classList.toggle("active", b === pill);
+        const cat = pill.dataset.cmsQrCat || pill.dataset.qrCat || "todos";
+        consultaQrState.categoria = cat;
+        document.querySelectorAll("[data-cms-qr-cat], [data-qr-cat]").forEach((b) => {
+          const bCat = b.dataset.cmsQrCat || b.dataset.qrCat;
+          b.classList.toggle("active", bCat === cat);
         });
         renderizarGradeConsultaQr();
+      });
+    });
+
+    // Atalhos Rápidos por Cor (ao clicar já aparecem os filamentos!)
+    document.querySelectorAll("[data-qr-color]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const cor = chip.dataset.qrColor || "";
+        const jaAtivo = chip.classList.contains("active");
+
+        if (jaAtivo) {
+          chip.classList.remove("active");
+          consultaQrState.busca = "";
+          document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
+            inp.value = "";
+          });
+          renderizarGradeConsultaQr("");
+        } else {
+          document.querySelectorAll("[data-qr-color]").forEach((c) => c.classList.remove("active"));
+          chip.classList.add("active");
+          consultaQrState.busca = cor;
+          document.querySelectorAll("#cms-qr-search-input, #cms-price-lookup-input").forEach((inp) => {
+            inp.value = cor;
+          });
+          renderizarGradeConsultaQr(cor);
+        }
       });
     });
 
@@ -10118,8 +10367,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           return false;
         }
         if (termo) {
-          const texto = `${item.nome || ""} ${item.modeloNome || ""} ${item.corNome || ""} ${item.codigo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
-          if (!texto.includes(termo)) return false;
+          const texto = normalizarTextoBusca(`${item.nome || ""} ${item.modeloNome || ""} ${item.corNome || ""} ${item.codigo || ""} ${item.marca || ""} ${item.id || ""}`);
+          const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
+          const casou = termos.every((t) => texto.includes(t));
+          if (!casou) return false;
         }
         return true;
       });
@@ -10201,8 +10452,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           return false;
         }
         if (termo) {
-          const texto = `${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""}`.toLowerCase();
-          if (!texto.includes(termo)) return false;
+          const chavePaleta = item.tipoFilamento ? mapearChavePaletaSiteData(item.usaCoresDinamicas) : null;
+          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+          const coresTexto = paletaCores ? paletaCores.map((c) => `${c.nome || ''} ${c.cod || ''}`).join(" ") : "";
+          const texto = normalizarTextoBusca(`${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""} ${coresTexto}`);
+          const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
+          const casou = termos.every((t) => texto.includes(t));
+          if (!casou) return false;
         }
         return true;
       });

@@ -6723,6 +6723,102 @@ body.admin-standalone-body {
   letter-spacing: 0.3px;
 }
 
+/* ==========================================================================
+   TERMINAL DE CONSULTA DE PREÇO, ESTOQUE & QR CODE (LIGHT CLEAN SAAS)
+   ========================================================================== */
+.sj-qr-lookup-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(290px, 1fr));
+  gap: 14px;
+}
+
+.sj-qr-item-card {
+  position: relative;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 14px;
+  background: #ffffff;
+  padding: 14px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 8px;
+  transition: all 0.18s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+}
+
+.sj-qr-item-card:hover {
+  transform: translateY(-2px);
+  border-color: #F04E23;
+  box-shadow: 0 8px 24px rgba(240, 78, 35, 0.08), 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.cms-color-quick-chip {
+  transition: all 0.15s ease;
+  user-select: none;
+}
+.cms-color-quick-chip:hover {
+  border-color: #F04E23 !important;
+  background: #fff7ed !important;
+  color: #c2410c !important;
+  transform: translateY(-1px);
+}
+.cms-color-quick-chip.active {
+  border-color: #F04E23 !important;
+  background: #F04E23 !important;
+  color: #ffffff !important;
+}
+.cms-color-quick-chip.active span {
+  border-color: #ffffff !important;
+}
+
+.sj-qr-camera-wrap {
+  background: #0f172a;
+  border-radius: 14px;
+  padding: 16px;
+  margin-bottom: 16px;
+  border: 1.5px solid #1e293b;
+}
+
+.sj-qr-video-box {
+  position: relative;
+  width: 100%;
+  max-width: 480px;
+  margin: 0 auto;
+  aspect-ratio: 4 / 3;
+  background: #000000;
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.sj-qr-video-box video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.sj-qr-scan-frame {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 220px;
+  height: 220px;
+  border: 2px dashed #F04E23;
+  border-radius: 16px;
+  box-shadow: 0 0 0 9999px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+}
+
+.sj-qr-spotlight-card {
+  background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+  color: #ffffff;
+  border-radius: 16px;
+  padding: 20px;
+  margin-bottom: 16px;
+  border: 1.5px solid rgba(240, 78, 35, 0.4);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+}
+
 /* Formulário de Edição de Produto e Banner */
 .cms-editor-top-bar {
   display: flex;

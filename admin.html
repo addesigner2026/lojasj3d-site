@@ -11,7 +11,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261110_07" />
+  <link rel="stylesheet" href="css/styles.css?v=20261110_09" />
 </head>
 
 <body class="admin-standalone-body">
@@ -413,37 +413,109 @@
 
         <!-- ABA 2: CONSULTA DE PREÇO & QR CODE -->
         <div class="admin-cms-pane" id="cms-pane-consulta-qr" style="display: none;">
+          <!-- Barra de Ação Rápida do Vendedor (Leitor Câmera + Impressão de Etiquetas) -->
           <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:15px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px;">
             <div>
               <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:5px;">📱 TERMINAL DE CONSULTA &amp; QR CODE</span>
               <h4 style="margin:0; font-size:1.08rem; font-weight:900; color:#fff;">Consulta Rápida de Preço, Estoque &amp; Etiquetas</h4>
-              <p style="margin:3px 0 0; font-size:0.8rem; color:#d4d4d8;">Aponte a câmera para o QR Code da caixa ou digite o código/nome abaixo.</p>
+              <p style="margin:3px 0 0; font-size:0.8rem; color:#d4d4d8;">Aponte a câmera para o QR Code da caixa ou digite o código/nome da cor abaixo.</p>
             </div>
             <div style="display:flex; gap:10px; flex-wrap:wrap;">
               <button type="button" id="btn-cms-start-qr-camera" style="padding:11px 18px; border-radius:11px; border:none; background:#F04E23; color:#fff; font-size:0.86rem; font-weight:900; cursor:pointer; display:inline-flex; align-items:center; gap:8px; box-shadow:0 8px 20px rgba(240,78,35,0.35);">
                 <span>📷 Ler QR Code com a Câmera</span>
               </button>
-              <button type="button" id="btn-cms-print-all-qr" style="padding:11px 16px; border-radius:11px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.1); color:#fff; font-size:0.84rem; font-weight:800; cursor:pointer;">
-                🖨️ Imprimir Todas as Etiquetas
+              <button type="button" id="btn-cms-print-all-qr" style="padding:11px 16px; border-radius:11px; border:1px solid rgba(255,255,255,0.22); background:rgba(255,255,255,0.1); color:#fff; font-size:0.84rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:7px;">
+                <span>🖨️ Imprimir Todas as Etiquetas</span>
               </button>
             </div>
           </div>
 
-          <div id="cms-price-lookup-spotlight" style="display:none;"></div>
-
-          <div class="cms-toolbar-row" style="background:#fff; padding:14px 16px; border-radius:12px; border:1px solid #e4e4e7; margin-bottom:16px;">
-            <div class="cms-cat-pills" id="cms-qr-cat-pills">
-              <button type="button" class="cms-cat-pill active" data-cms-qr-cat="todos">Todos</button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="cores">🎨 Cores de Filamento</button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="impressoras">🖨️ Impressoras 3D</button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="pecas">⚙️ Peças &amp; Acessórios</button>
-              <button type="button" class="cms-cat-pill" data-cms-qr-cat="manutencao">🔧 Manutenção</button>
+          <!-- CÂMERA AO VIVO PARA LEITURA DO QR CODE NO CELULAR / TABLET / WEBCAM -->
+          <div id="cms-qr-camera-box" class="sj-qr-camera-wrap" style="display: none;">
+            <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
+              <div style="text-align:left;">
+                <strong style="font-size:0.95rem; color:#fff;">📷 Leitor de QR Code Ativo</strong>
+                <div id="cms-qr-camera-status" style="font-size:0.78rem; color:#a1a1aa;">Aponte a câmera para a etiqueta QR Code do produto ou filamento...</div>
+              </div>
+              <div style="display:flex; gap:8px;">
+                <button type="button" id="btn-cms-switch-camera" style="padding:7px 12px; border-radius:8px; border:1px solid rgba(255,255,255,0.25); background:rgba(255,255,255,0.1); color:#fff; font-size:0.76rem; font-weight:700; cursor:pointer;">
+                  🔄 Trocar Câmera
+                </button>
+                <button type="button" id="btn-cms-stop-qr-camera" style="padding:7px 12px; border-radius:8px; border:1px solid #f87171; background:rgba(239,68,68,0.2); color:#fca5a5; font-size:0.76rem; font-weight:800; cursor:pointer;">
+                  ✕ Fechar Câmera
+                </button>
+              </div>
             </div>
-            <div class="cms-toolbar-right">
-              <input type="text" id="cms-qr-search-input" class="cms-search-input" placeholder="🔍 Digite código (ex: 137) ou nome da cor..." style="min-width:320px;" />
+
+            <div class="sj-qr-video-box">
+              <video id="cms-qr-video" playsinline muted></video>
+              <div class="sj-qr-scan-frame"></div>
+              <canvas id="cms-qr-canvas" style="display:none;"></canvas>
+            </div>
+            <div style="font-size:0.76rem; color:#d4d4d8; margin-top:6px;">
+              💡 Assim que o QR Code entrar no quadro tracejado, o preço e o estoque aparecerão automaticamente!
             </div>
           </div>
 
+          <!-- SPOTLIGHT DE PREÇO EM DESTAQUE (RESULTADO DA LEITURA OU SELEÇÃO) -->
+          <div id="cms-price-lookup-spotlight" class="sj-qr-spotlight-card" style="display:none;"></div>
+
+          <!-- BARRA DE BUSCA ULTRARRÁPIDA & FILTROS DE CONSULTA -->
+          <div class="cms-toolbar-row" style="background:#fff; padding:16px 18px; border-radius:14px; border:1.5px solid #e2e8f0; margin-bottom:16px; display:flex; flex-direction:column; gap:12px;">
+            <!-- LINHA 1: CAMPO DE BUSCA COM BOTÃO DE LIMPAR E PREÇO NA ETIQUETA -->
+            <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap; width:100%;">
+              <div style="position:relative; flex:1; min-width:280px;">
+                <span style="position:absolute; left:14px; top:50%; transform:translateY(-50%); font-size:1.1rem; pointer-events:none; color:#94a3b8;">🔍</span>
+                <input type="text" id="cms-qr-search-input" class="cms-search-input" placeholder="Buscar filamento por cor (ex: Preto, Silk Dourado), código (ex: 137, 34), tipo (PLA, PETG) ou impressora..." style="width:100%; padding-left:42px; padding-right:40px; height:46px; font-size:0.92rem; border-radius:10px; border:1.5px solid #cbd5e1; background:#f8fafc; transition:all 0.15s ease;" />
+                <button type="button" id="btn-cms-qr-search-clear" style="position:absolute; right:10px; top:50%; transform:translateY(-50%); background:none; border:none; color:#94a3b8; font-size:1.15rem; cursor:pointer; padding:4px 8px; display:none; line-height:1;" title="Limpar busca">&times;</button>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px;">
+                <label style="display:inline-flex; align-items:center; gap:6px; font-size:0.78rem; font-weight:700; color:#475569; cursor:pointer; background:#f1f5f9; padding:10px 14px; border-radius:10px; border:1px solid #e2e8f0; white-space:nowrap;">
+                  <input type="checkbox" id="chk-cms-qr-print-price" checked />
+                  <span>Preço na Etiqueta</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- LINHA 2: CATEGORIAS & LINHAS DE FILAMENTO COM CONTADORES -->
+            <div class="cms-cat-pills" id="cms-qr-cat-pills" style="display:flex; flex-wrap:wrap; gap:8px;">
+              <button type="button" class="cms-cat-pill active" data-cms-qr-cat="todos">🌟 Todos <span class="badge" id="qr-count-todos">138</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="cores">🎨 Cores de Filamento <span class="badge" id="qr-count-cores">104</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="bambu">⚡ Bambu Lab RFID <span class="badge" id="qr-count-bambu">13</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="maxprint">🧵 Masterprint PLA <span class="badge" id="qr-count-maxprint">40</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="plasilk">✨ Silk &amp; Dual <span class="badge" id="qr-count-plasilk">21</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="petg">🛡️ PETG <span class="badge" id="qr-count-petg">19</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="tpu">🔄 TPU <span class="badge" id="qr-count-tpu">5</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="absespeciais">🧱 ABS &amp; Especiais <span class="badge" id="qr-count-absespeciais">6</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="impressoras">🖨️ Impressoras 3D <span class="badge" id="qr-count-impressoras">6</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="pecas">⚙️ Peças &amp; Bicos <span class="badge" id="qr-count-pecas">19</span></button>
+              <button type="button" class="cms-cat-pill" data-cms-qr-cat="manutencao">🔧 Manutenção <span class="badge" id="qr-count-manutencao">3</span></button>
+            </div>
+
+            <!-- LINHA 3: ATALHOS RÁPIDOS POR COR (AO CLICAR JÁ APARECEM OS FILAMENTOS!) -->
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; padding-top:6px; border-top:1px dashed #e2e8f0;">
+              <span style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase; letter-spacing:0.5px;">Atalhos por Cor:</span>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="preto" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#18181b; display:inline-block; border:1px solid #d4d4d8;"></span> Preto</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="branco" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#ffffff; display:inline-block; border:1px solid #94a3b8;"></span> Branco</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="vermelho" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#dc2626; display:inline-block;"></span> Vermelho</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="azul" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#2563eb; display:inline-block;"></span> Azul</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="verde" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#16a34a; display:inline-block;"></span> Verde</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="amarelo" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#eab308; display:inline-block;"></span> Amarelo</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="laranja" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#F04E23; display:inline-block;"></span> Laranja</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="cinza" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#64748b; display:inline-block;"></span> Cinza / Prata</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="dourado" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;"><span style="width:10px; height:10px; border-radius:50%; background:#d4af37; display:inline-block;"></span> Dourado</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="silk" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;">✨ Silk / Metalizado</button>
+              <button type="button" class="cms-color-quick-chip" data-qr-color="dual" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:999px; border:1px solid #e2e8f0; background:#f8fafc; font-size:0.75rem; font-weight:700; color:#0f172a; cursor:pointer;">🌈 Dual &amp; Tri Color</button>
+            </div>
+          </div>
+
+          <!-- BARRA DE STATUS DOS RESULTADOS -->
+          <div id="cms-qr-results-info" style="display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; font-size:0.8rem; color:#64748b; padding:0 4px;">
+            <span id="cms-qr-results-counter">Carregando catálogo de produtos e cores...</span>
+            <span style="font-size:0.75rem; color:#94a3b8;">💡 Clique no card para abrir o detalhe do preço com desconto PIX</span>
+          </div>
+
+          <!-- GRADE DE RESULTADOS ULTRARRÁPIDA -->
           <div id="cms-qr-lookup-grid" class="sj-qr-lookup-grid"></div>
         </div>
 
@@ -940,7 +1012,7 @@
   <script src="js/supabase-client.js?v=20261110_07"></script>
   <script src="js/dados.js?v=20261110_07"></script>
   <script src="js/database.js?v=20261110_07"></script>
-  <script src="js/app.js?v=20261110_07"></script>
+  <script src="js/app.js?v=20261110_09"></script>
 
 </body>
 
