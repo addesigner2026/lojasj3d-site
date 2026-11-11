@@ -11,12 +11,96 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261111_01" />
+  <link rel="stylesheet" href="css/styles.css?v=20261111_02" />
 </head>
 
 <body class="admin-standalone-body">
 
-  <div class="admin-standalone-shell" id="admin-standalone-app">
+  <!-- ==============================================================
+       GATE DE LOGIN EXCLUSIVO DO ADMINISTRADOR (/admin & admin.html)
+       Separado 100% da conta de cliente: clientes comuns não têm acesso.
+       ============================================================== -->
+  <div id="admin-standalone-auth-gate" class="admin-auth-gate-wrapper" style="display: flex;">
+    <div class="admin-auth-gate-card">
+      <div class="admin-auth-gate-header">
+        <div class="admin-auth-gate-logo">SJ</div>
+        <h2 style="margin: 0 0 4px; font-size: 1.35rem; font-weight: 900; color: #0f172a;">Painel de Gestão &amp; Estoque</h2>
+        <p style="margin: 0; font-size: 0.84rem; color: #64748b;">Área restrita exclusiva para a equipe e administração oficial.</p>
+      </div>
+
+      <!-- ABAS DO GATE: ENTRAR | SOLICITAR ACESSO -->
+      <div class="admin-auth-gate-tabs" role="tablist">
+        <button type="button" class="btn-admin-gate-tab active" data-gate-tab="login" role="tab">🔐 Entrar no Painel</button>
+        <button type="button" class="btn-admin-gate-tab" data-gate-tab="register" role="tab">📨 Solicitar Acesso</button>
+      </div>
+
+      <!-- PAINEL 1: LOGIN ADMINISTRATIVO -->
+      <form id="form-admin-gate-login" style="display: block;">
+        <div class="admin-gate-input-group">
+          <label for="admin-gate-email">E-mail Administrativo</label>
+          <input type="email" id="admin-gate-email" class="admin-gate-input" placeholder="seu-email@dominio.com" autocomplete="username" required />
+        </div>
+
+        <div class="admin-gate-input-group">
+          <div style="display: flex; justify-content: space-between; align-items: baseline;">
+            <label for="admin-gate-senha">Senha de Acesso</label>
+            <button type="button" id="btn-toggle-gate-pwd" style="background: none; border: none; font-size: 0.72rem; color: #64748b; cursor: pointer; padding: 0;">👁️ Ver senha</button>
+          </div>
+          <input type="password" id="admin-gate-senha" class="admin-gate-input" placeholder="Digite sua senha administrativa" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" id="btn-admin-gate-submit" class="btn-cms-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
+          Entrar no Painel Administrativo →
+        </button>
+
+        <div id="admin-gate-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
+
+        <div style="margin-top: 18px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
+          <a href="index.html" style="font-size: 0.82rem; color: #64748b; text-decoration: none; font-weight: 600;">← Voltar para a Loja Pública</a>
+        </div>
+      </form>
+
+      <!-- PAINEL 2: SOLICITAR ACESSO / CADASTRO DE EQUIPE -->
+      <form id="form-admin-gate-register" style="display: none;">
+        <div class="admin-gate-input-group">
+          <label for="admin-gate-req-nome">Nome Completo</label>
+          <input type="text" id="admin-gate-req-nome" class="admin-gate-input" placeholder="Ex: Carlos Eduardo" required />
+        </div>
+
+        <div class="admin-gate-input-group">
+          <label for="admin-gate-req-email">E-mail Profissional</label>
+          <input type="email" id="admin-gate-req-email" class="admin-gate-input" placeholder="seu-email@dominio.com" required />
+        </div>
+
+        <div class="admin-gate-input-group">
+          <label for="admin-gate-req-senha">Criar Senha de Acesso</label>
+          <input type="password" id="admin-gate-req-senha" class="admin-gate-input" placeholder="Mínimo 4 caracteres" required />
+        </div>
+
+        <div class="admin-gate-input-group">
+          <label for="admin-gate-req-cargo">Função / Cargo Desejado</label>
+          <select id="admin-gate-req-cargo" class="admin-gate-input" style="height: 44px;">
+            <option value="Vendedor Autorizado">Vendedor Autorizado</option>
+            <option value="Estoquista">Estoquista / Expedição</option>
+            <option value="Gerente Comercial">Gerente Comercial</option>
+            <option value="Suporte Técnico">Suporte Técnico / Manutenção</option>
+          </select>
+        </div>
+
+        <button type="submit" id="btn-admin-gate-req-submit" class="btn-cms-secondary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
+          📨 Enviar Pedido para o Admin Master
+        </button>
+
+        <div id="admin-gate-req-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
+
+        <p style="margin: 12px 0 0; font-size: 0.74rem; color: #94a3b8; text-align: center;">
+          💡 Novos acessos ficam pendentes e requerem liberação manual do Administrador Oficial.
+        </p>
+      </form>
+    </div>
+  </div>
+
+  <div class="admin-standalone-shell" id="admin-standalone-app" style="display: none;">
 
     <!-- COLUNA ESQUERDA: MENU LATERAL PERMANENTE (CLEAN NEUTRAL LIGHT SAAS SIDEBAR) -->
     <aside class="admin-standalone-sidebar">
@@ -38,6 +122,9 @@
           </div>
           <div id="crm-sidebar-admin-email" style="font-size:0.8rem; font-weight:700; color:#0f172a; word-break:break-all;">jt.designer21@gmail.com</div>
           <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Sessão Autenticada • Umuarama / PR</div>
+          <button type="button" id="btn-admin-logout-sidebar" style="margin-top:10px; width:100%; padding:6px 10px; font-size:0.74rem; font-weight:800; border-radius:7px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s ease;" title="Encerrar sessão administrativa">
+            <span>🚪 Encerrar Sessão</span>
+          </button>
         </div>
 
         <div class="sj-crm-section-label">Módulos de Gestão</div>
@@ -119,6 +206,9 @@
           <a href="index.html" target="_blank" style="padding:8px 14px; border-radius:9px; border:1.5px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-size:0.78rem; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
             <span>🌐 Ver Loja Pública ↗</span>
           </a>
+          <button type="button" id="btn-admin-logout" class="btn-admin-logout-top" title="Encerrar sessão administrativa e bloquear todos os acessos">
+            <span>🔴 Sair / Encerrar Sessão</span>
+          </button>
         </div>
       </header>
 
@@ -1081,7 +1171,7 @@
   <script src="js/supabase-client.js?v=20261110_07"></script>
   <script src="js/dados.js?v=20261110_07"></script>
   <script src="js/database.js?v=20261110_07"></script>
-  <script src="js/app.js?v=20261111_01"></script>
+  <script src="js/app.js?v=20261111_02"></script>
 
 </body>
 

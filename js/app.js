@@ -7042,6 +7042,18 @@
       return (u && ehUsuarioEquipe(u)) ? u : null;
     }
 
+    let sessao = null;
+    try {
+      const raw = localStorage.getItem("loja_sj_sessao_admin_v1");
+      if (raw) sessao = JSON.parse(raw);
+    } catch (_) {}
+
+    if (sessao && filtrarApenasEquipe(sessao)) {
+      state.usuarioGoogle = sessao;
+      atualizarBadgeUsuarioHeader();
+      return;
+    }
+
     if (window.SJ_DB && window.SJ_DB.auth) {
       state.usuarioGoogle = filtrarApenasEquipe(window.SJ_DB.auth.getUsuarioAtual());
       window.SJ_DB.auth.onAuthStateChanged((u) => {
@@ -7098,14 +7110,18 @@
 
   function fazerLogoutGoogle() {
     state.usuarioGoogle = null;
+    try {
+      if (window.localStorage) {
+        window.localStorage.removeItem("loja_sj_sessao_admin_v1");
+        window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
+        window.localStorage.removeItem("SJ_DB_USUARIO_ATIVO_V1");
+      }
+    } catch (_) {}
     if (window.SJ_DB && window.SJ_DB.auth) {
       window.SJ_DB.auth.logout();
-    } else {
-      try {
-        if (window.localStorage) {
-          window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
-        }
-      } catch (_) {}
+    }
+    if (window.SJ_SUPABASE && window.SJ_SUPABASE.auth && typeof window.SJ_SUPABASE.auth.logout === "function") {
+      window.SJ_SUPABASE.auth.logout();
     }
     atualizarBadgeUsuarioHeader();
     if (state.emissorAberto) {
@@ -11095,6 +11111,298 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
   }
 
+  // =========================================================================
+  // SISTEMA DE SEGURANÇA E AUTH GATE STANDALONE (/admin & admin.html)
+  // Isolamento estrito: clientes comuns nunca têm acesso ao painel de gestão.
+  // =========================================================================
+
+  function obterSessaoAdminAtiva() {
+    let sessao = null;
+    try {
+      const raw = localStorage.getItem("loja_sj_sessao_admin_v1");
+      if (raw) sessao = JSON.parse(raw);
+    } catch (_) {}
+
+    if (!sessao && window.SJ_DB && window.SJ_DB.auth) {
+      sessao = window.SJ_DB.auth.getUsuarioAtual();
+    }
+
+    if (sessao && ehUsuarioEquipe(sessao)) {
+      return sessao;
+    }
+    return null;
+  }
+
+  function mostrarFeedbackGate(tipo, mensagem) {
+    const fb = document.getElementById("admin-gate-feedback");
+    if (!fb) return;
+    fb.style.display = "block";
+    if (tipo === "error") {
+      fb.style.background = "#fef2f2";
+      fb.style.color = "#991b1b";
+      fb.style.border = "1px solid #fecaca";
+    } else if (tipo === "success") {
+      fb.style.background = "#f0fdf4";
+      fb.style.color = "#166534";
+      fb.style.border = "1px solid #bbf7d0";
+    } else {
+      fb.style.background = "#eff6ff";
+      fb.style.color = "#1e40af";
+      fb.style.border = "1px solid #bfdbfe";
+    }
+    fb.innerHTML = mensagem;
+  }
+
+  function mostrarFeedbackGateReq(tipo, mensagem) {
+    const fb = document.getElementById("admin-gate-req-feedback");
+    if (!fb) return;
+    fb.style.display = "block";
+    if (tipo === "error") {
+      fb.style.background = "#fef2f2";
+      fb.style.color = "#991b1b";
+      fb.style.border = "1px solid #fecaca";
+    } else {
+      fb.style.background = "#f0fdf4";
+      fb.style.color = "#166534";
+      fb.style.border = "1px solid #bbf7d0";
+    }
+    fb.innerHTML = mensagem;
+  }
+
+  function encerrarSessaoAdministrativa() {
+    try {
+      localStorage.removeItem("loja_sj_sessao_admin_v1");
+      localStorage.removeItem("SJ_DB_USUARIO_ATIVO_V1");
+      localStorage.removeItem("loja_sj_usuario_ativo");
+      if (window.localStorage) {
+        window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
+      }
+    } catch (_) {}
+
+    if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.logout === "function") {
+      window.SJ_DB.auth.logout();
+    }
+    if (window.SJ_SUPABASE && window.SJ_SUPABASE.auth && typeof window.SJ_SUPABASE.auth.logout === "function") {
+      window.SJ_SUPABASE.auth.logout();
+    }
+
+    state.usuarioGoogle = null;
+    document.body.classList.remove("is-admin-logged-in");
+
+    const appEl = document.getElementById("admin-standalone-app");
+    const gateEl = document.getElementById("admin-standalone-auth-gate");
+    if (appEl) appEl.style.display = "none";
+    if (gateEl) {
+      gateEl.style.display = "flex";
+      const pwdInput = document.getElementById("admin-gate-senha");
+      if (pwdInput) pwdInput.value = "";
+      mostrarFeedbackGate("info", "✅ Sessão administrativa encerrada. Todos os acessos foram bloqueados.");
+    }
+    atualizarBadgeUsuarioHeader();
+    mostrarToast("🔒 Sessão administrativa encerrada com sucesso.", "info");
+  }
+
+  function inicializarPainelAdminStandalone() {
+    const appEl = document.getElementById("admin-standalone-app");
+    const gateEl = document.getElementById("admin-standalone-auth-gate");
+    if (!appEl && !gateEl) return;
+
+    // Configura botões de logout
+    document.getElementById("btn-admin-logout")?.addEventListener("click", encerrarSessaoAdministrativa);
+    document.getElementById("btn-admin-logout-sidebar")?.addEventListener("click", encerrarSessaoAdministrativa);
+
+    // Configura abas do Gate (Login vs Solicitar Acesso)
+    document.querySelectorAll("[data-gate-tab]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const tab = btn.dataset.gateTab;
+        document.querySelectorAll("[data-gate-tab]").forEach((b) => b.classList.toggle("active", b === btn));
+        const formLogin = document.getElementById("form-admin-gate-login");
+        const formReq = document.getElementById("form-admin-gate-register");
+        if (formLogin) formLogin.style.display = tab === "login" ? "block" : "none";
+        if (formReq) formReq.style.display = tab === "register" ? "block" : "none";
+      });
+    });
+
+    // Toggle de visibilidade da senha no Gate
+    const btnTogglePwd = document.getElementById("btn-toggle-gate-pwd");
+    const pwdInput = document.getElementById("admin-gate-senha");
+    if (btnTogglePwd && pwdInput) {
+      btnTogglePwd.addEventListener("click", () => {
+        const isPwd = pwdInput.type === "password";
+        pwdInput.type = isPwd ? "text" : "password";
+        btnTogglePwd.textContent = isPwd ? "🙈 Ocultar" : "👁️ Ver senha";
+      });
+    }
+
+    // Formulário de Login do Gate
+    const formLogin = document.getElementById("form-admin-gate-login");
+    if (formLogin) {
+      formLogin.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const email = (document.getElementById("admin-gate-email")?.value || "").toLowerCase().trim();
+        const senha = (document.getElementById("admin-gate-senha")?.value || "").trim();
+        const submitBtn = document.getElementById("btn-admin-gate-submit");
+
+        if (!email || !senha) {
+          mostrarFeedbackGate("error", "Informe seu e-mail e sua senha administrativa.");
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Validando credenciais...";
+        }
+
+        try {
+          // Bloqueia contas exclusivas de clientes comuns
+          const clienteExistente = buscarDadosClienteSalvoPorEmail(email);
+          if (clienteExistente && clienteExistente.tipo === "cliente" && email !== "jt.designer21@gmail.com") {
+            const adminCheck = (window.SJ_DB?.auth?.listarUsuarios() || []).find(u => String(u.email || '').toLowerCase() === email);
+            if (!adminCheck || adminCheck.status !== "aprovado") {
+              mostrarFeedbackGate("error", "🚫 Acesso restrito! Esta é uma conta de cliente comum e não possui permissão para acessar a área administrativa.");
+              if (submitBtn) {
+                submitBtn.disabled = false;
+                submitBtn.textContent = "Entrar no Painel Administrativo →";
+              }
+              return;
+            }
+          }
+
+          if (!window.SJ_DB || !window.SJ_DB.auth) {
+            mostrarFeedbackGate("error", "Banco de autenticação não inicializado. Recarregue a página.");
+            return;
+          }
+
+          const res = await window.SJ_DB.auth.loginEmail(email, senha);
+          if (!res || !res.sucesso) {
+            mostrarFeedbackGate("error", (res && res.mensagem) || "E-mail ou senha administrativa incorretos.");
+            return;
+          }
+
+          const usuario = res.usuario;
+          if (!ehUsuarioEquipe(usuario)) {
+            mostrarFeedbackGate("error", "⏳ Seu usuário não possui autorização ativa para a Área Administrativa. Solicite liberação ao Administrador Master.");
+            return;
+          }
+
+          // Salva sessão exclusiva de admin
+          try {
+            localStorage.setItem("loja_sj_sessao_admin_v1", JSON.stringify(usuario));
+          } catch (_) {}
+          state.usuarioGoogle = usuario;
+          document.body.classList.add("is-admin-logged-in");
+
+          // Atualiza dados na sidebar e topbar
+          const emailEl = document.getElementById("crm-sidebar-admin-email");
+          if (emailEl) emailEl.textContent = usuario.email;
+          const roleBadge = document.getElementById("crm-sidebar-role-badge");
+          if (roleBadge) roleBadge.textContent = usuario.isMaster ? "👑 Admin Master" : `👑 ${usuario.cargo || 'Equipe'}`;
+
+          // Transiciona tela: esconde o gate e exibe o dashboard
+          if (gateEl) gateEl.style.display = "none";
+          if (appEl) appEl.style.display = "grid";
+
+          // Inicializa o dashboard
+          const urlParams = new URLSearchParams(window.location.search);
+          const aba = urlParams.get("aba") || "produtos";
+          const editId = urlParams.get("edit");
+
+          selecionarAbaCms(aba);
+          configurarFormularioSenhaAdmin();
+          atualizarBadgesSolicitacoesPendentes();
+          renderizarListaProdutosCms();
+          preencherFormularioBannerCms();
+          atualizarStatusSupabaseNoCms();
+          atualizarContadoresEstoqueKpiCms();
+
+          if (editId) abrirEditorProdutoCms(editId);
+
+          mostrarToast(`👋 Bem-vindo ao Painel, <strong>${escaparHtml(usuario.nome || usuario.email)}</strong>!`, "success");
+        } catch (err) {
+          mostrarFeedbackGate("error", "Erro ao processar autenticação: " + (err.message || err));
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "Entrar no Painel Administrativo →";
+          }
+        }
+      });
+    }
+
+    // Formulário de Solicitação de Acesso
+    const formReq = document.getElementById("form-admin-gate-register");
+    if (formReq) {
+      formReq.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        const nome = document.getElementById("admin-gate-req-nome")?.value.trim();
+        const email = (document.getElementById("admin-gate-req-email")?.value || "").toLowerCase().trim();
+        const senha = document.getElementById("admin-gate-req-senha")?.value.trim();
+        const cargo = document.getElementById("admin-gate-req-cargo")?.value || "Vendedor Autorizado";
+        const submitBtn = document.getElementById("btn-admin-gate-req-submit");
+
+        if (!nome || !email || !senha) {
+          mostrarFeedbackGateReq("error", "Preencha todos os campos obrigatórios.");
+          return;
+        }
+
+        if (submitBtn) {
+          submitBtn.disabled = true;
+          submitBtn.textContent = "Enviando solicitação...";
+        }
+
+        try {
+          const res = await window.SJ_DB.auth.registrar({ nome, email, senha, cargo, motivo: "Solicitação via /admin" });
+          if (res && res.sucesso) {
+            mostrarFeedbackGateReq("success", res.mensagem || "✅ Solicitação enviada! Aguarde a aprovação do Administrador Master.");
+            formReq.reset();
+          } else {
+            mostrarFeedbackGateReq("error", (res && res.mensagem) || "Erro ao enviar solicitação.");
+          }
+        } catch (err) {
+          mostrarFeedbackGateReq("error", "Erro ao enviar solicitação: " + (err.message || err));
+        } finally {
+          if (submitBtn) {
+            submitBtn.disabled = false;
+            submitBtn.textContent = "📨 Enviar Pedido para o Admin Master";
+          }
+        }
+      });
+    }
+
+    // VERIFICA SE JÁ EXISTE SESSÃO ADMIN ATIVA
+    const adminAtivo = obterSessaoAdminAtiva();
+    if (adminAtivo) {
+      state.usuarioGoogle = adminAtivo;
+      document.body.classList.add("is-admin-logged-in");
+
+      const emailEl = document.getElementById("crm-sidebar-admin-email");
+      if (emailEl) emailEl.textContent = adminAtivo.email;
+      const roleBadge = document.getElementById("crm-sidebar-role-badge");
+      if (roleBadge) roleBadge.textContent = adminAtivo.isMaster ? "👑 Admin Master" : `👑 ${adminAtivo.cargo || 'Equipe'}`;
+
+      if (gateEl) gateEl.style.display = "none";
+      if (appEl) appEl.style.display = "grid";
+
+      const urlParams = new URLSearchParams(window.location.search);
+      const aba = urlParams.get("aba") || "produtos";
+      const editId = urlParams.get("edit");
+
+      selecionarAbaCms(aba);
+      configurarFormularioSenhaAdmin();
+      atualizarBadgesSolicitacoesPendentes();
+      renderizarListaProdutosCms();
+      preencherFormularioBannerCms();
+      atualizarStatusSupabaseNoCms();
+      atualizarContadoresEstoqueKpiCms();
+
+      if (editId) abrirEditorProdutoCms(editId);
+    } else {
+      // NÃO ESTÁ LOGADO COMO ADMIN -> EXIBE O GATE E ESCONDE O APP
+      if (gateEl) gateEl.style.display = "flex";
+      if (appEl) appEl.style.display = "none";
+    }
+  }
+
   // Inicialização Geral
   document.addEventListener("DOMContentLoaded", () => {
     carregarPedidoSalvo();
@@ -11108,21 +11416,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Inicialização do Painel Standalone (/admin ou admin.html)
     const isStandaloneAdmin = window.location.pathname.includes("admin.html") || !!document.getElementById("admin-standalone-app");
     if (isStandaloneAdmin) {
-      const urlParams = new URLSearchParams(window.location.search);
-      const aba = urlParams.get("aba") || "produtos";
-      const editId = urlParams.get("edit");
-
-      selecionarAbaCms(aba);
-      configurarFormularioSenhaAdmin();
-      atualizarBadgesSolicitacoesPendentes();
-      renderizarListaProdutosCms();
-      preencherFormularioBannerCms();
-      atualizarStatusSupabaseNoCms();
-      atualizarContadoresEstoqueKpiCms();
-
-      if (editId) {
-        abrirEditorProdutoCms(editId);
-      }
+      inicializarPainelAdminStandalone();
     }
 
     // Eventos de Autenticação Google & Operador
@@ -11921,16 +12215,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         hash === "#login";
 
       if (ehRotaAdmin) {
-        const abrirAdmin = () => abrirPainelAdminCms("produtos");
-        if (window.SJ_SUPABASE) {
-          window.SJ_SUPABASE.guardiao.validarAcessoRota(hash || path, abrirAdmin, () => {
-            abrirModalAuthGoogle(abrirAdmin, "email");
-          });
-        } else if (state.usuarioGoogle) {
-          abrirAdmin();
-        } else {
-          abrirModalAuthGoogle(abrirAdmin, "email");
-        }
+        // Redireciona diretamente para a página exclusiva de gestão (/admin.html)
+        window.location.href = "admin.html";
         return true;
       }
       return false;
