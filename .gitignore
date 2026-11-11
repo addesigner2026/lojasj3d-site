@@ -1,4 +1,4 @@
-# Sistema Operacional / Mac
+# Sistema Operacional / Mac / iCloud
 .DS_Store
 .DS_Store?
 ._*
@@ -7,6 +7,10 @@
 ehthumbs.db
 Thumbs.db
 .git.nosync/
+* 2.*
+* 2
+* 3.*
+* 3
 
 # Dependências Node.js
 node_modules/
