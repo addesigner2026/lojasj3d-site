@@ -268,7 +268,7 @@ window.SITE_DATA = {
       subtitulo: "Brilho sedoso metálico, Dual Color, Tri Color e Rainbow • 21 Cores",
       precoVista: "R$ 89,90",
       precoParcelado: "Silk Sólido: R$ 89,90 • Dual/Tri/Rainbow: R$ 99,90",
-      imagem: "assets/produtos/filamentos/cod_41.jpg",
+      imagem: "assets/produtos/filamentos/cod_69.jpg",
       tipoFilamento: true,
       kgPorUnidade: 1,
       select1Label: "Apresentação",

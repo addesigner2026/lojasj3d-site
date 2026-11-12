@@ -971,9 +971,15 @@
         legadosRemovidos.forEach((legId) => customMap.delete(legId));
 
         window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).map((prod) => {
+          if (prod && prod.imagem === "assets/produtos/filamentos/cod_41.jpg") {
+            prod.imagem = "assets/produtos/filamentos/cod_69.jpg";
+          }
           if (customMap.has(prod.id)) {
             const editado = customMap.get(prod.id);
             customMap.delete(prod.id);
+            if (editado && editado.imagem === "assets/produtos/filamentos/cod_41.jpg") {
+              editado.imagem = "assets/produtos/filamentos/cod_69.jpg";
+            }
             return { ...prod, ...editado };
           }
           return prod;

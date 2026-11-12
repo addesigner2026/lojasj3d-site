@@ -6274,6 +6274,7 @@
                 id="pdp-main-img"
                 class="pdp-showcase-img cover-img"
                 style="filter: ${filtroPrincipal};"
+                onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';"
               />
             </div>
 
@@ -6398,6 +6399,7 @@
               id="pdp-main-img"
               class="${item.tipoFilamento ? "cover-img" : ""}"
               style="filter: ${filtroPrincipal};"
+              onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';"
             />
           </div>
 
@@ -9233,7 +9235,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           <!-- MIDDLE ROW: IMAGEM/SWATCH + CÓDIGO + TÍTULO -->
           <div style="display:flex; gap:12px; align-items:center;">
             <div style="position:relative; width:58px; height:58px; border-radius:10px; overflow:hidden; background:#f8fafc; border:1px solid #e2e8f0; display:flex; align-items:center; justify-content:center; flex-shrink:0;">
-              <img src="${escaparHtml(it.imagem)}" alt="${escaparHtml(it.nome)}" style="width:100%; height:100%; object-fit:contain; padding:2px;" loading="lazy" />
+              <img src="${escaparHtml(it.imagem)}" alt="${escaparHtml(it.nome)}" style="width:100%; height:100%; object-fit:contain; padding:2px;" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
               ${isCor && it.corHex ? `
                 <span style="position:absolute; bottom:2px; right:2px; width:16px; height:16px; border-radius:50%; background:${escaparHtml(it.corHex)}; border:2px solid #ffffff; box-shadow:0 1px 3px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(it.corNome || '')}"></span>
               ` : ''}
@@ -10548,7 +10550,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           return `
             <div class="cms-sku-item-card">
               <div class="cms-sku-card-thumb">
-                <img src="${escaparHtml(sku.imagem || 'assets/produtos/pla-maxprint.jpg')}" alt="${escaparHtml(sku.nome)}" loading="lazy" />
+                <img src="${escaparHtml(sku.imagem || 'assets/produtos/pla-maxprint.jpg')}" alt="${escaparHtml(sku.nome)}" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
                 <span class="cms-sku-code-tag">${escaparHtml(sku.codigo || 'SKU')}</span>
                 ${sku.corHex ? `<span style="position:absolute; bottom:6px; right:6px; width:18px; height:18px; border-radius:50%; background:${escaparHtml(sku.corHex)}; border:2px solid #ffffff; box-shadow:0 0 0 1px rgba(0,0,0,0.25);" title="Cor: ${escaparHtml(sku.corNome || '')}"></span>` : ''}
               </div>
@@ -10669,7 +10671,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
               <!-- Foto do Produto Limpa & Em Alta Definição -->
               <div class="cms-prod-card-thumb">
-                <img src="${escaparHtml(p.imagem || "assets/produtos/impressora-a1_mini.jpg")}" alt="${escaparHtml(p.nome)}" loading="lazy" />
+                <img src="${escaparHtml(p.imagem || (paletaCores && paletaCores[0] && paletaCores[0].imgCatalogo) || "assets/produtos/pla-maxprint.jpg")}" 
+                     alt="${escaparHtml(p.nome)}" 
+                     loading="lazy" 
+                     onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
                 ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">🎨 ${qtdCores} Cores</span>` : ""}
               </div>
 
