@@ -656,49 +656,64 @@
     );
     state.precisaNotaFiscalPedido = precisaNf;
 
-    // 1. Verifica se o cliente está logado e se todos os dados obrigatórios (e de Nota Fiscal, se marcada) estão preenchidos
-    if (!state.clienteLogado) {
-      state.acaoPendenteAposLogin = {
-        tipo: "enviar_whatsapp",
-        precisaNotaFiscal: precisaNf
-      };
-      fecharGavetaPedido();
-      abrirModalAuthCliente("signup", { preMarcarNf: precisaNf });
-      mostrarToastNotificacao(
-        "👤 Crie sua conta ou faça login rapidamente para enviar seu pedido com seus dados completos no WhatsApp!",
-        "info"
-      );
-      return;
-    }
+    let linhasCliente = [];
+    let pedidoTag = "";
 
-    const validacao = validarDadosCliente(state.clienteLogado, precisaNf);
-    if (!validacao.valido) {
-      state.acaoPendenteAposLogin = {
-        tipo: "enviar_whatsapp",
+    // 1. Se o cliente estiver logado, valida os dados cadastrais, anexa ao pedido e salva no histórico
+    if (state.clienteLogado) {
+      const validacao = validarDadosCliente(state.clienteLogado, precisaNf);
+      if (!validacao.valido) {
+        state.acaoPendenteAposLogin = {
+          tipo: "enviar_whatsapp",
+          precisaNotaFiscal: precisaNf
+        };
+        fecharGavetaPedido();
+        abrirModalAuthCliente("complete", {
+          preMarcarNf: precisaNf,
+          mensagemTopo: `⚠️ Para anexar seus dados ao pedido, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
+        });
+        mostrarToast(validacao.mensagem, "warning");
+        return;
+      }
+
+      const c = state.clienteLogado;
+      if (c.precisaNotaFiscal !== precisaNf) {
+        c.precisaNotaFiscal = precisaNf;
+        salvarClienteLocal(c);
+      }
+
+      // Salva automaticamente o pedido no histórico do cliente
+      const pedidoSalvo = await salvarPedidoOuOrcamentoCliente({
+        enviadoWhatsApp: true,
+        silencioso: true,
         precisaNotaFiscal: precisaNf
-      };
-      fecharGavetaPedido();
-      abrirModalAuthCliente("complete", {
-        preMarcarNf: precisaNf,
-        mensagemTopo: `⚠️ Para finalizar seu pedido, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
       });
-      mostrarToast(validacao.mensagem, "warning");
-      return;
-    }
 
-    const c = state.clienteLogado;
-    // Atualiza flag precisaNotaFiscal no cadastro se marcado
-    if (c.precisaNotaFiscal !== precisaNf) {
-      c.precisaNotaFiscal = precisaNf;
-      salvarClienteLocal(c);
-    }
+      if (pedidoSalvo && pedidoSalvo.id) {
+        pedidoTag = `\n*Cód. Pedido:* ${pedidoSalvo.id}`;
+      }
 
-    // Salva automaticamente o pedido no histórico do cliente
-    const pedidoSalvo = await salvarPedidoOuOrcamentoCliente({
-      enviadoWhatsApp: true,
-      silencioso: true,
-      precisaNotaFiscal: precisaNf
-    });
+      const enderecoStr = formatarEnderecoCompletoCliente(c);
+      linhasCliente = [
+        `\n\n📋 *DADOS DO CLIENTE (CADASTRO APROVADO):*`,
+        `• *Nome do Titular:* ${c.nome}`,
+        c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (c.cnpjCpf ? `• *CPF:* ${c.cnpjCpf}` : ""),
+        c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
+        c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
+        c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
+        c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
+        `• *WhatsApp:* ${c.whatsapp}`,
+        `• *E-mail:* ${c.email}`,
+        enderecoStr ? `• *Endereço Completo:* ${enderecoStr}` : ""
+      ].filter(Boolean);
+    } else {
+      // 2. Cliente Sem Cadastro: pedido rápido e direto sem bloqueio ou burocracia
+      linhasCliente = [
+        `\n\n⚡ *ATENDIMENTO RÁPIDO (SEM CADASTRO):*`,
+        `• Pedido montado diretamente pelo catálogo online`,
+        `• Por favor, confirme a disponibilidade e a chave PIX para pagamento.`
+      ];
+    }
 
     const totalKgFil = calcularTotalKgFilamentos();
     const valorTotalEstimado = state.itensCaixa.reduce(
@@ -721,25 +736,11 @@
       valorTotalEstimado > 0
         ? `\n*Total Estimado:* ${formatarMoedaBR(valorTotalEstimado)}${temSobConsulta ? " (+ itens sob consulta)" : ""}`
         : "";
-    const pedidoTag = pedidoSalvo && pedidoSalvo.id ? `\n*Cód. Pedido:* ${pedidoSalvo.id}` : "";
-
-    // Bloco com os Dados Completos do Cliente & Dados Fiscais Aprovados
-    const enderecoStr = formatarEnderecoCompletoCliente(c);
-    const linhasCliente = [
-      `\n\n📋 *DADOS DO CLIENTE (CADASTRO APROVADO):*`,
-      `• *Nome do Titular:* ${c.nome}`,
-      c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (c.cnpjCpf ? `• *CPF:* ${c.cnpjCpf}` : ""),
-      c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
-      c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
-      c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
-      c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
-      `• *WhatsApp:* ${c.whatsapp}`,
-      `• *E-mail:* ${c.email}`,
-      enderecoStr ? `• *Endereço Completo:* ${enderecoStr}` : ""
-    ].filter(Boolean);
 
     const fraseNotaFiscal = precisaNf
-      ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados informados acima.`
+      ? (state.clienteLogado
+          ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados informados acima.`
+          : `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Gostaria de solicitar Nota Fiscal (NF-e). Enviarei os dados fiscais (CPF/CNPJ) neste chat.`)
       : "";
 
     const msg = encodeURIComponent(
@@ -753,6 +754,7 @@
 
     window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
     fecharGavetaPedido();
+    mostrarToast("🚀 Pedido enviado para o WhatsApp da Loja SJ 3D!", "success");
   }
 
   // Retorna a configuração atualizada do Banner Promocional (editável via /admin)
@@ -992,6 +994,7 @@
     }
     atualizarBotaoHeaderConta();
     sincronizarStatusNotaFiscalCarrinho();
+    atualizarCaixaLateral();
   }
 
   function salvarFavoritosLocal() {
@@ -5060,10 +5063,10 @@
     atualizarCaixaLateral();
     atualizarMiniResumoNaPaginaProduto();
 
-    mostrarToast(`✓ <strong>${nomeExibicao}</strong> adicionado ao pedido!`, "success", {
-      acaoTexto: "Ver Pedido →",
-      onClick: () => abrirGavetaPedido()
-    });
+    // Abre a gaveta do pedido suavemente ao adicionar item para o cliente ver o carrinho imediatamente
+    abrirGavetaPedido();
+
+    mostrarToast(`✓ <strong>${nomeExibicao}</strong> adicionado ao seu pedido!`, "success");
   }
 
   // 6. Atualiza a coluna direita ("Seu Pedido Loja SJ"), a Gaveta Deslizante, o rastreador de cupons e a barra flutuante
@@ -5134,9 +5137,8 @@
     if (drawerTotalEl) drawerTotalEl.textContent = textoTotalCaixa;
 
     if (mobileBar && mobileCount && mobileTotal) {
-      const mostrarBarra = !state.emissorAberto;
+      const mostrarBarra = !state.emissorAberto && totalItens > 0;
       mobileBar.classList.toggle("visible", mostrarBarra);
-      mobileBar.classList.toggle("visible-any-screen", mostrarBarra);
       mobileBar.style.display = mostrarBarra ? "flex" : "none";
 
       if (totalItens > 0) {
@@ -5153,6 +5155,68 @@
         mobileCount.textContent = "Seu Carrinho (0 itens)";
         mobileTotal.textContent = "Clique para ver seu pedido";
       }
+    }
+
+    const isLogado = Boolean(state.clienteLogado);
+    const nomeCliente = state.clienteLogado?.nome || "";
+
+    // Atualiza botões e textos de checkout (WhatsApp Direto vs. Fazer Cadastro)
+    const btnSubmitLabel = document.getElementById("btn-submit-box-label");
+    const drawerSubmitLabel = document.getElementById("drawer-btn-submit-box-label");
+    const directHint = document.getElementById("cart-direct-hint");
+    const drawerDirectHint = document.getElementById("drawer-cart-direct-hint");
+    const dividerEl = document.getElementById("cart-choice-divider");
+    const drawerDividerEl = document.getElementById("drawer-cart-choice-divider");
+    const signupBtn = document.getElementById("btn-cart-signup");
+    const drawerSignupBtn = document.getElementById("drawer-btn-cart-signup");
+    const signupHint = document.getElementById("cart-signup-subhint");
+    const drawerSignupHint = document.getElementById("drawer-cart-signup-subhint");
+    const saveOrderBtn = document.getElementById("btn-save-box-order");
+    const drawerSaveOrderBtn = document.getElementById("drawer-btn-save-order");
+    const loggedPill = document.getElementById("cart-logged-status-pill");
+    const drawerLoggedPill = document.getElementById("drawer-cart-logged-status-pill");
+
+    if (btnSubmitLabel) {
+      btnSubmitLabel.textContent = isLogado
+        ? "Finalizar Pedido no WhatsApp"
+        : "Pedir no WhatsApp (Sem Cadastro)";
+    }
+    if (drawerSubmitLabel) {
+      drawerSubmitLabel.textContent = isLogado
+        ? "Finalizar Pedido no WhatsApp"
+        : "Pedir no WhatsApp (Sem Cadastro)";
+    }
+
+    if (directHint) {
+      directHint.textContent = isLogado
+        ? `✓ Pedido vinculado à sua conta (${nomeCliente})`
+        : "⚡ Rápido e direto • Sem necessidade de criar conta";
+    }
+    if (drawerDirectHint) {
+      drawerDirectHint.textContent = isLogado
+        ? `✓ Pedido vinculado à sua conta (${nomeCliente})`
+        : "⚡ Rápido e direto • Sem necessidade de criar conta";
+    }
+
+    if (dividerEl) dividerEl.style.display = isLogado ? "none" : "flex";
+    if (drawerDividerEl) drawerDividerEl.style.display = isLogado ? "none" : "flex";
+
+    if (signupBtn) signupBtn.style.display = isLogado ? "none" : "inline-flex";
+    if (drawerSignupBtn) drawerSignupBtn.style.display = isLogado ? "none" : "inline-flex";
+
+    if (signupHint) signupHint.style.display = isLogado ? "none" : "block";
+    if (drawerSignupHint) drawerSignupHint.style.display = isLogado ? "none" : "block";
+
+    if (saveOrderBtn) saveOrderBtn.style.display = isLogado ? "inline-flex" : "none";
+    if (drawerSaveOrderBtn) drawerSaveOrderBtn.style.display = isLogado ? "inline-flex" : "none";
+
+    if (loggedPill) {
+      loggedPill.style.display = isLogado ? "flex" : "none";
+      if (isLogado) loggedPill.innerHTML = `<span>👤 Conectado: <strong>${escaparHtml(nomeCliente)}</strong></span>`;
+    }
+    if (drawerLoggedPill) {
+      drawerLoggedPill.style.display = isLogado ? "flex" : "none";
+      if (isLogado) drawerLoggedPill.innerHTML = `<span>👤 Conectado: <strong>${escaparHtml(nomeCliente)}</strong></span>`;
     }
 
     const htmlVazio = `
@@ -12650,12 +12714,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       importarCarrinhoParaOrcamento();
     });
 
-    // Finalizar Pedido -> Envia para o WhatsApp da Loja SJ 3D (44) 99135-1318
+    // Finalizar Pedido -> Envia para o WhatsApp da Loja SJ 3D (44) 99135-1318 (Sem Cadastro ou Logado)
     document.getElementById("btn-submit-box")?.addEventListener("click", () => {
       enviarPedidoParaWhatsApp();
     });
     document.getElementById("drawer-btn-submit-box")?.addEventListener("click", () => {
       enviarPedidoParaWhatsApp();
+    });
+
+    // Fazer Cadastro / Entrar a partir do Carrinho (Opção do Cliente)
+    document.getElementById("btn-cart-signup")?.addEventListener("click", () => {
+      fecharGavetaPedido();
+      abrirModalAuthCliente("signup");
+    });
+    document.getElementById("drawer-btn-cart-signup")?.addEventListener("click", () => {
+      fecharGavetaPedido();
+      abrirModalAuthCliente("signup");
     });
 
     // Guardar Pedido / Salvar Orçamento na Conta do Cliente

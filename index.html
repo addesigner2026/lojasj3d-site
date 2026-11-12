@@ -399,14 +399,35 @@
             <div id="side-box-nf-status" style="display:none;"></div>
           </div>
 
-          <button type="button" class="btn-submit-box" id="btn-submit-box">
+          <!-- Status de Identificação do Cliente (quando logado) -->
+          <div class="cart-logged-status-pill" id="cart-logged-status-pill" style="display: none;"></div>
+
+          <!-- 1. Botão Principal: WhatsApp Direto Sem Cadastro (ou com cadastro se logado) -->
+          <button type="button" class="btn-submit-box btn-whatsapp-direct" id="btn-submit-box">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
               <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
             </svg>
-            <span>Finalizar Pedido no WhatsApp</span>
+            <span id="btn-submit-box-label">Pedir no WhatsApp (Sem Cadastro)</span>
           </button>
+          <span class="cart-direct-hint" id="cart-direct-hint">⚡ Rápido e direto • Sem necessidade de criar conta</span>
 
-          <button type="button" class="btn-save-box-order" id="btn-save-box-order" title="Guardar este pedido na sua Área do Cliente">
+          <!-- 2. Divisor Elegante de Opção -->
+          <div class="cart-choice-divider" id="cart-choice-divider">
+            <span>ou prefere se cadastrar?</span>
+          </div>
+
+          <!-- 3. Botão de Cadastro / Minha Conta -->
+          <button type="button" class="btn-cart-choice-signup" id="btn-cart-signup">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+              <circle cx="12" cy="7" r="4"></circle>
+            </svg>
+            <span id="btn-cart-signup-label">Fazer Cadastro / Entrar</span>
+          </button>
+          <span class="cart-signup-subhint" id="cart-signup-subhint">🎁 Salve orçamentos, concorra à A1 Mini e agilize futuras compras</span>
+
+          <!-- 4. Botão de Salvar Orçamento na Conta (Disponível quando logado) -->
+          <button type="button" class="btn-save-box-order" id="btn-save-box-order" style="display: none;" title="Guardar este pedido na sua Área do Cliente">
             <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -439,8 +460,8 @@
     <section id="client-account-view" class="client-account-section" style="display: none;" aria-label="Área do Cliente Loja SJ 3D"></section>
   </main>
 
-  <!-- Barra Fixa Inferior de Acesso Rápido ao Carrinho (Sempre visível nas telas da loja, abre o carrinho ao clicar) -->
-  <div class="mobile-floating-cart visible-any-screen" id="mobile-floating-cart" role="region" aria-label="Acesso rápido ao seu carrinho">
+  <!-- Barra Fixa Inferior de Acesso Rápido ao Carrinho (Aparece SOMENTE após adicionar itens) -->
+  <div class="mobile-floating-cart" id="mobile-floating-cart" style="display: none;" role="region" aria-label="Acesso rápido ao seu carrinho">
     <div class="mobile-cart-info">
       <strong id="mobile-cart-count">Seu Carrinho (0 itens)</strong>
       <span id="mobile-cart-total">Clique para ver seu pedido</span>
@@ -499,20 +520,35 @@
           <div id="drawer-box-nf-status" style="display:none;"></div>
         </div>
 
-        <div class="drawer-client-club-link-wrap" id="drawer-client-club-link-wrap" style="margin: 6px 0 10px;">
-          <button type="button" class="drawer-client-club-btn" data-open-cadastro="1" style="width:100%; display:flex; align-items:center; justify-content:center; gap:6px; background:var(--sj-orange-soft); color:var(--sj-orange); border:1px dashed var(--sj-orange); border-radius:8px; padding:8px 10px; font-size:0.79rem; font-weight:700; cursor:pointer;">
-            <span>🎁 Cadastre-se no Clube SJ & Concorra à A1 Mini</span>
-          </button>
-        </div>
+        <!-- Status de Login do Cliente (quando logado) -->
+        <div class="cart-logged-status-pill" id="drawer-cart-logged-status-pill" style="display: none;"></div>
 
-        <button type="button" class="btn-submit-box" id="drawer-btn-submit-box">
+        <!-- 1. Botão Principal: WhatsApp Direto Sem Cadastro (ou com cadastro se logado) -->
+        <button type="button" class="btn-submit-box btn-whatsapp-direct" id="drawer-btn-submit-box">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
             <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
           </svg>
-          <span>Finalizar Pedido no WhatsApp</span>
+          <span id="drawer-btn-submit-box-label">Pedir no WhatsApp (Sem Cadastro)</span>
         </button>
+        <span class="cart-direct-hint" id="drawer-cart-direct-hint">⚡ Rápido e direto • Sem necessidade de criar conta</span>
 
-        <button type="button" class="btn-save-box-order" id="drawer-btn-save-order" title="Guardar este pedido na sua Área do Cliente">
+        <!-- 2. Divisor Elegante de Opção -->
+        <div class="cart-choice-divider" id="drawer-cart-choice-divider">
+          <span>ou prefere se cadastrar?</span>
+        </div>
+
+        <!-- 3. Botão de Cadastro / Minha Conta -->
+        <button type="button" class="btn-cart-choice-signup" id="drawer-btn-cart-signup">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+            <circle cx="12" cy="7" r="4"></circle>
+          </svg>
+          <span id="drawer-btn-cart-signup-label">Fazer Cadastro / Entrar</span>
+        </button>
+        <span class="cart-signup-subhint" id="drawer-cart-signup-subhint">🎁 Salve orçamentos, concorra à A1 Mini e agilize futuras compras</span>
+
+        <!-- 4. Botão de Salvar Orçamento na Conta (Disponível quando logado) -->
+        <button type="button" class="btn-save-box-order" id="drawer-btn-save-order" style="display: none;" title="Guardar este pedido na sua Área do Cliente">
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
@@ -3075,9 +3111,9 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="js/supabase-client.js?v=20261110_01"></script>
-  <script src="js/dados.js?v=20261111_04"></script>
-  <script src="js/database.js?v=20261111_04"></script>
-  <script src="js/app.js?v=20261111_04"></script>
+  <script src="js/dados.js?v=20261111_05"></script>
+  <script src="js/database.js?v=20261111_05"></script>
+  <script src="js/app.js?v=20261111_05"></script>
 </body>
 
 </html>
