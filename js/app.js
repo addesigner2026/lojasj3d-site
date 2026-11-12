@@ -35,7 +35,8 @@
     // Área do Cliente & Minha Conta
     clienteLogado: null,
     favoritos: [],
-    abaClienteAtiva: "dados"
+    abaClienteAtiva: "dados",
+    barraCarrinhoDispensada: false
   };
 
   const secoesDefinicao = [
@@ -5060,13 +5061,15 @@
       }, 900);
     }
 
+    state.barraCarrinhoDispensada = false;
     atualizarCaixaLateral();
     atualizarMiniResumoNaPaginaProduto();
 
-    // Abre a gaveta do pedido suavemente ao adicionar item para o cliente ver o carrinho imediatamente
-    abrirGavetaPedido();
-
-    mostrarToast(`✓ <strong>${nomeExibicao}</strong> adicionado ao seu pedido!`, "success");
+    // Notificação discreta com atalho para abrir o carrinho quando desejar
+    mostrarToast(`✓ <strong>${nomeExibicao}</strong> adicionado ao carrinho!`, "success", {
+      acaoTexto: "Ver Carrinho →",
+      onClick: () => abrirGavetaPedido()
+    });
   }
 
   // 6. Atualiza a coluna direita ("Seu Pedido Loja SJ"), a Gaveta Deslizante, o rastreador de cupons e a barra flutuante
@@ -5137,7 +5140,7 @@
     if (drawerTotalEl) drawerTotalEl.textContent = textoTotalCaixa;
 
     if (mobileBar && mobileCount && mobileTotal) {
-      const mostrarBarra = !state.emissorAberto && totalItens > 0;
+      const mostrarBarra = !state.emissorAberto && totalItens > 0 && !state.barraCarrinhoDispensada;
       mobileBar.classList.toggle("visible", mostrarBarra);
       mobileBar.style.display = mostrarBarra ? "flex" : "none";
 
@@ -5147,9 +5150,9 @@
         }`;
         mobileTotal.textContent =
           valorTotalEstimado > 0
-            ? formatarMoedaBR(valorTotalEstimado)
+            ? `Total: ${formatarMoedaBR(valorTotalEstimado)}`
             : temItensSobConsulta
-              ? "Sob consulta"
+              ? "Valor sob consulta"
               : "Clique para abrir seu pedido";
       } else {
         mobileCount.textContent = "Seu Carrinho (0 itens)";
@@ -12689,6 +12692,17 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("mobile-cart-jump-btn")?.addEventListener("click", (e) => {
       e.stopPropagation();
       abrirGavetaPedido();
+    });
+
+    // Fechar a caixinha flutuante do carrinho ao clicar no X
+    document.getElementById("mobile-cart-close-btn")?.addEventListener("click", (e) => {
+      e.stopPropagation();
+      state.barraCarrinhoDispensada = true;
+      const mobileBar = document.getElementById("mobile-floating-cart");
+      if (mobileBar) {
+        mobileBar.classList.remove("visible");
+        mobileBar.style.display = "none";
+      }
     });
 
     document.getElementById("mobile-floating-cart")?.addEventListener("click", () => {

@@ -460,15 +460,30 @@
     <section id="client-account-view" class="client-account-section" style="display: none;" aria-label="Área do Cliente Loja SJ 3D"></section>
   </main>
 
-  <!-- Barra Fixa Inferior de Acesso Rápido ao Carrinho (Aparece SOMENTE após adicionar itens) -->
+  <!-- Caixinha Flutuante de Resumo do Carrinho (Aparece após adicionar item, com opção de fechar) -->
   <div class="mobile-floating-cart" id="mobile-floating-cart" style="display: none;" role="region" aria-label="Acesso rápido ao seu carrinho">
-    <div class="mobile-cart-info">
-      <strong id="mobile-cart-count">Seu Carrinho (0 itens)</strong>
-      <span id="mobile-cart-total">Clique para ver seu pedido</span>
+    <div class="mobile-cart-icon-badge" aria-hidden="true">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
+        <line x1="3" y1="6" x2="21" y2="6"></line>
+        <path d="M16 10a4 4 0 0 1-8 0"></path>
+      </svg>
     </div>
-    <button type="button" class="mobile-cart-btn" id="mobile-cart-jump-btn">
-      Ver Pedido →
-    </button>
+    <div class="mobile-cart-info" id="mobile-cart-info-click">
+      <strong id="mobile-cart-count">0 itens no carrinho</strong>
+      <span id="mobile-cart-total">Total: R$ 0,00</span>
+    </div>
+    <div class="mobile-cart-actions">
+      <button type="button" class="mobile-cart-btn" id="mobile-cart-jump-btn">
+        Ver Carrinho →
+      </button>
+      <button type="button" class="mobile-cart-close-btn" id="mobile-cart-close-btn" aria-label="Fechar este aviso do carrinho" title="Fechar este aviso">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+          <line x1="18" y1="6" x2="6" y2="18"></line>
+          <line x1="6" y1="6" x2="18" y2="18"></line>
+        </svg>
+      </button>
+    </div>
   </div>
 
   <!-- GAVETA DESLIZANTE DO PEDIDO (CART DRAWER VISÍVEL EM QUALQUER TELA: CAPA, PRODUTO OU CATÁLOGO) -->
@@ -3111,9 +3126,9 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="js/supabase-client.js?v=20261110_01"></script>
-  <script src="js/dados.js?v=20261111_05"></script>
-  <script src="js/database.js?v=20261111_05"></script>
-  <script src="js/app.js?v=20261111_05"></script>
+  <script src="js/dados.js?v=20261111_06"></script>
+  <script src="js/database.js?v=20261111_06"></script>
+  <script src="js/app.js?v=20261111_06"></script>
 </body>
 
 </html>
