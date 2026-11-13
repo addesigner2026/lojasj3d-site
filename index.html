@@ -36,7 +36,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261111_03" />
+  <link rel="stylesheet" href="css/styles.css?v=20261113_01" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -163,28 +163,71 @@
        1. ÚNICO MENU / HEADER COM IDENTIDADE FORTE LOJA SJ 3D (100% LIMPO)
        ==================================================================== -->
   <header class="site-header">
-    <!-- Faixa Oficial de Revendedor Autorizado (Parte de Cima) -->
-    <div class="sj-authorized-top-bar" role="region" aria-label="Revendedor Autorizado Oficial">
-      <div class="container sj-authorized-top-inner">
-        <div class="sj-auth-reseller-Main">
-          <span class="sj-verified-shield-icon" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor">
-              <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.45 14.54L6.8 11.8l1.41-1.41 2.34 2.34 5.24-5.24 1.41 1.41-6.65 6.64z"/>
-            </svg>
+    <!-- ====================================================================
+         FAIXA PROMOCIONAL ROTATIVA CONTÍNUA (BLACK 🔥 SJ 3D)
+         ==================================================================== -->
+    <div class="top-promo-marquee-bar" id="top-promo-marquee-bar" role="region" aria-label="Avisos e Ofertas da Loja SJ 3D">
+      <div class="top-promo-marquee-track">
+        <!-- GRUPO 1 -->
+        <div class="top-promo-marquee-group">
+          <span class="marquee-brand-badge" data-nav-cat="home" role="button" tabindex="0">
+            <span class="mb-black">BLACK</span><span class="mb-flame">🔥</span><span class="mb-brand">SJ 3D</span>
           </span>
-          <span class="sj-auth-reseller-label">Revendedor Autorizado Oficial:</span>
-          <button type="button" class="sj-brand-auth-pill bambu" data-nav-cat="impressoras" title="Ver produtos oficiais Bambu Lab">
-            <span class="brand-dot"></span>
-            <strong>Bambu Lab</strong>
-          </button>
-          <span class="sj-auth-reseller-sep">&amp;</span>
-          <button type="button" class="sj-brand-auth-pill maxprint" data-nav-cat="filamentos" title="Ver filamentos oficiais Masterprint">
-            <span class="brand-dot"></span>
-            <strong>Masterprint</strong>
-          </button>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span class="m-icon">🔥</span>
+            <span>FILAMENTO BÁSICO A PARTIR DE <strong class="m-highlight">R$ 79,90</strong></span>
+          </span>
+          <span class="marquee-sep">🔥</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>PETG A PARTIR DE <strong class="m-highlight">R$ 59,90</strong></span>
+          </span>
+          <span class="marquee-sep">🚚</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>FRETE GRÁTIS PARA <strong class="m-highlight-city">UMUARAMA</strong> A PARTIR DE <strong class="m-highlight">3 FILAMENTOS</strong></span>
+          </span>
+          <span class="marquee-sep">🔥</span>
+          <span class="marquee-item" data-nav-cat="impressoras" role="button" tabindex="0">
+            <span>IMPRESSORAS 3D BAMBU LAB COM <strong class="m-highlight">PRONTA ENTREGA</strong></span>
+          </span>
+          <span class="marquee-sep">🛡️</span>
+          <span class="marquee-item" data-nav-cat="home" role="button" tabindex="0">
+            <span>REVENDA AUTORIZADA OFICIAL <strong class="m-highlight-brand">BAMBU LAB &amp; MASTERPRINT</strong></span>
+          </span>
+          <span class="marquee-sep">✨</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>+120 CORES E OPÇÕES DE FILAMENTOS DISPONÍVEIS</span>
+          </span>
         </div>
-        <div class="sj-auth-reseller-right">
-          <span>📍 Loja Física em Umuarama - PR • Pronta Entrega &amp; Garantia Oficial</span>
+
+        <!-- GRUPO 2 (DUPLICADO PARA LOOPING INFINITO 100% CONTÍNUO E SEM PARAR) -->
+        <div class="top-promo-marquee-group" aria-hidden="true">
+          <span class="marquee-brand-badge" data-nav-cat="home" role="button" tabindex="0">
+            <span class="mb-black">BLACK</span><span class="mb-flame">🔥</span><span class="mb-brand">SJ 3D</span>
+          </span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span class="m-icon">🔥</span>
+            <span>FILAMENTO BÁSICO A PARTIR DE <strong class="m-highlight">R$ 79,90</strong></span>
+          </span>
+          <span class="marquee-sep">🔥</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>PETG A PARTIR DE <strong class="m-highlight">R$ 59,90</strong></span>
+          </span>
+          <span class="marquee-sep">🚚</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>FRETE GRÁTIS PARA <strong class="m-highlight-city">UMUARAMA</strong> A PARTIR DE <strong class="m-highlight">3 FILAMENTOS</strong></span>
+          </span>
+          <span class="marquee-sep">🔥</span>
+          <span class="marquee-item" data-nav-cat="impressoras" role="button" tabindex="0">
+            <span>IMPRESSORAS 3D BAMBU LAB COM <strong class="m-highlight">PRONTA ENTREGA</strong></span>
+          </span>
+          <span class="marquee-sep">🛡️</span>
+          <span class="marquee-item" data-nav-cat="home" role="button" tabindex="0">
+            <span>REVENDA AUTORIZADA OFICIAL <strong class="m-highlight-brand">BAMBU LAB &amp; MASTERPRINT</strong></span>
+          </span>
+          <span class="marquee-sep">✨</span>
+          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
+            <span>+120 CORES E OPÇÕES DE FILAMENTOS DISPONÍVEIS</span>
+          </span>
         </div>
       </div>
     </div>
