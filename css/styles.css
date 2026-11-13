@@ -162,7 +162,7 @@ button, select, input {
    ========================================================================== */
 .top-promo-marquee-bar {
   background: #000000;
-  border-bottom: 2px solid #F04E23;
+  border-bottom: 2px solid #FF5500;
   color: #ffffff;
   overflow: hidden;
   position: relative;
@@ -172,7 +172,7 @@ button, select, input {
   align-items: center;
   user-select: none;
   z-index: 55;
-  box-shadow: 0 2px 12px rgba(240, 78, 35, 0.28);
+  box-shadow: 0 2px 14px rgba(255, 85, 0, 0.35);
 }
 
 .top-promo-marquee-track {
@@ -203,24 +203,24 @@ button, select, input {
 .marquee-brand-badge {
   display: inline-flex;
   align-items: center;
-  gap: 5px;
-  background: #0c0c0e;
-  border: 1px solid rgba(240, 78, 35, 0.55);
-  border-radius: 6px;
-  padding: 3px 10px;
-  font-size: 0.82rem;
+  gap: 4px;
+  background: transparent;
+  border: none;
+  padding: 0 4px;
+  font-size: 0.88rem;
   font-weight: 900;
   letter-spacing: 0.5px;
-  box-shadow: 0 0 10px rgba(240, 78, 35, 0.3);
+  cursor: pointer;
 }
 
 .marquee-brand-badge .mb-black {
   color: #ffffff;
+  font-weight: 900;
 }
 
 .marquee-brand-badge .mb-flame {
   display: inline-block;
-  font-size: 0.95rem;
+  font-size: 1rem;
   filter: drop-shadow(0 0 6px #ff5500);
   transform: translateY(-1px);
 }
@@ -228,6 +228,7 @@ button, select, input {
 .marquee-brand-badge .mb-brand {
   color: #FF5500;
   font-weight: 900;
+  text-shadow: 0 0 10px rgba(255, 85, 0, 0.45);
 }
 
 .marquee-item {
