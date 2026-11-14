@@ -13555,6 +13555,605 @@ button.color-swatch-more:hover {
   line-height: 1.45;
 }
 
+/* ==========================================================================
+   NOVO: MENU SANDUÍCHE MOBILE (DRAWER) & COMUNIDADE WHATSAPP
+   ========================================================================== */
+
+/* 1. Botão Sanduíche no Cabeçalho */
+.mobile-menu-toggle-btn {
+  display: none; /* Oculto no desktop; ativado em telas <= 992px */
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  height: 38px;
+  padding: 0 13px;
+  background: #111116;
+  color: #ffffff;
+  border: 1px solid rgba(255, 85, 0, 0.45);
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+}
+
+.mobile-menu-toggle-btn:hover,
+.mobile-menu-toggle-btn:focus-visible {
+  background: #1c1c24;
+  border-color: #ff5500;
+  color: #ffffff;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(255, 85, 0, 0.35);
+}
+
+.mobile-menu-toggle-btn .hamburger-icon-open {
+  flex-shrink: 0;
+  color: #ff5500;
+}
+
+.mobile-menu-toggle-text {
+  letter-spacing: 0.02em;
+}
+
+/* 2. Overlay e Drawer Mobile */
+.mobile-nav-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 2100;
+  background: rgba(7, 7, 10, 0.65);
+  backdrop-filter: blur(5px);
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
+}
+
+.mobile-nav-overlay.is-open {
+  opacity: 1;
+  visibility: visible;
+}
+
+.mobile-nav-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: min(340px, 86vw);
+  z-index: 2101;
+  background: #ffffff;
+  box-shadow: 16px 0 45px rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  transform: translateX(-100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.mobile-nav-drawer.is-open {
+  transform: translateX(0);
+}
+
+/* Cabeçalho do Drawer */
+.mobile-drawer-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px 18px;
+  background: #111116;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+
+.mobile-drawer-brand {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mobile-drawer-logo {
+  height: 26px;
+  width: auto;
+  display: block;
+}
+
+.mobile-drawer-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  color: #ff5500;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.mobile-drawer-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.mobile-drawer-close-btn:hover {
+  background: #ff5500;
+  border-color: #ff5500;
+  color: #ffffff;
+}
+
+/* Banner VIP da Comunidade no topo do Drawer */
+.mobile-drawer-comm-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  padding: 12px 18px;
+  background: linear-gradient(135deg, #092c1a 0%, #0d3822 100%);
+  border-bottom: 1px solid rgba(37, 211, 102, 0.35);
+  color: #ffffff;
+  text-decoration: none;
+  flex-shrink: 0;
+  transition: background 0.2s ease;
+}
+
+.mobile-drawer-comm-banner:hover {
+  background: linear-gradient(135deg, #0d3822 0%, #124d2f 100%);
+  color: #ffffff;
+}
+
+.comm-banner-left {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.comm-banner-text strong {
+  display: block;
+  font-size: 0.81rem;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.comm-banner-text small {
+  display: block;
+  font-size: 0.71rem;
+  color: #86efac;
+}
+
+.comm-banner-btn {
+  font-size: 0.74rem;
+  font-weight: 800;
+  background: #25d366;
+  color: #052e16;
+  padding: 5px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Corpo do Drawer */
+.mobile-drawer-body {
+  flex: 1;
+  padding: 10px 0 20px;
+}
+
+.mobile-drawer-section-title {
+  font-size: 0.72rem;
+  font-weight: 800;
+  color: #71717a;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 14px 18px 6px;
+}
+
+.mobile-drawer-nav {
+  display: flex;
+  flex-direction: column;
+}
+
+.mobile-drawer-nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 18px;
+  min-height: 52px;
+  width: 100%;
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid #f4f4f5;
+  text-align: left;
+  cursor: pointer;
+  transition: all 0.16s ease;
+}
+
+.mobile-drawer-nav-item:hover {
+  background: #fafafa;
+}
+
+.mobile-drawer-nav-item.active {
+  background: rgba(255, 85, 0, 0.08);
+  border-left: 4px solid #ff5500;
+}
+
+.drawer-nav-icon {
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  width: 28px;
+  text-align: center;
+}
+
+.drawer-nav-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.drawer-nav-title {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #18181b;
+}
+
+.mobile-drawer-nav-item.active .drawer-nav-title {
+  color: #ff5500;
+  font-weight: 800;
+}
+
+.drawer-nav-sub {
+  font-size: 0.72rem;
+  color: #71717a;
+  line-height: 1.3;
+}
+
+.drawer-nav-badge {
+  font-size: 0.68rem;
+  font-weight: 800;
+  background: #ff5500;
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+.drawer-nav-arrow {
+  font-size: 1.15rem;
+  color: #a1a1aa;
+  font-weight: 400;
+}
+
+/* Card da Calculadora no Drawer */
+.mobile-drawer-tools {
+  padding: 6px 16px 12px;
+}
+
+.mobile-drawer-tool-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  background: linear-gradient(135deg, #18181b 0%, #27272a 100%);
+  border: 1px solid rgba(255, 85, 0, 0.4);
+  border-radius: 12px;
+  color: #ffffff;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.15);
+  transition: all 0.2s ease;
+}
+
+.mobile-drawer-tool-card:hover {
+  transform: translateY(-1px);
+  border-color: #ff5500;
+  box-shadow: 0 6px 18px rgba(255, 85, 0, 0.3);
+  color: #ffffff;
+}
+
+.tool-icon-box {
+  width: 38px;
+  height: 38px;
+  border-radius: 10px;
+  background: rgba(255, 85, 0, 0.18);
+  border: 1px solid rgba(255, 85, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  color: #ff5500;
+  flex-shrink: 0;
+}
+
+.tool-info-box {
+  flex: 1;
+}
+
+.tool-title-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 2px;
+}
+
+.tool-title-row strong {
+  font-size: 0.86rem;
+  color: #ffffff;
+}
+
+.tool-badge-new {
+  font-size: 0.64rem;
+  font-weight: 900;
+  background: #ff5500;
+  color: #ffffff;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+.tool-info-box small {
+  display: block;
+  font-size: 0.72rem;
+  color: #a1a1aa;
+  line-height: 1.35;
+}
+
+.tool-arrow {
+  font-size: 1.1rem;
+  color: #ff5500;
+  font-weight: 700;
+}
+
+/* Contatos e Comunidade no Drawer */
+.mobile-drawer-contact-list {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 16px;
+  gap: 8px;
+}
+
+.drawer-contact-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  color: #18181b;
+  text-decoration: none;
+  font-size: 0.8rem;
+  transition: all 0.18s ease;
+}
+
+.drawer-contact-item:hover {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+  color: #18181b;
+}
+
+.drawer-contact-item.community-highlight {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.08) 0%, rgba(20, 20, 24, 0.04) 100%);
+  border: 1.5px solid rgba(37, 211, 102, 0.45);
+}
+
+.drawer-contact-item.community-highlight:hover {
+  background: linear-gradient(135deg, rgba(37, 211, 102, 0.15) 0%, rgba(20, 20, 24, 0.06) 100%);
+  border-color: #25d366;
+}
+
+.contact-icon {
+  font-size: 1.15rem;
+  flex-shrink: 0;
+}
+
+.contact-icon.wa {
+  color: #25d366;
+  display: inline-flex;
+}
+
+.contact-info {
+  flex: 1;
+}
+
+.contact-info strong {
+  display: block;
+  font-size: 0.81rem;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.contact-info small {
+  display: block;
+  font-size: 0.71rem;
+  color: #64748b;
+  line-height: 1.25;
+}
+
+.contact-action-badge {
+  font-size: 0.72rem;
+  font-weight: 800;
+  background: #25d366;
+  color: #ffffff;
+  padding: 4px 10px;
+  border-radius: 999px;
+  white-space: nowrap;
+}
+
+/* Rodapé do Drawer */
+.mobile-drawer-footer {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-top: 1px solid #e2e8f0;
+  flex-shrink: 0;
+}
+
+.drawer-footer-text span {
+  display: block;
+  font-size: 0.73rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.drawer-footer-text small {
+  display: block;
+  font-size: 0.69rem;
+  color: #94a3b8;
+}
+
+/* 3. Card da Comunidade do WhatsApp no Rodapé da Loja */
+.sj-footer-community-card {
+  background: linear-gradient(145deg, rgba(37, 211, 102, 0.08) 0%, rgba(20, 20, 24, 0.03) 100%);
+  border: 1.5px solid rgba(37, 211, 102, 0.42);
+  border-radius: 14px;
+  padding: 16px 18px;
+  margin-top: 16px;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.09);
+  transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.sj-footer-community-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(37, 211, 102, 0.75);
+  box-shadow: 0 8px 24px rgba(37, 211, 102, 0.18);
+}
+
+.comm-card-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(37, 211, 102, 0.15);
+  color: #15803d;
+  padding: 4px 10px;
+  border-radius: 999px;
+  margin-bottom: 8px;
+}
+
+.comm-pulse-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #25d366;
+  box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.7);
+  animation: commPulseDot 2s infinite cubic-bezier(0.66, 0, 0, 1);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+@keyframes commPulseDot {
+  0% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0.75);
+  }
+  70% {
+    box-shadow: 0 0 0 7px rgba(37, 211, 102, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(37, 211, 102, 0);
+  }
+}
+
+.comm-card-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.94rem;
+  font-weight: 800;
+  color: #18181b;
+  margin: 0 0 6px 0;
+}
+
+.comm-wa-svg {
+  color: #25d366;
+  flex-shrink: 0;
+}
+
+.comm-card-desc {
+  font-size: 0.79rem;
+  color: #52525b;
+  line-height: 1.45;
+  margin: 0 0 12px 0;
+}
+
+.comm-card-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 10px 16px;
+  background: linear-gradient(135deg, #25D366 0%, #128C7E 100%);
+  color: #ffffff;
+  font-size: 0.84rem;
+  font-weight: 800;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 4px 14px rgba(37, 211, 102, 0.35);
+  transition: all 0.2s ease;
+}
+
+.comm-card-btn:hover {
+  background: linear-gradient(135deg, #2ae26e 0%, #159b8b 100%);
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(37, 211, 102, 0.5);
+  color: #ffffff;
+}
+
+/* ==========================================================================
+   4. ADAPTAÇÃO MOBILE DO CABEÇALHO (ELIMINA A ROLAGEM HORIZONTAL)
+   ========================================================================== */
+@media (max-width: 992px) {
+  /* Oculta a barra de botões que forçava deslizar o dedo para os lados */
+  .header-nav.sj-nav-dock {
+    display: none !important;
+  }
+
+  /* Exibe o botão Menu Sanduíche */
+  .mobile-menu-toggle-btn {
+    display: inline-flex !important;
+  }
+
+  /* Mantém o topo limpo, sem segunda linha de botões */
+  .header-inner {
+    flex-wrap: nowrap !important;
+    justify-content: space-between !important;
+    align-items: center !important;
+    padding-top: 10px !important;
+    padding-bottom: 10px !important;
+    gap: 8px !important;
+  }
+
+  .header-logo {
+    order: 2 !important;
+    margin: 0 auto 0 4px !important;
+  }
+
+  .mobile-menu-toggle-btn {
+    order: 1 !important;
+  }
+
+  .header-icons {
+    order: 3 !important;
+    gap: 6px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .mobile-menu-toggle-text {
+    display: none; /* Apenas ícone de 3 linhas em telas super compactas */
+  }
+
+  .mobile-menu-toggle-btn {
+    padding: 0 10px;
+    height: 36px;
+  }
+}
+
+
 
 
 

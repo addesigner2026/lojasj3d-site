@@ -5924,15 +5924,47 @@
     atualizarCaixaLateral();
   }
 
+  function abrirMobileDrawer() {
+    const drawer = document.getElementById("mobile-nav-drawer");
+    const overlay = document.getElementById("mobile-nav-overlay");
+    const toggleBtn = document.getElementById("mobile-menu-toggle-btn");
+    const closeBtn = document.getElementById("mobile-drawer-close-btn");
+    if (!drawer || !overlay) return;
+
+    drawer.classList.add("is-open");
+    overlay.classList.add("is-open");
+    drawer.setAttribute("aria-hidden", "false");
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "true");
+    document.body.style.overflow = "hidden";
+    if (closeBtn) closeBtn.focus();
+  }
+
+  function fecharMobileDrawer() {
+    const drawer = document.getElementById("mobile-nav-drawer");
+    const overlay = document.getElementById("mobile-nav-overlay");
+    const toggleBtn = document.getElementById("mobile-menu-toggle-btn");
+    if (!drawer || !overlay) return;
+
+    drawer.classList.remove("is-open");
+    overlay.classList.remove("is-open");
+    drawer.setAttribute("aria-hidden", "true");
+    if (toggleBtn) toggleBtn.setAttribute("aria-expanded", "false");
+    document.body.style.overflow = "";
+  }
+
   function navegarParaCategoria(cat, updateHistory = true) {
     state.categoriaMenu = cat;
     document.querySelectorAll(".header-nav-link[data-nav-cat]").forEach((l) => {
+      l.classList.toggle("active", l.dataset.navCat === cat);
+    });
+    document.querySelectorAll(".mobile-drawer-nav-item[data-nav-cat]").forEach((l) => {
       l.classList.toggle("active", l.dataset.navCat === cat);
     });
     const headerAccBtn = document.getElementById("header-account-btn");
     if (headerAccBtn) {
       headerAccBtn.classList.toggle("nav-active", cat === "minha-conta");
     }
+    fecharMobileDrawer();
     atualizarVisaoPrincipal();
     window.scrollTo({ top: 0, behavior: "smooth" });
 
@@ -12761,6 +12793,45 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
     document.getElementById("drawer-btn-save-order")?.addEventListener("click", () => {
       salvarPedidoOuOrcamentoCliente();
+    });
+
+    // Inicialização do Menu Sanduíche Mobile (Drawer)
+    const mobileMenuToggleBtn = document.getElementById("mobile-menu-toggle-btn");
+    const mobileDrawerCloseBtn = document.getElementById("mobile-drawer-close-btn");
+    const mobileNavOverlay = document.getElementById("mobile-nav-overlay");
+
+    mobileMenuToggleBtn?.addEventListener("click", () => {
+      const drawer = document.getElementById("mobile-nav-drawer");
+      if (drawer && drawer.classList.contains("is-open")) {
+        fecharMobileDrawer();
+      } else {
+        abrirMobileDrawer();
+      }
+    });
+
+    mobileDrawerCloseBtn?.addEventListener("click", () => {
+      fecharMobileDrawer();
+    });
+
+    mobileNavOverlay?.addEventListener("click", () => {
+      fecharMobileDrawer();
+    });
+
+    // Tecla Escape fecha o menu mobile
+    document.addEventListener("keydown", (e) => {
+      if (e.key === "Escape") {
+        const drawer = document.getElementById("mobile-nav-drawer");
+        if (drawer && drawer.classList.contains("is-open")) {
+          fecharMobileDrawer();
+        }
+      }
+    });
+
+    // Clicar em links ou botões de categoria dentro do drawer fecha o menu automaticamente
+    document.querySelectorAll(".mobile-nav-drawer a").forEach((a) => {
+      a.addEventListener("click", () => {
+        fecharMobileDrawer();
+      });
     });
   });
 })();
