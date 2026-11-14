@@ -5636,7 +5636,8 @@
 
     // Lógica de troca de slide do Hero Carousel
     function irParaSlideHero(novoIdx) {
-      const total = slidesHero.length;
+      const total = bannersHero.length;
+      if (!total) return;
       state.heroSlideAtivo = (novoIdx + total) % total;
       homeEl.querySelectorAll(".hero-slide-item").forEach((el, i) => {
         el.classList.toggle("active", i === state.heroSlideAtivo);
@@ -5667,13 +5668,14 @@
 
     // Suporte a swipe no celular (arrastar para os lados no carrossel)
     let touchStartX = 0;
-    let touchEndX = 0;
+    let touchStartY = 0;
     let isSwiping = false;
 
     sliderBox?.addEventListener(
       "touchstart",
       (e) => {
-        touchStartX = e.changedTouches[0].screenX;
+        touchStartX = e.changedTouches[0].clientX;
+        touchStartY = e.changedTouches[0].clientY;
         isSwiping = false;
         if (state.heroTimer) clearInterval(state.heroTimer);
       },
@@ -5683,7 +5685,9 @@
     sliderBox?.addEventListener(
       "touchmove",
       (e) => {
-        if (Math.abs(e.changedTouches[0].screenX - touchStartX) > 10) {
+        const deltaX = Math.abs(e.changedTouches[0].clientX - touchStartX);
+        const deltaY = Math.abs(e.changedTouches[0].clientY - touchStartY);
+        if (deltaX > 10 && deltaX > deltaY) {
           isSwiping = true;
         }
       },
@@ -5693,17 +5697,23 @@
     sliderBox?.addEventListener(
       "touchend",
       (e) => {
-        touchEndX = e.changedTouches[0].screenX;
+        touchEndX = e.changedTouches[0].clientX;
         iniciarAutoSlide();
         const deltaX = touchStartX - touchEndX;
-        if (deltaX > 45) {
-          irParaSlideHero(state.heroSlideAtivo + 1);
-        } else if (deltaX < -45) {
-          irParaSlideHero(state.heroSlideAtivo - 1);
+        if (Math.abs(deltaX) > 40) {
+          if (deltaX > 0) {
+            irParaSlideHero(state.heroSlideAtivo + 1);
+          } else {
+            irParaSlideHero(state.heroSlideAtivo - 1);
+          }
+          setTimeout(() => {
+            isSwiping = false;
+          }, 250);
+        } else {
+          setTimeout(() => {
+            isSwiping = false;
+          }, 60);
         }
-        setTimeout(() => {
-          isSwiping = false;
-        }, 120);
       },
       { passive: true }
     );
@@ -5732,6 +5742,7 @@
       el.addEventListener("click", (e) => {
         if (isSwiping) {
           e.preventDefault();
+          e.stopPropagation();
           return;
         }
         abrirPaginaProduto(el.dataset.homeOpenItem);
