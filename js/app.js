@@ -765,12 +765,12 @@
       exibirBannerSecaoImpressoras: true,
       exibirCuponsCarrinho: true,
       estilo: "sorteio",
-      badge: "A MAIOR BLACK FRIDAY DA LOJA SJ",
+      badge: "🔥 BLACK SJ 3D • GRANDE SORTEIO",
       dataSorteio: "SORTEIO: 20 DE DEZEMBRO (DOMINGO) • LIVE AO VIVO",
-      tituloKicker: "GRANDE PRÊMIO DE NATAL LOJA SJ 3D",
-      tituloPrincipal: "SORTEIO <em>A1 MINI</em>",
-      subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS",
-      precoDestaque: "Ganhe até 10 cupons na compra da sua Impressora 3D!",
+      tituloKicker: "REVENDA AUTORIZADA OFICIAL",
+      tituloPrincipal: "SORTEIO <em>BAMBU LAB A1 MINI</em>",
+      subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS INCLUSO",
+      precoDestaque: "A CADA FILAMENTO = 1 CUPOM • A CADA IMPRESSORA = 10 CUPONS",
       imagemFundo: "assets/produtos/banner-sorteio-natal-wide.jpg",
       btn1Texto: "Garantir Meus Cupons no WhatsApp →",
       btn1Url:
@@ -5295,41 +5295,42 @@
     const slidePromocional = {
       fullBleedRaffle: true,
       styleBg: gerarEstiloBgBannerPromocao(cfgBan.imagemFundo),
-      badge: cfgBan.badge || "🎁 SORTEIO OFICIAL",
-      dataSorteio: cfgBan.dataSorteio,
-      tituloRaffleKicker: "",
+      badge: cfgBan.badge || "🔥 BLACK SJ 3D • GRANDE SORTEIO",
+      dataSorteio: cfgBan.dataSorteio || "SORTEIO: 20 DE DEZEMBRO • AO VIVO",
+      tituloRaffleKicker: "REVENDA AUTORIZADA OFICIAL",
       tituloRaffleMain: cfgBan.tituloPrincipal || "SORTEIO <em>BAMBU LAB A1 MINI</em>",
-      tituloRaffleSub: cfgBan.subtituloPremio || "+ KIT COM 4 KG DE FILAMENTOS",
-      precoDestaque: "",
+      tituloRaffleSub: cfgBan.subtituloPremio || "+ KIT COM 4 KG DE FILAMENTOS INCLUSO",
+      precoDestaque: "A CADA FILAMENTO = 1 CUPOM • A CADA IMPRESSORA = 10 CUPONS",
       resumoCurtoSorteio: "",
-      btn1Texto: cfgBan.btn1Texto || "Mais Informações no WhatsApp →",
+      btn1Texto: cfgBan.btn1Texto || "Garantir Cupons no WhatsApp →",
       btn1Whatsapp: cfgBan.btn1Url || "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
-      abrirModalRegras: false
+      abrirModalRegras: true,
+      btn2Texto: "✨ Regulamento do Sorteio"
     };
 
     const slidesFixos = [
       {
-        badge: "ALTA PERFORMANCE • 4 CABEÇOTES & COREXY",
-        titulo: "Snapmaker U1 & Bambu Lab P2S Combo",
+        badge: "🔥 OFERTAS ESPECIAIS • FILAMENTOS",
+        titulo: "Filamentos <em>PLA &amp; PETG</em>",
         subtitulo:
-          "Impressoras 3D fechadas de alta precisão. Até 10x sem juros ou desconto especial à vista.",
-        precoDestaque: "A partir de R$ 8.849,00 à vista",
-        btn1Texto: "Ver Snapmaker U1 →",
-        btn1Item: "imp-snapmaker",
-        btn2Texto: "Ver Impressoras",
-        btn2Cat: "impressoras",
-        img1: "assets/produtos/impressora-snapmaker_u1.jpg",
-        img1Label: "Snapmaker U1 (4 Cabeçotes)",
-        img2: "assets/produtos/impressora-p2s_combo.jpg",
-        img2Label: "Bambu Lab P2S Combo"
+          "Masterprint &amp; Bambu Lab RFID: mais de 80 cores oficiais à pronta entrega em Umuarama com nota fiscal.",
+        precoDestaque: "⚡ PLA a partir de R$ 79,90 • PETG R$ 59,90 • Frete Grátis Umuarama a partir de 5 un.",
+        btn1Texto: "Ver Todos os Filamentos →",
+        btn1Cat: "filamentos",
+        btn2Texto: "Ver PLA Silk Metálico",
+        btn2Item: "fil-silk-maxprint",
+        img1: "assets/produtos/pla-bambulab.jpg",
+        img1Label: "PLA Bambu Lab RFID",
+        img2: "assets/produtos/pla-maxprint.jpg",
+        img2Label: "PLA Masterprint"
       },
       {
-        badge: "CAMPEÃS DE VENDAS • LINHA A1",
-        titulo: "Bambu Lab A1 Mini & A1 Combo",
+        badge: "🏆 CAMPEÃS DE VENDAS • BAMBU LAB",
+        titulo: "Bambu Lab <em>Linha A1 &amp; Combo</em>",
         subtitulo:
-          "Calibração 100% automática, alta velocidade de até 500 mm/s e sistema multicor com leitura RFID.",
-        precoDestaque: "A1 Mini a partir de R$ 1.961,00 à vista (ou 10x de R$ 217,90)",
-        btn1Texto: "Conhecer Linha A1 →",
+          "Calibração 100% automática, alta velocidade de até 500 mm/s e sistema multicor inteligente AMS Lite.",
+        precoDestaque: "A1 Mini a partir de R$ 1.961,00 à vista (ou em até 10x sem juros no cartão)",
+        btn1Texto: "Comprar Linha A1 →",
         btn1Item: "imp-bambu-a1-combo",
         btn2Texto: "Ver A1 Mini",
         btn2Item: "imp-bambu-a1-mini",
@@ -5339,19 +5340,19 @@
         img2Label: "Bambu Lab A1 Mini Combo"
       },
       {
-        badge: "CATÁLOGO OFICIAL • +80 CORES",
-        titulo: "Filamentos Masterprint & Bambu Lab RFID",
+        badge: "🚀 ALTA PERFORMANCE • 4 CABEÇOTES &amp; COREXY",
+        titulo: "Snapmaker U1 &amp; <em>P2S Combo</em>",
         subtitulo:
-          "Mais de 80 cores oficiais à pronta entrega: PLA Silk Dual/Rainbow, PETG, TPU e Bobinas/Refis RFID.",
-        precoDestaque: "Filamentos 1 kg a partir de R$ 59,90",
-        btn1Texto: "Ver Filamentos →",
-        btn1Cat: "filamentos",
-        btn2Texto: "Ver PLA Silk",
-        btn2Item: "fil-silk-maxprint",
-        img1: "assets/produtos/filamentos/cod_137.png?v=20261108_05",
-        img1Label: "PLA Bambu Lab RFID",
-        img2: "assets/produtos/pla-maxprint.jpg",
-        img2Label: "PLA Masterprint"
+          "Impressoras 3D fechadas de alta precisão para engenharia e prototipagem industrial. Pronta entrega.",
+        precoDestaque: "A partir de R$ 8.849,00 à vista (ou em até 10x sem juros)",
+        btn1Texto: "Ver Snapmaker U1 →",
+        btn1Item: "imp-snapmaker",
+        btn2Texto: "Ver Todas as Impressoras",
+        btn2Cat: "impressoras",
+        img1: "assets/produtos/impressora-snapmaker_u1.jpg",
+        img1Label: "Snapmaker U1 (4 Cabeçotes)",
+        img2: "assets/produtos/impressora-p2s_combo.jpg",
+        img2Label: "Bambu Lab P2S Combo"
       }
     ];
 
@@ -5501,19 +5502,27 @@
                 : ""
             }
                   <div class="hero-slide-actions">
-                    ${s.btn1Whatsapp
-              ? `<a href="${s.btn1Whatsapp}" target="_blank" rel="noopener" class="hero-btn-primary">${s.btn1Texto}</a>`
-              : s.btn1Item
-                ? `<button type="button" class="hero-btn-primary" data-home-open-item="${s.btn1Item}">${s.btn1Texto}</button>`
-                : `<button type="button" class="hero-btn-primary" data-home-go-cat="${s.btn1Cat}">${s.btn1Texto}</button>`
+                    ${s.btn1Texto
+              ? s.btn1Whatsapp
+                ? `<a href="${s.btn1Whatsapp}" target="_blank" rel="noopener" class="hero-btn-primary">${s.btn1Texto}</a>`
+                : s.btn1Item
+                  ? `<button type="button" class="hero-btn-primary" data-home-open-item="${s.btn1Item}">${s.btn1Texto}</button>`
+                  : s.btn1Cat
+                    ? `<button type="button" class="hero-btn-primary" data-home-go-cat="${s.btn1Cat}">${s.btn1Texto}</button>`
+                    : ""
+              : ""
             }
                     ${s.abrirModalRegras
-              ? `<button type="button" class="btn-raffle-saiba-mais" data-open-raffle-modal="1">✨ Saiba Mais / Como Participar</button>`
-              : s.btn2Url
-                ? `<a href="${s.btn2Url}" target="_blank" rel="noopener" class="hero-btn-secondary">${s.btn2Texto}</a>`
-                : s.btn2Item
-                  ? `<button type="button" class="hero-btn-secondary" data-home-open-item="${s.btn2Item}">${s.btn2Texto}</button>`
-                  : `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
+              ? `<button type="button" class="btn-raffle-saiba-mais" data-open-raffle-modal="1">${s.btn2Texto || "✨ Saiba Mais / Regulamento"}</button>`
+              : s.btn2Texto
+                ? s.btn2Url
+                  ? `<a href="${s.btn2Url}" target="_blank" rel="noopener" class="hero-btn-secondary">${s.btn2Texto}</a>`
+                  : s.btn2Item
+                    ? `<button type="button" class="hero-btn-secondary" data-home-open-item="${s.btn2Item}">${s.btn2Texto}</button>`
+                    : s.btn2Cat
+                      ? `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
+                      : ""
+                : ""
             }
                   </div>
                 </div>

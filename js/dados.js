@@ -39,17 +39,17 @@ window.SITE_DATA = {
     exibirBannerSecaoImpressoras: true,
     exibirCuponsCarrinho: true,
     estilo: "sorteio", // "sorteio" ou "promocao"
-    badge: "🎁 SORTEIO OFICIAL",
+    badge: "🔥 BLACK SJ 3D • GRANDE SORTEIO",
     dataSorteio: "SORTEIO: 20 DE DEZEMBRO",
-    tituloKicker: "",
+    tituloKicker: "REVENDA AUTORIZADA OFICIAL",
     tituloPrincipal: "SORTEIO <em>BAMBU LAB A1 MINI</em>",
-    subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS",
+    subtituloPremio: "+ KIT COM 4 KG DE FILAMENTOS INCLUSO",
     descricaoCurta: "Participe do nosso sorteio oficial e concorra a uma Impressora 3D Bambu Lab A1 Mini completa!",
-    precoDestaque: "",
+    precoDestaque: "A CADA FILAMENTO = 1 CUPOM • A CADA IMPRESSORA = 10 CUPONS",
     imagemFundo: "assets/produtos/banner-sorteio-natal-wide.jpg",
-    btn1Texto: "Mais Informações no WhatsApp →",
+    btn1Texto: "Garantir Cupons no WhatsApp →",
     btn1Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
-    btn2Texto: "",
+    btn2Texto: "Regulamento do Sorteio",
     btn2Url: "",
     regrasCards: [
       {
