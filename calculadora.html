@@ -5,6 +5,18 @@
   <meta charset="UTF-8" />
   <base href="/" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Guardião Canônico Oficial — Garante sempre www.lojasj3d.com.br e impede domínios da Vercel -->
+  <script>
+    (function () {
+      try {
+        var h = window.location.hostname;
+        if (h && (h.indexOf("vercel.app") !== -1 || h === "lojasj3d.com.br")) {
+          window.location.replace("https://www.lojasj3d.com.br" + window.location.pathname + window.location.search + window.location.hash);
+        }
+      } catch (_) {}
+    })();
+  </script>
   <title>⚡ Calculadora 3D &amp; Precificador Oficial (Taxas 2026) • Loja SJ 3D</title>
   <meta name="description" content="Calculadora de precificação profissional para impressão 3D da Loja SJ 3D. Taxas reais de Mercado Livre, Shopee e TikTok Shop 2026, cálculo de filamento, energia e lucro limpo." />
   <meta name="robots" content="index, follow" />
@@ -1068,7 +1080,7 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261113_02"></script>
+  <script src="js/supabase-client.js?v=20261114_01"></script>
   <script type="module" src="js/calculadora/calc-app.js?v=20261114_02"></script>
 </body>
 

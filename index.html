@@ -5,6 +5,18 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 
+  <!-- Guardião Canônico Oficial — Garante sempre www.lojasj3d.com.br e impede domínios da Vercel -->
+  <script>
+    (function () {
+      try {
+        var h = window.location.hostname;
+        if (h && (h.indexOf("vercel.app") !== -1 || h === "lojasj3d.com.br")) {
+          window.location.replace("https://www.lojasj3d.com.br" + window.location.pathname + window.location.search + window.location.hash);
+        }
+      } catch (_) {}
+    })();
+  </script>
+
   <!-- SEO LOCAL UMUARAMA & REGIÃO -->
   <title>Loja SJ 3D | Filamentos Bambu Lab e Masterprint, Impressoras 3D, Peças e Manutenção em Umuarama - PR</title>
   <meta name="description"
@@ -3342,10 +3354,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261113_02"></script>
+  <script src="js/supabase-client.js?v=20261114_01"></script>
   <script src="js/dados.js?v=20261114_04"></script>
   <script src="js/database.js?v=20261113_02"></script>
-  <script src="js/app.js?v=20261114_07"></script>
+  <script src="js/app.js?v=20261114_08"></script>
 </body>
 
 </html>

@@ -235,7 +235,10 @@
       }
 
       try {
-        const redirectTo = window.location.origin + window.location.pathname;
+        const baseOrigin = (typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("lojasj3d.com.br")))
+          ? "https://www.lojasj3d.com.br"
+          : (window.location.origin || "");
+        const redirectTo = baseOrigin + (window.location.pathname || "/");
         const { data, error } = await client.auth.signInWithOAuth({
           provider: "google",
           options: {

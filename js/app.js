@@ -1469,6 +1469,13 @@
     modal.style.display = "flex";
     modal.setAttribute("aria-hidden", "false");
     document.body.style.overflow = "hidden";
+
+    if (window.history && window.history.pushState) {
+      const hashAtual = abaInicial === "signup" ? "#cadastro" : (abaInicial === "login" ? "#login" : "#cadastro");
+      if (window.location.hash !== hashAtual) {
+        window.history.pushState({ modal: "auth", aba: abaInicial }, "", hashAtual);
+      }
+    }
   }
 
   function fecharModalAuthCliente() {
@@ -1477,6 +1484,15 @@
     modal.style.display = "none";
     modal.setAttribute("aria-hidden", "true");
     document.body.style.overflow = "";
+
+    if (window.history && window.history.replaceState) {
+      if (window.location.hash === "#cadastro" || window.location.hash === "#login") {
+        const hashRetorno = state.categoriaMenu && state.categoriaMenu !== "home"
+          ? `#${state.categoriaMenu}`
+          : "#home";
+        window.history.replaceState({ view: "cat", cat: state.categoriaMenu || "home" }, "", hashRetorno);
+      }
+    }
   }
 
   function abrirModalPoliticaPrivacidade() {
@@ -1740,8 +1756,18 @@
     const btnClose = document.getElementById("close-client-auth-btn");
     const modal = document.getElementById("modal-client-auth");
 
-    tabLogin?.addEventListener("click", () => alternarAbaAuthCliente("login"));
-    tabSignup?.addEventListener("click", () => alternarAbaAuthCliente("signup"));
+    tabLogin?.addEventListener("click", () => {
+      alternarAbaAuthCliente("login");
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({ modal: "auth", aba: "login" }, "", "#login");
+      }
+    });
+    tabSignup?.addEventListener("click", () => {
+      alternarAbaAuthCliente("signup");
+      if (window.history && window.history.replaceState) {
+        window.history.replaceState({ modal: "auth", aba: "signup" }, "", "#cadastro");
+      }
+    });
     btnClose?.addEventListener("click", fecharModalAuthCliente);
     modal?.addEventListener("click", (e) => {
       if (e.target.id === "modal-client-auth") fecharModalAuthCliente();
@@ -5875,7 +5901,8 @@
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (updateHistory && window.history && window.history.pushState) {
-      window.history.pushState({ view: "cat", cat }, "", cat === "home" ? "#home" : (cat === "minha-conta" ? "#minha-conta" : `#cat-${cat}`));
+      const hashDestino = cat === "home" ? "#home" : `#${cat}`;
+      window.history.pushState({ view: "cat", cat }, "", hashDestino);
     }
   }
 
@@ -5894,10 +5921,11 @@
     }
 
     if (updateHistory && window.history && window.history.pushState) {
+      const hashDestino = state.categoriaMenu === "home" ? "#home" : `#${state.categoriaMenu}`;
       window.history.pushState(
         { view: "cat", cat: state.categoriaMenu },
         "",
-        state.categoriaMenu === "home" ? "#home" : `#cat-${state.categoriaMenu}`
+        hashDestino
       );
     }
   }
@@ -12238,8 +12266,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         return false;
       }
 
-      // Se estiver no site público (index.html) e acessar via hash #admin ou #login
-      const ehHashAdmin = hash === "#admin" || hash === "#login" || hash === "#painel";
+      // Se estiver no site público (index.html) e acessar via hash #admin ou #painel
+      const ehHashAdmin = hash === "#admin" || hash === "#painel";
       if (ehHashAdmin) {
         window.location.href = "admin.html";
         return true;
@@ -12258,14 +12286,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       } else if (initialHash.startsWith("#cat-")) {
         const cat = initialHash.replace("#cat-", "");
         navegarParaCategoria(cat, false);
+      } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo"].includes(initialHash)) {
+        const cat = initialHash.replace("#", "");
+        navegarParaCategoria(cat, false);
+      } else if (initialHash === "#cadastro" || initialHash === "#signup") {
+        abrirModalAuthCliente("signup");
+      } else if (initialHash === "#login" || initialHash === "#entrar") {
+        abrirModalAuthCliente("login");
       } else if (
         initialHash === "#minha-conta" ||
         initialHash === "#conta" ||
-        initialHash === "#dados" ||
-        initialHash === "#cadastro"
+        initialHash === "#dados"
       ) {
         navegarParaCategoria("minha-conta", false);
-        if (initialHash === "#dados" || initialHash === "#cadastro") {
+        if (initialHash === "#dados") {
           renderizarAreaCliente("dados");
         }
       }
@@ -12287,6 +12321,19 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         return;
       }
 
+      if (hash === "#cadastro" || hash === "#signup") {
+        abrirModalAuthCliente("signup");
+        return;
+      } else if (hash === "#login" || hash === "#entrar") {
+        abrirModalAuthCliente("login");
+        return;
+      } else {
+        const modalAuth = document.getElementById("modal-client-auth");
+        if (modalAuth && modalAuth.style.display !== "none") {
+          fecharModalAuthCliente();
+        }
+      }
+
       const stateObj = e.state;
       if (stateObj && stateObj.view === "pdp" && stateObj.itemId) {
         abrirPaginaProduto(stateObj.itemId, null, false);
@@ -12301,15 +12348,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const cat = hash.replace("#cat-", "");
           fecharPaginaProduto(false, false);
           navegarParaCategoria(cat, false);
+        } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo"].includes(hash)) {
+          const cat = hash.replace("#", "");
+          fecharPaginaProduto(false, false);
+          navegarParaCategoria(cat, false);
         } else if (
           hash === "#minha-conta" ||
           hash === "#conta" ||
-          hash === "#dados" ||
-          hash === "#cadastro"
+          hash === "#dados"
         ) {
           fecharPaginaProduto(false, false);
           navegarParaCategoria("minha-conta", false);
-          if (hash === "#dados" || hash === "#cadastro") {
+          if (hash === "#dados") {
             renderizarAreaCliente("dados");
           }
         } else {
