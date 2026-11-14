@@ -5310,49 +5310,56 @@
 
     const slidesFixos = [
       {
-        badge: "🔥 OFERTAS ESPECIAIS • FILAMENTOS",
-        titulo: "Filamentos <em>PLA &amp; PETG</em>",
+        badge: "🔥 PROMOÇÃO POR TEMPO LIMITADO",
+        titulo: "Filamento 3D <em>PLA Basic</em>",
         subtitulo:
-          "Masterprint &amp; Bambu Lab RFID: mais de 80 cores oficiais à pronta entrega em Umuarama com nota fiscal.",
-        precoDestaque: "⚡ PLA a partir de R$ 79,90 • PETG R$ 59,90 • Frete Grátis Umuarama a partir de 5 un.",
-        btn1Texto: "Ver Todos os Filamentos →",
-        btn1Cat: "filamentos",
-        btn2Texto: "Ver PLA Silk Metálico",
-        btn2Item: "fil-silk-maxprint",
-        img1: "assets/produtos/pla-bambulab.jpg",
-        img1Label: "PLA Bambu Lab RFID",
-        img2: "assets/produtos/pla-maxprint.jpg",
-        img2Label: "PLA Masterprint"
+          "Mais de 50 cores oficiais à pronta entrega em Umuarama. Diâmetro uniforme 1.75mm e alta adesão.",
+        precoDestaque: "A partir de R$ 79,90 no PIX (ou R$ 74,90 acima de 4 un.)",
+        btn1Texto: "Comprar PLA Basic →",
+        btn1Item: "fil-pla-maxprint",
+        btn2Texto: "Ver Todos os Filamentos",
+        btn2Cat: "filamentos",
+        imgUnica: "assets/produtos/pla-maxprint.jpg",
+        img1Label: "Filamento PLA 1.75mm (1 kg)"
       },
       {
-        badge: "🏆 CAMPEÃS DE VENDAS • BAMBU LAB",
-        titulo: "Bambu Lab <em>Linha A1 &amp; Combo</em>",
+        badge: "⚡ PRONTA ENTREGA • CAMPEÃ DE VENDAS",
+        titulo: "Bambu Lab <em>A1 Mini</em>",
         subtitulo:
-          "Calibração 100% automática, alta velocidade de até 500 mm/s e sistema multicor inteligente AMS Lite.",
-        precoDestaque: "A1 Mini a partir de R$ 1.961,00 à vista (ou em até 10x sem juros no cartão)",
-        btn1Texto: "Comprar Linha A1 →",
+          "Calibração 100% automática, alta velocidade de 500 mm/s e sensor ativo de cancelamento de ruído.",
+        precoDestaque: "R$ 1.961,00 à vista no PIX (ou 10x de R$ 217,90)",
+        btn1Texto: "Garantir Minha A1 Mini →",
+        btn1Item: "imp-bambu-a1-mini",
+        btn2Texto: "Ver Versão Combo (AMS)",
+        btn2Item: "imp-bambu-a1-mini-combo",
+        imgUnica: "assets/produtos/impressora-a1_mini.jpg",
+        img1Label: "Bambu Lab A1 Mini"
+      },
+      {
+        badge: "🎨 MULTICOR INTELIGENTE • 4 CORES",
+        titulo: "Bambu Lab <em>A1 Combo</em>",
+        subtitulo:
+          "Área de 256×256×256 mm³ com sistema AMS Lite para 4 cores automático e bico de troca rápida.",
+        precoDestaque: "R$ 4.049,00 à vista no PIX (ou 10x de R$ 449,90)",
+        btn1Texto: "Comprar A1 Combo →",
         btn1Item: "imp-bambu-a1-combo",
-        btn2Texto: "Ver A1 Mini",
-        btn2Item: "imp-bambu-a1-mini",
-        img1: "assets/produtos/impressora-a1_combo.jpg",
-        img1Label: "Bambu Lab A1 Combo",
-        img2: "assets/produtos/impressora-a1_mini_combo.jpg",
-        img2Label: "Bambu Lab A1 Mini Combo"
-      },
-      {
-        badge: "🚀 ALTA PERFORMANCE • 4 CABEÇOTES &amp; COREXY",
-        titulo: "Snapmaker U1 &amp; <em>P2S Combo</em>",
-        subtitulo:
-          "Impressoras 3D fechadas de alta precisão para engenharia e prototipagem industrial. Pronta entrega.",
-        precoDestaque: "A partir de R$ 8.849,00 à vista (ou em até 10x sem juros)",
-        btn1Texto: "Ver Snapmaker U1 →",
-        btn1Item: "imp-snapmaker",
         btn2Texto: "Ver Todas as Impressoras",
         btn2Cat: "impressoras",
-        img1: "assets/produtos/impressora-snapmaker_u1.jpg",
-        img1Label: "Snapmaker U1 (4 Cabeçotes)",
-        img2: "assets/produtos/impressora-p2s_combo.jpg",
-        img2Label: "Bambu Lab P2S Combo"
+        imgUnica: "assets/produtos/impressora-a1_combo.jpg",
+        img1Label: "Bambu Lab A1 Combo"
+      },
+      {
+        badge: "🚀 ALTA PERFORMANCE • 4 CABEÇOTES",
+        titulo: "Snapmaker <em>U1</em>",
+        subtitulo:
+          "Multicolor avançado com 4 extrusoras independentes para velocidade máxima e zero desperdício.",
+        precoDestaque: "R$ 9.991,00 à vista no PIX (ou 10x de R$ 1.099,00)",
+        btn1Texto: "Ver Snapmaker U1 →",
+        btn1Item: "imp-snapmaker",
+        btn2Texto: "Falar no WhatsApp",
+        btn2Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Quero%20saber%20mais%20sobre%20a%20Snapmaker%20U1.",
+        imgUnica: "assets/produtos/impressora-snapmaker_u1.jpg",
+        img1Label: "Snapmaker U1 (4 Cabeçotes)"
       }
     ];
 
@@ -5533,8 +5540,9 @@
                       <div class="hero-slide-visuals ${s.imgUnica ? "single-visual" : ""}">
                         ${s.imgUnica
                 ? `
-                              <div class="hero-visual-card single" data-home-go-cat="impressoras">
-                                <img src="${s.imgUnica}" alt="${s.img1Label}" />
+                              <div class="hero-visual-card single" ${s.btn1Item ? `data-home-open-item="${s.btn1Item}"` : `data-home-go-cat="${s.btn1Cat || "impressoras"}"`}>
+                                <img src="${s.imgUnica}" alt="${s.img1Label || ""}" />
+                                ${s.img1Label ? `<span>${s.img1Label}</span>` : ""}
                               </div>
                             `
                 : `
