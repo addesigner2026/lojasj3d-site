@@ -3307,8 +3307,11 @@ select:focus-visible {
   opacity: 0 !important;
   visibility: hidden !important;
   pointer-events: none !important;
-  transition: opacity 0.4s ease-in-out, transform 0.4s ease-out, visibility 0.4s;
-  transform: scale(1.006);
+  transition: opacity 0.7s cubic-bezier(0.25, 1, 0.5, 1), transform 0.75s cubic-bezier(0.25, 1, 0.5, 1), visibility 0.7s;
+  transform: scale(1.018);
+  will-change: opacity, transform;
+  -webkit-backface-visibility: hidden;
+  backface-visibility: hidden;
   border: none !important;
   background: transparent !important;
   box-sizing: border-box !important;

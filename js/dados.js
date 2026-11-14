@@ -93,6 +93,33 @@ window.SITE_DATA = {
       mobilePng: "assets/banners/mobile/02-a1-mini-combo.png"
     },
     {
+      id: "banner-pla-masterprint",
+      itemId: "fil-pla-maxprint",
+      titulo: "Filamento PLA Masterprint — 51 Cores a pronta entrega em Umuarama",
+      desktopWebp: "assets/banners/desktop/02-pla.webp",
+      desktopPng: "assets/banners/desktop/02-pla.png",
+      mobileWebp: "assets/banners/mobile/02-pla.webp",
+      mobilePng: "assets/banners/mobile/02-pla.png"
+    },
+    {
+      id: "banner-pla-bambu-lab",
+      itemId: "fil-pla-bambulab",
+      titulo: "Filamento PLA Bambu Lab Original com Chip RFID para AMS — Carretel e Refil",
+      desktopWebp: "assets/banners/desktop/03-pla-bambu-lab.webp",
+      desktopPng: "assets/banners/desktop/03-pla-bambu-lab.png",
+      mobileWebp: "assets/banners/mobile/03-pla-bambu-lab.webp",
+      mobilePng: "assets/banners/mobile/03-pla-bambu-lab.png"
+    },
+    {
+      id: "banner-petg-masterprint",
+      itemId: "fil-petg-maxprint",
+      titulo: "Filamento PETG Masterprint de Alta Resistência Mecânica e Térmica",
+      desktopWebp: "assets/banners/desktop/01-petg.webp",
+      desktopPng: "assets/banners/desktop/01-petg.png",
+      mobileWebp: "assets/banners/mobile/01-petg.webp",
+      mobilePng: "assets/banners/mobile/01-petg.png"
+    },
+    {
       id: "banner-a1",
       itemId: "imp-bambu-a1-normal",
       titulo: "Bambu Lab A1 — R$ 2.699,00 à vista no PIX ou 10x de R$ 303,00",

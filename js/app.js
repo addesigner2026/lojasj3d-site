@@ -5655,7 +5655,7 @@
         if (state.categoriaMenu === "home" && !state.produtoDetalheAtivo) {
           irParaSlideHero(state.heroSlideAtivo + 1);
         }
-      }, 5000);
+      }, 5500);
     }
 
     iniciarAutoSlide();
@@ -5720,13 +5720,16 @@
 
     document.getElementById("hero-prev-btn")?.addEventListener("click", () => {
       irParaSlideHero(state.heroSlideAtivo - 1);
+      iniciarAutoSlide();
     });
     document.getElementById("hero-next-btn")?.addEventListener("click", () => {
       irParaSlideHero(state.heroSlideAtivo + 1);
+      iniciarAutoSlide();
     });
     homeEl.querySelectorAll("[data-hero-dot]").forEach((dot) => {
       dot.addEventListener("click", () => {
         irParaSlideHero(Number(dot.dataset.heroDot));
+        iniciarAutoSlide();
       });
     });
 

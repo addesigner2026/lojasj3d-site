@@ -1,6 +1,6 @@
 {
   "versao": "1.0.0",
-  "atualizadoEm": "2026-11-05T21:57:48.951Z",
+  "atualizadoEm": "2026-11-14T22:59:26.587Z",
   "usuarios": [
     {
       "id": "usr-admin-1",
@@ -28,6 +28,31 @@
     }
   ],
   "clientes": [
+    {
+      "id": "8bd1c2e7-2fd6-480b-88b4-9814021fcbed",
+      "nome": "Jose Thiago Santana",
+      "cnpjCpf": "",
+      "cpf": "",
+      "inscricaoEstadual": "",
+      "precisaNotaFiscal": false,
+      "cep": "",
+      "logradouro": "",
+      "numero": "",
+      "complemento": "",
+      "bairro": "",
+      "cidade": "",
+      "uf": "",
+      "whatsapp": "",
+      "endereco": "",
+      "bairroCidadeUf": "",
+      "cepTelefone": "",
+      "email": "sjosethiago.r@gmail.com",
+      "origem": "Cadastro no Site",
+      "observacoes": "",
+      "cadastroAprovado": false,
+      "criadoEm": "2026-11-14T22:59:26.586Z",
+      "atualizadoEm": "2026-11-14T22:59:26.569Z"
+    },
     {
       "id": "cli-1793912650193",
       "nome": "JOSE THIAGO RIBEIRO",
