@@ -13,6 +13,18 @@
       "ativo": true,
       "criadoEm": "2026-11-04T17:00:00.000Z",
       "ultimoLogin": "2026-11-05T02:24:44.595Z"
+    },
+    {
+      "id": "usr-admin-2",
+      "nome": "José Thiago",
+      "email": "jt.designer21@gmail.com",
+      "senhaHash": "8d969eef6ecad3c29a3a629280e686cf0c3f5d5a86aff3ca12020c923adc6c92",
+      "cargo": "Administrador",
+      "tipo": "admin",
+      "foto": null,
+      "ativo": true,
+      "criadoEm": "2026-11-14T11:00:00.000Z",
+      "ultimoLogin": "2026-11-14T11:00:00.000Z"
     }
   ],
   "clientes": [
@@ -185,5 +197,13 @@
       ],
       "statusAtualizadoEm": "2026-11-04T20:23:20.678Z"
     }
-  ]
+  ],
+  "calculadora": {
+    "solicitacoes": [],
+    "aprovados": [
+      "jt.designer21@gmail.com",
+      "ad.design2050@gmail.com",
+      "contato@gruposj.com.br"
+    ]
+  }
 }

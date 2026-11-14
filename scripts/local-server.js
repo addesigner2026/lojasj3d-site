@@ -542,6 +542,77 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
+    // 10. Gestão de Acessos da Calculadora 3D
+    if (pathname === "/api/calc/acessos" && req.method === "GET") {
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      responderJson(res, 200, {
+        sucesso: true,
+        solicitacoes: db.calculadora.solicitacoes || [],
+        aprovados: db.calculadora.aprovados || []
+      });
+      return;
+    }
+
+    if (pathname === "/api/calc/solicitar" && req.method === "POST") {
+      const body = await lerCorpoRequisicao(req);
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
+      if (body && body.email) {
+        const emailLower = String(body.email).toLowerCase().trim();
+        db.calculadora.solicitacoes = db.calculadora.solicitacoes.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+        db.calculadora.solicitacoes.unshift({
+          id: "solic-" + Date.now(),
+          nome: String(body.nome || "").trim(),
+          email: emailLower,
+          whatsapp: String(body.whatsapp || "").trim(),
+          data: new Date().toISOString()
+        });
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: "Solicitação registrada com sucesso!" });
+      } else {
+        responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
+      }
+      return;
+    }
+
+    if (pathname === "/api/calc/aprovar" && req.method === "POST") {
+      const body = await lerCorpoRequisicao(req);
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora.aprovados = db.calculadora.aprovados || [];
+      db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
+      if (body && body.email) {
+        const emailLower = String(body.email).toLowerCase().trim();
+        if (!db.calculadora.aprovados.includes(emailLower)) {
+          db.calculadora.aprovados.push(emailLower);
+        }
+        db.calculadora.solicitacoes = db.calculadora.solicitacoes.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: `Acesso liberado com sucesso para ${emailLower}` });
+      } else {
+        responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
+      }
+      return;
+    }
+
+    if (pathname === "/api/calc/revogar" && req.method === "POST") {
+      const body = await lerCorpoRequisicao(req);
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora.aprovados = db.calculadora.aprovados || [];
+      if (body && body.email) {
+        const emailLower = String(body.email).toLowerCase().trim();
+        if (["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"].includes(emailLower)) {
+          responderJson(res, 400, { sucesso: false, mensagem: "Não é permitido revogar um administrador mestre." });
+          return;
+        }
+        db.calculadora.aprovados = db.calculadora.aprovados.filter(e => e.toLowerCase().trim() !== emailLower);
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: `Acesso revogado com sucesso para ${emailLower}` });
+      } else {
+        responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
+      }
+      return;
+    }
+
     responderJson(res, 404, { erro: "Rota de API não encontrada" });
     return;
   }

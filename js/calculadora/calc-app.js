@@ -1803,6 +1803,45 @@ function setupEventListeners() {
 const CALC_AUTH_STORAGE_KEY = 'sj_calc_auth_v1';
 const ADMIN_EMAILS = ['jt.designer21@gmail.com', 'ad.design2050@gmail.com', 'contato@gruposj.com.br'];
 
+function isAdminUser(user) {
+  if (!user || !user.email) return false;
+  const emailLower = String(user.email).toLowerCase().trim();
+  return ADMIN_EMAILS.includes(emailLower) || user.role === 'admin' || user.tipo === 'admin';
+}
+
+function getApprovedCalcEmailsLocal() {
+  try {
+    const raw = localStorage.getItem('sj_calc_aprovados');
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) {
+        return [...new Set([...ADMIN_EMAILS, ...arr.map(e => String(e).toLowerCase().trim())])];
+      }
+    }
+  } catch (_) {}
+  return [...ADMIN_EMAILS];
+}
+
+function addApprovedCalcEmailLocal(email) {
+  try {
+    const list = getApprovedCalcEmailsLocal();
+    const emailLower = String(email).toLowerCase().trim();
+    if (!list.includes(emailLower)) {
+      list.push(emailLower);
+    }
+    localStorage.setItem('sj_calc_aprovados', JSON.stringify(list));
+  } catch (_) {}
+}
+
+function removeApprovedCalcEmailLocal(email) {
+  try {
+    const list = getApprovedCalcEmailsLocal();
+    const emailLower = String(email).toLowerCase().trim();
+    const filtered = list.filter(e => e !== emailLower);
+    localStorage.setItem('sj_calc_aprovados', JSON.stringify(filtered));
+  } catch (_) {}
+}
+
 function getCalcAuthUser() {
   try {
     const raw = localStorage.getItem(CALC_AUTH_STORAGE_KEY);
@@ -1829,7 +1868,248 @@ function isUserApprovedForCalc(user) {
   if (ADMIN_EMAILS.includes(emailLower)) return true;
   if (user.role === 'admin' || user.tipo === 'operador' || user.tipo === 'admin') return true;
   if (user.status === 'approved' || user.acesso_calculadora === true) return true;
+  const locais = getApprovedCalcEmailsLocal();
+  if (locais.includes(emailLower)) return true;
   return false;
+}
+
+// =========================================================================
+// GESTÃO DE ACESSOS E APROVAÇÃO (EXCLUSIVO PARA ADMIN: JT.DESIGNER21)
+// =========================================================================
+async function carregarListaAcessosCompleta() {
+  let solicitacoes = [];
+  let aprovados = getApprovedCalcEmailsLocal();
+
+  // 1. Tenta carregar do backend local
+  try {
+    const res = await fetch('/api/calc/acessos');
+    if (res.ok) {
+      const data = await res.json();
+      if (data && data.sucesso) {
+        if (Array.isArray(data.solicitacoes)) {
+          solicitacoes = data.solicitacoes;
+          localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(solicitacoes));
+        }
+        if (Array.isArray(data.aprovados)) {
+          aprovados = [...new Set([...aprovados, ...data.aprovados.map(e => String(e).toLowerCase().trim())])];
+          localStorage.setItem('sj_calc_aprovados', JSON.stringify(aprovados));
+        }
+      }
+    }
+  } catch (_) {
+    // Modo offline / sem servidor: usa localStorage
+  }
+
+  // 2. Mescla com localStorage para nunca perder solicitações feitas localmente
+  try {
+    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
+    if (Array.isArray(saved) && saved.length > 0) {
+      const mapa = new Map();
+      solicitacoes.forEach(s => mapa.set(s.email?.toLowerCase().trim(), s));
+      saved.forEach(s => {
+        const k = s.email?.toLowerCase().trim();
+        if (k && !mapa.has(k)) {
+          mapa.set(k, s);
+        }
+      });
+      solicitacoes = Array.from(mapa.values());
+    }
+  } catch (_) {}
+
+  // Remove da lista de pendentes quem já foi aprovado
+  solicitacoes = solicitacoes.filter(s => !aprovados.includes(s.email?.toLowerCase().trim()));
+
+  return { solicitacoes, aprovados };
+}
+
+async function atualizarBadgePendentes() {
+  try {
+    const { solicitacoes } = await carregarListaAcessosCompleta();
+    const count = solicitacoes.length;
+    const badgeHeader = document.getElementById('calc-pending-count-badge');
+    const badgeModal = document.getElementById('calc-admin-badge-pendentes');
+
+    if (badgeHeader) {
+      badgeHeader.textContent = count;
+      badgeHeader.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+    if (badgeModal) {
+      badgeModal.textContent = count;
+      badgeModal.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  } catch (_) {}
+}
+
+async function aprovarAcessoCalc(email, nome = '') {
+  if (!email) return;
+  const emailLower = String(email).toLowerCase().trim();
+
+  addApprovedCalcEmailLocal(emailLower);
+
+  // Remove das pendências no localStorage
+  try {
+    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
+    const filtrados = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(filtrados));
+  } catch (_) {}
+
+  // Envia ao servidor se disponível
+  try {
+    await fetch('/api/calc/aprovar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailLower, nome })
+    });
+  } catch (_) {}
+
+  showToast(`Acesso liberado com sucesso para ${emailLower}!`, '✅');
+  await carregarERenderizarAcessos();
+  await atualizarBadgePendentes();
+}
+
+async function revogarAcessoCalc(email) {
+  if (!email) return;
+  const emailLower = String(email).toLowerCase().trim();
+
+  if (ADMIN_EMAILS.includes(emailLower)) {
+    alert('Não é permitido revogar um administrador mestre.');
+    return;
+  }
+
+  if (!confirm(`Deseja realmente revogar o acesso do e-mail ${emailLower}?`)) {
+    return;
+  }
+
+  removeApprovedCalcEmailLocal(emailLower);
+
+  // Envia ao servidor se disponível
+  try {
+    await fetch('/api/calc/revogar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailLower })
+    });
+  } catch (_) {}
+
+  showToast(`Acesso revogado para ${emailLower}.`, '🚫');
+  await carregarERenderizarAcessos();
+  await atualizarBadgePendentes();
+}
+
+async function rejeitarSolicitacaoCalc(email) {
+  if (!email) return;
+  const emailLower = String(email).toLowerCase().trim();
+
+  try {
+    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
+    const filtrados = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(filtrados));
+  } catch (_) {}
+
+  showToast(`Solicitação de ${emailLower} removida.`, '🗑️');
+  await carregarERenderizarAcessos();
+  await atualizarBadgePendentes();
+}
+
+async function carregarERenderizarAcessos() {
+  const containerSolic = document.getElementById('calc-admin-solicitacoes-list');
+  const containerAprov = document.getElementById('calc-admin-aprovados-list');
+  const badgeAprov = document.getElementById('calc-admin-badge-aprovados');
+
+  if (containerSolic) {
+    containerSolic.innerHTML = '<div style="color:#71717a; font-size:0.8rem; text-align:center; padding:12px;">Carregando dados...</div>';
+  }
+
+  const { solicitacoes, aprovados } = await carregarListaAcessosCompleta();
+
+  // 1. Renderiza Solicitações Pendentes
+  if (containerSolic) {
+    if (solicitacoes.length === 0) {
+      containerSolic.innerHTML = `
+        <div class="admin-empty-state">
+          Nenhuma solicitação de acesso pendente no momento.
+        </div>
+      `;
+    } else {
+      containerSolic.innerHTML = solicitacoes.map(item => {
+        const dataFmt = item.data ? new Date(item.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Recente';
+        const numWa = String(item.whatsapp || '').replace(/\D/g, '');
+        const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent('Olá ' + (item.nome || '') + '! Vi sua solicitação para a Calculadora 3D da Loja SJ.')}` : '';
+
+        return `
+          <div class="admin-item-row">
+            <div class="admin-item-info">
+              <div class="admin-item-name">${item.nome || 'Solicitante Sem Nome'}</div>
+              <div class="admin-item-email">${item.email}</div>
+              <div class="admin-item-meta">
+                <span>📅 ${dataFmt}</span>
+                ${numWa ? `<span>• 📞 ${item.whatsapp}</span>` : ''}
+              </div>
+            </div>
+            <div class="admin-item-actions">
+              ${linkWa ? `<a href="${linkWa}" target="_blank" class="btn-admin-action wa" title="Conversar no WhatsApp">💬 WhatsApp</a>` : ''}
+              <button type="button" class="btn-admin-action approve btn-aprovar-item" data-email="${item.email}" data-nome="${item.nome || ''}">
+                ✅ Liberar Acesso
+              </button>
+              <button type="button" class="btn-admin-action reject btn-rejeitar-item" data-email="${item.email}" title="Recusar">
+                ✕
+              </button>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      containerSolic.querySelectorAll('.btn-aprovar-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const email = btn.getAttribute('data-email');
+          const nome = btn.getAttribute('data-nome');
+          aprovarAcessoCalc(email, nome);
+        });
+      });
+
+      containerSolic.querySelectorAll('.btn-rejeitar-item').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const email = btn.getAttribute('data-email');
+          rejeitarSolicitacaoCalc(email);
+        });
+      });
+    }
+  }
+
+  // 2. Renderiza Aprovados
+  if (containerAprov) {
+    if (badgeAprov) badgeAprov.textContent = aprovados.length;
+    containerAprov.innerHTML = aprovados.map(email => {
+      const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
+      return `
+        <div class="admin-item-row">
+          <div class="admin-item-info">
+            <div class="admin-item-email" style="font-size:0.82rem; font-weight:700; color:#ffffff;">${email}</div>
+            <div class="admin-item-meta">
+              <span style="color:#10b981; font-weight:800;">● Acesso Ativo</span>
+              ${isAdmin ? '<span style="color:#f59e0b; font-weight:800;">• Administrador Master</span>' : ''}
+            </div>
+          </div>
+          <div class="admin-item-actions">
+            ${isAdmin ? `
+              <span style="font-size:0.7rem; color:#71717a; font-weight:700;">Protegido</span>
+            ` : `
+              <button type="button" class="btn-admin-action reject btn-revogar-item" data-email="${email}">
+                🚫 Revogar Acesso
+              </button>
+            `}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    containerAprov.querySelectorAll('.btn-revogar-item').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-email');
+        revogarAcessoCalc(email);
+      });
+    });
+  }
 }
 
 async function checkAuthAndRenderUI() {
@@ -1838,6 +2118,8 @@ async function checkAuthAndRenderUI() {
   const userPill = document.getElementById('calc-user-pill');
   const userEmailEl = document.getElementById('calc-user-email');
   const logoutBtn = document.getElementById('calc-btn-logout');
+  const btnAdminAccess = document.getElementById('btn-calc-admin-access');
+  const adminCurrentEmail = document.getElementById('calc-admin-current-email');
 
   // 1. Verifica se há sessão no Supabase Auth
   let supaUser = null;
@@ -1853,8 +2135,26 @@ async function checkAuthAndRenderUI() {
     if (gateEl) gateEl.style.display = 'none';
     if (mainEl) mainEl.style.display = 'block';
 
+    const isAdm = isAdminUser(currentUser);
+
     if (userPill) userPill.style.display = 'inline-flex';
-    if (userEmailEl) userEmailEl.textContent = currentUser.email || 'Operador Autorizado';
+    if (userEmailEl) {
+      userEmailEl.textContent = isAdm ? `${currentUser.email} (Admin)` : (currentUser.email || 'Autorizado');
+    }
+    if (adminCurrentEmail && currentUser.email) {
+      adminCurrentEmail.textContent = currentUser.email;
+    }
+
+    // Exibe botão de Liberar Acessos exclusivamente para administradores
+    if (btnAdminAccess) {
+      if (isAdm) {
+        btnAdminAccess.style.display = 'inline-flex';
+        atualizarBadgePendentes();
+      } else {
+        btnAdminAccess.style.display = 'none';
+      }
+    }
+
     if (logoutBtn) {
       logoutBtn.style.display = 'inline-flex';
       logoutBtn.onclick = async () => {
@@ -1879,7 +2179,7 @@ async function checkAuthAndRenderUI() {
             ⚠️ <strong>Acesso em Análise (${currentUser.email})</strong><br>
             Sua conta de cliente não possui permissão ativa para o Precificador 3D. O acesso é exclusivo para operadores e parceiros autorizados.<br>
             <div style="margin-top:8px; display:flex; gap:8px;">
-              <a href="https://wa.me/5544991351318?text=${encodeURIComponent('Olá, criei conta no site com o e-mail ' + currentUser.email + ' e gostaria de solicitar liberação do Precificador 3D.')}" target="_blank" style="background:#22c55e; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:800; text-decoration:none; font-size:0.75rem;">📲 Solicitar no WhatsApp</a>
+              <a href="https://wa.me/5544991351318?text=${encodeURIComponent('Olá, solicitei liberação da Calculadora 3D com o e-mail ' + currentUser.email + '.')}" target="_blank" style="background:#22c55e; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:800; text-decoration:none; font-size:0.75rem;">📲 Solicitar no WhatsApp</a>
               <button type="button" id="btn-gate-switch-user" style="background:transparent; border:1px solid #71717a; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.75rem;">Sair / Trocar Conta</button>
             </div>
           </div>
@@ -1907,6 +2207,59 @@ function setupAuthGateListeners() {
   const formLogin = document.getElementById('form-calc-gate-login');
   const formRegister = document.getElementById('form-calc-gate-register');
   const feedback = document.getElementById('calc-gate-feedback');
+
+  // Modal de Administração de Acessos
+  const adminModal = document.getElementById('modal-calc-admin-access');
+  const btnOpenAdmin = document.getElementById('btn-calc-admin-access');
+  const btnCloseAdmin = document.getElementById('close-admin-modal');
+  const btnRefreshAcessos = document.getElementById('btn-refresh-acessos');
+  const formManual = document.getElementById('form-admin-liberar-manual');
+
+  if (btnOpenAdmin && adminModal) {
+    btnOpenAdmin.addEventListener('click', () => {
+      adminModal.style.display = 'flex';
+      carregarERenderizarAcessos();
+    });
+  }
+
+  if (btnCloseAdmin && adminModal) {
+    btnCloseAdmin.addEventListener('click', () => {
+      adminModal.style.display = 'none';
+    });
+  }
+
+  if (adminModal) {
+    adminModal.addEventListener('click', (e) => {
+      if (e.target === adminModal) {
+        adminModal.style.display = 'none';
+      }
+    });
+  }
+
+  if (btnRefreshAcessos) {
+    btnRefreshAcessos.addEventListener('click', () => {
+      carregarERenderizarAcessos();
+      atualizarBadgePendentes();
+      showToast('Lista de acessos atualizada.', '🔄');
+    });
+  }
+
+  if (formManual) {
+    formManual.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const input = document.getElementById('input-admin-liberar-email');
+      const email = input?.value?.trim();
+      const fb = document.getElementById('feedback-admin-manual');
+      if (!email) return;
+
+      await aprovarAcessoCalc(email, 'Cadastrado Manualmente');
+      if (input) input.value = '';
+      if (fb) {
+        fb.innerHTML = `<span style="color:#10b981; font-size:0.78rem; font-weight:700;">✅ E-mail ${email} autorizado com sucesso!</span>`;
+        setTimeout(() => { if (fb) fb.innerHTML = ''; }, 4000);
+      }
+    });
+  }
 
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
@@ -1953,13 +2306,13 @@ function setupAuthGateListeners() {
         // 2. Validação direta para contas Administradoras Master (caso offline ou sem Supabase)
         const emailLower = email.toLowerCase();
         if (!authSuccess && ADMIN_EMAILS.includes(emailLower)) {
-          // Senha master da oficina
           authSuccess = true;
           userData = {
             id: 'usr-admin-' + Date.now(),
             email: email,
             nome: 'Administrador Oficial Loja SJ',
             role: 'admin',
+            tipo: 'admin',
             status: 'approved'
           };
         }
@@ -1990,7 +2343,7 @@ function setupAuthGateListeners() {
 
   // Register / Solicitar Ativação Form Submit
   if (formRegister) {
-    formRegister.addEventListener('submit', (e) => {
+    formRegister.addEventListener('submit', async (e) => {
       e.preventDefault();
       const nome = document.getElementById('calc-reg-nome')?.value.trim();
       const whatsapp = document.getElementById('calc-reg-whatsapp')?.value.trim();
@@ -2012,13 +2365,22 @@ function setupAuthGateListeners() {
         localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(saved));
       } catch (_) {}
 
-      const msgWa = encodeURIComponent(`Olá Loja SJ 3D! Solicitei ativação do Precificador 3D.\n*Nome:* ${nome}\n*E-mail:* ${email}\n*WhatsApp:* ${whatsapp}`);
+      // Tenta enviar para o backend se disponível
+      try {
+        await fetch('/api/calc/solicitar', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(pendente)
+        });
+      } catch (_) {}
+
+      const msgWa = encodeURIComponent(`Olá Loja SJ 3D! Solicitei ativação da Calculadora 3D.\n*Nome:* ${nome}\n*E-mail:* ${email}\n*WhatsApp:* ${whatsapp}`);
 
       if (feedback) {
         feedback.innerHTML = `
           <div style="background:rgba(16,185,129,0.12); border:1px solid #10b981; color:#34d399; padding:12px 14px; border-radius:8px; font-size:0.8rem; line-height:1.45; text-align:left; margin-bottom:14px;">
             ✅ <strong>Solicitação enviada com sucesso!</strong><br>
-            Seus dados foram registrados para aprovação. Para agilizar a liberação imediata, envie uma mensagem no WhatsApp oficial da loja:<br>
+            Seus dados foram registrados para aprovação pelo administrador. Para agilizar a liberação imediata, envie uma mensagem no WhatsApp da oficina:<br>
             <a href="https://wa.me/5544991351318?text=${msgWa}" target="_blank" style="display:inline-block; margin-top:8px; background:#22c55e; color:#ffffff; padding:7px 12px; border-radius:6px; font-weight:800; text-decoration:none;">📲 Confirmar no WhatsApp (44) 99135-1318</a>
           </div>
         `;
