@@ -1,0 +1,963 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <meta charset="UTF-8" />
+  <base href="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>⚡ Calculadora 3D &amp; Precificador Oficial (Taxas 2026) • Loja SJ 3D</title>
+  <meta name="description" content="Calculadora de precificação profissional para impressão 3D da Loja SJ 3D. Taxas reais de Mercado Livre, Shopee e TikTok Shop 2026, cálculo de filamento, energia e lucro limpo." />
+  <meta name="robots" content="index, follow" />
+  <link rel="icon" type="image/png" href="assets/img/icone-laranja.png" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/calculadora.css?v=20261114_01" />
+</head>
+
+<body class="calc-page-body">
+
+  <!-- Efeitos de iluminação ambiente -->
+  <div class="bg-ambient-1"></div>
+  <div class="bg-ambient-2"></div>
+
+  <!-- ====================================================================
+       CABEÇALHO OFICIAL LOJA SJ 3D
+       ==================================================================== -->
+  <header class="calc-header">
+    <div class="calc-header-inner">
+      <a href="/" class="calc-brand-group" title="Voltar para a Loja SJ 3D">
+        <div class="calc-brand-logo-badge">SJ</div>
+        <div class="calc-brand-text">
+          <div class="calc-brand-title">LOJA SJ <span>3D</span></div>
+          <div class="calc-brand-sub">Precificador &amp; Engenharia de Custos 2026</div>
+        </div>
+      </a>
+
+      <nav class="calc-header-nav" aria-label="Ações do Precificador">
+        <a href="/" class="calc-nav-btn" title="Ir para a Loja Oficial">
+          <span>🏪</span>
+          <span>Loja Pública</span>
+        </a>
+        <button type="button" id="btn-reset-calc" class="calc-nav-btn" title="Zerar valores e iniciar nova peça">
+          <span>🔄</span>
+          <span>Nova Peça</span>
+        </button>
+        <button type="button" id="btn-history" class="calc-nav-btn" title="Histórico de Cálculos Salvos">
+          <span>🕒</span>
+          <span>Histórico</span>
+        </button>
+        <button type="button" id="btn-prefs" class="calc-nav-btn" title="Preferências Globais">
+          <span>⚙️</span>
+          <span>Ajustes</span>
+        </button>
+        <button type="button" id="btn-copy-summary" class="calc-nav-btn" title="Copiar Resumo para WhatsApp">
+          <span>📋</span>
+          <span>Copiar</span>
+        </button>
+        <button type="button" id="btn-save-calc" class="calc-nav-btn primary" title="Salvar Peça no Histórico">
+          <span>💾</span>
+          <span>Salvar</span>
+        </button>
+
+        <span id="calc-user-pill" class="calc-user-pill" style="display: none;">
+          <span>🟢</span>
+          <span id="calc-user-email">Autorizado</span>
+        </span>
+
+        <button type="button" id="calc-btn-logout" class="calc-nav-btn" style="display: none;" title="Sair da conta">
+          <span>🚪</span>
+          <span>Sair</span>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ====================================================================
+       GATE DE AUTENTICAÇÃO INDEPENDENTE (ACESSO RESTRITO)
+       Clientes normais da loja NÃO têm acesso automático sem aprovação
+       ==================================================================== -->
+  <div id="calc-auth-gate" class="calc-auth-gate-wrapper" style="display: flex;">
+    <div class="calc-auth-gate-card">
+      <div class="calc-gate-header">
+        <span class="calc-gate-badge">⚡ Módulo Exclusivo</span>
+        <h2 class="calc-gate-title">Precificador 3D Loja SJ</h2>
+        <p class="calc-gate-desc">
+          Plataforma de alta precisão com taxas 2026 (Shopee, Mercado Livre, TikTok Shop e Balcão). Acesso restrito a operadores e parceiros autorizados.
+        </p>
+      </div>
+
+      <div class="calc-gate-tabs" role="tablist">
+        <button type="button" class="btn-calc-gate-tab active" data-calc-gate-tab="login" role="tab">🔐 Entrar no Sistema</button>
+        <button type="button" class="btn-calc-gate-tab" data-calc-gate-tab="register" role="tab">📨 Solicitar Ativação</button>
+      </div>
+
+      <!-- Feedback de status / erros -->
+      <div id="calc-gate-feedback"></div>
+
+      <!-- Formulário 1: Login de Usuário Autorizado -->
+      <form id="form-calc-gate-login" style="display: block;">
+        <div class="calc-gate-form-group">
+          <label class="calc-gate-label" for="calc-gate-email">E-mail Autorizado</label>
+          <input type="email" id="calc-gate-email" class="calc-gate-input" placeholder="seu-email@dominio.com" autocomplete="username" required />
+        </div>
+
+        <div class="calc-gate-form-group">
+          <label class="calc-gate-label" for="calc-gate-senha">Senha de Acesso</label>
+          <input type="password" id="calc-gate-senha" class="calc-gate-input" placeholder="Digite sua senha" autocomplete="current-password" required />
+        </div>
+
+        <button type="submit" id="btn-calc-gate-login" class="btn-calc-gate-submit">
+          <span>Acessar Precificador 3D</span>
+          <span>→</span>
+        </button>
+      </form>
+
+      <!-- Formulário 2: Solicitar Ativação / Primeiro Acesso -->
+      <form id="form-calc-gate-register" style="display: none;">
+        <div class="calc-gate-form-group">
+          <label class="calc-gate-label" for="calc-reg-nome">Nome Completo</label>
+          <input type="text" id="calc-reg-nome" class="calc-gate-input" placeholder="Seu nome ou nome da sua oficina" required />
+        </div>
+
+        <div class="calc-gate-form-group">
+          <label class="calc-gate-label" for="calc-reg-whatsapp">WhatsApp (com DDD)</label>
+          <input type="tel" id="calc-reg-whatsapp" class="calc-gate-input" placeholder="(44) 99999-9999" required />
+        </div>
+
+        <div class="calc-gate-form-group">
+          <label class="calc-gate-label" for="calc-reg-email">E-mail para Liberação</label>
+          <input type="email" id="calc-reg-email" class="calc-gate-input" placeholder="seu-email@exemplo.com" required />
+        </div>
+
+        <button type="submit" id="btn-calc-gate-register" class="btn-calc-gate-submit">
+          <span>Enviar Solicitação de Acesso</span>
+          <span>📨</span>
+        </button>
+      </form>
+
+      <div class="calc-gate-footer-links">
+        <a href="/">← Voltar para a Loja Pública Loja SJ 3D</a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ====================================================================
+       APLICAÇÃO COMPLETA DA CALCULADORA (LIBERADA APÓS AUTORIZAÇÃO)
+       ==================================================================== -->
+  <main id="calc-app-main" class="calc-container" style="display: none;">
+    <!-- Hero / Título -->
+    <div class="calc-hero">
+      <div class="calc-hero-tag">
+        <span class="pulse-dot"></span>
+        <span>Taxas Oficiais Shopee &amp; Mercado Livre · Atualizado 2026</span>
+      </div>
+      <h1 class="calc-hero-title">Calculadora de Precificação <span>3D</span></h1>
+      <p class="calc-hero-sub">
+        Taxas reais. Margem real. Do custo de filamento e energia até o lucro líquido no seu bolso.
+      </p>
+    </div>
+
+    <div class="calculator-grid">
+
+      <!-- PASSO 1: DADOS DA PEÇA & CUSTO DE FABRICAÇÃO -->
+      <div class="card card-production-step" id="card-step-production">
+        <div class="card-header">
+          <div class="step-badge">1 · A PEÇA &amp; CUSTO DE PRODUÇÃO</div>
+          <button type="button" id="btn-quick-reset" class="btn-ghost" style="padding: 4px 10px; font-size: 11px;">
+            Limpar
+          </button>
+        </div>
+
+        <!-- G-Code & 3MF Drag & Drop Zone -->
+        <div class="gcode-dropzone" id="gcode-dropzone">
+          <input type="file" id="gcode-file-input" accept=".gcode,.3mf,.gcode.3mf,.stl" style="display: none;" />
+          <div class="dropzone-inner">
+            <div class="dropzone-icon">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="17 8 12 3 7 8" />
+                <line x1="12" y1="3" x2="12" y2="15" />
+              </svg>
+            </div>
+            <div class="dropzone-text-group">
+              <div class="dropzone-title">
+                <strong>Arraste seu arquivo fatiado (.gcode ou .3mf)</strong>
+                <span class="dropzone-badge">Bambu · Orca · Cura · Prusa</span>
+              </div>
+              <p class="dropzone-sub">
+                Preenche peso e tempo automaticamente do fatiador, ou digite abaixo:
+              </p>
+            </div>
+            <button type="button" id="btn-browse-gcode" class="btn-ghost dropzone-btn">
+              Selecionar
+            </button>
+          </div>
+          <div id="dropzone-status" class="dropzone-status" style="display: none;">
+            <span id="dropzone-status-icon">✓</span>
+            <span id="dropzone-status-text">Arquivo importado com sucesso!</span>
+          </div>
+          <div id="dropzone-tip" class="dropzone-tip-box" style="display: none;"></div>
+        </div>
+
+        <!-- Campos Diretos da Peça -->
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label" for="weight-input">
+              <span>Peso da Peça</span>
+              <span class="label-hint">Com suportes</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="weight-input" class="form-input has-suffix" min="0" max="10000" value="" placeholder="0" />
+              <span class="input-suffix">gramas</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="filament-price-input">
+              <span>Preço do Filamento</span>
+              <span class="label-hint">Carretel 1kg</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="number" id="filament-price-input" class="form-input has-prefix" step="1.00" value="79.90" />
+              <span class="input-suffix">/kg</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="hours-input">
+              <span>Tempo (Horas)</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="hours-input" class="form-input has-suffix" min="0" max="200" value="" placeholder="0" />
+              <span class="input-suffix">h</span>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="form-label" for="minutes-input">
+              <span>Tempo (Minutos)</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="minutes-input" class="form-input has-suffix" min="0" max="59" value="" placeholder="0" />
+              <span class="input-suffix">min</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Formação de Kit / Quantidade -->
+        <div style="margin-top: 14px; padding-top: 14px; border-top: 1px solid var(--border-subtle);">
+          <div class="form-group full-width">
+            <label class="form-label" for="batch-qty-input">
+              <span>📦 Formação de Kit ou Quantidade</span>
+              <span class="label-hint">Multiplica toda a equação de custo automaticamente</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="batch-qty-input" class="form-input has-suffix" min="1" max="10000" value="1" />
+              <span class="input-suffix">unidades</span>
+            </div>
+            <div class="quick-pills batch-quick-pills">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Kits:</span>
+              <button type="button" class="quick-pill batch-pill active" data-qty="1">1 un (Unitário)</button>
+              <button type="button" class="quick-pill batch-pill" data-qty="2">Kit com 2</button>
+              <button type="button" class="quick-pill batch-pill" data-qty="3">Kit com 3</button>
+              <button type="button" class="quick-pill batch-pill" data-qty="4">Kit com 4</button>
+              <button type="button" class="quick-pill batch-pill" data-qty="5">Kit com 5</button>
+              <button type="button" class="quick-pill batch-pill" data-qty="10">Kit com 10</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Card de Custo de Fabricação Claro -->
+        <div class="production-equation-box" id="prod-equation-box">
+          <div class="production-equation-header">
+            <span class="production-equation-title">💰 CUSTO TOTAL DE FABRICAÇÃO</span>
+            <span id="prod-equation-badge" class="production-multiplier-badge">1 UNIDADE</span>
+          </div>
+
+          <div class="production-total-row">
+            <div>
+              <div class="production-total-label">Custo para produzir esta peça</div>
+              <div style="font-size: 11px; color: var(--text-dim); margin-top: 2px;">
+                Matéria-prima, energia elétrica e insumos reais
+              </div>
+            </div>
+            <div class="production-total-value mono" id="prod-total-cost">R$ 0,00</div>
+          </div>
+          <div id="prod-unit-hint" style="display: none; font-size: 11px; color: var(--sj-orange); margin-top: 8px;"></div>
+
+          <div class="production-breakdown-grid">
+            <div class="breakdown-item">
+              <div class="breakdown-label">🧵 Filamento</div>
+              <div class="breakdown-value mono" id="prod-filament-cost">R$ 0,00</div>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-label">⚡ Energia Elétrica</div>
+              <div class="breakdown-value mono" id="prod-energy-cost">R$ 0,00</div>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-label">📦 Embalagem &amp; Envio</div>
+              <div class="breakdown-value mono" id="prod-pack-cost">R$ 0,00</div>
+            </div>
+            <div class="breakdown-item">
+              <div class="breakdown-label">⚙️ Bico &amp; Manutenção</div>
+              <div class="breakdown-value mono" id="prod-deprec-cost">R$ 0,00</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: AJUSTES AVANÇADOS DE OFICINA (COLLAPSIBLE) -->
+      <div class="card card-settings-collapsible">
+        <button type="button" class="collapsible-trigger">
+          <span class="step-badge" style="color: var(--text-dim);">⚙️ AJUSTES AVANÇADOS DE OFICINA (OPCIONAL)</span>
+          <span class="collapsible-icon">▼</span>
+        </button>
+
+        <div class="collapsible-content">
+          <p style="font-size: 11.5px; color: var(--text-dim); margin-bottom: 12px;">
+            Valores pré-configurados com médias do mercado brasileiro. Altere apenas se desejar calibrar:
+          </p>
+          <div class="form-grid">
+            <div class="form-group full-width">
+              <label class="form-label" for="product-name-input">
+                <span>Nome ou Referência da Peça</span>
+              </label>
+              <input type="text" id="product-name-input" class="form-input" value="" placeholder="Ex: Vaso Geométrico, Suporte Alexa, Chaveiro..." />
+            </div>
+
+            <div class="form-group full-width">
+              <label class="form-label" for="printer-select">
+                <span>Impressora 3D (Consumo Elétrico)</span>
+              </label>
+              <select id="printer-select" class="form-select"></select>
+            </div>
+
+            <div class="form-group full-width" id="watts-row" style="display: none;">
+              <label class="form-label" for="printer-watts-input">
+                <span>Potência Média (Watts)</span>
+              </label>
+              <input type="number" id="printer-watts-input" class="form-input" value="120" min="20" max="1000" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="filament-select">
+                <span>Tipo de Material</span>
+              </label>
+              <select id="filament-select" class="form-select"></select>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="kwh-cost-input">
+                <span>Tarifa de Energia (R$/kWh)</span>
+              </label>
+              <input type="number" id="kwh-cost-input" class="form-input" step="0.05" value="0.85" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="packaging-input">
+                <span>Custo de Embalagem (Caixa/Saco)</span>
+              </label>
+              <input type="number" id="packaging-input" class="form-input" step="0.10" value="1.50" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="insumos-input">
+                <span>Insumos Extras (Ímãs, Parafusos)</span>
+              </label>
+              <input type="number" id="insumos-input" class="form-input" step="0.50" value="0.00" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="machine-cost-input">
+                <span>Desgaste do Bico/Máquina (R$/hora)</span>
+              </label>
+              <input type="number" id="machine-cost-input" class="form-input" step="0.20" value="0.50" />
+            </div>
+
+            <div class="form-group">
+              <label class="form-label" for="tax-percent-input">
+                <span>Alíquota de Imposto MEI/Simples (%)</span>
+              </label>
+              <input type="number" id="tax-percent-input" class="form-input" step="0.5" value="6.0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 2: ONDE VOCÊ VAI VENDER? -->
+      <div class="card" id="card-step-marketplace">
+        <div class="card-header">
+          <div class="step-badge">2 · ONDE VOCÊ VAI VENDER?</div>
+          <span id="batch-active-badge" class="production-multiplier-badge" style="display: none;">Kit Ativo</span>
+        </div>
+
+        <div class="marketplace-tabs">
+          <!-- Mercado Livre -->
+          <div class="mp-tab active" data-mp="ml_premium" id="tab-ml">
+            <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="6" fill="#FFE600" />
+              <path d="M5.5 13.5L9 16.5L13.5 11.5L18.5 15" stroke="#2D3277" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+            </svg>
+            <div class="mp-tab-text">
+              <span class="mp-tab-title">Mercado Livre</span>
+              <span class="mp-tab-sub">19% Premium / 14%</span>
+            </div>
+          </div>
+
+          <!-- Shopee -->
+          <div class="mp-tab" data-mp="shopee_fge" id="tab-shopee">
+            <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="6" fill="#EE4D2D" />
+              <path d="M8.5 7.5C8.5 5.57 10.07 4 12 4C13.93 4 15.5 5.57 15.5 7.5V8.5H8.5V7.5Z" stroke="white" stroke-width="1.8" />
+              <path d="M5.5 8.5H18.5L17.5 19.5H6.5L5.5 8.5Z" fill="#EE4D2D" stroke="white" stroke-width="1.8" stroke-linejoin="round" />
+            </svg>
+            <div class="mp-tab-text">
+              <span class="mp-tab-title">Shopee</span>
+              <span class="mp-tab-sub">20% FGE + R$ 4</span>
+            </div>
+          </div>
+
+          <!-- TikTok Shop -->
+          <div class="mp-tab" data-mp="tiktok_shop" id="tab-tiktok">
+            <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="6" fill="#000000" />
+              <path d="M12.5 5v8.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V8.2a5.5 5.5 0 1 0 4.3 5.3V9.1c1.2 1 2.7 1.6 4.3 1.6V8.2a5 5 0 0 1-3.8-3.2H12.5z" fill="#00F2FE" />
+              <path d="M13.5 6v7.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V9.2a5.5 5.5 0 1 0 4.3 5.3V10.1c1.2 1 2.7 1.6 4.3 1.6V9.2a5 5 0 0 1-3.8-3.2H13.5z" fill="#FE2C55" />
+            </svg>
+            <div class="mp-tab-text">
+              <span class="mp-tab-title">TikTok Shop</span>
+              <span class="mp-tab-sub">14% + R$ 4</span>
+            </div>
+          </div>
+
+          <!-- Venda Física / Direta -->
+          <div class="mp-tab" data-mp="venda_direta" id="tab-direta">
+            <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
+              <rect width="24" height="24" rx="6" fill="#10B981" fill-opacity="0.25" />
+              <path d="M8.5 7.5L12 4L15.5 7.5L12 11L8.5 7.5ZM8.5 16.5L12 13L15.5 16.5L12 20L8.5 16.5Z" fill="#10B981" />
+            </svg>
+            <div class="mp-tab-text">
+              <span class="mp-tab-title">Venda Física</span>
+              <span class="mp-tab-sub">Pix (0% taxa)</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Sub-opções -->
+        <div id="ml-sub-options" class="mp-sub-options">
+          <span style="font-weight: 700; color: #fff;">Modalidade ML:</span>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="ml-tier" value="ml_premium" checked />
+              <span>Premium (19% + taxas)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="ml-tier" value="ml_classico" />
+              <span>Clássico (14% + taxas)</span>
+            </label>
+          </div>
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+            <span style="font-size: 11.5px; color: var(--text-dim);">Sobrescrever frete/taxa fixa (opcional):</span>
+            <div class="input-wrapper" style="width: 120px;">
+              <span class="input-prefix" style="font-size: 11px;">R$</span>
+              <input type="number" id="ml-custom-shipping-input" class="form-input has-prefix" step="0.50" min="0" placeholder="Automático" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
+            </div>
+          </div>
+        </div>
+
+        <div id="shopee-sub-options" class="mp-sub-options" style="display: none;">
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="shopee-tier" value="shopee_fge" checked />
+              <span>Frete Grátis Extra (20% + R$ 4)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="shopee-tier" value="shopee_padrao" />
+              <span>Padrão (14% + R$ 4)</span>
+            </label>
+          </div>
+          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%;">
+            <label class="checkbox-label" for="shopee-cpf-toggle" style="font-size: 12px;">
+              <input type="checkbox" id="shopee-cpf-toggle" />
+              <span>Vendedor Pessoa Física (CPF) <strong style="color: #ff5722;">(+R$ 5,00 por item)</strong></span>
+            </label>
+          </div>
+        </div>
+
+        <div id="direta-sub-options" class="mp-sub-options" style="display: none;">
+          <span style="font-weight: 700; color: #fff;">Pagamento:</span>
+          <div class="radio-group">
+            <label class="radio-label">
+              <input type="radio" name="direta-tier" value="pix" checked />
+              <span>Pix / Dinheiro (0% taxa)</span>
+            </label>
+            <label class="radio-label">
+              <input type="radio" name="direta-tier" value="card" />
+              <span>Cartão à vista</span>
+            </label>
+          </div>
+          <div id="direta-card-fee-box" style="display: none; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%;">
+            <label for="card-fee-input" style="font-size: 12px; color: var(--text-muted);">
+              Taxa da sua maquininha:
+            </label>
+            <div class="input-wrapper" style="width: 95px;">
+              <input type="number" id="card-fee-input" class="form-input has-suffix" step="0.1" min="0" max="30" value="3.5" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
+              <span class="input-suffix">%</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 3: A PRECIFICAÇÃO CLARA & SEGURA -->
+      <div class="card" id="card-pricing-calculator">
+        <div class="card-header">
+          <div class="step-badge">3 · PRECIFICAÇÃO &amp; MARGEM REAL</div>
+        </div>
+
+        <div class="mode-toggle-container">
+          <button type="button" id="mode-margin-btn" class="mode-btn active">
+            🎯 Quero Garantir uma Margem (%)
+          </button>
+          <button type="button" id="mode-price-btn" class="mode-btn">
+            💵 Quero Testar um Preço de Venda (R$)
+          </button>
+        </div>
+
+        <!-- MODO 1: DEFINIR POR MARGEM DESEJADA -->
+        <div id="margin-input-group">
+          <div class="form-group">
+            <label class="form-label" for="target-margin-input">
+              <span>Qual Margem Líquida Limpa Você Deseja no Bolso?</span>
+              <span class="label-hint">Calcula o preço exato cobrindo todos os custos e taxas</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="target-margin-input" class="form-input has-suffix" step="1" min="5" max="90" value="50" />
+              <span class="input-suffix">% limpa</span>
+            </div>
+            <div class="quick-pills margin-quick-pills">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Atalhos:</span>
+              <button type="button" class="quick-pill margin-pill" data-margin="30">30% (Giro Rápido)</button>
+              <button type="button" class="quick-pill margin-pill" data-margin="40">40% (Equilibrada)</button>
+              <button type="button" class="quick-pill margin-pill active" data-margin="50">50% (Ideal 3D)</button>
+              <button type="button" class="quick-pill margin-pill" data-margin="60">60% (Alta Margem)</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- MODO 2: DIGITAR O PREÇO DE VENDA -->
+        <div id="price-input-group" style="display: none;">
+          <div class="form-group">
+            <label class="form-label" for="sale-price-input">
+              <span>Preço de Venda que Você Quer Cobrar no Anúncio</span>
+              <span class="label-hint">Valor que o cliente vai pagar</span>
+            </label>
+            <div class="input-wrapper">
+              <span class="input-prefix">R$</span>
+              <input type="number" id="sale-price-input" class="form-input has-prefix" step="0.10" min="0" value="" placeholder="0,00" />
+            </div>
+            <div class="quick-pills price-quick-pills">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Sugestões:</span>
+              <button type="button" class="quick-pill price-pill" data-price="24.90">R$ 24,90</button>
+              <button type="button" class="quick-pill price-pill" data-price="29.90">R$ 29,90</button>
+              <button type="button" class="quick-pill price-pill" data-price="39.90">R$ 39,90</button>
+              <button type="button" class="quick-pill price-pill" data-price="49.90">R$ 49,90</button>
+              <button type="button" class="quick-pill price-pill" data-price="79.90">R$ 79,90</button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Recomendações Prontas -->
+        <div style="margin-top: 14px;">
+          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+            Recomendações Prontas para a Internet (1 Clique):
+          </span>
+          <div class="smart-pricing-grid">
+            <div class="smart-price-card card-good" id="card-good-price">
+              <div>
+                <div class="smart-price-card-header">
+                  <span class="smart-price-badge">Giro Rápido</span>
+                  <span class="smart-price-active-tag" id="tag-good-active">✓ ATIVO</span>
+                </div>
+                <div class="smart-price-title">🟢 Bom Preço</div>
+                <div class="smart-price-number mono" id="smart-good-price">R$ 0,00</div>
+                <div class="smart-price-metrics">
+                  Lucro: <strong id="smart-good-profit">R$ 0,00</strong> · Margem: <strong id="smart-good-margin">0%</strong>
+                </div>
+              </div>
+              <button type="button" class="smart-price-btn" id="btn-use-good-price">
+                Usar Bom Preço
+              </button>
+            </div>
+
+            <div class="smart-price-card card-ideal" id="card-ideal-price">
+              <div>
+                <div class="smart-price-card-header">
+                  <span class="smart-price-badge">Recomendado</span>
+                  <span class="smart-price-active-tag" id="tag-ideal-active">✓ ATIVO</span>
+                </div>
+                <div class="smart-price-title">🌟 Preço Ideal 3D</div>
+                <div class="smart-price-number mono" id="smart-ideal-price">R$ 0,00</div>
+                <div class="smart-price-metrics">
+                  Lucro: <strong id="smart-ideal-profit">R$ 0,00</strong> · Margem: <strong id="smart-ideal-margin">0%</strong>
+                </div>
+              </div>
+              <button type="button" class="smart-price-btn" id="btn-use-ideal-price">
+                Usar Preço Ideal
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 4: DEMONSTRATIVO & DETALHAMENTO DA VENDA (WATERFALL) -->
+      <div class="card detalhamento-card" id="detalhamento-card">
+        <div class="card-header">
+          <div class="step-badge" style="color: var(--sj-green);">4 · DEMONSTRATIVO &amp; DETALHAMENTO DA VENDA</div>
+        </div>
+
+        <div class="detalhamento-sale-row">
+          <div class="detalhamento-sale-label">🏷️ Preço de venda</div>
+          <div class="detalhamento-sale-value mono" id="result-sale-price">R$ 0,00</div>
+        </div>
+
+        <div class="detalhamento-divider"></div>
+
+        <div class="detalhamento-cascade-list">
+          <div class="cascade-item" id="cascade-row-marketplace">
+            <div class="cascade-main-row">
+              <span class="cascade-label"><span class="cascade-branch">└─</span> Taxa marketplace</span>
+              <span class="cascade-deduction negative mono" id="det-taxa-deduction">- R$ 0,00</span>
+            </div>
+            <div class="cascade-sub-row">
+              <span class="cascade-percent mono" id="det-taxa-percent">0.0%</span>
+              <span class="cascade-balance mono" id="det-taxa-balance">= R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="cascade-item" id="cascade-row-imposto">
+            <div class="cascade-main-row">
+              <span class="cascade-label"><span class="cascade-branch">└─</span> Imposto</span>
+              <span class="cascade-deduction negative mono" id="det-imposto-deduction">- R$ 0,00</span>
+            </div>
+            <div class="cascade-sub-row">
+              <span class="cascade-percent mono" id="det-imposto-percent">0.0%</span>
+              <span class="cascade-balance mono" id="det-imposto-balance">= R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="cascade-item" id="cascade-row-energia">
+            <div class="cascade-main-row">
+              <span class="cascade-label"><span class="cascade-branch">└─</span> Energia elétrica</span>
+              <span class="cascade-deduction negative mono" id="det-energia-deduction">- R$ 0,00</span>
+            </div>
+            <div class="cascade-sub-row">
+              <span class="cascade-percent mono" id="det-energia-percent">0.0%</span>
+              <span class="cascade-balance mono" id="det-energia-balance">= R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="cascade-item" id="cascade-row-filamento">
+            <div class="cascade-main-row">
+              <span class="cascade-label"><span class="cascade-branch">└─</span> Filamento</span>
+              <span class="cascade-deduction negative mono" id="det-filamento-deduction">- R$ 0,00</span>
+            </div>
+            <div class="cascade-sub-row">
+              <span class="cascade-percent mono" id="det-filamento-percent">0.0%</span>
+              <span class="cascade-balance mono" id="det-filamento-balance">= R$ 0,00</span>
+            </div>
+          </div>
+
+          <div class="cascade-item" id="cascade-row-embalagem">
+            <div class="cascade-main-row">
+              <span class="cascade-label"><span class="cascade-branch">└─</span> Embalagem</span>
+              <span class="cascade-deduction negative mono" id="det-embalagem-deduction">- R$ 0,00</span>
+            </div>
+            <div class="cascade-sub-row">
+              <span class="cascade-percent mono" id="det-embalagem-percent">0.0%</span>
+              <span class="cascade-balance mono" id="det-embalagem-balance">= R$ 0,00</span>
+            </div>
+          </div>
+        </div>
+
+        <div class="detalhamento-divider"></div>
+
+        <div class="detalhamento-costs-summary">
+          <div class="detalhamento-costs-main-row">
+            <span>Total de custos</span>
+            <span class="cascade-deduction negative mono" id="det-total-custos">R$ 0,00</span>
+          </div>
+          <div class="detalhamento-costs-sub-row">
+            <span>Energia + Filamento</span>
+            <span class="mono" id="det-energia-filamento">R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Caixa de Lucro Líquido Real -->
+        <div class="detalhamento-lucro-box" id="det-lucro-box">
+          <div class="detalhamento-lucro-top">
+            <span class="lucro-title">
+              <svg class="lucro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
+                <polyline points="17 6 23 6 23 12"></polyline>
+              </svg>
+              Lucro Líquido no Bolso
+            </span>
+          </div>
+
+          <div class="detalhamento-lucro-main">
+            <div class="detalhamento-lucro-val mono" id="net-profit-big">R$ 0,00</div>
+            <div class="detalhamento-lucro-tags">
+              <span class="lucro-margin-pct mono" id="net-margin-big">0.0%</span>
+              <span class="lucro-badge" id="margin-badge">Aguardando</span>
+            </div>
+          </div>
+
+          <div class="detalhamento-lucro-hourly">
+            <span>⏱ Taxa horária:</span>
+            <span class="mono" id="det-lucro-hourly">R$ 0,00/hora</span>
+          </div>
+        </div>
+
+        <!-- Capacidade Produtiva -->
+        <div class="detalhamento-capacity-section">
+          <div class="section-micro-header">CAPACIDADE PRODUTIVA</div>
+          <div class="capacity-row">
+            <span>📅 Potencial diário (20h)</span>
+            <span class="mono" id="det-cap-diario">R$ 0,00</span>
+          </div>
+          <div class="capacity-row">
+            <span>📅 Potencial mensal (30d)</span>
+            <span class="highlight-green mono" id="det-cap-mensal">R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Detalhe do Canal -->
+        <div class="detalhamento-channel-section">
+          <div class="section-micro-header" id="det-channel-header">DETALHE SHOPEE</div>
+          <div class="channel-detail-row">
+            <span id="det-channel-row1-label">Comissão (20.0%)</span>
+            <span class="mono" id="det-channel-row1-val">R$ 0,00</span>
+          </div>
+          <div class="channel-detail-row">
+            <span id="det-channel-row2-label">Taxa fixa</span>
+            <span class="mono" id="det-channel-row2-val">R$ 0,00</span>
+          </div>
+        </div>
+
+        <!-- Botão Salvar Cálculo -->
+        <button type="button" id="btn-save-detalhamento" class="btn-save-detalhamento">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+            <polyline points="17 21 17 13 7 13 7 21"></polyline>
+            <polyline points="7 3 7 8 15 8"></polyline>
+          </svg>
+          <span>Salvar Cálculo no Histórico</span>
+        </button>
+
+        <div style="display: none;">
+          <span id="pricing-cost-fabricacao">R$ 0,00</span>
+          <span id="pricing-cost-taxas">R$ 0,00</span>
+          <span id="pricing-lucro-resumo">R$ 0,00</span>
+        </div>
+      </div>
+
+      <!-- PASSO 5: RAIO-X & GRÁFICO DE COMPOSIÇÃO DE CUSTOS -->
+      <div class="card" id="card-donut-breakdown">
+        <div class="card-header">
+          <div class="step-badge" style="color: var(--sj-purple);">5 · RAIO-X &amp; GRÁFICO DE COMPOSIÇÃO DE CUSTOS</div>
+          <span class="production-multiplier-badge">Composição Real</span>
+        </div>
+        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">
+          Veja exatamente os valores em reais (R$) e porcentagens (%) de cada custo e do lucro:
+        </p>
+
+        <div class="donut-breakdown-layout">
+          <div class="donut-chart-container">
+            <svg id="donut-svg" class="donut-svg" viewBox="0 0 200 200" width="170" height="170">
+              <!-- Slices gerados dinamicamente via JS -->
+            </svg>
+            <div class="donut-center-info">
+              <span id="donut-center-val" class="donut-center-val mono">R$ 0,00</span>
+              <span class="donut-center-lbl">Lucro Real</span>
+            </div>
+          </div>
+          <div class="donut-legend" id="donut-legend">
+            <!-- Legenda dinâmica -->
+          </div>
+        </div>
+      </div>
+
+      <!-- PASSO 6: COMPARATIVO EM TODOS OS CANAIS -->
+      <div class="card" id="card-multi-channel">
+        <div class="card-header">
+          <div class="step-badge" style="color: var(--sj-blue);">6 · COMPARATIVO DA MESMA PEÇA NOS CANAIS</div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
+          Veja quanto sobra no seu bolso vendendo este mesmo produto pelo preço atual em cada canal:
+        </p>
+
+        <div class="table-responsive">
+          <table class="matrix-table">
+            <thead>
+              <tr>
+                <th>Canal</th>
+                <th>Preço</th>
+                <th>Taxas + Frete</th>
+                <th>Lucro no Bolso</th>
+                <th>Margem</th>
+                <th>Ação</th>
+              </tr>
+            </thead>
+            <tbody id="matrix-body">
+              <!-- Preenchido dinamicamente via JS -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- PASSO 7: PROMOÇÃO COM LUCRO PRESERVADO -->
+      <div class="card card-promo" id="card-promo-section">
+        <div class="card-header">
+          <div class="step-badge" style="color: var(--sj-purple);">7 · PROMOÇÃO COM LUCRO PRESERVADO</div>
+        </div>
+        <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
+          Vai participar de campanhas na Shopee, Mercado Livre ou Black Friday? Calcule por quanto anunciar para dar desconto e garantir 100% do lucro no bolso:
+        </p>
+
+        <div>
+          <div class="form-group">
+            <label class="form-label" for="promo-discount-input">
+              <span>Porcentagem de Desconto a Ofertar na Campanha</span>
+              <span class="label-hint">Ex: 10%, 15%, 20%</span>
+            </label>
+            <div class="input-wrapper">
+              <input type="number" id="promo-discount-input" class="form-input has-suffix" min="1" max="80" value="10" />
+              <span class="input-suffix">% OFF</span>
+            </div>
+            <div class="quick-pills promo-quick-pills">
+              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Descontos:</span>
+              <button type="button" class="quick-pill promo-pill" data-discount="5">5% OFF</button>
+              <button type="button" class="quick-pill promo-pill active" data-discount="10">10% OFF</button>
+              <button type="button" class="quick-pill promo-pill" data-discount="15">15% OFF</button>
+              <button type="button" class="quick-pill promo-pill" data-discount="20">20% OFF</button>
+              <button type="button" class="quick-pill promo-pill" data-discount="25">25% OFF</button>
+            </div>
+          </div>
+
+          <div class="promo-highlight-box">
+            <div>
+              <div class="promo-val-title">Preço para Anunciar (Preço "De")</div>
+              <div id="promo-announced-price" class="promo-val-num">R$ 0,00</div>
+            </div>
+            <div style="text-align: right;">
+              <div class="promo-val-title">Cliente Paga (Preço "Por")</div>
+              <div id="promo-customer-pays" class="promo-val-num" style="color: #fff;">R$ 0,00</div>
+            </div>
+          </div>
+
+          <div id="promo-tagline" class="promo-tagline">
+            💜 10% de desconto na campanha · Lucro líquido 100% intacto no seu bolso
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </main>
+
+  <!-- ================= MODAL: HISTÓRICO DE CÁLCULOS ================= -->
+  <div id="history-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Histórico de Precificações Salvas</h3>
+        <button id="close-history-modal" class="modal-close">✕</button>
+      </div>
+      <p class="modal-desc">
+        Clique em um cálculo para carregar todos os dados de volta para a ferramenta:
+      </p>
+      <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ================= MODAL: PREFERÊNCIAS GLOBAIS ================= -->
+  <div id="prefs-modal" class="modal-overlay">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3 class="modal-title">Preferências Globais da Oficina</h3>
+        <button id="close-prefs-modal" class="modal-close">✕</button>
+      </div>
+      <p class="modal-desc" style="margin-bottom: 18px;">
+        Configure uma vez e use em todas as suas precificações automaticamente:
+      </p>
+
+      <div class="form-grid">
+        <div class="form-group full-width">
+          <label class="form-label" for="pref-printer-select">
+            <span>Impressora Padrão</span>
+          </label>
+          <select id="pref-printer-select" class="form-select"></select>
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="pref-kwh-input">
+            <span>Custo do kWh (R$)</span>
+          </label>
+          <input type="number" id="pref-kwh-input" class="form-input" step="0.05" value="0.85" />
+        </div>
+
+        <div class="form-group">
+          <label class="form-label" for="pref-tax-input">
+            <span>Imposto Padrão (%)</span>
+          </label>
+          <input type="number" id="pref-tax-input" class="form-input" step="0.5" value="6.0" />
+        </div>
+
+        <div class="form-group full-width">
+          <label class="form-label" for="pref-packaging-input">
+            <span>Custo Padrão de Embalagem (R$)</span>
+          </label>
+          <input type="number" id="pref-packaging-input" class="form-input" step="0.10" value="1.50" />
+        </div>
+      </div>
+
+      <div style="margin-top: 24px; text-align: right;">
+        <button type="button" id="save-prefs-btn" class="btn-calc-gate-submit" style="width: 100%; justify-content: center; padding: 12px;">
+          Salvar Preferências
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= MOBILE STICKY BOTTOM BAR ================= -->
+  <div id="mobile-sticky-bar" class="mobile-sticky-bar">
+    <div class="mobile-bar-info">
+      <div class="mobile-bar-label">
+        <span class="pulse-dot"></span>
+        <span id="mobile-channel-tag">ML Premium</span>
+      </div>
+      <div class="mobile-bar-numbers">
+        <span id="mobile-profit-val" class="mobile-profit-val">R$ 0,00</span>
+        <span id="mobile-margin-badge" class="mobile-margin-badge">0,0%</span>
+      </div>
+    </div>
+    <div class="mobile-bar-actions">
+      <button type="button" id="mobile-btn-details" class="btn-mobile-details">
+        <span>📊</span> Raio-X
+      </button>
+      <button type="button" id="mobile-btn-save" class="btn-mobile-save" title="Salvar Peça">
+        <span>💾</span> Salvar
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Scripts -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script src="js/supabase-client.js?v=20261113_02"></script>
+  <script type="module" src="js/calculadora/calc-app.js?v=20261114_01"></script>
+</body>
+
+</html>

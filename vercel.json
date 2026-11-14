@@ -61,6 +61,14 @@
   ],
   "rewrites": [
     {
+      "source": "/calculadora",
+      "destination": "/calculadora.html"
+    },
+    {
+      "source": "/calculadora/:path*",
+      "destination": "/calculadora.html"
+    },
+    {
       "source": "/admin/assets/:path*",
       "destination": "/assets/:path*"
     },

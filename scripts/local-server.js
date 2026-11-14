@@ -552,7 +552,9 @@ const server = http.createServer(async (req, res) => {
 
   const cleanUrl = (pathname === "/admin" || pathname === "/admin/")
     ? "/admin.html"
-    : (pathname === "/" ? "/index.html" : pathname);
+    : (pathname === "/calculadora" || pathname === "/calculadora/")
+      ? "/calculadora.html"
+      : (pathname === "/" ? "/index.html" : pathname);
   const filePath = path.join(ROOT, decodeURIComponent(cleanUrl));
 
   if (!filePath.startsWith(ROOT)) {
