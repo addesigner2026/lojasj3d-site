@@ -3279,11 +3279,87 @@ select:focus-visible {
 /* 6.1 Carrossel Principal de Banners (Hero Slider) */
 .hero-slider-container {
   position: relative;
-  border-radius: 10px;
+  width: 100%;
+  aspect-ratio: 1920 / 640;
+  max-height: 520px;
+  border-radius: 16px;
   overflow: hidden;
-  background: linear-gradient(135deg, #111111 0%, #1c1c21 58%, #2a1812 100%);
-  border: 1px solid #27272a;
-  margin-bottom: 24px;
+  background: #0d0c0c;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  margin-bottom: 26px;
+  box-shadow: 0 12px 36px -8px rgba(0, 0, 0, 0.5);
+}
+
+.hero-slides-track {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-slide-item.graphic-banner-slide {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  display: block;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.4s ease-in-out, transform 0.4s ease-out, visibility 0.4s;
+  transform: scale(1.008);
+  border: none;
+  background: transparent;
+  box-sizing: border-box;
+}
+
+.hero-slide-item.graphic-banner-slide.active {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: scale(1);
+  z-index: 2;
+}
+
+.hero-graphic-link {
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  margin: 0;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  text-decoration: none;
+  outline: none;
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+
+.hero-graphic-picture {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.hero-graphic-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  background: #1a1715;
+  display: block;
+  transition: transform 0.35s ease;
+}
+
+.hero-graphic-link:hover .hero-graphic-img {
+  transform: scale(1.012);
+}
+
+.hero-graphic-link:focus-visible {
+  outline: 3px solid #ff5500;
+  outline-offset: -3px;
 }
 
 .hero-slide-item {
@@ -3639,37 +3715,45 @@ select:focus-visible {
   letter-spacing: -0.2px;
 }
 
-/* Setas e Bolinhas do Carrossel */
+/* Setas e Bolinhas do Carrossel (UX/UI Pro Glassmorphism) */
 .hero-arrow-btn {
   position: absolute;
   top: 50%;
   transform: translateY(-50%);
-  width: 38px;
-  height: 38px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  background: rgba(17, 17, 17, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.22);
+  background: rgba(14, 14, 18, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
   color: #ffffff;
-  font-size: 1.4rem;
+  font-size: 1.6rem;
   line-height: 1;
   cursor: pointer;
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: var(--transition);
+  transition: all 0.22s ease;
+  z-index: 10;
+  opacity: 0.88;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
 }
 
 .hero-arrow-btn:hover {
-  background: var(--sj-orange);
-  border-color: var(--sj-orange);
+  background: #ff5500;
+  border-color: #ff5500;
+  opacity: 1;
+  transform: translateY(-50%) scale(1.08);
+  box-shadow: 0 6px 20px rgba(255, 85, 0, 0.45);
 }
 
 .hero-arrow-btn.prev {
-  left: 14px;
+  left: 16px;
 }
 
 .hero-arrow-btn.next {
-  right: 14px;
+  right: 16px;
 }
 
 .hero-dots-bar {
@@ -3680,21 +3764,34 @@ select:focus-visible {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: rgba(8, 8, 12, 0.55);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  padding: 6px 14px;
+  border-radius: 999px;
+  z-index: 10;
 }
 
 .hero-dot-btn {
-  width: 24px;
-  height: 5px;
-  border-radius: 99px;
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
   border: none;
-  background: rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.4);
   cursor: pointer;
-  transition: var(--transition);
+  transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  padding: 0;
+}
+
+.hero-dot-btn:hover {
+  background: rgba(255, 255, 255, 0.75);
 }
 
 .hero-dot-btn.active {
-  width: 38px;
-  background: var(--sj-orange);
+  width: 26px;
+  background: #ff5500;
+  box-shadow: 0 0 10px rgba(255, 85, 0, 0.75);
 }
 
 /* 6.2 Faixa de 4 Diferenciais Abaixo do Banner */
@@ -12669,10 +12766,39 @@ button.color-swatch-more:hover {
     flex: 0 0 auto;
   }
 
-  /* 2.3 Hero Slider Mobile: Compacto, Hierárquico, Bem Espaçado das Laterais e Sem Setas Sobrepondo Texto */
+  /* 2.3 Hero Slider Mobile: Banners Gráficos Verticais Proporcionais (1080x1350 = 4:5) */
   .hero-slider-container {
+    aspect-ratio: 1080 / 1350;
+    max-height: calc(100vh - 130px);
     border-radius: 16px;
-    margin-bottom: 18px;
+    margin-bottom: 20px;
+    box-shadow: 0 8px 24px -4px rgba(0, 0, 0, 0.4);
+  }
+
+  .hero-slide-item.graphic-banner-slide {
+    padding: 0 !important;
+    min-height: auto !important;
+    height: 100% !important;
+    max-height: none !important;
+  }
+
+  .hero-arrow-btn {
+    display: none !important;
+  }
+
+  .hero-dots-bar {
+    bottom: 12px !important;
+    padding: 5px 12px !important;
+    gap: 7px !important;
+  }
+
+  .hero-dot-btn {
+    width: 6px !important;
+    height: 6px !important;
+  }
+
+  .hero-dot-btn.active {
+    width: 22px !important;
   }
 
   .hero-slide-item,

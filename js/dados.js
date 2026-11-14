@@ -71,6 +71,66 @@ window.SITE_DATA = {
   },
 
   // =========================================================================
+  // BANNERS OFICIAIS DO CARROSSEL HERO (BLACK SJ 3D — DESKTOP & MOBILE PRO)
+  // =========================================================================
+  bannersBlackSJ: [
+    {
+      id: "banner-a1-mini",
+      itemId: "imp-bambu-a1-mini",
+      titulo: "Bambu Lab A1 Mini — R$ 1.961,00 à vista no PIX ou 10x de R$ 217,90",
+      desktopWebp: "assets/banners/desktop/01-a1-mini.webp",
+      desktopPng: "assets/banners/desktop/01-a1-mini.png",
+      mobileWebp: "assets/banners/mobile/01-a1-mini.webp",
+      mobilePng: "assets/banners/mobile/01-a1-mini.png"
+    },
+    {
+      id: "banner-a1-mini-combo",
+      itemId: "imp-bambu-a1-mini-combo",
+      titulo: "Bambu Lab A1 Mini Combo — R$ 3.199,00 à vista no PIX ou 10x de R$ 359,90",
+      desktopWebp: "assets/banners/desktop/02-a1-mini-combo.webp",
+      desktopPng: "assets/banners/desktop/02-a1-mini-combo.png",
+      mobileWebp: "assets/banners/mobile/02-a1-mini-combo.webp",
+      mobilePng: "assets/banners/mobile/02-a1-mini-combo.png"
+    },
+    {
+      id: "banner-a1",
+      itemId: "imp-bambu-a1-normal",
+      titulo: "Bambu Lab A1 — R$ 2.699,00 à vista no PIX ou 10x de R$ 303,00",
+      desktopWebp: "assets/banners/desktop/03-a1.webp",
+      desktopPng: "assets/banners/desktop/03-a1.png",
+      mobileWebp: "assets/banners/mobile/03-a1.webp",
+      mobilePng: "assets/banners/mobile/03-a1.png"
+    },
+    {
+      id: "banner-a1-combo",
+      itemId: "imp-bambu-a1-combo",
+      titulo: "Bambu Lab A1 Combo — R$ 4.049,00 à vista no PIX ou 10x de R$ 449,90",
+      desktopWebp: "assets/banners/desktop/04-a1-combo.webp",
+      desktopPng: "assets/banners/desktop/04-a1-combo.png",
+      mobileWebp: "assets/banners/mobile/04-a1-combo.webp",
+      mobilePng: "assets/banners/mobile/04-a1-combo.png"
+    },
+    {
+      id: "banner-p2s-combo",
+      itemId: "imp-bambu-p2s",
+      titulo: "Bambu Lab P2S Combo — R$ 8.849,00 à vista no PIX ou 10x de R$ 949,90",
+      desktopWebp: "assets/banners/desktop/05-p2s-combo.webp",
+      desktopPng: "assets/banners/desktop/05-p2s-combo.png",
+      mobileWebp: "assets/banners/mobile/05-p2s-combo.webp",
+      mobilePng: "assets/banners/mobile/05-p2s-combo.png"
+    },
+    {
+      id: "banner-snapmaker-u1",
+      itemId: "imp-snapmaker",
+      titulo: "Snapmaker U1 — R$ 9.991,00 à vista no PIX ou 10x de R$ 1.099,00",
+      desktopWebp: "assets/banners/desktop/06-snapmaker-u1.webp",
+      desktopPng: "assets/banners/desktop/06-snapmaker-u1.png",
+      mobileWebp: "assets/banners/mobile/06-snapmaker-u1.webp",
+      mobilePng: "assets/banners/mobile/06-snapmaker-u1.png"
+    }
+  ],
+
+  // =========================================================================
   // PALETAS OFICIAIS DO CATÁLOGO DE FILAMENTOS LOJA SJ (55 PÁGINAS)
   // =========================================================================
 

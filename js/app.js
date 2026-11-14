@@ -5291,80 +5291,8 @@
     const homeEl = document.getElementById("home-landing-view");
     if (!homeEl) return;
 
-    const cfgBan = obterConfigBannerPromocao();
-    const slidePromocional = {
-      fullBleedRaffle: true,
-      styleBg: gerarEstiloBgBannerPromocao(cfgBan.imagemFundo),
-      badge: cfgBan.badge || "🔥 BLACK SJ 3D • GRANDE SORTEIO",
-      dataSorteio: cfgBan.dataSorteio || "SORTEIO: 20 DE DEZEMBRO • AO VIVO",
-      tituloRaffleKicker: "REVENDA AUTORIZADA OFICIAL",
-      tituloRaffleMain: cfgBan.tituloPrincipal || "SORTEIO <em>BAMBU LAB A1 MINI</em>",
-      tituloRaffleSub: cfgBan.subtituloPremio || "+ KIT COM 4 KG DE FILAMENTOS INCLUSO",
-      precoDestaque: "A CADA FILAMENTO = 1 CUPOM • A CADA IMPRESSORA = 10 CUPONS",
-      resumoCurtoSorteio: "",
-      btn1Texto: cfgBan.btn1Texto || "Garantir Cupons no WhatsApp →",
-      btn1Whatsapp: cfgBan.btn1Url || "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
-      abrirModalRegras: true,
-      btn2Texto: "✨ Regulamento do Sorteio"
-    };
-
-    const slidesFixos = [
-      {
-        badge: "🔥 PROMOÇÃO POR TEMPO LIMITADO",
-        titulo: "Filamento 3D <em>PLA Basic</em>",
-        subtitulo:
-          "Mais de 50 cores oficiais à pronta entrega em Umuarama. Diâmetro uniforme 1.75mm e alta adesão.",
-        precoDestaque: "A partir de R$ 79,90 no PIX (ou R$ 74,90 acima de 4 un.)",
-        btn1Texto: "Comprar PLA Basic →",
-        btn1Item: "fil-pla-maxprint",
-        btn2Texto: "Ver Todos os Filamentos",
-        btn2Cat: "filamentos",
-        imgUnica: "assets/produtos/pla-maxprint.jpg",
-        img1Label: "Filamento PLA 1.75mm (1 kg)"
-      },
-      {
-        badge: "⚡ PRONTA ENTREGA • CAMPEÃ DE VENDAS",
-        titulo: "Bambu Lab <em>A1 Mini</em>",
-        subtitulo:
-          "Calibração 100% automática, alta velocidade de 500 mm/s e sensor ativo de cancelamento de ruído.",
-        precoDestaque: "R$ 1.961,00 à vista no PIX (ou 10x de R$ 217,90)",
-        btn1Texto: "Garantir Minha A1 Mini →",
-        btn1Item: "imp-bambu-a1-mini",
-        btn2Texto: "Ver Versão Combo (AMS)",
-        btn2Item: "imp-bambu-a1-mini-combo",
-        imgUnica: "assets/produtos/impressora-a1_mini.jpg",
-        img1Label: "Bambu Lab A1 Mini"
-      },
-      {
-        badge: "🎨 MULTICOR INTELIGENTE • 4 CORES",
-        titulo: "Bambu Lab <em>A1 Combo</em>",
-        subtitulo:
-          "Área de 256×256×256 mm³ com sistema AMS Lite para 4 cores automático e bico de troca rápida.",
-        precoDestaque: "R$ 4.049,00 à vista no PIX (ou 10x de R$ 449,90)",
-        btn1Texto: "Comprar A1 Combo →",
-        btn1Item: "imp-bambu-a1-combo",
-        btn2Texto: "Ver Todas as Impressoras",
-        btn2Cat: "impressoras",
-        imgUnica: "assets/produtos/impressora-a1_combo.jpg",
-        img1Label: "Bambu Lab A1 Combo"
-      },
-      {
-        badge: "🚀 ALTA PERFORMANCE • 4 CABEÇOTES",
-        titulo: "Snapmaker <em>U1</em>",
-        subtitulo:
-          "Multicolor avançado com 4 extrusoras independentes para velocidade máxima e zero desperdício.",
-        precoDestaque: "R$ 9.991,00 à vista no PIX (ou 10x de R$ 1.099,00)",
-        btn1Texto: "Ver Snapmaker U1 →",
-        btn1Item: "imp-snapmaker",
-        btn2Texto: "Falar no WhatsApp",
-        btn2Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Quero%20saber%20mais%20sobre%20a%20Snapmaker%20U1.",
-        imgUnica: "assets/produtos/impressora-snapmaker_u1.jpg",
-        img1Label: "Snapmaker U1 (4 Cabeçotes)"
-      }
-    ];
-
-    const slidesHero = cfgBan.ativo ? [slidePromocional, ...slidesFixos] : slidesFixos;
-    if (state.heroSlideAtivo >= slidesHero.length) {
+    const bannersHero = window.SITE_DATA.bannersBlackSJ || [];
+    if (state.heroSlideAtivo >= bannersHero.length) {
       state.heroSlideAtivo = 0;
     }
 
@@ -5467,119 +5395,51 @@
       pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 3);
 
     homeEl.innerHTML = `
-      <!-- 1. HERO CAROUSEL DE DESTAQUES (PASSA PARA O LADO) -->
-      <div class="hero-slider-container" id="hero-slider-container">
+      <!-- 1. HERO CAROUSEL DE DESTAQUES (BANNERS GRÁFICOS OFICIAIS BLACK SJ 3D) -->
+      <div class="hero-slider-container" id="hero-slider-container" role="region" aria-label="Carrossel de Ofertas Black SJ 3D">
         <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar Banner de Promoções da Capa">
           ✏️ Editar Banner de Promoção
         </button>
         <div class="hero-slides-track" id="hero-slides-track">
-          ${slidesHero
+          ${bannersHero
         .map(
-          (s, idx) => `
-              <div class="hero-slide-item ${s.fullBleedRaffle ? "full-bleed-raffle" : ""} ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}" style="${s.styleBg || ""}">
-                <div class="hero-slide-content">
-                  <div class="hero-badges-row">
-                    <span class="hero-slide-badge">${s.badge}</span>
-                    ${s.dataSorteio
-              ? `<span class="hero-raffle-date-badge">📅 ${s.dataSorteio}</span>`
-              : ""
-            }
-                  </div>
-                  ${s.tituloRaffleMain
-              ? `
-                        <div class="raffle-hero-heading-block">
-                          <span class="raffle-kicker-line">${s.tituloRaffleKicker}</span>
-                          <h1 class="raffle-big-model">${s.tituloRaffleMain}</h1>
-                          <span class="raffle-sub-prize">${s.tituloRaffleSub}</span>
-                        </div>
-                      `
-              : `
-                        <h1 class="hero-slide-title">${s.titulo}</h1>
-                        <p class="hero-slide-desc">${s.subtitulo}</p>
-                      `
-            }
-                  ${s.resumoCurtoSorteio
-              ? `
-                        <div class="raffle-clean-summary-pill">
-                          <span>${s.resumoCurtoSorteio}</span>
-                        </div>
-                      `
-              : s.precoDestaque
-                ? `<div class="hero-slide-price-pill">${s.precoDestaque}</div>`
-                : ""
-            }
-                  <div class="hero-slide-actions">
-                    ${s.btn1Texto
-              ? s.btn1Whatsapp
-                ? `<a href="${s.btn1Whatsapp}" target="_blank" rel="noopener" class="hero-btn-primary">${s.btn1Texto}</a>`
-                : s.btn1Item
-                  ? `<button type="button" class="hero-btn-primary" data-home-open-item="${s.btn1Item}">${s.btn1Texto}</button>`
-                  : s.btn1Cat
-                    ? `<button type="button" class="hero-btn-primary" data-home-go-cat="${s.btn1Cat}">${s.btn1Texto}</button>`
-                    : ""
-              : ""
-            }
-                    ${s.abrirModalRegras
-              ? `<button type="button" class="btn-raffle-saiba-mais" data-open-raffle-modal="1">${s.btn2Texto || "✨ Saiba Mais / Regulamento"}</button>`
-              : s.btn2Texto
-                ? s.btn2Url
-                  ? `<a href="${s.btn2Url}" target="_blank" rel="noopener" class="hero-btn-secondary">${s.btn2Texto}</a>`
-                  : s.btn2Item
-                    ? `<button type="button" class="hero-btn-secondary" data-home-open-item="${s.btn2Item}">${s.btn2Texto}</button>`
-                    : s.btn2Cat
-                      ? `<button type="button" class="hero-btn-secondary" data-home-go-cat="${s.btn2Cat}">${s.btn2Texto}</button>`
-                      : ""
-                : ""
-            }
-                  </div>
-                </div>
-
-                ${s.fullBleedRaffle
-              ? `<div class="hero-raffle-art-spacer" aria-hidden="true"></div>`
-              : `
-                      <div class="hero-slide-visuals ${s.imgUnica ? "single-visual" : ""}">
-                        ${s.imgUnica
-                ? `
-                              <div class="hero-visual-card single" ${s.btn1Item ? `data-home-open-item="${s.btn1Item}"` : `data-home-go-cat="${s.btn1Cat || "impressoras"}"`}>
-                                <img src="${s.imgUnica}" alt="${s.img1Label || ""}" />
-                                ${s.img1Label ? `<span>${s.img1Label}</span>` : ""}
-                              </div>
-                            `
-                : `
-                              <div class="hero-visual-card" ${s.btn1Item ? `data-home-open-item="${s.btn1Item}"` : `data-home-go-cat="${s.btn1Cat || "impressoras"}"`
-                }>
-                                <img src="${s.img1}" alt="${s.img1Label}" />
-                                <span>${s.img1Label}</span>
-                              </div>
-                              <div class="hero-visual-card" ${s.btn2Item ? `data-home-open-item="${s.btn2Item}"` : `data-home-go-cat="${s.btn2Cat || "filamentos"}"`
-                }>
-                                <img src="${s.img2}" alt="${s.img2Label}" />
-                                <span>${s.img2Label}</span>
-                              </div>
-                            `
-              }
-                      </div>
-                    `
-            }
+          (b, idx) => `
+              <div class="hero-slide-item graphic-banner-slide ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}">
+                <button type="button" class="hero-graphic-link" data-home-open-item="${b.itemId}" aria-label="${b.titulo}">
+                  <picture class="hero-graphic-picture">
+                    <source media="(max-width: 768px)" srcset="${b.mobileWebp}" type="image/webp" />
+                    <source media="(max-width: 768px)" srcset="${b.mobilePng}" type="image/png" />
+                    <source srcset="${b.desktopWebp}" type="image/webp" />
+                    <img
+                      src="${b.desktopPng}"
+                      alt="${b.titulo}"
+                      class="hero-graphic-img"
+                      ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"'}
+                    />
+                  </picture>
+                </button>
               </div>
             `
         )
         .join("")}
         </div>
 
-        <!-- Setas Laterais e Indicadores do Carrossel -->
-        <button type="button" class="hero-arrow-btn prev" id="hero-prev-btn" aria-label="Banner anterior">‹</button>
-        <button type="button" class="hero-arrow-btn next" id="hero-next-btn" aria-label="Próximo banner">›</button>
+        <!-- Setas Laterais Glassmorphism (Desktop) -->
+        <button type="button" class="hero-arrow-btn prev" id="hero-prev-btn" aria-label="Banner anterior" title="Oferta anterior">‹</button>
+        <button type="button" class="hero-arrow-btn next" id="hero-next-btn" aria-label="Próximo banner" title="Próxima oferta">›</button>
 
-        <div class="hero-dots-bar" id="hero-dots-bar">
-          ${slidesHero
+        <!-- Barra de Indicadores (Dots / Pills) -->
+        <div class="hero-dots-bar" id="hero-dots-bar" role="tablist" aria-label="Navegação de ofertas">
+          ${bannersHero
         .map(
           (_, idx) => `
               <button
                 type="button"
                 class="hero-dot-btn ${idx === state.heroSlideAtivo ? "active" : ""}"
                 data-hero-dot="${idx}"
-                aria-label="Ir para o destaque ${idx + 1}"
+                role="tab"
+                aria-selected="${idx === state.heroSlideAtivo ? "true" : "false"}"
+                aria-label="Ir para a oferta ${idx + 1}"
               ></button>
             `
         )
@@ -5782,7 +5642,9 @@
         el.classList.toggle("active", i === state.heroSlideAtivo);
       });
       homeEl.querySelectorAll(".hero-dot-btn").forEach((dot, i) => {
-        dot.classList.toggle("active", i === state.heroSlideAtivo);
+        const isActive = i === state.heroSlideAtivo;
+        dot.classList.toggle("active", isActive);
+        dot.setAttribute("aria-selected", isActive ? "true" : "false");
       });
     }
 
@@ -5792,7 +5654,7 @@
         if (state.categoriaMenu === "home" && !state.produtoDetalheAtivo) {
           irParaSlideHero(state.heroSlideAtivo + 1);
         }
-      }, 5500);
+      }, 5000);
     }
 
     iniciarAutoSlide();
@@ -5806,24 +5668,42 @@
     // Suporte a swipe no celular (arrastar para os lados no carrossel)
     let touchStartX = 0;
     let touchEndX = 0;
+    let isSwiping = false;
+
     sliderBox?.addEventListener(
       "touchstart",
       (e) => {
         touchStartX = e.changedTouches[0].screenX;
+        isSwiping = false;
         if (state.heroTimer) clearInterval(state.heroTimer);
       },
       { passive: true }
     );
+
+    sliderBox?.addEventListener(
+      "touchmove",
+      (e) => {
+        if (Math.abs(e.changedTouches[0].screenX - touchStartX) > 10) {
+          isSwiping = true;
+        }
+      },
+      { passive: true }
+    );
+
     sliderBox?.addEventListener(
       "touchend",
       (e) => {
         touchEndX = e.changedTouches[0].screenX;
         iniciarAutoSlide();
-        if (touchStartX - touchEndX > 45) {
+        const deltaX = touchStartX - touchEndX;
+        if (deltaX > 45) {
           irParaSlideHero(state.heroSlideAtivo + 1);
-        } else if (touchEndX - touchStartX > 45) {
+        } else if (deltaX < -45) {
           irParaSlideHero(state.heroSlideAtivo - 1);
         }
+        setTimeout(() => {
+          isSwiping = false;
+        }, 120);
       },
       { passive: true }
     );
@@ -5849,7 +5729,11 @@
 
     // Clique em botões do banner que abrem direto a página de um produto
     homeEl.querySelectorAll("[data-home-open-item]").forEach((el) => {
-      el.addEventListener("click", () => {
+      el.addEventListener("click", (e) => {
+        if (isSwiping) {
+          e.preventDefault();
+          return;
+        }
         abrirPaginaProduto(el.dataset.homeOpenItem);
       });
     });
