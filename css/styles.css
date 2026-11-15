@@ -631,8 +631,8 @@ button, select, input {
    2. ESTRUTURA PRINCIPAL DO CATÁLOGO + CAIXA LATERAL FIXA
    ========================================================================== */
 .catalog-main-section {
-  padding-top: 32px;
-  padding-bottom: 80px;
+  padding-top: 24px;
+  padding-bottom: 24px;
 }
 
 .combo-layout-grid {
@@ -2163,12 +2163,350 @@ select:focus-visible {
 /* ==========================================================================
    4. RODAPÉ LIMPO E INSTITUCIONAL
    ========================================================================== */
+/* ==========================================================================
+   4. RODAPÉ INSTITUCIONAL PREMIUM LOJA SJ 3D (DARK SLATE, CLEAN & HARMONIOSO)
+   ========================================================================== */
 .site-footer {
-  background: var(--bg-soft);
-  border-top: 1px solid var(--border-card);
-  padding: 48px 0 28px;
+  background: #0f1015;
+  border-top: 1px solid #1e2029;
+  padding: 40px 0 24px;
+  color: #a1a1aa;
+  position: relative;
+  z-index: 10;
 }
 
+.footer-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* Faixa de Procedência & Confiança (3 Cards Elegantes) */
+.footer-trust-strip {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 16px;
+  margin-bottom: 36px;
+}
+
+.trust-strip-card {
+  background: #171821;
+  border: 1px solid #232532;
+  border-radius: 14px;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  transition: all 0.2s ease;
+}
+
+.trust-strip-card:hover {
+  border-color: rgba(255, 85, 0, 0.4);
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+}
+
+.trust-strip-icon-box {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px;
+  background: rgba(255, 85, 0, 0.12);
+  color: #ff5500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.trust-strip-info strong {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  line-height: 1.25;
+}
+
+.trust-strip-info span {
+  display: block;
+  font-size: 0.77rem;
+  color: #94a3b8;
+  margin-top: 3px;
+  line-height: 1.35;
+}
+
+/* Grid Principal de 4 Colunas */
+.footer-main-grid {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1.15fr 1.25fr;
+  gap: 32px;
+  padding-bottom: 32px;
+  border-bottom: 1px solid #232532;
+}
+
+/* Coluna 1: Marca & Endereço */
+.footer-brand-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-logo-row .footer-logo-img {
+  height: 32px;
+  width: auto;
+  display: block;
+  filter: brightness(0) invert(1);
+}
+
+.footer-desc-text {
+  font-size: 0.82rem;
+  color: #94a3b8;
+  line-height: 1.55;
+  margin: 12px 0 16px;
+}
+
+.footer-info-capsules {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.footer-info-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.76rem;
+  color: #cbd5e1;
+  background: #171821;
+  border: 1px solid #272a38;
+  padding: 8px 12px;
+  border-radius: 8px;
+  line-height: 1.3;
+}
+
+.footer-info-pill svg {
+  color: #ff5500;
+  flex-shrink: 0;
+}
+
+/* Colunas de Navegação e Impressoras */
+.footer-nav-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-col-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #ffffff;
+  margin: 0 0 16px 0;
+}
+
+.footer-nav-links {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.footer-nav-links a {
+  color: #94a3b8;
+  font-size: 0.82rem;
+  text-decoration: none;
+  transition: all 0.18s ease;
+  white-space: nowrap;
+}
+
+.footer-nav-links a:hover {
+  color: #ff5500;
+  padding-left: 3px;
+}
+
+.footer-calc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.footer-mini-tag {
+  background: #ff5500;
+  color: #ffffff;
+  font-size: 0.62rem;
+  font-weight: 800;
+  padding: 2px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.04em;
+}
+
+/* Coluna 4: Redes Sociais & Comunidade VIP */
+.footer-community-col {
+  display: flex;
+  flex-direction: column;
+}
+
+.footer-social-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+
+.footer-social-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  background: #171821;
+  border: 1px solid #272a38;
+  border-radius: 8px;
+  color: #cbd5e1;
+  font-size: 0.77rem;
+  font-weight: 700;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.footer-social-pill:hover {
+  border-color: #ff5500;
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.footer-social-pill.instagram:hover {
+  border-color: #e1306c;
+  color: #e1306c;
+}
+
+.footer-social-pill.whatsapp:hover {
+  border-color: #25d366;
+  color: #25d366;
+}
+
+.footer-social-pill.maps:hover {
+  border-color: #3b82f6;
+  color: #60a5fa;
+}
+
+/* Box Comunidade VIP */
+.footer-vip-box {
+  background: linear-gradient(145deg, rgba(37, 211, 102, 0.09) 0%, #171821 100%);
+  border: 1.5px solid rgba(37, 211, 102, 0.38);
+  border-radius: 12px;
+  padding: 14px 16px;
+  transition: all 0.2s ease;
+}
+
+.footer-vip-box:hover {
+  border-color: rgba(37, 211, 102, 0.7);
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.15);
+}
+
+.vip-box-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(37, 211, 102, 0.16);
+  color: #22c55e;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.vip-pulse-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: commPulseDot 2s infinite ease-in-out;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.vip-box-title {
+  display: block;
+  font-size: 0.88rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin: 8px 0 4px;
+}
+
+.vip-box-desc {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  line-height: 1.4;
+  margin: 0 0 12px;
+}
+
+.vip-join-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 9px 14px;
+  background: #25d366;
+  color: #052e16;
+  font-size: 0.79rem;
+  font-weight: 800;
+  border-radius: 8px;
+  text-decoration: none;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 8px rgba(37, 211, 102, 0.25);
+}
+
+.vip-join-btn:hover {
+  background: #22c55e;
+  color: #000000;
+  box-shadow: 0 4px 16px rgba(37, 211, 102, 0.45);
+  transform: translateY(-1px);
+}
+
+/* Linha Final: Copyright & LGPD */
+.footer-bottom-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-top: 22px;
+  font-size: 0.76rem;
+  color: #71717a;
+}
+
+.footer-copy-text {
+  color: #71717a;
+}
+
+.footer-legal-links {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.footer-legal-links a {
+  color: #94a3b8;
+  text-decoration: none;
+  transition: color 0.18s ease;
+}
+
+.footer-legal-links a:hover {
+  color: #ff5500;
+  text-decoration: underline;
+}
+
+.dot-sep {
+  color: #3f3f46;
+}
+
+/* Compatibilidade Legada */
 .footer-grid {
   display: grid;
   grid-template-columns: 1.3fr 1.1fr 1.5fr;
@@ -2179,7 +2517,7 @@ select:focus-visible {
 .footer-col h4 {
   font-size: 0.85rem;
   font-weight: 700;
-  color: var(--text-black);
+  color: #ffffff;
   margin-bottom: 12px;
 }
 
@@ -2192,23 +2530,50 @@ select:focus-visible {
 
 .footer-links a {
   font-size: 0.83rem;
-  color: var(--text-body);
+  color: #94a3b8;
 }
 
 .footer-links a:hover {
-  color: var(--sj-orange);
+  color: #ff5500;
 }
 
 .footer-bottom {
   padding-top: 20px;
-  border-top: 1px solid var(--border-card);
+  border-top: 1px solid #232532;
   display: flex;
   align-items: center;
   justify-content: space-between;
   flex-wrap: wrap;
   gap: 12px;
   font-size: 0.78rem;
-  color: var(--text-muted);
+  color: #71717a;
+}
+
+/* Responsividade do Rodapé */
+@media (max-width: 1024px) {
+  .footer-trust-strip {
+    grid-template-columns: 1fr;
+    gap: 10px;
+  }
+  .footer-main-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 28px;
+  }
+}
+
+@media (max-width: 640px) {
+  .footer-main-grid {
+    grid-template-columns: 1fr;
+    gap: 24px;
+  }
+  .footer-bottom-bar {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+  .footer-nav-links a {
+    white-space: normal;
+  }
 }
 
 /* ==========================================================================
@@ -3831,7 +4196,11 @@ select:focus-visible {
 
 /* 6.3 Blocos de Seção da Capa */
 .home-section-block {
-  margin-bottom: 52px;
+  margin-bottom: 32px;
+}
+
+#home-pecas-showcase.home-section-block {
+  margin-bottom: 16px;
 }
 
 .home-section-head {
@@ -4104,58 +4473,44 @@ select:focus-visible {
   }
 }
 
-@media (max-width: 1220px) {
-  .site-header {
-    height: auto;
-    padding: 0;
-  }
+/* Responsividade inteligente para telas de Laptop / Desktop Compacto (1141px a 1380px) */
+@media (min-width: 1141px) and (max-width: 1380px) {
   .header-inner {
-    height: auto;
-    flex-wrap: wrap;
-    padding-top: 10px;
-    padding-bottom: 10px;
-    gap: 10px;
-  }
-  .header-logo {
-    order: 1;
-  }
-  .header-icons {
-    order: 2;
-    margin-left: auto;
     gap: 8px;
+    padding-left: 12px;
+    padding-right: 12px;
   }
-  .header-nav {
-    order: 3;
-    width: 100%;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    gap: 6px;
-    padding: 5px;
-    background: #f4f4f5;
-    border: 1px solid #e4e4e7;
-    border-radius: 14px;
-    justify-content: flex-start;
+  .header-logo-tagline,
+  .header-logo-divider {
+    display: none !important;
   }
-  .header-nav::-webkit-scrollbar {
+  .header-nav.sj-nav-dock {
+    flex-shrink: 1 !important;
+    min-width: 0 !important;
+    padding: 3px !important;
+    gap: 3px !important;
+    overflow-x: auto !important;
+    scrollbar-width: none !important;
+  }
+  .header-nav.sj-nav-dock::-webkit-scrollbar {
     display: none;
   }
   .header-nav-link {
-    font-size: 0.79rem;
-    font-weight: 600;
-    padding: 7px 12px;
-    border-radius: 99px;
-    flex: 1 0 auto;
-    justify-content: center;
+    padding: 6px 9px !important;
+    font-size: 0.77rem !important;
+    gap: 4px !important;
   }
-  .header-nav-link::after {
-    display: none;
+  .header-nav-link .nav-pill-icon {
+    width: 13px !important;
+    height: 13px !important;
   }
-  .header-nav-link.active {
-    background: linear-gradient(135deg, #f04e23 0%, #ea580c 100%);
-    color: #ffffff;
-    border-color: transparent;
-    font-weight: 700;
+  .header-icons {
+    flex-shrink: 0 !important;
+    gap: 6px !important;
+  }
+  .header-account-pill-btn {
+    padding: 0 10px !important;
+    font-size: 0.78rem !important;
   }
 }
 
@@ -12557,7 +12912,7 @@ button.color-swatch-more:hover {
 
   .catalog-main-section {
     padding-top: 22px !important;
-    padding-bottom: 96px !important;
+    padding-bottom: 28px !important;
   }
 
   /* Mantém 2 colunas nos cards de diferenciais e categorias em vez de 1 coluna */
@@ -12672,7 +13027,7 @@ button.color-swatch-more:hover {
 
   .catalog-main-section {
     padding-top: 16px !important;
-    padding-bottom: 104px !important;
+    padding-bottom: 28px !important;
     padding-left: 22px !important;
     padding-right: 22px !important;
   }
@@ -14233,10 +14588,10 @@ button.color-swatch-more:hover {
 }
 
 /* ==========================================================================
-   4. ADAPTAÇÃO MOBILE DO CABEÇALHO (ELIMINA A ROLAGEM HORIZONTAL)
+   4. ADAPTAÇÃO MOBILE & TABLET DO CABEÇALHO (MENU SANDUÍCHE ATIVADO <= 1140px)
    ========================================================================== */
-@media (max-width: 992px) {
-  /* Oculta a barra de botões que forçava deslizar o dedo para os lados */
+@media (max-width: 1140px) {
+  /* Oculta a barra de botões que forçava deslizar o dedo para os lados ou quebrava no desktop compacto */
   .header-nav.sj-nav-dock {
     display: none !important;
   }
@@ -14246,7 +14601,7 @@ button.color-swatch-more:hover {
     display: inline-flex !important;
   }
 
-  /* Mantém o topo limpo, sem segunda linha de botões */
+  /* Mantém o topo 100% limpo, alinhado e sem rolagem horizontal indesejada */
   .header-inner {
     flex-wrap: nowrap !important;
     justify-content: space-between !important;
@@ -14258,7 +14613,12 @@ button.color-swatch-more:hover {
 
   .header-logo {
     order: 2 !important;
-    margin: 0 auto 0 4px !important;
+    margin: 0 auto 0 6px !important;
+  }
+
+  .header-logo-tagline,
+  .header-logo-divider {
+    display: none !important;
   }
 
   .mobile-menu-toggle-btn {
@@ -14268,6 +14628,7 @@ button.color-swatch-more:hover {
   .header-icons {
     order: 3 !important;
     gap: 6px !important;
+    flex-shrink: 0 !important;
   }
 }
 
