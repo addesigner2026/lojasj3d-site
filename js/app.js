@@ -530,7 +530,7 @@
           ? `<span style="color:#047857; font-weight:700;">✅ Dados Fiscais Aprovados (${escaparHtml(docTxt)}) — Nota Fiscal será solicitada no WhatsApp!</span>`
           : `<span style="color:#047857; font-weight:600;">✅ Cadastro Aprovado (${escaparHtml(c.nome)}) • Dados prontos para envio.</span>`;
       } else {
-        htmlStatus = `<span style="color:#DC2626; font-weight:600;">⚠️ Falta preencher: ${escaparHtml(validacao.faltando.join(", "))}. Clique em Finalizar para completar.</span>`;
+        htmlStatus = `<span style="color:#047857; font-weight:600;">✅ Conectado como ${escaparHtml(c.nome)} • Pronto para envio direto no WhatsApp.</span>`;
       }
     }
 
@@ -660,23 +660,8 @@
     let linhasCliente = [];
     let pedidoTag = "";
 
-    // 1. Se o cliente estiver logado, valida os dados cadastrais, anexa ao pedido e salva no histórico
+    // 1. Se o cliente estiver logado, anexa os dados conhecidos ao pedido e salva no histórico
     if (state.clienteLogado) {
-      const validacao = validarDadosCliente(state.clienteLogado, precisaNf);
-      if (!validacao.valido) {
-        state.acaoPendenteAposLogin = {
-          tipo: "enviar_whatsapp",
-          precisaNotaFiscal: precisaNf
-        };
-        fecharGavetaPedido();
-        abrirModalAuthCliente("complete", {
-          preMarcarNf: precisaNf,
-          mensagemTopo: `⚠️ Para anexar seus dados ao pedido, complete os seguintes dados obrigatórios: ${validacao.faltando.join(", ")}.`
-        });
-        mostrarToast(validacao.mensagem, "warning");
-        return;
-      }
-
       const c = state.clienteLogado;
       if (c.precisaNotaFiscal !== precisaNf) {
         c.precisaNotaFiscal = precisaNf;
@@ -696,15 +681,15 @@
 
       const enderecoStr = formatarEnderecoCompletoCliente(c);
       linhasCliente = [
-        `\n\n📋 *DADOS DO CLIENTE (CADASTRO APROVADO):*`,
+        `\n\n📋 *DADOS DO CLIENTE (CADASTRO):*`,
         `• *Nome do Titular:* ${c.nome}`,
         c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (c.cnpjCpf ? `• *CPF:* ${c.cnpjCpf}` : ""),
         c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
         c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
         c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
         c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
-        `• *WhatsApp:* ${c.whatsapp}`,
-        `• *E-mail:* ${c.email}`,
+        c.whatsapp ? `• *WhatsApp:* ${c.whatsapp}` : "",
+        c.email ? `• *E-mail:* ${c.email}` : "",
         enderecoStr ? `• *Endereço Completo:* ${enderecoStr}` : ""
       ].filter(Boolean);
     } else {
@@ -1009,13 +994,6 @@
 
   function toggleFavorito(itemId) {
     if (!itemId) return;
-
-    // Se cliente não estiver logado, abre o pop-up com mensagem
-    if (!state.clienteLogado) {
-      abrirModalAuthCliente("signup");
-      mostrarToastNotificacao("💡 Crie sua conta para guardar seus favoritos e concorra a prêmios!", "info");
-      return;
-    }
 
     if (!Array.isArray(state.favoritos)) state.favoritos = [];
     const idx = state.favoritos.indexOf(itemId);
@@ -2223,14 +2201,6 @@
           const validacao = validarDadosCliente(userData, precisaNf);
           userData.cadastroAprovado = validacao.valido;
           salvarClienteLocal(userData);
-
-          if (!validacao.valido) {
-            alternarAbaAuthCliente("complete", {
-              preMarcarNf: precisaNf,
-              mensagemTopo: `⚠️ Complete seus dados obrigatórios (${validacao.faltando.join(", ")}) para aprovar seu cadastro!`
-            });
-            return;
-          }
 
           fecharModalAuthCliente();
           mostrarToastNotificacao(`🎉 Bem-vindo(a) de volta, ${userData.nome}!`, "sucesso");
@@ -5227,14 +5197,56 @@
         : "⚡ Rápido e direto • Sem necessidade de criar conta";
     }
 
-    if (dividerEl) dividerEl.style.display = isLogado ? "none" : "flex";
-    if (drawerDividerEl) drawerDividerEl.style.display = isLogado ? "none" : "flex";
+    const validacaoCad = isLogado
+      ? validarDadosCliente(state.clienteLogado, Boolean(state.precisaNotaFiscalPedido || state.clienteLogado?.precisaNotaFiscal))
+      : { valido: false };
 
-    if (signupBtn) signupBtn.style.display = isLogado ? "none" : "inline-flex";
-    if (drawerSignupBtn) drawerSignupBtn.style.display = isLogado ? "none" : "inline-flex";
+    if (dividerEl) dividerEl.style.display = isLogado && validacaoCad.valido ? "none" : "flex";
+    if (drawerDividerEl) drawerDividerEl.style.display = isLogado && validacaoCad.valido ? "none" : "flex";
 
-    if (signupHint) signupHint.style.display = isLogado ? "none" : "block";
-    if (drawerSignupHint) drawerSignupHint.style.display = isLogado ? "none" : "block";
+    if (signupBtn) {
+      if (!isLogado) {
+        signupBtn.style.display = "inline-flex";
+        const label = document.getElementById("btn-cart-signup-label");
+        if (label) label.textContent = "Enviar com Cadastro Completo";
+      } else if (!validacaoCad.valido) {
+        signupBtn.style.display = "inline-flex";
+        const label = document.getElementById("btn-cart-signup-label");
+        if (label) label.textContent = "Completar Dados do Cadastro";
+      } else {
+        signupBtn.style.display = "none";
+      }
+    }
+    if (drawerSignupBtn) {
+      if (!isLogado) {
+        drawerSignupBtn.style.display = "inline-flex";
+        const label = document.getElementById("drawer-btn-cart-signup-label");
+        if (label) label.textContent = "Enviar com Cadastro Completo";
+      } else if (!validacaoCad.valido) {
+        drawerSignupBtn.style.display = "inline-flex";
+        const label = document.getElementById("drawer-btn-cart-signup-label");
+        if (label) label.textContent = "Completar Dados do Cadastro";
+      } else {
+        drawerSignupBtn.style.display = "none";
+      }
+    }
+
+    if (signupHint) {
+      signupHint.style.display = isLogado && validacaoCad.valido ? "none" : "block";
+      if (!isLogado) {
+        signupHint.textContent = "🎁 Preencha seus dados cadastrais completos (CPF/CNPJ, Endereço e Nota Fiscal)";
+      } else if (!validacaoCad.valido) {
+        signupHint.textContent = "📝 Preencha CPF/CNPJ e endereço completo para aprovação do cadastro fiscal.";
+      }
+    }
+    if (drawerSignupHint) {
+      drawerSignupHint.style.display = isLogado && validacaoCad.valido ? "none" : "block";
+      if (!isLogado) {
+        drawerSignupHint.textContent = "🎁 Preencha seus dados cadastrais completos (CPF/CNPJ, Endereço e Nota Fiscal)";
+      } else if (!validacaoCad.valido) {
+        drawerSignupHint.textContent = "📝 Preencha CPF/CNPJ e endereço completo para aprovação do cadastro fiscal.";
+      }
+    }
 
     if (saveOrderBtn) saveOrderBtn.style.display = isLogado ? "inline-flex" : "none";
     if (drawerSaveOrderBtn) drawerSaveOrderBtn.style.display = isLogado ? "inline-flex" : "none";
@@ -7243,14 +7255,8 @@
       state.usuarioGoogle = null;
       atualizarBadgeUsuarioHeader();
 
-      if (!validacao.valido) {
-        abrirModalAuthCliente("complete", {
-          preMarcarNf: precisaNf,
-          mensagemTopo: `✅ Conta Google conectada (${u.email})! Complete seu WhatsApp, CPF/CNPJ e dados de Nota Fiscal (se precisar) para aprovar seu cadastro.`
-        });
-      } else {
-        fecharModalAuthCliente();
-      }
+      fecharModalAuthCliente();
+      mostrarToastNotificacao(`🎉 Bem-vindo(a), ${clienteData.nome}!`, "sucesso");
     } else {
       // 2. USUÁRIO É EQUIPE / ADMINISTRADOR (Entrou pela Área Restrita)
       state.usuarioGoogle = u;
@@ -12733,15 +12739,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       enviarPedidoParaWhatsApp();
     });
 
-    // Fazer Cadastro / Entrar a partir do Carrinho (Opção do Cliente)
-    document.getElementById("btn-cart-signup")?.addEventListener("click", () => {
+    // Fazer Cadastro Completo / Completar Dados a partir do Carrinho (Opção Explícita do Cliente)
+    function abrirCadastroOuCompletarDoCarrinho() {
       fecharGavetaPedido();
-      abrirModalAuthCliente("signup");
-    });
-    document.getElementById("drawer-btn-cart-signup")?.addEventListener("click", () => {
-      fecharGavetaPedido();
-      abrirModalAuthCliente("signup");
-    });
+      if (state.clienteLogado) {
+        abrirModalAuthCliente("complete", {
+          preMarcarNf: Boolean(state.precisaNotaFiscalPedido || state.clienteLogado.precisaNotaFiscal),
+          mensagemTopo: "📝 Complete ou atualize seus dados cadastrais para aprovação fiscal e envio do pedido."
+        });
+      } else {
+        abrirModalAuthCliente("signup");
+      }
+    }
+
+    document.getElementById("btn-cart-signup")?.addEventListener("click", abrirCadastroOuCompletarDoCarrinho);
+    document.getElementById("drawer-btn-cart-signup")?.addEventListener("click", abrirCadastroOuCompletarDoCarrinho);
 
     // Guardar Pedido / Salvar Orçamento na Conta do Cliente
     document.getElementById("btn-save-box-order")?.addEventListener("click", () => {
