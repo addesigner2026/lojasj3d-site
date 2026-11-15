@@ -12789,5 +12789,62 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         fecharMobileDrawer();
       });
     });
+
+    // Suporte a rolagem horizontal fluida (roda do mouse e arrasto) no dock do menu
+    const navDock = document.querySelector(".header-nav.sj-nav-dock");
+    if (navDock) {
+      navDock.addEventListener(
+        "wheel",
+        (e) => {
+          if (navDock.scrollWidth > navDock.clientWidth) {
+            if (e.deltaY !== 0) {
+              e.preventDefault();
+              navDock.scrollLeft += e.deltaY * 0.9;
+            }
+          }
+        },
+        { passive: false }
+      );
+
+      let isDown = false;
+      let startX = 0;
+      let scrollLeft = 0;
+      let dragged = false;
+
+      navDock.addEventListener("mousedown", (e) => {
+        if (navDock.scrollWidth <= navDock.clientWidth) return;
+        isDown = true;
+        dragged = false;
+        startX = e.pageX - navDock.offsetLeft;
+        scrollLeft = navDock.scrollLeft;
+      });
+
+      window.addEventListener("mouseup", () => {
+        isDown = false;
+      });
+
+      navDock.addEventListener("mousemove", (e) => {
+        if (!isDown) return;
+        const x = e.pageX - navDock.offsetLeft;
+        const walk = x - startX;
+        if (Math.abs(walk) > 4) {
+          dragged = true;
+          navDock.scrollLeft = scrollLeft - walk;
+        }
+      });
+
+      navDock.querySelectorAll("button, a").forEach((btn) => {
+        btn.addEventListener(
+          "click",
+          (e) => {
+            if (dragged) {
+              e.preventDefault();
+              e.stopPropagation();
+            }
+          },
+          true
+        );
+      });
+    }
   });
 })();
