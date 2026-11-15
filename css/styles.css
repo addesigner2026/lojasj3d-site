@@ -926,6 +926,49 @@ button, select, input {
 }
 
 /* Informações de Peças & Acessórios (Sem Preço, Foco em Nome, Área e Para Que Serve) */
+.combo-card-peca-clean-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 8px 0 14px;
+  text-align: left;
+}
+
+.peca-clean-tags-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.peca-clean-sub {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.btn-peca-clean-details {
+  background: #ffffff !important;
+  color: #18181b !important;
+  border: 1.5px solid #e4e4e7 !important;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04) !important;
+  font-weight: 700 !important;
+  transition: all 0.18s ease !important;
+  text-decoration: none !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+}
+
+.btn-peca-clean-details:hover {
+  background: var(--sj-orange) !important;
+  color: #ffffff !important;
+  border-color: var(--sj-orange) !important;
+  transform: translateY(-1px) !important;
+  box-shadow: 0 6px 18px rgba(240, 78, 35, 0.22) !important;
+}
+
 .combo-card-peca-info {
   display: flex;
   flex-direction: column;
@@ -12748,11 +12791,13 @@ button.color-swatch-more:hover {
   margin: 0 0 6px;
 }
 
-.sj-home-fil-card-top p {
-  font-size: 0.82rem;
+.sj-home-fil-card-top p,
+.sj-home-fil-card-desc {
+  font-size: 0.84rem;
   color: #52525b;
   line-height: 1.45;
   margin: 0;
+  font-weight: 500;
 }
 
 .sj-home-fil-chips {
@@ -12883,10 +12928,11 @@ button.color-swatch-more:hover {
   margin: 2px 0 6px;
 }
 
-.sj-home-bento-body p {
-  font-size: 0.81rem;
+.sj-home-bento-body p,
+.sj-home-bento-desc {
+  font-size: 0.82rem;
   color: #52525b;
-  line-height: 1.45;
+  line-height: 1.42;
   margin: 0 0 8px;
 }
 

@@ -3989,14 +3989,14 @@
 
     const priceLineHtml = item.categoria === "pecas"
       ? `
-        <div class="combo-card-peca-info">
-          <div class="peca-card-tags">
-            <span class="peca-area-badge">Área: ${escaparHtml(item.area || "Componentes")}</span>
-            <span class="peca-compat-badge">${escaparHtml(item.compatibilidade || item.select2Opcoes?.[0] || "Universal")}</span>
+        <div class="combo-card-peca-clean-meta">
+          <div class="peca-clean-tags-row">
+            <span class="peca-compat-badge">${escaparHtml(item.compatibilidade || item.marca || "Bambu Lab Original")}</span>
+            <span class="peca-clean-sub">${escaparHtml(item.area || "Componente Original")}</span>
           </div>
-          <div class="peca-card-funcao">
-            <span class="peca-funcao-rotulo">Para que serve:</span>
-            <p class="peca-funcao-texto">${escaparHtml(item.paraQueServe || item.subtitulo || "")}</p>
+          <div class="combo-card-clean-price">
+            <strong id="price-val-${item.id}">${item.precoVista || "Sob Consulta"}</strong>
+            <span class="clean-price-sub">${item.precoParcelado || "Pronta Entrega em Umuarama"}</span>
           </div>
         </div>
       `
@@ -4025,10 +4025,12 @@
     const opcoesSelect2 = item.select2Opcoes || ["Padrão"];
     const mostrarSel1 =
       item.categoria !== "impressoras" &&
+      item.categoria !== "pecas" &&
       !item.variantesDiametro &&
       Array.isArray(opcoesSelect1) &&
       opcoesSelect1.length > 1;
     const mostrarSel2 =
+      item.categoria !== "pecas" &&
       !item.variantesDiametro &&
       (Boolean(item.tipoFilamento) ||
       (Array.isArray(opcoesSelect2) &&
@@ -4036,33 +4038,9 @@
         !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão")));
     const ocultarLinhaSelects = !mostrarSel1 && !mostrarSel2;
 
-    let diametrosCardHtml = "";
-    if (item.variantesDiametro && item.variantesDiametro.length > 0) {
-      diametrosCardHtml = `
-        <div class="peca-card-diam-section" id="diam-section-${item.id}">
-          <span class="peca-card-diam-label">Diâmetro do Bico:</span>
-          <div class="peca-card-diam-pills" role="radiogroup" aria-label="Escolher diâmetro">
-            ${item.variantesDiametro
-              .map(
-                (v, idx) => `
-                <button
-                  type="button"
-                  class="peca-card-diam-pill ${idx === 1 ? "active" : ""}"
-                  data-card-diam-btn="${item.id}"
-                  data-card-diam-val="${v.diametro}"
-                  data-card-diam-img="${v.imagem}"
-                  title="${v.diametro} (${v.material}) — ${v.destaque}"
-                  aria-label="Diâmetro ${v.diametro}"
-                >
-                  ${v.diametro}
-                </button>
-              `
-              )
-              .join("")}
-          </div>
-        </div>
-      `;
-    }
+    // No card da grade, os seletores de diâmetro foram movidos para dentro da Página/Modal de Detalhes do Produto (PDP)
+    // para garantir um design 100% clean, moderno e sem poluição visual na capa e no catálogo.
+    const diametrosCardHtml = "";
 
     return `
       <article
@@ -4118,9 +4096,19 @@
           </select>
         </div>
 
-        <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao Pedido"}" ${ehEsgotado ? "disabled" : ""}>
-          ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "+ Adicionar ao Pedido")}
-        </button>
+        ${
+          item.categoria === "pecas"
+            ? `
+            <button type="button" class="btn-add-to-box btn-peca-clean-details" data-open-modal="${item.id}" title="Ver especificações, diâmetros e compatibilidade desta peça">
+              Ver Detalhes &amp; Especificações →
+            </button>
+          `
+            : `
+            <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao Pedido"}" ${ehEsgotado ? "disabled" : ""}>
+              ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "+ Adicionar ao Pedido")}
+            </button>
+          `
+        }
       </article>
     `;
   }
@@ -5546,8 +5534,8 @@
         </div>
       </div>
 
-      <!-- 4. VITRINE CLEAN DE FILAMENTOS (SEM POLUIÇÃO NA CAPA — 2 PORTAIS DE MARCA + ATALHOS RÁPIDOS) -->
-      <div class="home-section-block">
+      <!-- 4. VITRINE CLEAN DE FILAMENTOS (2 PORTAIS MODERNOS DE MARCA — SEM POLUIÇÃO VISUAL) -->
+      <div class="home-section-block" id="home-filamentos-showcase">
         <div class="home-section-head">
           <div>
             <span class="home-eyebrow">FILAMENTOS 1.75 MM LACRADOS A VÁCUO</span>
@@ -5558,35 +5546,28 @@
 
         <div class="sj-home-fil-showcase-grid">
           <!-- Card 1: Masterprint -->
-          <div class="sj-home-fil-brand-card" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint">
+          <div class="sj-home-fil-brand-card" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint" title="Explorar Catálogo de Filamentos Masterprint">
             <div class="sj-home-fil-card-visual">
               <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint" loading="lazy" />
-              <span class="sj-home-fil-badge">REVENDEDOR AUTORIZADO • 68 CORES</span>
+              <span class="sj-home-fil-badge">REVENDA AUTORIZADA • 68 CORES</span>
             </div>
             <div class="sj-home-fil-card-content">
               <div class="sj-home-fil-card-top">
                 <h3>Filamentos Masterprint</h3>
-                <p>Alta precisão dimensional (±0.02 mm), excelente aderência e zero bolhas para qualquer impressora 3D.</p>
-              </div>
-              <div class="sj-home-fil-chips" role="group" aria-label="Linhas Masterprint">
-                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint">PLA (25)</button>
-                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-silk-maxprint">PLA Silk (17)</button>
-                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-petg-maxprint">PETG (9)</button>
-                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-tpu-maxprint">TPU Flex (7)</button>
-                <button type="button" class="sj-home-fil-chip" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-abs-especiais">ABS &amp; Glitter (10)</button>
+                <p class="sj-home-fil-card-desc">PLA, Silk Bicolor, PETG, TPU Flex e ABS para qualquer impressora 3D.</p>
               </div>
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
                   <strong>R$ 79,90 <span>/ 1 kg</span></strong>
                 </div>
-                <span class="sj-home-fil-cta">Escolher Cores Masterprint →</span>
+                <span class="sj-home-fil-cta">Ver Cores Masterprint →</span>
               </div>
             </div>
           </div>
 
           <!-- Card 2: Bambu Lab RFID -->
-          <div class="sj-home-fil-brand-card is-bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos">
+          <div class="sj-home-fil-brand-card is-bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos" title="Explorar Catálogo Bambu Lab RFID">
             <div class="sj-home-fil-card-visual">
               <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID" loading="lazy" />
               <span class="sj-home-fil-badge bambu">CHIP RFID ORIGINAL • 13 CORES</span>
@@ -5594,49 +5575,44 @@
             <div class="sj-home-fil-card-content">
               <div class="sj-home-fil-card-top">
                 <h3>Filamentos Bambu Lab RFID</h3>
-                <p>Reconhecimento automático de cor e parâmetros no AMS e AMS Lite. Disponível com bobina reutilizável ou Refil.</p>
-              </div>
-              <div class="sj-home-fil-chips" role="group" aria-label="Opções Bambu Lab">
-                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="carretel">Com Bobina RFID (10)</button>
-                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="refil">Refil s/ Bobina (3)</button>
-                <button type="button" class="sj-home-fil-chip bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos">Ver Todos (13)</button>
+                <p class="sj-home-fil-card-desc">Reconhecimento automático no AMS e AMS Lite. Bobinas Inteligentes e Refis.</p>
               </div>
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
                   <strong>R$ 79,90 <span>/ 1 kg</span></strong>
                 </div>
-                <span class="sj-home-fil-cta bambu">Escolher Cores Bambu Lab →</span>
+                <span class="sj-home-fil-cta bambu">Ver Cores Bambu Lab →</span>
               </div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- 5. PEÇAS DE REPOSIÇÃO & MANUTENÇÃO ESPECIALIZADA (BENTO CLEAN 2 COLUNAS) -->
+      <!-- 5. PEÇAS & MANUTENÇÃO ESPECIALIZADA (BENTO CLEAN 2 COLUNAS) -->
       <div class="home-section-block">
         <div class="sj-home-bento-2col">
-          <div class="sj-home-bento-card" data-home-go-cat="pecas">
+          <div class="sj-home-bento-card" data-home-go-cat="pecas" title="Ver Catálogo de Peças de Reposição">
             <div class="sj-home-bento-img">
               <img src="assets/produtos/peca-hotend.jpg" alt="Peças de Reposição e Upgrades" loading="lazy" />
             </div>
             <div class="sj-home-bento-body">
-              <span class="home-eyebrow">COMPONENTES ORIGINAIS</span>
-              <h3>Peças de Reposição &amp; Upgrades</h3>
-              <p>Hotends Quick-Swap completos, Placas PEI Texturizadas Dupla Face e Tubos PTFE para linha Bambu Lab.</p>
+              <span class="home-eyebrow">COMPONENTES GENUÍNOS</span>
+              <h3>Peças &amp; Upgrades Originais</h3>
+              <p class="sj-home-bento-desc">Hotends Quick-Swap, Extrusoras, Placas PEI e Acessórios Bambu Lab.</p>
               <span class="home-cat-cta">Ver Peças &amp; Acessórios →</span>
             </div>
           </div>
 
-          <div class="sj-home-bento-card" data-home-go-cat="manutencao">
+          <div class="sj-home-bento-card" data-home-go-cat="manutencao" title="Ver Serviços de Assistência Técnica e Manutenção">
             <div class="sj-home-bento-img">
               <img src="assets/produtos/impressora-p2s_combo.jpg" alt="Serviços e Manutenção Especializada" loading="lazy" />
             </div>
             <div class="sj-home-bento-body">
-              <span class="home-eyebrow">LABORATÓRIO TÉCNICO EM UMUARAMA</span>
-              <h3>Serviços &amp; Manutenção 3D</h3>
-              <p>Revisão preventiva, limpeza de extrusora, reparo de AMS/AMS Lite e calibração completa com garantia local.</p>
-              <span class="home-cat-cta">Ver Serviços de Manutenção →</span>
+              <span class="home-eyebrow">LABORATÓRIO EM UMUARAMA</span>
+              <h3>Manutenção &amp; Revisão 3D</h3>
+              <p class="sj-home-bento-desc">Revisão preventiva, desentupimento, calibração e suporte com garantia.</p>
+              <span class="home-cat-cta">Ver Serviços Técnicos →</span>
             </div>
           </div>
         </div>
