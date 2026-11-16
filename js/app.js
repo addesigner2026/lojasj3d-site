@@ -8661,7 +8661,7 @@
     const linhasTabelaHtml = state.itensOrcamento.map((item, idx) => {
       const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
       return `
-        <tr>
+        <tr class="quote-item-row">
           <td class="col-center" style="font-weight:700;">${idx + 1}</td>
           <td>
             <div style="font-weight:700; color:#18181b;">${escaparHtml(item.descricao || '')}</div>
@@ -8992,13 +8992,8 @@
       if (window.html2pdf && elementoFolha) {
         mostrarToast("⏳ Gerando e baixando PDF oficial...", "info");
         const meta = state.orcamentoMetadados;
-        const opt = {
-          margin: [8, 6, 8, 6],
-          filename: `Orcamento-${meta.numero || 'SJ-2026'}.pdf`,
-          image: { type: 'jpeg', quality: 0.98 },
-          html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
-          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-        };
+        const nomeArquivo = `Orcamento-${meta.numero || 'SJ-2026'}.pdf`;
+        const opt = obterConfiguracaoHtml2Pdf(nomeArquivo);
         try {
           await window.html2pdf().set(opt).from(elementoFolha).save();
           mostrarToast("📄 PDF baixado com sucesso!", "success");
@@ -9012,17 +9007,49 @@
     });
   }
 
+  function obterConfiguracaoHtml2Pdf(nomeArquivo) {
+    return {
+      margin: [6, 6, 6, 6],
+      filename: nomeArquivo,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: {
+        scale: 2,
+        useCORS: true,
+        logging: false,
+        scrollY: 0,
+        letterRendering: true
+      },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak: {
+        mode: ['css', 'legacy'],
+        avoid: [
+          '.quote-header-brand',
+          '.quote-doc-ribbon',
+          '.quote-parties-grid',
+          '.party-col',
+          '.quote-table-wrapper',
+          '.quote-items-table tr',
+          '.quote-item-row',
+          '.quote-totals-wrapper',
+          '.quote-totals-box',
+          '.quote-terms-section',
+          '.terms-grid',
+          '.term-col',
+          '.bank-info-box',
+          '.quote-obs-box',
+          '.quote-signature-row',
+          '.signature-box',
+          '.quote-footer-bottom'
+        ]
+      }
+    };
+  }
+
   async function gerarPdfOrcamentoBlob(elemento) {
     if (!window.html2pdf || !elemento) return null;
     const meta = state.orcamentoMetadados;
     const nomeArquivo = `Orcamento-${meta.numero || 'SJ-2026'}.pdf`;
-    const opt = {
-      margin: [8, 6, 8, 6],
-      filename: nomeArquivo,
-      image: { type: 'jpeg', quality: 0.98 },
-      html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
-      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
-    };
+    const opt = obterConfiguracaoHtml2Pdf(nomeArquivo);
     try {
       const pdfBlob = await window.html2pdf().set(opt).from(elemento).output('blob');
       return { blob: pdfBlob, nomeArquivo };
