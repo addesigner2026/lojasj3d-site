@@ -7615,6 +7615,7 @@
     if (adminTopBar) adminTopBar.style.display = "none";
 
     state.emissorAberto = true;
+    state.orcamentoModoVisao = "editor"; // "editor" (Workspace amplo) | "timbrado" (Folha Timbrada Oficial A4)
 
     if (Array.isArray(dadosIniciais)) {
       state.itensOrcamento = dadosIniciais;
@@ -7624,7 +7625,8 @@
         validade: "15 dias",
         frete: 0,
         desconto: 0,
-        formaPagamento: "PIX à Vista (Chave CNPJ) ou Cartão até 12x",
+        tipoDesconto: "nenhum",
+        formaPagamento: "PIX à Vista (5% OFF)",
         prazoEntrega: "Pronta Entrega / Imediato",
         observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
         cliente: {
@@ -7639,6 +7641,35 @@
     } else if (dadosIniciais && typeof dadosIniciais === "object" && dadosIniciais.itens) {
       state.itensOrcamento = dadosIniciais.itens;
       state.orcamentoMetadados = { ...dadosIniciais.metadados };
+      if (!state.orcamentoMetadados.tipoDesconto) {
+        state.orcamentoMetadados.tipoDesconto = Number(state.orcamentoMetadados.desconto) > 0 ? "personalizado" : "nenhum";
+      }
+    } else if (dadosIniciais && typeof dadosIniciais === "object" && dadosIniciais.metadados) {
+      // Aberto a partir de um cliente no painel CMS
+      state.orcamentoMetadados = {
+        numero: gerarNumeroOrcamento(),
+        data: obterDataHojeFormatada(),
+        validade: "15 dias",
+        frete: 0,
+        desconto: 0,
+        tipoDesconto: "nenhum",
+        formaPagamento: "PIX à Vista (5% OFF)",
+        prazoEntrega: "Pronta Entrega / Imediato",
+        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        ...dadosIniciais.metadados
+      };
+      if (!Array.isArray(state.itensOrcamento) || state.itensOrcamento.length === 0) {
+        state.itensOrcamento = [
+          {
+            id: "item-" + Date.now(),
+            descricao: "Filamento PLA Masterprint 1.75mm (1kg)",
+            codigo: "CÓD. 34",
+            imagem: "assets/produtos/filamentos/masterprint-pla-preto.jpg",
+            qtd: 1,
+            precoUnitario: 79.90
+          }
+        ];
+      }
     } else if (!state.orcamentoMetadados) {
       state.orcamentoMetadados = {
         numero: gerarNumeroOrcamento(),
@@ -7646,7 +7677,8 @@
         validade: "15 dias",
         frete: 0,
         desconto: 0,
-        formaPagamento: "PIX à Vista (Chave CNPJ) ou Cartão até 12x",
+        tipoDesconto: "nenhum",
+        formaPagamento: "PIX à Vista (5% OFF)",
         prazoEntrega: "Pronta Entrega / Imediato",
         observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
         cliente: {
@@ -7658,11 +7690,13 @@
           email: ""
         }
       };
-      if (state.itensOrcamento.length === 0) {
+      if (!Array.isArray(state.itensOrcamento) || state.itensOrcamento.length === 0) {
         state.itensOrcamento = [
           {
             id: "item-" + Date.now(),
             descricao: "Filamento PLA Masterprint 1.75mm (1kg)",
+            codigo: "CÓD. 34",
+            imagem: "assets/produtos/filamentos/masterprint-pla-preto.jpg",
             qtd: 1,
             precoUnitario: 79.90
           }
@@ -7688,10 +7722,1046 @@
     const quoteView = document.getElementById("quote-studio-view");
     if (!quoteView) return;
 
-    const { loja } = window.SITE_DATA;
-    const meta = state.orcamentoMetadados;
+    if (state.orcamentoModoVisao === "timbrado") {
+      renderizarFolhaTimbradaOrcamento(quoteView);
+      vincularEventosFolhaTimbradaOrcamento(quoteView);
+    } else {
+      renderizarWorkspaceEditorOrcamento(quoteView);
+      vincularEventosWorkspaceEditorOrcamento(quoteView);
+    }
+  }
+
+  function renderizarWorkspaceEditorOrcamento(quoteView) {
+    const meta = state.orcamentoMetadados || {};
     const cliente = meta.cliente || {};
-    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Loja SJ)";
+    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Admin Oficial)";
+    const temCliente = Boolean((cliente.nome && cliente.nome.trim()) || (cliente.cepTelefone && cliente.cepTelefone.trim()) || (cliente.cnpjCpf && cliente.cnpjCpf.trim()));
+
+    const subtotal = state.itensOrcamento.reduce(
+      (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+      0
+    );
+
+    // Cálculo dinâmico do desconto
+    let descontoCalculado = Number(meta.desconto) || 0;
+    if (meta.tipoDesconto === "vista5") {
+      descontoCalculado = Math.round(subtotal * 0.05 * 100) / 100;
+      meta.desconto = descontoCalculado;
+    } else if (meta.tipoDesconto === "nenhum") {
+      descontoCalculado = 0;
+      meta.desconto = 0;
+    }
+
+    const frete = Number(meta.frete) || 0;
+    const totalGeral = Math.max(0, subtotal + frete - descontoCalculado);
+
+    // Itens sugeridos para inclusão rápida com 1 clique
+    const itensRapidos = [
+      { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 79.90, img: "assets/produtos/filamentos/masterprint-pla-preto.jpg" },
+      { nome: "Filamento Bambu Lab PLA Basic RFID (1kg)", cod: "CÓD. 137", preco: 139.90, img: "assets/produtos/filamentos/bambulab-pla-preto.jpg" },
+      { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "CÓD. BAMBU-02", preco: 4049.00, img: "assets/produtos/impressora-a1_combo.jpg" },
+      { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "CÓD. BAMBU-01", preco: 2980.00, img: "assets/produtos/impressora-a1_mini_combo.jpg" },
+      { nome: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab", cod: "CÓD. PECA-01", preco: 119.00, img: "assets/produtos/pecas/bico-hotend-04.jpg" }
+    ];
+
+    const tabelaLinhasHtml = state.itensOrcamento.map((item, idx) => {
+      const rowTot = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
+      return `
+        <tr data-row-idx="${idx}" class="qb-row">
+          <td class="col-center qb-col-num">${idx + 1}</td>
+          <td class="qb-col-product">
+            <div class="qb-product-search-wrap">
+              <input 
+                type="text" 
+                class="qb-product-search-input" 
+                data-idx="${idx}" 
+                value="${escaparHtml(item.descricao || '')}" 
+                placeholder="🔍 Digite o nome ou código (ex: 34, 137, Bambu, Hotend)..." 
+                autocomplete="off" 
+              />
+              <div class="qb-product-predict-dropdown" id="qb-product-predict-${idx}" style="display:none;"></div>
+            </div>
+            ${item.codigo ? `<span class="qb-item-badge-sku">${escaparHtml(item.codigo)}</span>` : ''}
+          </td>
+          <td class="col-center qb-col-qty">
+            <div class="qb-qty-stepper">
+              <button type="button" class="btn-qb-qty-minus" data-idx="${idx}" title="Diminuir">">−</button>
+              <input type="number" min="1" step="1" class="qb-qty-input" data-idx="${idx}" value="${item.qtd || 1}" />
+              <button type="button" class="btn-qb-qty-plus" data-idx="${idx}" title="Aumentar">+</button>
+            </div>
+          </td>
+          <td class="col-right qb-col-price">
+            <div class="qb-price-field">
+              <span class="qb-currency-symbol">R$</span>
+              <input type="number" step="0.01" min="0" class="qb-price-input" data-idx="${idx}" value="${(Number(item.precoUnitario) || 0).toFixed(2)}" />
+            </div>
+          </td>
+          <td class="col-right qb-col-total">
+            <strong class="qb-row-total-val" id="qb-row-total-${idx}">${formatarMoedaBR(rowTot)}</strong>
+          </td>
+          <td class="col-center qb-col-action">
+            <button type="button" class="btn-qb-del-row" data-idx="${idx}" title="Remover item da proposta">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+            </button>
+          </td>
+        </tr>
+      `;
+    }).join("");
+
+    quoteView.innerHTML = `
+      <div class="quote-builder-workspace">
+        
+        <!-- 1. TOPBAR DO WORKSPACE -->
+        <div class="qb-topbar">
+          <div class="qb-topbar-left">
+            <button type="button" class="qb-btn-back" id="btn-qb-back-catalog">
+              ← Voltar ao Catálogo
+            </button>
+            <div class="qb-topbar-title-box">
+              <span class="qb-badge-live">● Sistema de Orçamento Comercial</span>
+              <h2 class="qb-topbar-title">Emissor de Proposta &amp; Orçamento Timbrado</h2>
+            </div>
+          </div>
+          <div class="qb-topbar-right">
+            <div class="qb-operator-pill">
+              <span class="qb-operator-icon">👤</span>
+              <div class="qb-operator-info">
+                <span class="qb-operator-label">Vendedor / Operador</span>
+                <strong class="qb-operator-name">${escaparHtml(vendedorNome)}</strong>
+              </div>
+            </div>
+            <button type="button" class="qb-btn-secondary" id="btn-qb-history">
+              📂 Histórico de Orçamentos
+            </button>
+            <button type="button" class="qb-btn-outline-primary" id="btn-qb-preview-timbrado">
+              👁️ Ver Folha Timbrada
+            </button>
+          </div>
+        </div>
+
+        <!-- 2. ETAPA 1: CLIENTE & CONTATO -->
+        <div class="qb-card qb-card-client">
+          <div class="qb-card-header">
+            <div class="qb-step-number">1</div>
+            <div>
+              <h3 class="qb-card-title">Identificação do Cliente &amp; Contato</h3>
+              <p class="qb-card-subtitle">Localize por Telefone/WhatsApp, Nome ou CNPJ/CPF cadastrado, ou adicione um novo cliente.</p>
+            </div>
+          </div>
+
+          <!-- CARD DE CLIENTE CONFIRMADO (QUANDO JÁ SELECIONADO) -->
+          <div id="qb-client-confirmed-card" class="qb-confirmed-client-box" style="display: ${temCliente ? 'flex' : 'none'};">
+            <div class="qb-confirmed-avatar">✓</div>
+            <div class="qb-confirmed-details">
+              <div class="qb-confirmed-name-row">
+                <strong class="qb-confirmed-name" id="qb-confirmed-name-text">${escaparHtml(cliente.nome || 'Cliente Selecionado')}</strong>
+                <span class="qb-confirmed-badge-valid">✓ Cliente Validado no Sistema</span>
+              </div>
+              <div class="qb-confirmed-info-grid">
+                <div>
+                  <span class="qb-info-label">WhatsApp / Telefone:</span>
+                  <a href="https://wa.me/55${(cliente.cepTelefone || '').replace(/\D/g, '')}" target="_blank" rel="noopener" class="qb-info-val-link" id="qb-confirmed-phone-text">
+                    📱 ${escaparHtml(cliente.cepTelefone || 'Não informado')}
+                  </a>
+                </div>
+                <div>
+                  <span class="qb-info-label">CPF / CNPJ:</span>
+                  <strong class="qb-info-val" id="qb-confirmed-doc-text">${escaparHtml(cliente.cnpjCpf || 'Não informado')}</strong>
+                </div>
+                <div>
+                  <span class="qb-info-label">Endereço / Cidade:</span>
+                  <span class="qb-info-val" id="qb-confirmed-addr-text">${escaparHtml((cliente.endereco || '') + (cliente.bairroCidadeUf ? ' — ' + cliente.bairroCidadeUf : ''))}</span>
+                </div>
+                <div>
+                  <span class="qb-info-label">E-mail:</span>
+                  <span class="qb-info-val" id="qb-confirmed-email-text">${escaparHtml(cliente.email || 'Não informado')}</span>
+                </div>
+              </div>
+            </div>
+            <button type="button" class="qb-btn-edit-client" id="btn-qb-change-client" title="Trocar ou selecionar outro cliente">
+              ✏️ Trocar Cliente
+            </button>
+          </div>
+
+          <!-- SEÇÃO DE BUSCA E AUTOCOMPLETE (QUANDO NÃO HÁ CLIENTE OU AO CLICAR EM TROCAR) -->
+          <div id="qb-client-search-section" style="display: ${temCliente ? 'none' : 'block'};">
+            <div class="qb-client-search-row">
+              <div class="qb-search-input-wrap">
+                <svg class="qb-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input 
+                  type="text" 
+                  id="qb-client-search-input" 
+                  class="qb-search-input" 
+                  placeholder="Pesquisar cliente por WhatsApp/Telefone, Nome ou CNPJ/CPF..." 
+                  autocomplete="off" 
+                />
+                <button type="button" id="btn-qb-clear-client-search" class="qb-search-clear-btn" style="display:none;">✕</button>
+              </div>
+              <button type="button" class="qb-btn-new-client" id="btn-qb-toggle-new-client">
+                ➕ Cadastrar Novo Cliente
+              </button>
+            </div>
+            <div id="qb-client-search-results" class="qb-client-dropdown" style="display:none;"></div>
+          </div>
+
+          <!-- FORMULÁRIO INLINE DE NOVO CLIENTE -->
+          <div id="qb-new-client-box" class="qb-new-client-box" style="display:none;">
+            <div class="qb-new-client-header">
+              <div class="qb-new-client-title-box">
+                <span class="qb-form-badge">CADASTRO RÁPIDO</span>
+                <h4 style="margin:4px 0 0; font-size:1.05rem; font-weight:800;">Adicionar Novo Cliente no Sistema</h4>
+                <p style="margin:2px 0 0; font-size:0.8rem; color:#6b7280;">Preencha o contato e dados para salvar no banco de dados e continuar com o orçamento.</p>
+              </div>
+              <button type="button" class="qb-btn-close-new-client" id="btn-qb-close-new-client">✕ Cancelar</button>
+            </div>
+
+            <form id="qb-form-inline-new-client" class="qb-inline-form">
+              <div class="qb-form-grid-3">
+                <div class="qb-field">
+                  <label>Nome Completo ou Razão Social <span class="req">*</span></label>
+                  <input type="text" id="qb-input-new-name" placeholder="Ex: Roberto Silva ou Empresa XYZ" required />
+                </div>
+                <div class="qb-field">
+                  <label>WhatsApp / Telefone <span class="req">*</span></label>
+                  <input type="tel" id="qb-input-new-phone" placeholder="(44) 99999-9999" required />
+                </div>
+                <div class="qb-field">
+                  <label>CPF ou CNPJ</label>
+                  <input type="text" id="qb-input-new-doc" placeholder="000.000.000-00 ou 00.000.000/0001-00" />
+                  <span class="qb-doc-feedback" id="qb-new-doc-feedback"></span>
+                </div>
+              </div>
+
+              <div class="qb-form-grid-4">
+                <div class="qb-field">
+                  <label>CEP (Busca Automática)</label>
+                  <input type="text" id="qb-input-new-cep" placeholder="87501-000" maxlength="9" />
+                </div>
+                <div class="qb-field" style="grid-column: span 2;">
+                  <label>Logradouro / Rua e Número</label>
+                  <input type="text" id="qb-input-new-addr" placeholder="Ex: Av. Paraná, 1234" />
+                </div>
+                <div class="qb-field">
+                  <label>Bairro</label>
+                  <input type="text" id="qb-input-new-bairro" placeholder="Ex: Centro" />
+                </div>
+              </div>
+
+              <div class="qb-form-grid-3">
+                <div class="qb-field">
+                  <label>Cidade / UF</label>
+                  <input type="text" id="qb-input-new-city" value="Umuarama / PR" placeholder="Umuarama / PR" />
+                </div>
+                <div class="qb-field">
+                  <label>E-mail (para envio da proposta)</label>
+                  <input type="email" id="qb-input-new-email" placeholder="cliente@email.com" />
+                </div>
+                <div class="qb-field qb-field-btn-align">
+                  <button type="submit" class="qb-btn-save-new-client" id="btn-qb-submit-new-client">
+                    ✓ Concluir Cadastro &amp; Voltar ao Orçamento
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- 3. ETAPA 2: FORMA DE PAGAMENTO & DESCONTO -->
+        <div class="qb-card qb-card-payment">
+          <div class="qb-card-header">
+            <div class="qb-step-number">2</div>
+            <div>
+              <h3 class="qb-card-title">Condições Comerciais, Pagamento &amp; Desconto</h3>
+              <p class="qb-card-subtitle">Defina o meio de pagamento negociado, desconto à vista ou personalizado e prazo de entrega.</p>
+            </div>
+          </div>
+
+          <div class="qb-pay-grid">
+            <label class="qb-pay-card ${meta.formaPagamento.includes('PIX') ? 'selected' : ''}">
+              <input type="radio" name="qb-pay-option" value="PIX à Vista (5% OFF)" ${meta.formaPagamento.includes('PIX') ? 'checked' : ''} />
+              <div class="qb-pay-content">
+                <div class="qb-pay-icon-box">⚡</div>
+                <div>
+                  <strong class="qb-pay-title">PIX à Vista</strong>
+                  <span class="qb-pay-sub">5% de Desconto Imediato</span>
+                </div>
+              </div>
+              <span class="qb-pay-badge-rec">Recomendado</span>
+            </label>
+
+            <label class="qb-pay-card ${meta.formaPagamento === 'Dinheiro à Vista' ? 'selected' : ''}">
+              <input type="radio" name="qb-pay-option" value="Dinheiro à Vista" ${meta.formaPagamento === 'Dinheiro à Vista' ? 'checked' : ''} />
+              <div class="qb-pay-content">
+                <div class="qb-pay-icon-box">💵</div>
+                <div>
+                  <strong class="qb-pay-title">Dinheiro</strong>
+                  <span class="qb-pay-sub">Pagamento no Balcão</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="qb-pay-card ${meta.formaPagamento === 'Cartão Débito' ? 'selected' : ''}">
+              <input type="radio" name="qb-pay-option" value="Cartão Débito" ${meta.formaPagamento === 'Cartão Débito' ? 'checked' : ''} />
+              <div class="qb-pay-content">
+                <div class="qb-pay-icon-box">💳</div>
+                <div>
+                  <strong class="qb-pay-title">Cartão Débito</strong>
+                  <span class="qb-pay-sub">Todas as bandeiras</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="qb-pay-card ${meta.formaPagamento.includes('Crédito') ? 'selected' : ''}">
+              <input type="radio" name="qb-pay-option" value="Cartão Crédito (até 12x)" ${meta.formaPagamento.includes('Crédito') ? 'checked' : ''} />
+              <div class="qb-pay-content">
+                <div class="qb-pay-icon-box">💳</div>
+                <div>
+                  <strong class="qb-pay-title">Cartão Crédito</strong>
+                  <span class="qb-pay-sub">Parcelado em até 12x</span>
+                </div>
+              </div>
+            </label>
+
+            <label class="qb-pay-card ${meta.formaPagamento.includes('Faturado') || meta.formaPagamento.includes('Boleto') ? 'selected' : ''}">
+              <input type="radio" name="qb-pay-option" value="Boleto / Faturado PJ" ${meta.formaPagamento.includes('Faturado') || meta.formaPagamento.includes('Boleto') ? 'checked' : ''} />
+              <div class="qb-pay-content">
+                <div class="qb-pay-icon-box">📑</div>
+                <div>
+                  <strong class="qb-pay-title">Faturado PJ</strong>
+                  <span class="qb-pay-sub">Boleto sob aprovação</span>
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <!-- SELETORES ADICIONAIS: DESCONTO & PRAZO -->
+          <div class="qb-pay-subgrid">
+            <div class="qb-discount-box">
+              <label class="qb-sub-label">🎁 Desconto Comercial Aplicado:</label>
+              <div class="qb-discount-pills">
+                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'nenhum' ? 'active' : ''}" data-discount="nenhum">
+                  Sem Desconto
+                </button>
+                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'vista5' ? 'active' : ''}" data-discount="vista5">
+                  5% à Vista (- ${formatarMoedaBR(Math.round(subtotal * 0.05 * 100) / 100)})
+                </button>
+                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'personalizado' ? 'active' : ''}" data-discount="personalizado">
+                  Personalizado (R$)
+                </button>
+              </div>
+              <div id="qb-custom-discount-wrap" style="display:${meta.tipoDesconto === 'personalizado' ? 'block' : 'none'}; margin-top:8px;">
+                <div class="qb-price-field" style="max-width:200px;">
+                  <span class="qb-currency-symbol">R$</span>
+                  <input type="number" step="0.01" min="0" id="qb-custom-discount-input" value="${(Number(meta.desconto) || 0).toFixed(2)}" placeholder="0.00" />
+                </div>
+              </div>
+            </div>
+
+            <div class="qb-terms-box">
+              <div class="qb-field-inline">
+                <label>🚚 Prazo de Entrega:</label>
+                <select id="qb-select-delivery" class="qb-select">
+                  <option value="Pronta Entrega / Imediato" ${meta.prazoEntrega === 'Pronta Entrega / Imediato' ? 'selected' : ''}>Pronta Entrega / Imediato (Balcão Umuarama)</option>
+                  <option value="1 a 2 dias úteis" ${meta.prazoEntrega === '1 a 2 dias úteis' ? 'selected' : ''}>1 a 2 dias úteis</option>
+                  <option value="3 a 5 dias úteis" ${meta.prazoEntrega === '3 a 5 dias úteis' ? 'selected' : ''}>3 a 5 dias úteis</option>
+                  <option value="Sob Encomenda (7 a 10 dias)" ${meta.prazoEntrega.includes('Encomenda') ? 'selected' : ''}>Sob Encomenda (7 a 10 dias)</option>
+                </select>
+              </div>
+              <div class="qb-field-inline">
+                <label>⏳ Validade da Proposta:</label>
+                <select id="qb-select-validity" class="qb-select">
+                  <option value="15 dias" ${meta.validade === '15 dias' ? 'selected' : ''}>15 dias</option>
+                  <option value="30 dias" ${meta.validade === '30 dias' ? 'selected' : ''}>30 dias</option>
+                  <option value="7 dias" ${meta.validade === '7 dias' ? 'selected' : ''}>7 dias</option>
+                  <option value="3 dias" ${meta.validade === '3 dias' ? 'selected' : ''}>3 dias</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 4. ETAPA 3: TABELA AMPLA DE PRODUTOS -->
+        <div class="qb-card qb-card-products">
+          <div class="qb-card-header qb-card-header-flex">
+            <div style="display:flex; align-items:center; gap:12px;">
+              <div class="qb-step-number">3</div>
+              <div>
+                <h3 class="qb-card-title">Produtos &amp; Itens da Proposta</h3>
+                <p class="qb-card-subtitle">Pesquise por <strong>Nome</strong> ou <strong>Código</strong> (ex: 34, 137, A1, Hotend), ajuste a quantidade e confira os valores em tempo real.</p>
+              </div>
+            </div>
+            <button type="button" class="qb-btn-add-item" id="btn-qb-add-row">
+              ➕ Adicionar Nova Linha
+            </button>
+          </div>
+
+          <!-- TABELA AMPLA COM AUTOCOMPLETE PREDITIVO -->
+          <div class="qb-table-wrap">
+            <table class="qb-table" id="qb-products-table">
+              <thead>
+                <tr>
+                  <th class="col-center" style="width: 44px;">#</th>
+                  <th>Produto / Descrição (Pesquise por Nome ou Código)</th>
+                  <th class="col-center" style="width: 140px;">Qtd.</th>
+                  <th class="col-right" style="width: 160px;">Preço Unitário</th>
+                  <th class="col-right" style="width: 150px;">Valor Total</th>
+                  <th class="col-center" style="width: 50px;">Ações</th>
+                </tr>
+              </thead>
+              <tbody id="qb-table-body">
+                ${tabelaLinhasHtml}
+              </tbody>
+            </table>
+          </div>
+
+          <!-- CHIPS RÁPIDOS DE ITENS POPULARES -->
+          <div class="qb-quick-chips-box">
+            <span class="qb-quick-chips-label">⚡ Inclusão Rápida em 1 Clique:</span>
+            <div class="qb-quick-chips-list">
+              ${itensRapidos.map((it, qIdx) => `
+                <button type="button" class="qb-chip" data-quick-idx="${qIdx}">
+                  + ${it.nome} (${it.cod}) • ${formatarMoedaBR(it.preco)}
+                </button>
+              `).join("")}
+            </div>
+          </div>
+        </div>
+
+        <!-- 5. ETAPA 4: RESUMO FINANCEIRO & BOTÃO TIMBRADO -->
+        <div class="qb-card qb-card-totals">
+          <div class="qb-totals-grid">
+            <div class="qb-totals-notes">
+              <label class="qb-sub-label">📝 Observações / Condições Especiais no Orçamento:</label>
+              <textarea id="qb-input-obs" class="qb-textarea" rows="3" placeholder="Informações adicionais para o cliente, dados bancários, termos de garantia...">${escaparHtml(meta.observacoes || '')}</textarea>
+            </div>
+
+            <div class="qb-totals-panel">
+              <div class="qb-totals-line">
+                <span class="qb-tot-label">Subtotal dos Itens (${state.itensOrcamento.length} itens):</span>
+                <span class="qb-tot-val" id="qb-summary-subtotal">${formatarMoedaBR(subtotal)}</span>
+              </div>
+              <div class="qb-totals-line qb-tot-discount-line" style="display:${descontoCalculado > 0 ? 'flex' : 'none'};" id="qb-summary-discount-row">
+                <span class="qb-tot-label">Desconto Aplicado:</span>
+                <span class="qb-tot-val qb-tot-green" id="qb-summary-discount">- ${formatarMoedaBR(descontoCalculado)}</span>
+              </div>
+              <div class="qb-totals-line">
+                <span class="qb-tot-label">Frete / Entrega:</span>
+                <div class="qb-frete-field">
+                  <span class="qb-currency-symbol">R$</span>
+                  <input type="number" step="0.01" min="0" id="qb-input-frete" value="${(Number(meta.frete) || 0).toFixed(2)}" />
+                </div>
+              </div>
+              <div class="qb-totals-divider"></div>
+              <div class="qb-totals-grand-line">
+                <div>
+                  <strong class="qb-grand-title">TOTAL DO ORÇAMENTO</strong>
+                  <span class="qb-grand-sub" id="qb-summary-pay-desc">${escaparHtml(meta.formaPagamento || 'PIX à Vista')}</span>
+                </div>
+                <strong class="qb-grand-val" id="qb-summary-grand-total">${formatarMoedaBR(totalGeral)}</strong>
+              </div>
+
+              <!-- BOTÃO PRIMÁRIO DE DESTAQUE: GERAR ORÇAMENTO TIMBRADO -->
+              <button type="button" class="qb-btn-generate-quote" id="btn-qb-generate-official-quote">
+                <span>📄 Gerar Orçamento Timbrado Oficial →</span>
+              </button>
+            </div>
+          </div>
+        </div>
+
+      </div>
+    `;
+  }
+
+  function vincularEventosWorkspaceEditorOrcamento(quoteView) {
+    const meta = state.orcamentoMetadados;
+
+    // Voltar ao Catálogo
+    document.getElementById("btn-qb-back-catalog")?.addEventListener("click", () => {
+      fecharEmissorOrcamento();
+    });
+
+    // Abrir Histórico
+    document.getElementById("btn-qb-history")?.addEventListener("click", () => {
+      abrirModalHistoricoOrcamentos();
+    });
+
+    // Visualizar Folha Timbrada Diretamente
+    document.getElementById("btn-qb-preview-timbrado")?.addEventListener("click", () => {
+      state.orcamentoModoVisao = "timbrado";
+      renderizarTelaOrcamento();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+
+    // Botão Gerar Orçamento Timbrado Oficial (Ação Principal da Proposta)
+    document.getElementById("btn-qb-generate-official-quote")?.addEventListener("click", () => {
+      salvarOrcamentoNoHistorico();
+      state.orcamentoModoVisao = "timbrado";
+      renderizarTelaOrcamento();
+      window.scrollTo({ top: 0, behavior: "smooth" });
+      mostrarToast("📄 Orçamento Timbrado gerado com sucesso!", "success");
+    });
+
+    // =========================================================================
+    // ETAPA 1: CLIENTES & BUSCA INTELIGENTE
+    // =========================================================================
+    const searchInput = document.getElementById("qb-client-search-input");
+    const clearSearchBtn = document.getElementById("btn-qb-clear-client-search");
+    const searchResults = document.getElementById("qb-client-search-results");
+    const btnToggleNewClient = document.getElementById("btn-qb-toggle-new-client");
+    const newClientBox = document.getElementById("qb-new-client-box");
+    const btnCloseNewClient = document.getElementById("btn-qb-close-new-client");
+    const btnChangeClient = document.getElementById("btn-qb-change-client");
+    const searchSection = document.getElementById("qb-client-search-section");
+    const confirmedCard = document.getElementById("qb-client-confirmed-card");
+
+    // Botão Trocar Cliente
+    btnChangeClient?.addEventListener("click", () => {
+      confirmedCard.style.display = "none";
+      searchSection.style.display = "block";
+      searchInput.value = "";
+      searchInput.focus();
+    });
+
+    // Alternar formulário inline de novo cliente
+    btnToggleNewClient?.addEventListener("click", () => {
+      newClientBox.style.display = newClientBox.style.display === "none" ? "block" : "none";
+      if (newClientBox.style.display === "block") {
+        document.getElementById("qb-input-new-name")?.focus();
+      }
+    });
+
+    btnCloseNewClient?.addEventListener("click", () => {
+      newClientBox.style.display = "none";
+    });
+
+    // Busca de clientes em tempo real (Nome, Contato ou CNPJ/CPF)
+    if (searchInput) {
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+        if (clearSearchBtn) clearSearchBtn.style.display = query ? "block" : "none";
+
+        if (!query) {
+          searchResults.style.display = "none";
+          searchResults.innerHTML = "";
+          return;
+        }
+
+        // Obtém lista de clientes cadastrados no banco
+        const listaClientes = (window.SJ_DB && window.SJ_DB.clientes && typeof window.SJ_DB.clientes.listar === "function") 
+          ? window.SJ_DB.clientes.listar() 
+          : [];
+
+        const limpoQuery = query.replace(/\D/g, "");
+        const filtrados = listaClientes.filter((c) => {
+          const nomeMatch = (c.nome || "").toLowerCase().includes(query);
+          const emailMatch = (c.email || "").toLowerCase().includes(query);
+          const doc = (c.cnpjCpf || c.cpf || "").replace(/\D/g, "");
+          const fone = (c.whatsapp || c.cepTelefone || "").replace(/\D/g, "");
+          const docMatch = limpoQuery && doc.includes(limpoQuery);
+          const foneMatch = limpoQuery && fone.includes(limpoQuery);
+          return nomeMatch || emailMatch || docMatch || foneMatch;
+        });
+
+        if (filtrados.length === 0) {
+          searchResults.innerHTML = `
+            <div class="qb-client-no-result">
+              <span>Nenhum cliente cadastrado encontrado com "<strong>${escaparHtml(searchInput.value)}</strong>"</span>
+              <button type="button" class="qb-btn-inline-add" id="btn-qb-quick-add-from-search">+ Cadastrar com este nome/contato</button>
+            </div>
+          `;
+          searchResults.style.display = "block";
+
+          document.getElementById("btn-qb-quick-add-from-search")?.addEventListener("click", () => {
+            searchResults.style.display = "none";
+            newClientBox.style.display = "block";
+            const isNum = /^\d+$/.test(query.replace(/\D/g, ""));
+            if (isNum && query.length >= 8) {
+              const phoneInput = document.getElementById("qb-input-new-phone");
+              if (phoneInput) phoneInput.value = searchInput.value;
+              document.getElementById("qb-input-new-name")?.focus();
+            } else {
+              const nameInput = document.getElementById("qb-input-new-name");
+              if (nameInput) nameInput.value = searchInput.value;
+              document.getElementById("qb-input-new-phone")?.focus();
+            }
+          });
+          return;
+        }
+
+        searchResults.innerHTML = filtrados.slice(0, 8).map((c) => `
+          <div class="qb-client-dropdown-item" data-client-id="${c.id}">
+            <div class="qb-cd-avatar">👤</div>
+            <div class="qb-cd-info">
+              <strong class="qb-cd-name">${escaparHtml(c.nome)}</strong>
+              <div class="qb-cd-meta">
+                <span>📱 ${escaparHtml(c.whatsapp || c.cepTelefone || 'Sem tel')}</span>
+                <span>📄 ${escaparHtml(c.cnpjCpf || c.cpf || 'Sem documento')}</span>
+                <span>📍 ${escaparHtml(c.bairroCidadeUf || c.cidade || 'Umuarama/PR')}</span>
+              </div>
+            </div>
+            <span class="qb-cd-badge">Selecionar</span>
+          </div>
+        `).join("");
+        searchResults.style.display = "block";
+
+        // Clique no item do dropdown seleciona o cliente
+        searchResults.querySelectorAll(".qb-client-dropdown-item").forEach((item) => {
+          item.addEventListener("click", () => {
+            const cid = item.dataset.clientId;
+            const selecionado = filtrados.find((c) => String(c.id) === String(cid));
+            if (selecionado) {
+              meta.cliente = {
+                nome: selecionado.nome || "",
+                cnpjCpf: selecionado.cnpjCpf || selecionado.cpf || "",
+                endereco: selecionado.endereco || "",
+                bairroCidadeUf: selecionado.bairroCidadeUf || selecionado.cidade || "Umuarama / PR",
+                cepTelefone: selecionado.whatsapp || selecionado.cepTelefone || "",
+                email: selecionado.email || ""
+              };
+              searchResults.style.display = "none";
+              searchSection.style.display = "none";
+              newClientBox.style.display = "none";
+
+              // Atualiza e exibe o card de cliente confirmado
+              document.getElementById("qb-confirmed-name-text").textContent = meta.cliente.nome;
+              document.getElementById("qb-confirmed-phone-text").textContent = "📱 " + (meta.cliente.cepTelefone || "Não informado");
+              document.getElementById("qb-confirmed-phone-text").href = "https://wa.me/55" + (meta.cliente.cepTelefone || "").replace(/\D/g, "");
+              document.getElementById("qb-confirmed-doc-text").textContent = meta.cliente.cnpjCpf || "Não informado";
+              document.getElementById("qb-confirmed-addr-text").textContent = (meta.cliente.endereco || "") + (meta.cliente.bairroCidadeUf ? " — " + meta.cliente.bairroCidadeUf : "");
+              document.getElementById("qb-confirmed-email-text").textContent = meta.cliente.email || "Não informado";
+              confirmedCard.style.display = "flex";
+
+              mostrarToast(`Cliente <strong>${selecionado.nome}</strong> selecionado no orçamento.`, "success");
+            }
+          });
+        });
+      });
+    }
+
+    clearSearchBtn?.addEventListener("click", () => {
+      searchInput.value = "";
+      clearSearchBtn.style.display = "none";
+      searchResults.style.display = "none";
+      searchInput.focus();
+    });
+
+    // Validação de Documento no Cadastro Rápido de Cliente
+    const docInput = document.getElementById("qb-input-new-doc");
+    const docFeedback = document.getElementById("qb-new-doc-feedback");
+    docInput?.addEventListener("blur", () => {
+      const val = docInput.value.replace(/\D/g, "");
+      if (!val) {
+        if (docFeedback) docFeedback.textContent = "";
+        return;
+      }
+      if (val.length === 11) {
+        const ok = validarCpfOficial(val);
+        if (docFeedback) {
+          docFeedback.textContent = ok ? "✓ CPF Oficial Válido" : "✗ CPF Inválido";
+          docFeedback.className = "qb-doc-feedback " + (ok ? "valid" : "invalid");
+        }
+      } else if (val.length === 14) {
+        const ok = validarCnpjOficial(val);
+        if (docFeedback) {
+          docFeedback.textContent = ok ? "✓ CNPJ Oficial Válido" : "✗ CNPJ Inválido";
+          docFeedback.className = "qb-doc-feedback " + (ok ? "valid" : "invalid");
+        }
+      }
+    });
+
+    // CEP com busca automática via ViaCEP
+    const cepInput = document.getElementById("qb-input-new-cep");
+    cepInput?.addEventListener("blur", async () => {
+      const cep = cepInput.value.replace(/\D/g, "");
+      if (cep.length === 8) {
+        try {
+          const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
+          const data = await res.json();
+          if (!data.erro) {
+            const addrInput = document.getElementById("qb-input-new-addr");
+            const bairroInput = document.getElementById("qb-input-new-bairro");
+            const cityInput = document.getElementById("qb-input-new-city");
+            if (addrInput && !addrInput.value) addrInput.value = data.logradouro || "";
+            if (bairroInput && !bairroInput.value) bairroInput.value = data.bairro || "";
+            if (cityInput) cityInput.value = `${data.localidade || 'Umuarama'} / ${data.uf || 'PR'}`;
+          }
+        } catch (_) {}
+      }
+    });
+
+    // Salvar Novo Cliente Inline e Retornar ao Orçamento
+    const formNewClient = document.getElementById("qb-form-inline-new-client");
+    formNewClient?.addEventListener("submit", (e) => {
+      e.preventDefault();
+      const nome = document.getElementById("qb-input-new-name")?.value.trim();
+      const phone = document.getElementById("qb-input-new-phone")?.value.trim();
+      const doc = document.getElementById("qb-input-new-doc")?.value.trim();
+      const addr = document.getElementById("qb-input-new-addr")?.value.trim();
+      const bairro = document.getElementById("qb-input-new-bairro")?.value.trim();
+      const city = document.getElementById("qb-input-new-city")?.value.trim() || "Umuarama / PR";
+      const email = document.getElementById("qb-input-new-email")?.value.trim();
+
+      if (!nome || !phone) {
+        mostrarToast("Preencha ao menos Nome e WhatsApp/Telefone.", "error");
+        return;
+      }
+
+      // Salva no banco de clientes
+      const novoCliente = {
+        id: "cli-" + Date.now(),
+        nome,
+        whatsapp: phone,
+        cepTelefone: phone,
+        cnpjCpf: doc,
+        cpf: doc,
+        endereco: addr,
+        bairroCidadeUf: bairro ? `${bairro} — ${city}` : city,
+        cidade: city,
+        email,
+        dataCadastro: new Date().toISOString()
+      };
+
+      if (window.SJ_DB && window.SJ_DB.clientes && typeof window.SJ_DB.clientes.salvar === "function") {
+        window.SJ_DB.clientes.salvar(novoCliente);
+      }
+
+      // Vincula ao orçamento
+      meta.cliente = {
+        nome: novoCliente.nome,
+        cnpjCpf: novoCliente.cnpjCpf,
+        endereco: novoCliente.endereco,
+        bairroCidadeUf: novoCliente.bairroCidadeUf,
+        cepTelefone: novoCliente.cepTelefone,
+        email: novoCliente.email
+      };
+
+      newClientBox.style.display = "none";
+      searchSection.style.display = "none";
+
+      document.getElementById("qb-confirmed-name-text").textContent = meta.cliente.nome;
+      document.getElementById("qb-confirmed-phone-text").textContent = "📱 " + (meta.cliente.cepTelefone || "Não informado");
+      document.getElementById("qb-confirmed-phone-text").href = "https://wa.me/55" + (meta.cliente.cepTelefone || "").replace(/\D/g, "");
+      document.getElementById("qb-confirmed-doc-text").textContent = meta.cliente.cnpjCpf || "Não informado";
+      document.getElementById("qb-confirmed-addr-text").textContent = (meta.cliente.endereco || "") + (meta.cliente.bairroCidadeUf ? " — " + meta.cliente.bairroCidadeUf : "");
+      document.getElementById("qb-confirmed-email-text").textContent = meta.cliente.email || "Não informado";
+      confirmedCard.style.display = "flex";
+
+      mostrarToast(`Cliente <strong>${novoCliente.nome}</strong> cadastrado e vinculado ao orçamento!`, "success");
+    });
+
+    // =========================================================================
+    // ETAPA 2: FORMA DE PAGAMENTO & DESCONTO
+    // =========================================================================
+    quoteView.querySelectorAll('input[name="qb-pay-option"]').forEach((radio) => {
+      radio.addEventListener("change", (e) => {
+        meta.formaPagamento = e.target.value;
+        quoteView.querySelectorAll(".qb-pay-card").forEach((c) => c.classList.remove("selected"));
+        e.target.closest(".qb-pay-card")?.classList.add("selected");
+
+        const payDescEl = document.getElementById("qb-summary-pay-desc");
+        if (payDescEl) payDescEl.textContent = meta.formaPagamento;
+
+        // Se escolher PIX, pode sugerir o desconto de 5%
+        if (e.target.value.includes("PIX") && meta.tipoDesconto === "nenhum") {
+          meta.tipoDesconto = "vista5";
+          atualizarPillsDesconto();
+        }
+        recalcularTotaisWorkspace();
+      });
+    });
+
+    function atualizarPillsDesconto() {
+      quoteView.querySelectorAll(".qb-discount-pill").forEach((p) => {
+        p.classList.toggle("active", p.dataset.discount === meta.tipoDesconto);
+      });
+      const customWrap = document.getElementById("qb-custom-discount-wrap");
+      if (customWrap) customWrap.style.display = meta.tipoDesconto === "personalizado" ? "block" : "none";
+    }
+
+    quoteView.querySelectorAll(".qb-discount-pill").forEach((pill) => {
+      pill.addEventListener("click", () => {
+        meta.tipoDesconto = pill.dataset.discount;
+        atualizarPillsDesconto();
+        recalcularTotaisWorkspace();
+      });
+    });
+
+    document.getElementById("qb-custom-discount-input")?.addEventListener("input", (e) => {
+      meta.desconto = parseFloat(e.target.value) || 0;
+      recalcularTotaisWorkspace();
+    });
+
+    document.getElementById("qb-input-frete")?.addEventListener("input", (e) => {
+      meta.frete = parseFloat(e.target.value) || 0;
+      recalcularTotaisWorkspace();
+    });
+
+    document.getElementById("qb-select-delivery")?.addEventListener("change", (e) => {
+      meta.prazoEntrega = e.target.value;
+    });
+
+    document.getElementById("qb-select-validity")?.addEventListener("change", (e) => {
+      meta.validade = e.target.value;
+    });
+
+    document.getElementById("qb-input-obs")?.addEventListener("input", (e) => {
+      meta.observacoes = e.target.value;
+    });
+
+    // =========================================================================
+    // ETAPA 3: AUTOCOMPLETE PREDITIVO E PESQUISA POR NOME / CÓDIGO
+    // =========================================================================
+    function vincularAutocompleteLinha(idx) {
+      const inputEl = quoteView.querySelector(`.qb-product-search-input[data-idx="${idx}"]`);
+      const dropdownEl = document.getElementById(`qb-product-predict-${idx}`);
+      if (!inputEl || !dropdownEl) return;
+
+      inputEl.addEventListener("input", () => {
+        const query = inputEl.value.trim().toLowerCase();
+        if (state.itensOrcamento[idx]) {
+          state.itensOrcamento[idx].descricao = inputEl.value;
+        }
+
+        if (query.length < 1) {
+          dropdownEl.style.display = "none";
+          dropdownEl.innerHTML = "";
+          return;
+        }
+
+        // Obtém todos os itens do catálogo (produtos + 51 cores com seus códigos oficiais)
+        const todosItens = (typeof obterListaTodosItensCatalogoParaConsulta === "function") 
+          ? obterListaTodosItensCatalogoParaConsulta() 
+          : [];
+
+        // Filtra por Nome OU Código
+        const correspondencias = todosItens.filter((it) => {
+          const nomeMatch = (it.nome || "").toLowerCase().includes(query);
+          const subMatch = (it.subtitulo || "").toLowerCase().includes(query);
+          const marcaMatch = (it.marca || "").toLowerCase().includes(query);
+          const codigoMatch = (it.codigo || "").toLowerCase().includes(query);
+          return nomeMatch || subMatch || marcaMatch || codigoMatch;
+        });
+
+        if (correspondencias.length === 0) {
+          dropdownEl.style.display = "none";
+          return;
+        }
+
+        dropdownEl.innerHTML = correspondencias.slice(0, 7).map((item) => `
+          <div class="qb-predict-item" data-idx="${idx}" data-price="${item.precoValor || 0}" data-desc="${escaparHtml(item.nome)}" data-sku="${escaparHtml(item.codigo || '')}">
+            <img src="${item.imagem || 'assets/produtos/impressora-a1_mini.jpg'}" alt="" class="qb-predict-thumb" />
+            <div class="qb-predict-info">
+              <span class="qb-predict-name">${escaparHtml(item.nome)}</span>
+              <div class="qb-predict-meta">
+                <span class="qb-predict-sku">${escaparHtml(item.codigo || '')}</span>
+                <span class="qb-predict-brand">${escaparHtml(item.marca || '')}</span>
+              </div>
+            </div>
+            <strong class="qb-predict-price">${formatarMoedaBR(item.precoValor || 0)}</strong>
+          </div>
+        `).join("");
+        dropdownEl.style.display = "block";
+
+        dropdownEl.querySelectorAll(".qb-predict-item").forEach((opt) => {
+          opt.addEventListener("click", () => {
+            const desc = opt.dataset.desc;
+            const price = parseFloat(opt.dataset.price) || 0;
+            const sku = opt.dataset.sku;
+
+            if (state.itensOrcamento[idx]) {
+              state.itensOrcamento[idx].descricao = desc;
+              state.itensOrcamento[idx].precoUnitario = price;
+              state.itensOrcamento[idx].codigo = sku;
+            }
+
+            inputEl.value = desc;
+            dropdownEl.style.display = "none";
+
+            // Atualiza input de preço unitário e total da linha
+            const priceInput = quoteView.querySelector(`.qb-price-input[data-idx="${idx}"]`);
+            if (priceInput) priceInput.value = price.toFixed(2);
+
+            const rowTotEl = document.getElementById(`qb-row-total-${idx}`);
+            if (rowTotEl) {
+              const tot = (Number(state.itensOrcamento[idx].qtd) || 1) * price;
+              rowTotEl.textContent = formatarMoedaBR(tot);
+            }
+
+            recalcularTotaisWorkspace();
+            mostrarToast(`Item selecionado: <strong>${desc}</strong> (${sku})`, "info");
+          });
+        });
+      });
+
+      // Fecha dropdown se clicar fora
+      document.addEventListener("click", (e) => {
+        if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
+          dropdownEl.style.display = "none";
+        }
+      });
+    }
+
+    // Vincula autocomplete para todas as linhas existentes
+    state.itensOrcamento.forEach((_, idx) => vincularAutocompleteLinha(idx));
+
+    // Stepper de Quantidade (- e +) e digitação direta
+    quoteView.querySelectorAll(".btn-qb-qty-minus").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.idx);
+        if (state.itensOrcamento[idx] && state.itensOrcamento[idx].qtd > 1) {
+          state.itensOrcamento[idx].qtd -= 1;
+          const inp = quoteView.querySelector(`.qb-qty-input[data-idx="${idx}"]`);
+          if (inp) inp.value = state.itensOrcamento[idx].qtd;
+          atualizarLinhaTotal(idx);
+          recalcularTotaisWorkspace();
+        }
+      });
+    });
+
+    quoteView.querySelectorAll(".btn-qb-qty-plus").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.idx);
+        if (state.itensOrcamento[idx]) {
+          state.itensOrcamento[idx].qtd = (Number(state.itensOrcamento[idx].qtd) || 0) + 1;
+          const inp = quoteView.querySelector(`.qb-qty-input[data-idx="${idx}"]`);
+          if (inp) inp.value = state.itensOrcamento[idx].qtd;
+          atualizarLinhaTotal(idx);
+          recalcularTotaisWorkspace();
+        }
+      });
+    });
+
+    quoteView.querySelectorAll(".qb-qty-input").forEach((inp) => {
+      inp.addEventListener("input", (e) => {
+        const idx = Number(e.target.dataset.idx);
+        if (state.itensOrcamento[idx]) {
+          state.itensOrcamento[idx].qtd = Math.max(1, parseInt(e.target.value) || 1);
+          atualizarLinhaTotal(idx);
+          recalcularTotaisWorkspace();
+        }
+      });
+    });
+
+    // Edição de Preço Unitário
+    quoteView.querySelectorAll(".qb-price-input").forEach((inp) => {
+      inp.addEventListener("input", (e) => {
+        const idx = Number(e.target.dataset.idx);
+        if (state.itensOrcamento[idx]) {
+          state.itensOrcamento[idx].precoUnitario = parseFloat(e.target.value) || 0;
+          atualizarLinhaTotal(idx);
+          recalcularTotaisWorkspace();
+        }
+      });
+    });
+
+    function atualizarLinhaTotal(idx) {
+      const rowTotEl = document.getElementById(`qb-row-total-${idx}`);
+      if (rowTotEl && state.itensOrcamento[idx]) {
+        const tot = (Number(state.itensOrcamento[idx].qtd) || 0) * (Number(state.itensOrcamento[idx].precoUnitario) || 0);
+        rowTotEl.textContent = formatarMoedaBR(tot);
+      }
+    }
+
+    // Excluir linha de produto
+    quoteView.querySelectorAll(".btn-qb-del-row").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const idx = Number(btn.dataset.idx);
+        if (state.itensOrcamento.length <= 1) {
+          mostrarToast("O orçamento deve conter pelo menos 1 item.", "info");
+          return;
+        }
+        state.itensOrcamento.splice(idx, 1);
+        renderizarTelaOrcamento();
+        mostrarToast("Item removido do orçamento.", "info");
+      });
+    });
+
+    // Adicionar nova linha em branco
+    document.getElementById("btn-qb-add-row")?.addEventListener("click", () => {
+      state.itensOrcamento.push({
+        id: "item-" + Date.now(),
+        descricao: "",
+        codigo: "",
+        qtd: 1,
+        precoUnitario: 0
+      });
+      renderizarTelaOrcamento();
+      const novoIdx = state.itensOrcamento.length - 1;
+      const novoInput = quoteView.querySelector(`.qb-product-search-input[data-idx="${novoIdx}"]`);
+      if (novoInput) novoInput.focus();
+    });
+
+    // Chips Rápidos de Inclusão em 1 Clique
+    const itensRapidos = [
+      { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 79.90 },
+      { nome: "Filamento Bambu Lab PLA Basic RFID (1kg)", cod: "CÓD. 137", preco: 139.90 },
+      { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "CÓD. BAMBU-02", preco: 4049.00 },
+      { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "CÓD. BAMBU-01", preco: 2980.00 },
+      { nome: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab", cod: "CÓD. PECA-01", preco: 119.00 }
+    ];
+
+    quoteView.querySelectorAll(".qb-chip").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const qIdx = Number(chip.dataset.quickIdx);
+        const itemInfo = itensRapidos[qIdx];
+        if (itemInfo) {
+          // Se o último item estiver vazio, preenche ele; caso contrário adiciona nova linha
+          const ult = state.itensOrcamento[state.itensOrcamento.length - 1];
+          if (ult && !ult.descricao && Number(ult.precoUnitario) === 0) {
+            ult.descricao = itemInfo.nome;
+            ult.codigo = itemInfo.cod;
+            ult.precoUnitario = itemInfo.preco;
+            ult.qtd = 1;
+          } else {
+            state.itensOrcamento.push({
+              id: "item-" + Date.now(),
+              descricao: itemInfo.nome,
+              codigo: itemInfo.cod,
+              qtd: 1,
+              precoUnitario: itemInfo.preco
+            });
+          }
+          renderizarTelaOrcamento();
+          mostrarToast(`Item adicionado: <strong>${itemInfo.nome}</strong>`, "success");
+        }
+      });
+    });
+
+    function recalcularTotaisWorkspace() {
+      const sub = state.itensOrcamento.reduce(
+        (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
+        0
+      );
+
+      let desc = Number(meta.desconto) || 0;
+      if (meta.tipoDesconto === "vista5") {
+        desc = Math.round(sub * 0.05 * 100) / 100;
+        meta.desconto = desc;
+      } else if (meta.tipoDesconto === "nenhum") {
+        desc = 0;
+        meta.desconto = 0;
+      }
+
+      const fr = Number(meta.frete) || 0;
+      const totGeral = Math.max(0, sub + fr - desc);
+
+      const subEl = document.getElementById("qb-summary-subtotal");
+      const descRowEl = document.getElementById("qb-summary-discount-row");
+      const descEl = document.getElementById("qb-summary-discount");
+      const grandEl = document.getElementById("qb-summary-grand-total");
+
+      if (subEl) subEl.textContent = formatarMoedaBR(sub);
+      if (descRowEl) descRowEl.style.display = desc > 0 ? "flex" : "none";
+      if (descEl) descEl.textContent = "- " + formatarMoedaBR(desc);
+      if (grandEl) grandEl.textContent = formatarMoedaBR(totGeral);
+    }
+  }
+
+  function renderizarFolhaTimbradaOrcamento(quoteView) {
+    const { loja } = window.SITE_DATA;
+    const meta = state.orcamentoMetadados || {};
+    const cliente = meta.cliente || {};
+    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Admin Oficial)";
 
     const subtotal = state.itensOrcamento.reduce(
       (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
@@ -7701,263 +8771,219 @@
     const desconto = Number(meta.desconto) || 0;
     const totalGeral = Math.max(0, subtotal + frete - desconto);
 
-    const catalogoProdutos = (window.SITE_DATA && window.SITE_DATA.catalogo) || [];
-    const datalistCatalogoHtml = `
-      <datalist id="quote-catalog-products-datalist">
-        ${catalogoProdutos.map(p => `<option value="${escaparHtml(p.nome)}">${formatarMoedaBR(p.preco)}</option>`).join("")}
-      </datalist>
-    `;
-
     const linhasTabelaHtml = state.itensOrcamento.map((item, idx) => {
       const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
       return `
-        <tr data-row-idx="${idx}">
+        <tr>
           <td class="col-center" style="font-weight:700;">${idx + 1}</td>
           <td>
-            <input type="text" class="quote-item-desc-input" list="quote-catalog-products-datalist" data-field="descricao" data-idx="${idx}" value="${escaparHtml(item.descricao || '')}" placeholder="Nome ou selecione do catálogo..." autocomplete="off" />
+            <div style="font-weight:700; color:#18181b;">${escaparHtml(item.descricao || '')}</div>
+            ${item.codigo ? `<span style="font-size:0.75rem; color:#6b7280; font-family:monospace;">${escaparHtml(item.codigo)}</span>` : ''}
           </td>
-          <td class="col-center">
-            <input type="number" min="1" step="1" class="quote-item-num-input" data-field="qtd" data-idx="${idx}" value="${item.qtd || 1}" />
-          </td>
-          <td class="col-right">
-            <input type="number" min="0" step="0.01" class="quote-item-val-input" data-field="precoUnitario" data-idx="${idx}" value="${Number(item.precoUnitario || 0).toFixed(2)}" />
-          </td>
-          <td class="col-right" id="quote-row-total-${idx}">
-            ${formatarMoedaBR(totLinha)}
-          </td>
-          <td class="col-center col-actions">
-            <button type="button" class="quote-row-del-btn" data-del-row="${idx}" title="Remover item">&times;</button>
-          </td>
+          <td class="col-center" style="font-weight:700;">${item.qtd || 1}</td>
+          <td class="col-right">${formatarMoedaBR(Number(item.precoUnitario) || 0)}</td>
+          <td class="col-right" style="font-weight:800; color:#E84520;">${formatarMoedaBR(totLinha)}</td>
         </tr>
       `;
     }).join("");
 
     quoteView.innerHTML = `
-      <!-- BARRA DE CONTROLE SUPERIOR (NÃO IMPRESSA) -->
-      <div class="quote-studio-topbar">
-        <div class="quote-topbar-left">
-          <button type="button" class="quote-btn-back" id="btn-quote-back">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <path d="M19 12H5M12 19l-7-7 7-7"/>
-            </svg>
-            <span>Voltar ao Catálogo</span>
+      <!-- BARRA DE CONTROLE SUPERIOR DA FOLHA TIMBRADA -->
+      <div class="quote-sheet-topbar no-print">
+        <div class="topbar-left-actions">
+          <button type="button" class="btn-topbar-action btn-back-catalog" id="btn-quote-back-editor">
+            ← Voltar e Editar Orçamento
           </button>
-          <div class="quote-operator-tag">
-            <span>Operador:</span>
-            <strong>${vendedorNome}</strong>
-            <span style="font-size:0.75rem; color:#10b981; font-weight:700;">(Conectado)</span>
-            <button type="button" id="btn-quote-switch-user" style="background:#fff5f2; border:1px solid #E84520; color:#E84520; border-radius:6px; padding:2px 8px; font-size:0.74rem; font-weight:700; cursor:pointer; margin-left:6px;" title="Trocar vendedor ou cadastrar novo">👤 Trocar / Cadastrar</button>
+          <div class="operator-badge-pill">
+            <span class="operator-dot">●</span>
+            <span>Operador: <strong>${escaparHtml(vendedorNome)}</strong></span>
           </div>
         </div>
-
-        <div class="quote-topbar-right">
-          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-reopen-wizard" title="Alterar dados do cliente, forma de pagamento ou desconto de 5%">
-            <span>⚙️ Cliente / Pagamento / 5%</span>
+        <div class="topbar-right-actions">
+          <button type="button" class="btn-topbar-action" id="btn-quote-history">
+            📂 Histórico
           </button>
-          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-history">
-            <span>📋 Histórico</span>
+          <button type="button" class="btn-topbar-action btn-save-quote" id="btn-quote-save">
+            💾 Salvar Proposta
           </button>
-          <button type="button" class="quote-btn-action btn-secondary" id="btn-quote-save">
-            <span>💾 Salvar Proposta</span>
+          <button type="button" class="btn-topbar-action btn-send-wa" id="btn-quote-whatsapp">
+            📱 Enviar no WhatsApp
           </button>
-          <button type="button" class="quote-btn-action btn-whatsapp" id="btn-quote-whatsapp">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-            </svg>
-            <span>Enviar no WhatsApp</span>
-          </button>
-          <button type="button" class="quote-btn-action btn-print" id="btn-quote-print">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-              <polyline points="6 9 6 2 18 2 18 9"/>
-              <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/>
-              <rect x="6" y="14" width="12" height="8"/>
-            </svg>
-            <span>Imprimir / Salvar PDF</span>
+          <button type="button" class="btn-topbar-action btn-print-pdf" id="btn-quote-print">
+            🖨️ Imprimir / Salvar PDF
           </button>
         </div>
       </div>
 
-      <!-- CONTAINER DO PAPEL TIMBRADO (FORMATO A4) -->
+      <!-- FOLHA TIMBRADA A4 PADRÃO OFICIAL GRUPO SJ -->
       <div class="quote-paper-container">
-        <div class="quote-paper" id="quote-printable-sheet">
-
-          <!-- CABEÇALHO TIMBRADO OFICIAL DO GRUPO SJ -->
-          <div class="quote-banner-header">
-            <img src="${loja.timbradoCabecalhoImg}" alt="Grupo SJ - Loja SJ 3D - Maximper - Blindamix - Vumora" />
-          </div>
-
-          <!-- IDENTIFICAÇÃO DO ORÇAMENTO (LIMPA E ORGANIZADA) -->
-          <div class="quote-meta-row">
-            <div class="quote-meta-title-wrap">
-              <span class="quote-meta-accent-bar" aria-hidden="true"></span>
-              <strong>ORÇAMENTO / PROPOSTA COMERCIAL</strong>
+        <div class="quote-official-letterhead">
+          
+          <!-- CABEÇALHO GRUPO SJ -->
+          <div class="quote-header-brand">
+            <div class="brand-left">
+              <div class="group-logo-wrap">
+                <span class="brand-group-name">GRUPO</span>
+                <span class="brand-main-name">SJ</span>
+              </div>
+              <div class="brand-slogan-box">
+                <p class="brand-slogan">Um grupo. Muitas soluções.</p>
+                <p class="brand-slogan-sub">A mesma confiança.</p>
+              </div>
             </div>
-            <div class="quote-meta-inputs">
-              <div class="quote-meta-field">
-                <span class="quote-meta-label">Nº Orçamento:</span>
-                <input type="text" class="quote-meta-input input-num" id="quote-meta-number" value="${meta.numero}" />
-              </div>
-              <span class="quote-meta-sep" aria-hidden="true"></span>
-              <div class="quote-meta-field">
-                <span class="quote-meta-label">Data:</span>
-                <input type="text" class="quote-meta-input input-date" id="quote-meta-date" value="${meta.data}" />
-              </div>
+            <div class="brand-header-curve">
+              <svg viewBox="0 0 400 90" preserveAspectRatio="none">
+                <path d="M 0,0 C 150,0 200,90 400,90 L 400,0 Z" fill="#18181b" />
+                <path d="M 50,0 C 180,0 250,90 400,90 L 400,45 C 270,45 190,0 50,0 Z" fill="#E84520" />
+              </svg>
             </div>
           </div>
 
-          <!-- GRID DUPLO: FORNECEDOR X CLIENTE (CONFORME WORD OFICIAL) -->
+          <!-- FAIXA IDENTIFICADORA DE DOCUMENTO COMERCIAL -->
+          <div class="quote-doc-ribbon">
+            <div class="ribbon-title">ORÇAMENTO / PROPOSTA COMERCIAL</div>
+            <div class="ribbon-meta">
+              <div class="meta-field">
+                <span class="meta-lbl">Nº Orçamento:</span>
+                <strong class="meta-val highlight">${escaparHtml(meta.numero || 'SJ-2026-0001')}</strong>
+              </div>
+              <div class="meta-field">
+                <span class="meta-lbl">Data:</span>
+                <span class="meta-val">${escaparHtml(meta.data || obterDataHojeFormatada())}</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- GRID FORNECEDOR E CLIENTE -->
           <div class="quote-parties-grid">
-            <!-- FORNECEDOR -->
-            <div class="quote-party-col">
-              <div class="quote-party-title">FORNECEDOR</div>
-              <div class="quote-company-name">${loja.razaoSocial}</div>
-              <div class="quote-party-info-line"><strong>CNPJ:</strong> ${loja.cnpj}</div>
-              <div class="quote-party-info-line"><strong>Inscrição Estadual:</strong> ${loja.inscricaoEstadual}</div>
-              <div class="quote-party-info-line"><strong>Endereço:</strong> ${loja.logradouroNumero}</div>
-              <div class="quote-party-info-line"><strong>Bairro - Cidade/UF:</strong> ${loja.bairro} - ${loja.cidadeUf}</div>
-              <div class="quote-party-info-line"><strong>Telefone:</strong> ${loja.whatsappFormatado}</div>
-              <div class="quote-party-info-line" style="color:#E84520; margin-top:4px;">
-                <strong>Vendedor:</strong> ${vendedorNome}
+            <div class="party-col supplier-col">
+              <div class="party-header-tag supplier-tag">FORNECEDOR</div>
+              <h4 class="party-name">SJ NOVAIS E CIA LTDA</h4>
+              <div class="party-details">
+                <p><strong>CNPJ:</strong> 66.275.129/0001-10</p>
+                <p><strong>Inscrição Estadual:</strong> 91222907-67</p>
+                <p><strong>Endereço:</strong> Avenida Portugal, nº 6759</p>
+                <p><strong>Bairro — Cidade/UF:</strong> Zona 1A - Umuarama/PR</p>
+                <p><strong>Telefone:</strong> (44) 99135-1318</p>
+                <p><strong>Vendedor:</strong> ${escaparHtml(vendedorNome)}</p>
               </div>
             </div>
 
-            <!-- CLIENTE -->
-            <div class="quote-party-col">
-              <div class="quote-party-title" style="display:flex; justify-content:space-between; align-items:center;">
-                <span>CLIENTE</span>
-                <span style="font-size:0.72rem; color:var(--text-muted); font-weight:normal; text-transform:none;">(Sugestão do Banco de Dados)</span>
-              </div>
-              <div class="quote-client-form">
-                <input type="text" class="quote-client-input client-name-input" id="client-name" list="clients-datalist" placeholder="Nome / Razão Social do Cliente" value="${cliente.nome || ''}" autocomplete="off" />
-                <datalist id="clients-datalist">
-                  ${(window.SJ_DB ? window.SJ_DB.clientes.listar() : []).map(c => `<option value="${c.nome}">${c.cnpjCpf ? ` (${c.cnpjCpf})` : ''}</option>`).join("")}
-                </datalist>
-                <input type="text" class="quote-client-input" id="client-cnpj-cpf" placeholder="CNPJ / CPF" value="${cliente.cnpjCpf || ''}" />
-                <input type="text" class="quote-client-input" id="client-address" placeholder="Endereço (Rua, Número, Complemento)" value="${cliente.endereco || ''}" />
-                <input type="text" class="quote-client-input" id="client-bairro-city" placeholder="Bairro - Cidade/UF" value="${cliente.bairroCidadeUf || 'Umuarama / PR'}" />
-                <input type="text" class="quote-client-input" id="client-cep-phone" placeholder="CEP | Telefone / WhatsApp" value="${cliente.cepTelefone || ''}" />
-                <input type="email" class="quote-client-input" id="client-email" placeholder="E-mail" value="${cliente.email || ''}" />
+            <div class="party-col client-col">
+              <div class="party-header-tag client-tag">CLIENTE</div>
+              <h4 class="party-name">${escaparHtml(cliente.nome || 'Cliente Balcão')}</h4>
+              <div class="party-details">
+                <p><strong>Documento (CPF/CNPJ):</strong> ${escaparHtml(cliente.cnpjCpf || 'Não informado')}</p>
+                <p><strong>Endereço:</strong> ${escaparHtml(cliente.endereco || 'Umuarama e Região')}</p>
+                <p><strong>Cidade / UF:</strong> ${escaparHtml(cliente.bairroCidadeUf || 'Umuarama / PR')}</p>
+                <p><strong>Telefone / WhatsApp:</strong> ${escaparHtml(cliente.cepTelefone || 'Não informado')}</p>
+                <p><strong>E-mail:</strong> ${escaparHtml(cliente.email || 'Não informado')}</p>
               </div>
             </div>
           </div>
 
-          <!-- TABELA DE ITENS (CABEÇALHO LARANJA OFICIAL #E84520) -->
+          <!-- TABELA INSTITUCIONAL DE ITENS COM CABEÇALHO LARANJA -->
           <div class="quote-table-wrapper">
             <table class="quote-items-table">
               <thead>
                 <tr>
-                  <th class="col-center" style="width: 50px;">Item</th>
+                  <th class="col-center" style="width: 44px;">Item</th>
                   <th>Descrição do produto / serviço</th>
-                  <th class="col-center" style="width: 70px;">Qtd.</th>
+                  <th class="col-center" style="width: 60px;">Qtd.</th>
                   <th class="col-right" style="width: 130px;">Valor unitário R$</th>
                   <th class="col-right" style="width: 130px;">Valor total R$</th>
-                  <th class="col-center col-actions" style="width: 45px;"></th>
                 </tr>
               </thead>
-              <tbody id="quote-items-tbody">
+              <tbody>
                 ${linhasTabelaHtml}
               </tbody>
             </table>
           </div>
 
-          <!-- BARRA ADICIONAR ITEM AVULSO & PRODUTOS DO CATÁLOGO -->
-          <div class="quote-add-item-bar" style="display:flex; flex-direction:column; gap:8px;">
-            <div class="quote-quick-add-chips-wrap">
-              <span style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase;">Adicionar Rápido do Catálogo:</span>
-              <button type="button" class="quote-chip-add-btn" data-chip-desc="Filamento PLA Masterprint 1.75mm (1kg)" data-chip-price="79.90">+ PLA Masterprint 1kg (R$ 79,90)</button>
-              <button type="button" class="quote-chip-add-btn" data-chip-desc="Filamento PLA Bambu Lab Original (1kg)" data-chip-price="139.90">+ PLA Bambu Lab 1kg (R$ 139,90)</button>
-              <button type="button" class="quote-chip-add-btn" data-chip-desc="Impressora 3D Bambu Lab A1 Mini" data-chip-price="1999.00">+ Bambu Lab A1 Mini (R$ 1.999,00)</button>
-              <button type="button" class="quote-chip-add-btn" data-chip-desc="Impressora 3D Bambu Lab A1 Combo (AMS Lite)" data-chip-price="4049.00">+ A1 Combo (R$ 4.049,00)</button>
-              <button type="button" class="quote-chip-add-btn" data-chip-desc="Bico Hotend Hardened Steel Bambu Lab 0.4mm" data-chip-price="119.90">+ Bico Hardened Steel (R$ 119,90)</button>
-            </div>
-            <button type="button" class="btn-add-quote-item" id="btn-quote-add-item">
-              <span>+ Adicionar Linha de Produto Avulso</span>
-            </button>
-          </div>
-          ${datalistCatalogoHtml}
-
-          <!-- TOTAIS FINANCEIROS -->
-          <div class="quote-totals-wrap">
-            <div class="quote-totals-sub-row">
-              <div class="quote-totals-sub-item">
-                <span>Subtotal:</span>
-                <strong id="quote-val-subtotal">${formatarMoedaBR(subtotal)}</strong>
+          <!-- RESUMO FINANCEIRO -->
+          <div class="quote-totals-wrapper">
+            <div class="quote-totals-box">
+              <div class="total-row">
+                <span class="lbl">Subtotal dos Itens:</span>
+                <span class="val">${formatarMoedaBR(subtotal)}</span>
               </div>
-              <div class="quote-totals-sub-item">
-                <label for="quote-input-frete">Frete (R$):</label>
-                <input type="number" step="0.01" min="0" class="quote-totals-num-input" id="quote-input-frete" value="${frete.toFixed(2)}" />
-              </div>
-              <div class="quote-totals-sub-item">
-                <label for="quote-input-desconto">Desconto (R$):</label>
-                <input type="number" step="0.01" min="0" class="quote-totals-num-input" id="quote-input-desconto" value="${desconto.toFixed(2)}" />
-                <button type="button" id="btn-quote-quick-5pct" style="background:#dcfce7; color:#15803d; border:1px solid #86efac; border-radius:6px; padding:2px 7px; font-size:0.72rem; font-weight:800; cursor:pointer;" title="Aplicar ou remover 5% de desconto à vista">5% OFF</button>
+              ${desconto > 0 ? `
+                <div class="total-row discount-row">
+                  <span class="lbl">Desconto Comercial:</span>
+                  <span class="val">- ${formatarMoedaBR(desconto)}</span>
+                </div>
+              ` : ''}
+              ${frete > 0 ? `
+                <div class="total-row">
+                  <span class="lbl">Frete / Entrega:</span>
+                  <span class="val">+ ${formatarMoedaBR(frete)}</span>
+                </div>
+              ` : ''}
+              <div class="total-row grand-total-row">
+                <span class="lbl">VALOR TOTAL:</span>
+                <span class="val">${formatarMoedaBR(totalGeral)}</span>
               </div>
             </div>
-            <div class="quote-grand-total-row">
-              <span>TOTAL DO ORÇAMENTO:</span>
-              <span class="quote-grand-total-val" id="quote-val-grand-total">${formatarMoedaBR(totalGeral)}</span>
+          </div>
+
+          <!-- CONDIÇÕES COMERCIAIS & DADOS BANCÁRIOS -->
+          <div class="quote-terms-section">
+            <div class="terms-grid">
+              <div class="term-col">
+                <div class="term-title">Condições Comerciais</div>
+                <ul class="term-list">
+                  <li><strong>Forma de Pagamento:</strong> ${escaparHtml(meta.formaPagamento || 'PIX à Vista (5% OFF)')}</li>
+                  <li><strong>Prazo de Entrega:</strong> ${escaparHtml(meta.prazoEntrega || 'Pronta Entrega / Imediato')}</li>
+                  <li><strong>Validade desta Proposta:</strong> ${escaparHtml(meta.validade || '15 dias')}</li>
+                  <li><strong>Garantia:</strong> Produtos novos lacrados com garantia oficial do Grupo SJ.</li>
+                </ul>
+              </div>
+              <div class="term-col">
+                <div class="term-title">Dados Bancários / Chave PIX</div>
+                <div class="bank-info-box">
+                  <p><strong>Favorecido:</strong> SJ NOVAIS E CIA LTDA</p>
+                  <p><strong>Chave PIX (CNPJ):</strong> <code>66.275.129/0001-10</code></p>
+                  <p class="bank-sub">Envio de comprovante para o WhatsApp oficial: (44) 99135-1318</p>
+                </div>
+              </div>
+            </div>
+            ${meta.observacoes ? `
+              <div class="quote-obs-box">
+                <strong>Observações Especiais:</strong>
+                <p>${escaparHtml(meta.observacoes)}</p>
+              </div>
+            ` : ''}
+          </div>
+
+          <!-- ASSINATURA E RODAPÉ OFICIAL -->
+          <div class="quote-signature-row">
+            <div class="signature-box">
+              <div class="sig-line"></div>
+              <span class="sig-name">${escaparHtml(vendedorNome)}</span>
+              <span class="sig-role">Loja SJ 3D • Consultor Técnico</span>
+            </div>
+            <div class="signature-box">
+              <div class="sig-line"></div>
+              <span class="sig-name">${escaparHtml(cliente.nome || 'Assinatura do Cliente')}</span>
+              <span class="sig-role">De Acordo / Aceite da Proposta</span>
             </div>
           </div>
 
-          <!-- CONDIÇÕES COMERCIAIS & PRAZOS -->
-          <div class="quote-conditions-box">
-            <div class="quote-condition-line">
-              <span class="quote-condition-label">Pagamento:</span>
-              <input type="text" class="quote-condition-input" id="quote-cond-pagamento" value="${meta.formaPagamento}" />
-            </div>
-            <div class="quote-condition-line">
-              <span class="quote-condition-label">Prazo de entrega:</span>
-              <input type="text" class="quote-condition-input" id="quote-cond-prazo" value="${meta.prazoEntrega}" style="max-width: 250px;" />
-              <span class="quote-condition-label" style="min-width: 80px; margin-left: 12px;">Validade:</span>
-              <input type="text" class="quote-condition-input" id="quote-cond-validade" value="${meta.validade}" style="max-width: 150px;" />
-            </div>
-            <div class="quote-condition-line" style="align-items: flex-start;">
-              <span class="quote-condition-label">Observações:</span>
-              <textarea class="quote-condition-input" id="quote-cond-obs" rows="2" style="resize: vertical;">${meta.observacoes}</textarea>
-            </div>
-          </div>
-
-          <!-- FAIXA TEXTUAL DE MARCAS DO GRUPO SJ -->
-          <div class="quote-footer-brand-strip">
-            LOJA SJ 3D &nbsp;&nbsp;/&nbsp;&nbsp; MAXIMPER &nbsp;&nbsp;/&nbsp;&nbsp; BLINDAMIX &nbsp;&nbsp;/&nbsp;&nbsp; VUMORA
-          </div>
-
-          <!-- BANNER TIMBRADO INFERIOR OFICIAL DO GRUPO SJ -->
-          <div class="quote-banner-footer">
-            <img src="${loja.timbradoRodapeImg}" alt="Grupo SJ" />
+          <div class="quote-footer-bottom">
+            <p>Loja SJ 3D — Revendedor Autorizado Bambu Lab e Masterprint • Av. Portugal, 6759 — Umuarama / PR • Telefone: (44) 99135-1318</p>
           </div>
 
         </div>
       </div>
     `;
-
-    vincularEventosTelaOrcamento();
   }
 
-  function vincularEventosTelaOrcamento() {
-    const quoteView = document.getElementById("quote-studio-view");
-    if (!quoteView) return;
-
-    // Voltar
-    document.getElementById("btn-quote-back")?.addEventListener("click", () => {
-      fecharEmissorOrcamento();
-    });
-
-    // Trocar / Cadastrar Vendedor direto da barra do orçamento
-    document.getElementById("btn-quote-switch-user")?.addEventListener("click", () => {
-      abrirModalAuthGoogle(() => {
-        renderizarTelaOrcamento();
-      });
-    });
-
-    // Reabrir Assistente Rápido (Cliente / Pagamento / 5% Desconto)
-    document.getElementById("btn-quote-reopen-wizard")?.addEventListener("click", () => {
-      abrirAssistenteOrcamento(state.itensOrcamento);
-    });
-
-    // Salvar proposta
-    document.getElementById("btn-quote-save")?.addEventListener("click", () => {
-      salvarOrcamentoNoHistorico();
+  function vincularEventosFolhaTimbradaOrcamento(quoteView) {
+    // Voltar para o Editor
+    document.getElementById("btn-quote-back-editor")?.addEventListener("click", () => {
+      state.orcamentoModoVisao = "editor";
+      renderizarTelaOrcamento();
+      window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
     // Histórico
@@ -7965,219 +8991,52 @@
       abrirModalHistoricoOrcamentos();
     });
 
-    // WhatsApp
+    // Salvar Proposta
+    document.getElementById("btn-quote-save")?.addEventListener("click", () => {
+      salvarOrcamentoNoHistorico();
+      mostrarToast("💾 Proposta salva com sucesso no histórico!", "success");
+    });
+
+    // Enviar no WhatsApp
     document.getElementById("btn-quote-whatsapp")?.addEventListener("click", () => {
-      enviarOrcamentoWhatsApp();
-    });
-
-    // Imprimir / PDF
-    document.getElementById("btn-quote-print")?.addEventListener("click", () => {
-      window.print();
-    });
-
-    // Adicionar item
-    document.getElementById("btn-quote-add-item")?.addEventListener("click", () => {
-      state.itensOrcamento.push({
-        id: "item-" + Date.now(),
-        descricao: "",
-        qtd: 1,
-        precoUnitario: 0
-      });
-      renderizarTelaOrcamento();
-      const lastInput = quoteView.querySelector(`input[data-idx="${state.itensOrcamento.length - 1}"][data-field="descricao"]`);
-      lastInput?.focus();
-    });
-
-    // Deleção de linha
-    quoteView.querySelectorAll("[data-del-row]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const idx = Number(btn.dataset.delRow);
-        state.itensOrcamento.splice(idx, 1);
-        if (state.itensOrcamento.length === 0) {
-          state.itensOrcamento.push({ id: "item-" + Date.now(), descricao: "", qtd: 1, precoUnitario: 0 });
-        }
-        renderizarTelaOrcamento();
-      });
-    });
-
-    // Input de metadados do orçamento
-    document.getElementById("quote-meta-number")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.numero = e.target.value;
-    });
-
-    document.getElementById("quote-meta-date")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.data = e.target.value;
-    });
-
-    document.getElementById("quote-status-select")?.addEventListener("change", (e) => {
-      state.orcamentoMetadados.status = e.target.value;
-      if (window.SJ_DB && state.orcamentoMetadados.numero) {
-        window.SJ_DB.orcamentos.atualizarStatus(state.orcamentoMetadados.numero, e.target.value);
-      }
-    });
-
-    // Inputs do Cliente & Autocompletar Inteligente do Banco de Dados
-    const inputClientName = document.getElementById("client-name");
-    if (inputClientName) {
-      inputClientName.addEventListener("input", (e) => {
-        const val = e.target.value.trim();
-        if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
-        state.orcamentoMetadados.cliente.nome = val;
-
-        // Se houver correspondência exata ou seleção no datalist, preenche os outros campos
-        if (window.SJ_DB && val.length >= 2) {
-          const clientesSalvos = window.SJ_DB.clientes.listar();
-          const match = clientesSalvos.find(
-            (c) => c.nome.toLowerCase() === val.toLowerCase()
-          );
-          if (match) {
-            if (match.cnpjCpf) {
-              const el = document.getElementById("client-cnpj-cpf");
-              if (el) el.value = match.cnpjCpf;
-              state.orcamentoMetadados.cliente.cnpjCpf = match.cnpjCpf;
-            }
-            if (match.endereco) {
-              const el = document.getElementById("client-address");
-              if (el) el.value = match.endereco;
-              state.orcamentoMetadados.cliente.endereco = match.endereco;
-            }
-            if (match.bairroCidadeUf) {
-              const el = document.getElementById("client-bairro-city");
-              if (el) el.value = match.bairroCidadeUf;
-              state.orcamentoMetadados.cliente.bairroCidadeUf = match.bairroCidadeUf;
-            }
-            if (match.cepTelefone) {
-              const el = document.getElementById("client-cep-phone");
-              if (el) el.value = match.cepTelefone;
-              state.orcamentoMetadados.cliente.cepTelefone = match.cepTelefone;
-            }
-            if (match.email) {
-              const el = document.getElementById("client-email");
-              if (el) el.value = match.email;
-              state.orcamentoMetadados.cliente.email = match.email;
-            }
-          }
-        }
-      });
-    }
-
-    const outrosCamposCliente = [
-      { id: "client-cnpj-cpf", key: "cnpjCpf" },
-      { id: "client-address", key: "endereco" },
-      { id: "client-bairro-city", key: "bairroCidadeUf" },
-      { id: "client-cep-phone", key: "cepTelefone" },
-      { id: "client-email", key: "email" }
-    ];
-
-    aplicarMascaraCpfCnpj(document.getElementById("client-cnpj-cpf"));
-
-    outrosCamposCliente.forEach(({ id, key }) => {
-      document.getElementById(id)?.addEventListener("input", (e) => {
-        if (!state.orcamentoMetadados.cliente) state.orcamentoMetadados.cliente = {};
-        state.orcamentoMetadados.cliente[key] = e.target.value;
-      });
-    });
-
-    // Condições comerciais
-    document.getElementById("quote-cond-pagamento")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.formaPagamento = e.target.value;
-    });
-    document.getElementById("quote-cond-prazo")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.prazoEntrega = e.target.value;
-    });
-    document.getElementById("quote-cond-validade")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.validade = e.target.value;
-    });
-    document.getElementById("quote-cond-obs")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.observacoes = e.target.value;
-    });
-
-    // Frete e Desconto
-    document.getElementById("quote-input-frete")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.frete = parseFloat(e.target.value) || 0;
-      recalcularTotaisOrcamentoAoVivo();
-    });
-
-    document.getElementById("quote-input-desconto")?.addEventListener("input", (e) => {
-      state.orcamentoMetadados.desconto = parseFloat(e.target.value) || 0;
-      recalcularTotaisOrcamentoAoVivo();
-    });
-
-    // Botão rápido 5% OFF direto na folha timbrada
-    document.getElementById("btn-quote-quick-5pct")?.addEventListener("click", () => {
+      salvarOrcamentoNoHistorico();
+      const meta = state.orcamentoMetadados;
       const subtotal = state.itensOrcamento.reduce(
         (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
         0
       );
-      const val5 = Number((subtotal * 0.05).toFixed(2));
-      const inpDesc = document.getElementById("quote-input-desconto");
-      if (Math.abs((Number(state.orcamentoMetadados.desconto) || 0) - val5) < 0.05 && val5 > 0) {
-        state.orcamentoMetadados.desconto = 0;
-        if (inpDesc) inpDesc.value = "0.00";
-      } else {
-        state.orcamentoMetadados.desconto = val5;
-        if (inpDesc) inpDesc.value = val5.toFixed(2);
-      }
-      recalcularTotaisOrcamentoAoVivo();
+      const totalGeral = Math.max(0, subtotal + (Number(meta.frete) || 0) - (Number(meta.desconto) || 0));
+
+      const foneCliente = (meta.cliente && meta.cliente.cepTelefone) ? meta.cliente.cepTelefone.replace(/\D/g, "") : "";
+      const foneDestino = foneCliente.length >= 10 ? ("55" + foneCliente) : "5544991351318";
+
+      const itensTexto = state.itensOrcamento.map((it, idx) => {
+        const rowTot = (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0);
+        return `*${idx + 1}.* ${it.descricao} (${it.qtd}x) — ${formatarMoedaBR(rowTot)}`;
+      }).join("\n");
+
+      const mensagem = `*ORÇAMENTO COMERCIAL — GRUPO SJ 3D*\n` +
+        `*Nº Proposta:* ${meta.numero || 'SJ-2026'}\n` +
+        `*Data:* ${meta.data || obterDataHojeFormatada()}\n` +
+        `*Cliente:* ${(meta.cliente && meta.cliente.nome) || 'Cliente'}\n\n` +
+        `*ITENS DA PROPOSTA:*\n${itensTexto}\n\n` +
+        `*Subtotal:* ${formatarMoedaBR(subtotal)}\n` +
+        (meta.desconto > 0 ? `*Desconto:* - ${formatarMoedaBR(meta.desconto)}\n` : "") +
+        (meta.frete > 0 ? `*Frete:* + ${formatarMoedaBR(meta.frete)}\n` : "") +
+        `*VALOR TOTAL:* ${formatarMoedaBR(totalGeral)}\n\n` +
+        `*Forma de Pagamento:* ${meta.formaPagamento}\n` +
+        `*Prazo de Entrega:* ${meta.prazoEntrega}\n` +
+        `*Validade:* ${meta.validade}\n\n` +
+        `*Chave PIX (CNPJ):* 66.275.129/0001-10\n` +
+        `*Loja SJ 3D* — Av. Portugal, 6759 - Umuarama/PR\n` +
+        `Dúvidas ou fechamento: (44) 99135-1318`;
+
+      window.open(`https://wa.me/${foneDestino}?text=${encodeURIComponent(mensagem)}`, "_blank");
     });
 
-    // Clique nos Chips Rápidos de Produtos do Catálogo
-    quoteView.querySelectorAll(".quote-chip-add-btn").forEach((chip) => {
-      chip.addEventListener("click", () => {
-        const desc = chip.dataset.chipDesc;
-        const price = parseFloat(chip.dataset.chipPrice) || 0;
-        state.itensOrcamento.push({
-          id: "item-" + Date.now(),
-          descricao: desc,
-          qtd: 1,
-          precoUnitario: price
-        });
-        renderizarTelaOrcamento();
-        recalcularTotaisOrcamentoAoVivo();
-        mostrarToast(`📦 Item adicionado: <strong>${desc}</strong>`, "success");
-      });
-    });
-
-    // Edição de itens da tabela (live sync sem perder o foco + autocompletar preço de catálogo)
-    quoteView.querySelectorAll(".quote-item-desc-input, .quote-item-num-input, .quote-item-val-input").forEach((inp) => {
-      inp.addEventListener("input", (e) => {
-        const idx = Number(e.target.dataset.idx);
-        const field = e.target.dataset.field;
-        const val = e.target.value;
-
-        if (state.itensOrcamento[idx]) {
-          if (field === "descricao") {
-            state.itensOrcamento[idx].descricao = val;
-            // Se coincidir com algum item do catálogo, preenche o preço unitário oficial
-            const prodMatch = (window.SITE_DATA?.catalogo || []).find(
-              (p) => (p.nome || "").toLowerCase() === val.toLowerCase()
-            );
-            if (prodMatch && Number(prodMatch.preco) > 0) {
-              state.itensOrcamento[idx].precoUnitario = Number(prodMatch.preco);
-              const priceInp = quoteView.querySelector(`input[data-idx="${idx}"][data-field="precoUnitario"]`);
-              if (priceInp) priceInp.value = Number(prodMatch.preco).toFixed(2);
-              const rowTotEl = document.getElementById(`quote-row-total-${idx}`);
-              if (rowTotEl) {
-                const tot = (Number(state.itensOrcamento[idx].qtd) || 1) * Number(prodMatch.preco);
-                rowTotEl.textContent = formatarMoedaBR(tot);
-              }
-            }
-          } else if (field === "qtd") {
-            state.itensOrcamento[idx].qtd = parseFloat(val) || 0;
-          } else if (field === "precoUnitario") {
-            state.itensOrcamento[idx].precoUnitario = parseFloat(val) || 0;
-          }
-
-          // Atualiza o total da linha
-          const rowTotEl = document.getElementById(`quote-row-total-${idx}`);
-          if (rowTotEl) {
-            const tot = (Number(state.itensOrcamento[idx].qtd) || 0) * (Number(state.itensOrcamento[idx].precoUnitario) || 0);
-            rowTotEl.textContent = formatarMoedaBR(tot);
-          }
-
-          recalcularTotaisOrcamentoAoVivo();
-        }
-      });
+    // Imprimir / Salvar PDF
+    document.getElementById("btn-quote-print")?.addEventListener("click", () => {
+      window.print();
     });
   }
 
@@ -9924,6 +10783,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     document.getElementById("btn-cms-export-clients-csv")?.addEventListener("click", () => {
       exportarClientesCsv();
+    });
+
+    document.getElementById("btn-cms-new-quote")?.addEventListener("click", () => {
+      abrirEmissorOrcamento();
     });
 
     document.getElementById("btn-cms-new-client")?.addEventListener("click", () => {

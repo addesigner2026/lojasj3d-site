@@ -24,7 +24,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261116_03" />
+  <link rel="stylesheet" href="css/styles.css?v=20261116_04" />
 </head>
 
 <body class="admin-standalone-body">
@@ -699,8 +699,11 @@
               <h4 style="margin:2px 0 0; font-size:1.05rem; font-weight:900;">Clientes Cadastrados pelo WhatsApp e Balcão</h4>
               <p style="margin:2px 0 0; font-size:0.78rem; color:#6b7280;">Dados sincronizados em tempo real no banco local e nuvem Supabase.</p>
             </div>
-            <div style="display:flex; gap:8px;">
-              <button type="button" class="btn-cms-primary" id="btn-cms-new-client">+ Novo Cliente</button>
+            <div style="display:flex; gap:8px; flex-wrap:wrap;">
+              <button type="button" class="btn-cms-primary" id="btn-cms-new-quote" style="background:#E84520; border-color:#E84520; display:inline-flex; align-items:center; gap:6px;">
+                <span>📄 Novo Orçamento Timbrado</span>
+              </button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-new-client">+ Novo Cliente</button>
               <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients">📥 Exportar Planilha (CSV)</button>
             </div>
           </div>
@@ -1201,7 +1204,7 @@
   <script src="js/supabase-client.js?v=20261114_01"></script>
   <script src="js/dados.js?v=20261113_02"></script>
   <script src="js/database.js?v=20261113_02"></script>
-  <script src="js/app.js?v=20261116_03"></script>
+  <script src="js/app.js?v=20261116_04"></script>
 
 </body>
 
