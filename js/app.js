@@ -3659,8 +3659,13 @@
             ${b.dataSorteio ? `<span class="raffle-pill-date">📅 ${b.dataSorteio}</span>` : ""}
           </div>
           <div class="raffle-hero-heading-block">
-            <h3 class="raffle-big-model">${b.tituloPrincipal || "SORTEIO BAMBU LAB A1 MINI"}</h3>
+            ${b.tituloKicker ? `<span class="raffle-kicker-line">${b.tituloKicker}</span>` : ""}
+            <h3 class="raffle-big-model">${b.tituloPrincipal || "SORTEIO <em>BAMBU LAB A1 MINI</em>"}</h3>
             ${b.subtituloPremio ? `<span class="raffle-sub-prize">${b.subtituloPremio}</span>` : ""}
+          </div>
+
+          <div class="raffle-clean-summary-pill">
+            <span>🎟️ ${b.precoDestaque || "1 Filamento = 1 Cupom • 1 Impressora = 10 Cupons • Cupons Grátis na Loja Física"}</span>
           </div>
 
           <div class="natal-raffle-actions">
@@ -3670,8 +3675,14 @@
               rel="noopener"
               class="btn-raffle-whatsapp"
             >
-              ${b.btn1Texto || "Mais Informações no WhatsApp →"}
+              ${b.btn1Texto || "Garantir Cupons no WhatsApp →"}
             </a>
+            <button type="button" class="btn-raffle-saiba-mais" data-open-raffle-modal="1">
+              ℹ️ Saiba Mais &amp; Regulamento
+            </button>
+          </div>
+          <div class="raffle-clean-store-footnote">
+            📍 Showroom em Umuarama: Av. Portugal, 6759 • Participe também presencialmente!
           </div>
         </div>
       </div>
@@ -5431,11 +5442,11 @@
         .map(
           (b, idx) => `
               <div class="hero-slide-item graphic-banner-slide ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}">
-                <button type="button" class="hero-graphic-link" data-home-open-item="${b.itemId}" aria-label="${b.titulo}">
+                <button type="button" class="hero-graphic-link" data-home-open-item="${b.itemId}" data-is-sorteio="${b.isSorteio ? "true" : "false"}" aria-label="${b.titulo}">
                   <picture class="hero-graphic-picture">
-                    <source media="(max-width: 768px)" srcset="${b.mobileWebp}" type="image/webp" />
-                    <source media="(max-width: 768px)" srcset="${b.mobilePng}" type="image/png" />
-                    <source srcset="${b.desktopWebp}" type="image/webp" />
+                    ${b.mobileWebp ? `<source media="(max-width: 768px)" srcset="${b.mobileWebp}" type="image/webp" />` : ""}
+                    <source media="(max-width: 768px)" srcset="${b.mobilePng || b.desktopPng}" />
+                    ${b.desktopWebp ? `<source srcset="${b.desktopWebp}" type="image/webp" />` : ""}
                     <img
                       src="${b.desktopPng}"
                       alt="${b.titulo}"
@@ -5443,6 +5454,25 @@
                       ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"'}
                     />
                   </picture>
+                  ${b.isSorteio ? `
+                    <div class="hero-sorteio-desktop-overlay" aria-hidden="true">
+                      <div class="hero-badges-row">
+                        <span class="raffle-pill-orange">🎁 GRANDE SORTEIO OFICIAL</span>
+                        <span class="raffle-pill-date">📅 20 DE DEZEMBRO</span>
+                      </div>
+                      <div class="raffle-hero-heading-block">
+                        <span class="raffle-kicker-line">Revendedor Autorizado Bambu Lab</span>
+                        <h2 class="raffle-big-model">SORTEIO <em>A1 MINI</em></h2>
+                        <span class="raffle-sub-prize">+ KIT COM 4 KG DE FILAMENTOS INCLUSO</span>
+                      </div>
+                      <div class="hero-sorteio-rules-strip">
+                        <span class="hero-sorteio-rule-tag">🧵 1 Filamento = <strong>1 Cupom</strong></span>
+                        <span class="hero-sorteio-rule-tag">🖨️ 1 Impressora = <strong>10 Cupons</strong></span>
+                        <span class="hero-sorteio-rule-tag">🏪 Cupons na Loja Física</span>
+                      </div>
+                      <span class="hero-sorteio-cta-pill">Garantir Cupons no WhatsApp ›</span>
+                    </div>
+                  ` : ""}
                 </button>
               </div>
             `
@@ -5533,6 +5563,9 @@
           ${todasImpressoras.map((imp) => gerarCardHTML(imp)).join("")}
         </div>
       </div>
+
+      <!-- BANNER OFICIAL DO GRANDE SORTEIO BAMBU LAB A1 MINI -->
+      ${gerarBannerPromocionalSecaoHtml()}
 
       <!-- 4. VITRINE CLEAN DE FILAMENTOS (2 PORTAIS MODERNOS DE MARCA — SEM POLUIÇÃO VISUAL) -->
       <div class="home-section-block" id="home-filamentos-showcase">
@@ -5754,7 +5787,7 @@
       });
     });
 
-    // Clique em botões do banner que abrem direto a página de um produto
+    // Clique em botões do banner que abrem direto a página de um produto ou modal do sorteio
     homeEl.querySelectorAll("[data-home-open-item]").forEach((el) => {
       el.addEventListener("click", (e) => {
         if (isSwiping) {
@@ -5762,7 +5795,12 @@
           e.stopPropagation();
           return;
         }
-        abrirPaginaProduto(el.dataset.homeOpenItem);
+        const itemId = el.dataset.homeOpenItem;
+        if (itemId === "sorteio-a1-mini" || el.dataset.isSorteio === "true") {
+          abrirModalRegrasSorteio();
+          return;
+        }
+        abrirPaginaProduto(itemId);
       });
     });
 

@@ -75,6 +75,16 @@ window.SITE_DATA = {
   // =========================================================================
   bannersBlackSJ: [
     {
+      id: "banner-sorteio-a1-mini",
+      itemId: "sorteio-a1-mini",
+      titulo: "Grande Sorteio Bambu Lab A1 Mini + Kit com 4kg de Filamentos — Sorteio 20 de Dezembro",
+      desktopWebp: "",
+      desktopPng: "assets/banners/desktop/00-sorteio.jpg",
+      mobileWebp: "",
+      mobilePng: "assets/banners/mobile/00-sorteio.jpg",
+      isSorteio: true
+    },
+    {
       id: "banner-a1-mini",
       itemId: "imp-bambu-a1-mini",
       titulo: "Bambu Lab A1 Mini — R$ 1.961,00 à vista no PIX ou 10x de R$ 217,90",
