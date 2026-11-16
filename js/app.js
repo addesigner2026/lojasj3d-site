@@ -8881,7 +8881,7 @@
       mostrarToast("💾 Proposta salva com sucesso no histórico!", "success");
     });
 
-    document.getElementById("btn-quote-whatsapp")?.addEventListener("click", () => {
+    document.getElementById("btn-quote-whatsapp")?.addEventListener("click", async () => {
       salvarOrcamentoNoHistorico();
       const meta = state.orcamentoMetadados;
       const subtotal = state.itensOrcamento.reduce(
@@ -8912,13 +8912,213 @@
         `*Validade:* ${meta.validade}\n\n` +
         `*Chave PIX (CNPJ):* 66.275.129/0001-10\n` +
         `*Loja SJ 3D* — Av. Portugal, 6759 - Umuarama/PR\n` +
-        `Dúvidas ou fechamento: (44) 99135-1318`;
+        `Dúvidas ou fechamento: (44) 99135-1318\n\n` +
+        `📄 _Segue anexo o documento oficial da proposta em PDF timbrado._`;
 
-      window.open(`https://wa.me/${foneDestino}?text=${encodeURIComponent(mensagem)}`, "_blank");
+      const btnWa = document.getElementById("btn-quote-whatsapp");
+      const textoOrigWa = btnWa ? btnWa.innerHTML : "";
+      if (btnWa) {
+        btnWa.disabled = true;
+        btnWa.innerHTML = `⏳ Gerando PDF...`;
+      }
+      mostrarToast("⏳ Gerando PDF timbrado da proposta para o WhatsApp...", "info");
+
+      const elementoFolha = quoteView.querySelector(".quote-official-letterhead") || document.querySelector(".quote-official-letterhead");
+      let pdfGerado = null;
+
+      if (window.html2pdf && elementoFolha) {
+        pdfGerado = await gerarPdfOrcamentoBlob(elementoFolha);
+      }
+
+      if (btnWa) {
+        btnWa.disabled = false;
+        btnWa.innerHTML = textoOrigWa;
+      }
+
+      if (pdfGerado && pdfGerado.blob) {
+        const pdfFile = new File([pdfGerado.blob], pdfGerado.nomeArquivo, { type: "application/pdf" });
+
+        // Tentativa de Web Share API com envio direto de arquivo (Dispositivos Móveis e navegadores suportados)
+        if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
+          try {
+            await navigator.share({
+              title: `Orçamento ${meta.numero || 'SJ-2026'} — Grupo SJ 3D`,
+              text: mensagem,
+              files: [pdfFile]
+            });
+            mostrarToast("✅ Proposta e PDF compartilhados no WhatsApp!", "success");
+            return;
+          } catch (shareErr) {
+            if (shareErr.name === "AbortError") {
+              return;
+            }
+            console.warn("Web Share falhou, usando fluxo alternativo:", shareErr);
+          }
+        }
+
+        // Fluxo Desktop / Navegadores sem suporte a compartilhamento direto de arquivo:
+        // 1. Download automático do arquivo PDF
+        const blobUrl = URL.createObjectURL(pdfGerado.blob);
+        const linkDownload = document.createElement("a");
+        linkDownload.href = blobUrl;
+        linkDownload.download = pdfGerado.nomeArquivo;
+        document.body.appendChild(linkDownload);
+        linkDownload.click();
+        document.body.removeChild(linkDownload);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 20000);
+
+        // 2. Abertura do WhatsApp Web com mensagem pré-formatada
+        const waUrl = `https://wa.me/${foneDestino}?text=${encodeURIComponent(mensagem)}`;
+        window.open(waUrl, "_blank");
+
+        // 3. Exibir Modal Orientador elegante para o operador anexar no WhatsApp
+        abrirModalOrientacaoPdfWhatsApp({
+          numero: meta.numero || "SJ-2026",
+          nomeArquivo: pdfGerado.nomeArquivo,
+          foneDestino: foneDestino,
+          waUrl: waUrl,
+          blob: pdfGerado.blob
+        });
+      } else {
+        // Fallback caso html2pdf não esteja disponível
+        window.open(`https://wa.me/${foneDestino}?text=${encodeURIComponent(mensagem)}`, "_blank");
+        window.print();
+      }
     });
 
-    document.getElementById("btn-quote-print")?.addEventListener("click", () => {
-      window.print();
+    document.getElementById("btn-quote-print")?.addEventListener("click", async () => {
+      salvarOrcamentoNoHistorico();
+      const elementoFolha = quoteView.querySelector(".quote-official-letterhead") || document.querySelector(".quote-official-letterhead");
+      if (window.html2pdf && elementoFolha) {
+        mostrarToast("⏳ Gerando e baixando PDF oficial...", "info");
+        const meta = state.orcamentoMetadados;
+        const opt = {
+          margin: [8, 6, 8, 6],
+          filename: `Orcamento-${meta.numero || 'SJ-2026'}.pdf`,
+          image: { type: 'jpeg', quality: 0.98 },
+          html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+          jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+        };
+        try {
+          await window.html2pdf().set(opt).from(elementoFolha).save();
+          mostrarToast("📄 PDF baixado com sucesso!", "success");
+        } catch (err) {
+          console.warn("Falha no download via html2pdf, abrindo impressão padrão:", err);
+          window.print();
+        }
+      } else {
+        window.print();
+      }
+    });
+  }
+
+  async function gerarPdfOrcamentoBlob(elemento) {
+    if (!window.html2pdf || !elemento) return null;
+    const meta = state.orcamentoMetadados;
+    const nomeArquivo = `Orcamento-${meta.numero || 'SJ-2026'}.pdf`;
+    const opt = {
+      margin: [8, 6, 8, 6],
+      filename: nomeArquivo,
+      image: { type: 'jpeg', quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true, logging: false, scrollY: 0 },
+      jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+    };
+    try {
+      const pdfBlob = await window.html2pdf().set(opt).from(elemento).output('blob');
+      return { blob: pdfBlob, nomeArquivo };
+    } catch (err) {
+      console.warn("Falha ao gerar blob do PDF:", err);
+      return null;
+    }
+  }
+
+  function abrirModalOrientacaoPdfWhatsApp(dados) {
+    const modalExistente = document.getElementById("modal-pdf-wa-guide");
+    if (modalExistente) modalExistente.remove();
+
+    const { numero, nomeArquivo, waUrl, blob } = dados;
+
+    const modal = document.createElement("div");
+    modal.id = "modal-pdf-wa-guide";
+    modal.className = "modal-pdf-wa-overlay";
+    modal.innerHTML = `
+      <div class="modal-pdf-wa-card">
+        <button type="button" class="modal-pdf-wa-close" id="btn-close-pdf-wa-guide" title="Fechar">&times;</button>
+        
+        <div class="modal-pdf-wa-header">
+          <div class="modal-pdf-wa-badge">
+            <span class="icon-file">📄</span>
+            <span class="icon-wa">🟢</span>
+          </div>
+          <h3 class="modal-pdf-wa-title">PDF do Orçamento Salvo!</h3>
+          <p class="modal-pdf-wa-subtitle">
+            O arquivo <strong>${escaparHtml(nomeArquivo)}</strong> foi baixado e a conversa do WhatsApp foi aberta.
+          </p>
+        </div>
+
+        <div class="modal-pdf-wa-steps">
+          <div class="pdf-step-item">
+            <div class="pdf-step-num">1</div>
+            <div class="pdf-step-body">
+              <strong>Arquivo na pasta Downloads</strong>
+              <p>O PDF timbrado oficial de alta resolução já está salvo no seu dispositivo.</p>
+            </div>
+          </div>
+          <div class="pdf-step-item">
+            <div class="pdf-step-num">2</div>
+            <div class="pdf-step-body">
+              <strong>Anexe no WhatsApp</strong>
+              <p>Na aba do WhatsApp que se abriu, clique em <strong>📎 Anexar &gt; Documento</strong> ou apenas <strong>arraste e solte</strong> o PDF baixado dentro da conversa.</p>
+            </div>
+          </div>
+          <div class="pdf-step-item">
+            <div class="pdf-step-num">3</div>
+            <div class="pdf-step-body">
+              <strong>Envio concluído</strong>
+              <p>O cliente receberá o texto da proposta e a folha timbrada oficial para aprovação imediata!</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="modal-pdf-wa-actions">
+          <a href="${escaparHtml(waUrl)}" target="_blank" rel="noopener noreferrer" class="btn-pdf-wa-openchat">
+            💬 Abrir Conversa no WhatsApp
+          </a>
+          <button type="button" class="btn-pdf-wa-redownload" id="btn-guide-redownload">
+            📥 Baixar Novamente PDF
+          </button>
+          <button type="button" class="btn-pdf-wa-ok" id="btn-guide-ok">
+            Entendido, tudo pronto!
+          </button>
+        </div>
+      </div>
+    `;
+
+    document.body.appendChild(modal);
+
+    const fechar = () => {
+      modal.classList.add("fade-out");
+      setTimeout(() => modal.remove(), 250);
+    };
+
+    document.getElementById("btn-close-pdf-wa-guide")?.addEventListener("click", fechar);
+    document.getElementById("btn-guide-ok")?.addEventListener("click", fechar);
+    modal.addEventListener("click", (e) => {
+      if (e.target === modal) fechar();
+    });
+
+    document.getElementById("btn-guide-redownload")?.addEventListener("click", () => {
+      if (blob) {
+        const blobUrl = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = blobUrl;
+        a.download = nomeArquivo;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(blobUrl), 10000);
+        mostrarToast("📥 PDF baixado novamente!", "success");
+      }
     });
   }
 
