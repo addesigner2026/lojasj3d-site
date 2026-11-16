@@ -48,7 +48,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261116_02" />
+  <link rel="stylesheet" href="css/styles.css?v=20261116_03" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1902,18 +1902,25 @@
       </div>
 
       <form id="form-quote-wizard" class="operator-quick-form">
-        <!-- 1. DADOS DO CLIENTE -->
-        <div class="wizard-section-title">1. Identificação do Cliente</div>
-        <div class="operator-field">
+        <!-- 1. DADOS DO CLIENTE & BUSCA INTELIGENTE -->
+        <div class="wizard-section-title" style="display:flex; justify-content:space-between; align-items:center;">
+          <span>1. Identificação do Cliente</span>
+          <span id="wiz-client-badge-status" class="wiz-client-status-pill" style="display:none;"></span>
+        </div>
+
+        <!-- Campo Principal: Busca Inteligente por Nome, CNPJ/CPF ou Telefone -->
+        <div class="operator-field" style="position:relative;">
           <label for="wiz-client-name">Nome Completo ou Razão Social *</label>
           <div class="auth-input-group">
             <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
               <circle cx="12" cy="7" r="4"></circle>
             </svg>
-            <input type="text" id="wiz-client-name" list="wiz-clients-datalist" placeholder="Digite o nome do cliente..." autocomplete="off" required />
-            <datalist id="wiz-clients-datalist"></datalist>
+            <input type="text" id="wiz-client-name" placeholder="Buscar por Nome, CNPJ, CPF ou WhatsApp..." autocomplete="off" required />
+            <button type="button" id="wiz-client-clear-btn" class="wiz-input-clear-btn" style="display:none;" title="Limpar cliente e buscar outro">✕</button>
           </div>
+          <!-- Dropdown Flutuante de Clientes Encontrados -->
+          <div id="wiz-client-dropdown" class="wiz-client-dropdown-menu" style="display:none;" role="listbox" aria-label="Sugestões de clientes cadastrados"></div>
         </div>
 
         <div class="operator-form-row-2col">
@@ -1927,7 +1934,10 @@
             </div>
           </div>
           <div class="operator-field">
-            <label for="wiz-client-cpf">CPF ou CNPJ</label>
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+              <label for="wiz-client-cpf" style="margin:0;">CPF ou CNPJ</label>
+              <span id="wiz-client-doc-feedback" style="font-size:0.7rem; font-weight:700;"></span>
+            </div>
             <div class="auth-input-group">
               <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
                 <rect x="3" y="4" width="18" height="16" rx="2"></rect>
@@ -1935,10 +1945,13 @@
                 <line x1="7" y1="12" x2="17" y2="12"></line>
                 <line x1="7" y1="16" x2="12" y2="16"></line>
               </svg>
-              <input type="text" id="wiz-client-cpf" placeholder="000.000.000-00" />
+              <input type="text" id="wiz-client-cpf" placeholder="000.000.000-00 ou CNPJ" />
             </div>
           </div>
         </div>
+
+        <!-- Indicador inteligente de cliente novo vs cadastrado -->
+        <div id="wiz-client-info-box" class="wiz-client-info-box" style="display:none;"></div>
 
         <!-- 2. FORMA DE PAGAMENTO -->
         <div class="wizard-section-title" style="margin-top:4px;">2. Forma de Pagamento</div>
@@ -2029,8 +2042,8 @@
           <span><strong>LGPD:</strong> Os dados do cliente acima são processados para fins de execução de proposta e contrato (Art. 7º, V da Lei 13.709/2018).</span>
         </div>
 
-        <button type="submit" class="btn-operator-submit">
-          <span>Gerar Orçamento Timbrado</span>
+        <button type="submit" class="btn-operator-submit" id="btn-wizard-submit">
+          <span>Gerar Orçamento Timbrado &amp; Adicionar Itens</span>
           <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="5" y1="12" x2="19" y2="12"></line>
             <polyline points="12 5 19 12 12 19"></polyline>
@@ -3400,7 +3413,7 @@
   <script src="js/supabase-client.js?v=20261114_01"></script>
   <script src="js/dados.js?v=20261116_02"></script>
   <script src="js/database.js?v=20261113_02"></script>
-  <script src="js/app.js?v=20261116_02"></script>
+  <script src="js/app.js?v=20261116_03"></script>
 </body>
 
 </html>

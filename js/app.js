@@ -7473,23 +7473,43 @@
       return;
     }
 
-    // Popula datalist de clientes salvos com documento mascarado (LGPD)
-    const datalist = document.getElementById("wiz-clients-datalist");
-    if (datalist && window.SJ_DB && window.SJ_DB.clientes) {
-      const listaCli = window.SJ_DB.clientes.listar() || [];
-      datalist.innerHTML = listaCli
-        .map((c) => `<option value="${c.nome}">${c.cnpjCpf ? ` (${mascararCpfCnpj(c.cnpjCpf)})` : ""}</option>`)
-        .join("");
-    }
-
     // Se já houver metadados de cliente em edição, mantém preenchido
     const cliAtual = (state.orcamentoMetadados && state.orcamentoMetadados.cliente) || {};
     const inpName = document.getElementById("wiz-client-name");
     const inpPhone = document.getElementById("wiz-client-phone");
     const inpCpf = document.getElementById("wiz-client-cpf");
-    if (inpName && cliAtual.nome) inpName.value = cliAtual.nome;
+    const badgeStatus = document.getElementById("wiz-client-badge-status");
+    const clearBtn = document.getElementById("wiz-client-clear-btn");
+    const docFeedback = document.getElementById("wiz-client-doc-feedback");
+    const infoBox = document.getElementById("wiz-client-info-box");
+
+    if (inpName) {
+      if (cliAtual.nome) {
+        inpName.value = cliAtual.nome;
+        wizardState.clienteSelecionado = cliAtual;
+        if (clearBtn) clearBtn.style.display = "flex";
+        if (badgeStatus) {
+          badgeStatus.textContent = "✓ Cliente em Edição";
+          badgeStatus.className = "wiz-client-status-pill";
+          badgeStatus.style.display = "inline-flex";
+        }
+      } else {
+        wizardState.clienteSelecionado = null;
+        if (clearBtn) clearBtn.style.display = "none";
+        if (badgeStatus) badgeStatus.style.display = "none";
+        if (infoBox) infoBox.style.display = "none";
+      }
+    }
+
     if (inpPhone && cliAtual.cepTelefone) inpPhone.value = cliAtual.cepTelefone;
-    if (inpCpf && cliAtual.cnpjCpf) inpCpf.value = cliAtual.cnpjCpf;
+    if (inpCpf && cliAtual.cnpjCpf) {
+      inpCpf.value = cliAtual.cnpjCpf;
+      if (docFeedback) {
+        const check = validarDocumentoCpfOuCnpj(cliAtual.cnpjCpf);
+        docFeedback.textContent = check.mensagem;
+        docFeedback.style.color = check.valido ? "#10b981" : "#ef4444";
+      }
+    }
 
     // Resumo de quantidade de itens no subtítulo
     const qtdTotalUnidades = wizardState.itens.reduce((acc, i) => acc + (Number(i.qtd) || 1), 0);
@@ -7506,6 +7526,8 @@
   function fecharAssistenteOrcamento() {
     const modal = document.getElementById("modal-quote-wizard");
     if (modal) modal.style.display = "none";
+    const dropdown = document.getElementById("wiz-client-dropdown");
+    if (dropdown) dropdown.style.display = "none";
   }
 
   function abrirEmissorOuPedirLogin(itensIniciais = null) {
@@ -7557,7 +7579,20 @@
     const quoteView = document.getElementById("quote-studio-view");
     if (quoteView) quoteView.style.display = "none";
     state.emissorAberto = false;
-    atualizarVisaoPrincipal();
+
+    const adminWorkspace = document.querySelector(".admin-standalone-workspace");
+    const adminTopBar = document.querySelector(".admin-standalone-topbar");
+    if (adminWorkspace) adminWorkspace.style.display = "block";
+    if (adminTopBar) adminTopBar.style.display = "flex";
+
+    if (!window.location.pathname.includes("admin")) {
+      atualizarVisaoPrincipal();
+      try {
+        if (window.location.hash === "#orcamento") {
+          history.replaceState(null, "", window.location.pathname);
+        }
+      } catch (_) {}
+    }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -7565,13 +7600,19 @@
     const homeView = document.getElementById("home-landing-view");
     const pdpView = document.getElementById("product-detail-view");
     const gridView = document.getElementById("catalog-grid-view");
+    const clientView = document.getElementById("client-account-view");
     const quoteView = document.getElementById("quote-studio-view");
     const mobileCart = document.getElementById("mobile-floating-cart");
+    const adminWorkspace = document.querySelector(".admin-standalone-workspace");
+    const adminTopBar = document.querySelector(".admin-standalone-topbar");
 
     if (homeView) homeView.style.display = "none";
     if (pdpView) pdpView.style.display = "none";
     if (gridView) gridView.style.display = "none";
+    if (clientView) clientView.style.display = "none";
     if (mobileCart) mobileCart.style.display = "none";
+    if (adminWorkspace) adminWorkspace.style.display = "none";
+    if (adminTopBar) adminTopBar.style.display = "none";
 
     state.emissorAberto = true;
 
@@ -7632,6 +7673,13 @@
     if (quoteView) {
       quoteView.style.display = "block";
       renderizarTelaOrcamento();
+      try {
+        if (!window.location.pathname.includes("admin")) {
+          if (window.location.hash !== "#orcamento") {
+            window.location.hash = "#orcamento";
+          }
+        }
+      } catch (_) {}
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -7653,13 +7701,20 @@
     const desconto = Number(meta.desconto) || 0;
     const totalGeral = Math.max(0, subtotal + frete - desconto);
 
+    const catalogoProdutos = (window.SITE_DATA && window.SITE_DATA.catalogo) || [];
+    const datalistCatalogoHtml = `
+      <datalist id="quote-catalog-products-datalist">
+        ${catalogoProdutos.map(p => `<option value="${escaparHtml(p.nome)}">${formatarMoedaBR(p.preco)}</option>`).join("")}
+      </datalist>
+    `;
+
     const linhasTabelaHtml = state.itensOrcamento.map((item, idx) => {
       const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
       return `
         <tr data-row-idx="${idx}">
           <td class="col-center" style="font-weight:700;">${idx + 1}</td>
           <td>
-            <input type="text" class="quote-item-desc-input" data-field="descricao" data-idx="${idx}" value="${item.descricao || ''}" placeholder="Nome ou especificação do produto" />
+            <input type="text" class="quote-item-desc-input" list="quote-catalog-products-datalist" data-field="descricao" data-idx="${idx}" value="${escaparHtml(item.descricao || '')}" placeholder="Nome ou selecione do catálogo..." autocomplete="off" />
           </td>
           <td class="col-center">
             <input type="number" min="1" step="1" class="quote-item-num-input" data-field="qtd" data-idx="${idx}" value="${item.qtd || 1}" />
@@ -7805,12 +7860,21 @@
             </table>
           </div>
 
-          <!-- BOTÃO ADICIONAR ITEM AVULSO -->
-          <div class="quote-add-item-bar">
+          <!-- BARRA ADICIONAR ITEM AVULSO & PRODUTOS DO CATÁLOGO -->
+          <div class="quote-add-item-bar" style="display:flex; flex-direction:column; gap:8px;">
+            <div class="quote-quick-add-chips-wrap">
+              <span style="font-size:0.72rem; font-weight:800; color:#64748b; text-transform:uppercase;">Adicionar Rápido do Catálogo:</span>
+              <button type="button" class="quote-chip-add-btn" data-chip-desc="Filamento PLA Masterprint 1.75mm (1kg)" data-chip-price="79.90">+ PLA Masterprint 1kg (R$ 79,90)</button>
+              <button type="button" class="quote-chip-add-btn" data-chip-desc="Filamento PLA Bambu Lab Original (1kg)" data-chip-price="139.90">+ PLA Bambu Lab 1kg (R$ 139,90)</button>
+              <button type="button" class="quote-chip-add-btn" data-chip-desc="Impressora 3D Bambu Lab A1 Mini" data-chip-price="1999.00">+ Bambu Lab A1 Mini (R$ 1.999,00)</button>
+              <button type="button" class="quote-chip-add-btn" data-chip-desc="Impressora 3D Bambu Lab A1 Combo (AMS Lite)" data-chip-price="4049.00">+ A1 Combo (R$ 4.049,00)</button>
+              <button type="button" class="quote-chip-add-btn" data-chip-desc="Bico Hotend Hardened Steel Bambu Lab 0.4mm" data-chip-price="119.90">+ Bico Hardened Steel (R$ 119,90)</button>
+            </div>
             <button type="button" class="btn-add-quote-item" id="btn-quote-add-item">
-              <span>+ Adicionar Item / Produto Avulso</span>
+              <span>+ Adicionar Linha de Produto Avulso</span>
             </button>
           </div>
+          ${datalistCatalogoHtml}
 
           <!-- TOTAIS FINANCEIROS -->
           <div class="quote-totals-wrap">
@@ -8057,7 +8121,24 @@
       recalcularTotaisOrcamentoAoVivo();
     });
 
-    // Edição de itens da tabela (live sync sem perder o foco)
+    // Clique nos Chips Rápidos de Produtos do Catálogo
+    quoteView.querySelectorAll(".quote-chip-add-btn").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        const desc = chip.dataset.chipDesc;
+        const price = parseFloat(chip.dataset.chipPrice) || 0;
+        state.itensOrcamento.push({
+          id: "item-" + Date.now(),
+          descricao: desc,
+          qtd: 1,
+          precoUnitario: price
+        });
+        renderizarTelaOrcamento();
+        recalcularTotaisOrcamentoAoVivo();
+        mostrarToast(`📦 Item adicionado: <strong>${desc}</strong>`, "success");
+      });
+    });
+
+    // Edição de itens da tabela (live sync sem perder o foco + autocompletar preço de catálogo)
     quoteView.querySelectorAll(".quote-item-desc-input, .quote-item-num-input, .quote-item-val-input").forEach((inp) => {
       inp.addEventListener("input", (e) => {
         const idx = Number(e.target.dataset.idx);
@@ -8067,6 +8148,20 @@
         if (state.itensOrcamento[idx]) {
           if (field === "descricao") {
             state.itensOrcamento[idx].descricao = val;
+            // Se coincidir com algum item do catálogo, preenche o preço unitário oficial
+            const prodMatch = (window.SITE_DATA?.catalogo || []).find(
+              (p) => (p.nome || "").toLowerCase() === val.toLowerCase()
+            );
+            if (prodMatch && Number(prodMatch.preco) > 0) {
+              state.itensOrcamento[idx].precoUnitario = Number(prodMatch.preco);
+              const priceInp = quoteView.querySelector(`input[data-idx="${idx}"][data-field="precoUnitario"]`);
+              if (priceInp) priceInp.value = Number(prodMatch.preco).toFixed(2);
+              const rowTotEl = document.getElementById(`quote-row-total-${idx}`);
+              if (rowTotEl) {
+                const tot = (Number(state.itensOrcamento[idx].qtd) || 1) * Number(prodMatch.preco);
+                rowTotEl.textContent = formatarMoedaBR(tot);
+              }
+            }
           } else if (field === "qtd") {
             state.itensOrcamento[idx].qtd = parseFloat(val) || 0;
           } else if (field === "precoUnitario") {
@@ -11681,18 +11776,249 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     aplicarMascaraCpfCnpj(document.getElementById("wiz-client-cpf"));
     aplicarMascaraTelefone(document.getElementById("wiz-client-phone"));
 
-    // Autocompletar cliente no Assistente ao digitar/escolher o nome
-    document.getElementById("wiz-client-name")?.addEventListener("input", (e) => {
-      const val = (e.target.value || "").trim().toLowerCase();
-      if (!val || !window.SJ_DB || !window.SJ_DB.clientes) return;
-      const match = (window.SJ_DB.clientes.listar() || []).find(
-        (c) => (c.nome || "").toLowerCase() === val
-      );
-      if (match) {
-        const phoneEl = document.getElementById("wiz-client-phone");
-        const cpfEl = document.getElementById("wiz-client-cpf");
-        if (phoneEl && match.cepTelefone) phoneEl.value = match.cepTelefone;
-        if (cpfEl && match.cnpjCpf) cpfEl.value = match.cnpjCpf;
+    // Sistema de Busca Inteligente Omni-Search de Clientes (Nome, CNPJ, CPF, WhatsApp)
+    const inpWizName = document.getElementById("wiz-client-name");
+    const inpWizPhone = document.getElementById("wiz-client-phone");
+    const inpWizCpf = document.getElementById("wiz-client-cpf");
+    const wizDropdown = document.getElementById("wiz-client-dropdown");
+    const wizClearBtn = document.getElementById("wiz-client-clear-btn");
+    const wizBadgeStatus = document.getElementById("wiz-client-badge-status");
+    const wizDocFeedback = document.getElementById("wiz-client-doc-feedback");
+    const wizInfoBox = document.getElementById("wiz-client-info-box");
+
+    function renderizarDropdownSugestoesClientes(termo) {
+      if (!wizDropdown) return;
+      const q = (termo || "").trim().toLowerCase();
+      const qDigits = (termo || "").replace(/\D/g, "");
+
+      if (!q || !window.SJ_DB || !window.SJ_DB.clientes) {
+        wizDropdown.style.display = "none";
+        return;
+      }
+
+      const lista = window.SJ_DB.clientes.listar() || [];
+      const matches = lista.filter((c) => {
+        const nome = (c.nome || c.razaoSocial || "").toLowerCase();
+        const doc = (c.cnpjCpf || c.cpf || "").replace(/\D/g, "");
+        const tel = (c.whatsapp || c.telefone || c.cepTelefone || "").replace(/\D/g, "");
+        const email = (c.email || "").toLowerCase();
+        const cidade = (c.cidade || c.bairroCidadeUf || "").toLowerCase();
+
+        if (nome.includes(q)) return true;
+        if (email.includes(q)) return true;
+        if (cidade.includes(q)) return true;
+        if (qDigits.length >= 3 && (doc.includes(qDigits) || tel.includes(qDigits))) return true;
+        return false;
+      });
+
+      if (matches.length > 0) {
+        const itemsHtml = matches.slice(0, 7).map((c, idx) => {
+          const docFmt = c.cnpjCpf || c.cpf ? mascararCpfCnpj(c.cnpjCpf || c.cpf) : "";
+          const telFmt = c.whatsapp || c.telefone || c.cepTelefone || "";
+          const locFmt = c.cidade || c.bairroCidadeUf || "";
+          return `
+            <div class="wiz-client-dropdown-item" data-client-idx="${idx}" role="option">
+              <div class="client-item-name">
+                <span>👤 ${escaparHtml(c.nome)}</span>
+                ${docFmt ? `<span style="font-size:0.7rem; color:#f04e23; font-weight:800;">${escaparHtml(docFmt)}</span>` : ""}
+              </div>
+              <div class="client-item-meta">
+                ${telFmt ? `<span>📞 ${escaparHtml(telFmt)}</span>` : ""}
+                ${locFmt ? `<span>📍 ${escaparHtml(locFmt)}</span>` : ""}
+                ${c.email ? `<span>✉️ ${escaparHtml(c.email)}</span>` : ""}
+              </div>
+            </div>
+          `;
+        }).join("");
+
+        const novoHtml = `
+          <div class="wiz-client-dropdown-item create-new-option" data-action="create-new" role="option">
+            <span>➕ Cadastrar como Novo Cliente: "<strong>${escaparHtml(termo)}</strong>"</span>
+          </div>
+        `;
+
+        wizDropdown.innerHTML = itemsHtml + novoHtml;
+        wizDropdown.style.display = "block";
+
+        // Vincula cliques nas sugestões
+        wizDropdown.querySelectorAll("[data-client-idx]").forEach((itemEl) => {
+          itemEl.addEventListener("click", () => {
+            const idx = Number(itemEl.dataset.clientIdx);
+            const selecionado = matches[idx];
+            if (selecionado) {
+              wizardState.clienteSelecionado = selecionado;
+              if (inpWizName) inpWizName.value = selecionado.nome;
+              if (inpWizPhone) inpWizPhone.value = selecionado.whatsapp || selecionado.telefone || selecionado.cepTelefone || "";
+              if (inpWizCpf) {
+                inpWizCpf.value = selecionado.cnpjCpf || selecionado.cpf || "";
+                const check = validarDocumentoCpfOuCnpj(inpWizCpf.value);
+                if (wizDocFeedback) {
+                  wizDocFeedback.textContent = check.mensagem;
+                  wizDocFeedback.style.color = check.valido ? "#10b981" : "#ef4444";
+                }
+              }
+              if (wizClearBtn) wizClearBtn.style.display = "flex";
+              if (wizBadgeStatus) {
+                wizBadgeStatus.textContent = "✓ Cliente Cadastrado";
+                wizBadgeStatus.className = "wiz-client-status-pill";
+                wizBadgeStatus.style.display = "inline-flex";
+              }
+              if (wizInfoBox) {
+                wizInfoBox.className = "wiz-client-info-box registered";
+                wizInfoBox.innerHTML = `<span>👤 <strong>${escaparHtml(selecionado.nome)}</strong> selecionado do cadastro (${escaparHtml(selecionado.cidade || selecionado.bairroCidadeUf || "Umuarama/PR")})</span>`;
+                wizInfoBox.style.display = "flex";
+              }
+              wizDropdown.style.display = "none";
+            }
+          });
+        });
+
+        wizDropdown.querySelector("[data-action='create-new']")?.addEventListener("click", () => {
+          wizardState.clienteSelecionado = null;
+          wizDropdown.style.display = "none";
+          if (wizBadgeStatus) {
+            wizBadgeStatus.textContent = "✨ Novo Cliente";
+            wizBadgeStatus.className = "wiz-client-status-pill new-client";
+            wizBadgeStatus.style.display = "inline-flex";
+          }
+          if (wizInfoBox) {
+            wizInfoBox.className = "wiz-client-info-box new-customer";
+            wizInfoBox.innerHTML = `<span>✨ <strong>Novo Cliente:</strong> Os dados serão gravados automaticamente no cadastro ao avançar.</span>`;
+            wizInfoBox.style.display = "flex";
+          }
+        });
+      } else {
+        wizDropdown.innerHTML = `
+          <div class="wiz-client-dropdown-item create-new-option" data-action="create-new" role="option">
+            <span>➕ Novo Cliente: "<strong>${escaparHtml(termo)}</strong>" (Clique para cadastrar)</span>
+          </div>
+        `;
+        wizDropdown.style.display = "block";
+
+        wizDropdown.querySelector("[data-action='create-new']")?.addEventListener("click", () => {
+          wizardState.clienteSelecionado = null;
+          wizDropdown.style.display = "none";
+          if (wizBadgeStatus) {
+            wizBadgeStatus.textContent = "✨ Novo Cliente";
+            wizBadgeStatus.className = "wiz-client-status-pill new-client";
+            wizBadgeStatus.style.display = "inline-flex";
+          }
+          if (wizInfoBox) {
+            wizInfoBox.className = "wiz-client-info-box new-customer";
+            wizInfoBox.innerHTML = `<span>✨ <strong>Novo Cliente:</strong> Os dados serão gravados no cadastro da Loja SJ 3D ao avançar.</span>`;
+            wizInfoBox.style.display = "flex";
+          }
+        });
+      }
+    }
+
+    inpWizName?.addEventListener("input", (e) => {
+      const val = e.target.value.trim();
+      if (wizClearBtn) wizClearBtn.style.display = val ? "flex" : "none";
+      if (!val) {
+        if (wizDropdown) wizDropdown.style.display = "none";
+        wizardState.clienteSelecionado = null;
+        if (wizBadgeStatus) wizBadgeStatus.style.display = "none";
+        if (wizInfoBox) wizInfoBox.style.display = "none";
+        return;
+      }
+      renderizarDropdownSugestoesClientes(val);
+    });
+
+    inpWizName?.addEventListener("focus", (e) => {
+      const val = e.target.value.trim();
+      if (val.length >= 2) {
+        renderizarDropdownSugestoesClientes(val);
+      }
+    });
+
+    wizClearBtn?.addEventListener("click", () => {
+      if (inpWizName) inpWizName.value = "";
+      if (inpWizPhone) inpWizPhone.value = "";
+      if (inpWizCpf) inpWizCpf.value = "";
+      wizardState.clienteSelecionado = null;
+      if (wizClearBtn) wizClearBtn.style.display = "none";
+      if (wizDropdown) wizDropdown.style.display = "none";
+      if (wizBadgeStatus) wizBadgeStatus.style.display = "none";
+      if (wizDocFeedback) wizDocFeedback.textContent = "";
+      if (wizInfoBox) wizInfoBox.style.display = "none";
+      inpWizName?.focus();
+    });
+
+    // Fecha dropdown se clicar fora
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".operator-field") && wizDropdown) {
+        wizDropdown.style.display = "none";
+      }
+    });
+
+    // Busca cliente automático ao digitar CPF ou CNPJ
+    inpWizCpf?.addEventListener("input", () => {
+      const val = inpWizCpf.value.trim();
+      const check = validarDocumentoCpfOuCnpj(val);
+      if (wizDocFeedback) {
+        wizDocFeedback.textContent = val ? check.mensagem : "";
+        wizDocFeedback.style.color = check.valido ? "#10b981" : "#ef4444";
+      }
+
+      if (check.valido && window.SJ_DB && window.SJ_DB.clientes) {
+        const digits = val.replace(/\D/g, "");
+        const match = (window.SJ_DB.clientes.listar() || []).find((c) => {
+          const d = (c.cnpjCpf || c.cpf || "").replace(/\D/g, "");
+          return d === digits && d.length > 0;
+        });
+        if (match) {
+          wizardState.clienteSelecionado = match;
+          if (inpWizName && (!inpWizName.value || inpWizName.value === "Cliente Balcão")) {
+            inpWizName.value = match.nome;
+          }
+          if (inpWizPhone && !inpWizPhone.value) {
+            inpWizPhone.value = match.whatsapp || match.telefone || match.cepTelefone || "";
+          }
+          if (wizClearBtn) wizClearBtn.style.display = "flex";
+          if (wizBadgeStatus) {
+            wizBadgeStatus.textContent = "✓ Cliente Cadastrado";
+            wizBadgeStatus.className = "wiz-client-status-pill";
+            wizBadgeStatus.style.display = "inline-flex";
+          }
+          if (wizInfoBox) {
+            wizInfoBox.className = "wiz-client-info-box registered";
+            wizInfoBox.innerHTML = `<span>👤 <strong>${escaparHtml(match.nome)}</strong> localizado por ${check.tipo}!</span>`;
+            wizInfoBox.style.display = "flex";
+          }
+        }
+      }
+    });
+
+    // Busca cliente automático ao digitar Telefone / WhatsApp
+    inpWizPhone?.addEventListener("input", () => {
+      const val = inpWizPhone.value.trim();
+      const digits = val.replace(/\D/g, "");
+      if (digits.length >= 10 && window.SJ_DB && window.SJ_DB.clientes) {
+        const match = (window.SJ_DB.clientes.listar() || []).find((c) => {
+          const d = (c.whatsapp || c.telefone || c.cepTelefone || "").replace(/\D/g, "");
+          return d.length >= 10 && d.endsWith(digits.slice(-8));
+        });
+        if (match) {
+          wizardState.clienteSelecionado = match;
+          if (inpWizName && (!inpWizName.value || inpWizName.value === "Cliente Balcão")) {
+            inpWizName.value = match.nome;
+          }
+          if (inpWizCpf && !inpWizCpf.value) {
+            inpWizCpf.value = match.cnpjCpf || match.cpf || "";
+            const check = validarDocumentoCpfOuCnpj(inpWizCpf.value);
+            if (wizDocFeedback) {
+              wizDocFeedback.textContent = check.mensagem;
+              wizDocFeedback.style.color = check.valido ? "#10b981" : "#ef4444";
+            }
+          }
+          if (wizClearBtn) wizClearBtn.style.display = "flex";
+          if (wizBadgeStatus) {
+            wizBadgeStatus.textContent = "✓ Cliente Cadastrado";
+            wizBadgeStatus.className = "wiz-client-status-pill";
+            wizBadgeStatus.style.display = "inline-flex";
+          }
+        }
       }
     });
 
@@ -11727,9 +12053,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Submissão do Assistente -> Gera o Orçamento Timbrado Completo
-    document.getElementById("form-quote-wizard")?.addEventListener("submit", (e) => {
-      e.preventDefault();
+    // Submissão do Assistente -> Gera o Orçamento Timbrado e Avança para Adicionar Itens
+    function executarGeracaoOrcamentoWizard(e) {
+      if (e) e.preventDefault();
 
       const nomeCliente = document.getElementById("wiz-client-name")?.value.trim() || "Cliente Balcão";
       const telefoneCliente = document.getElementById("wiz-client-phone")?.value.trim() || "";
@@ -11738,21 +12064,44 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (cpfCliente) {
         const checkWizDoc = validarDocumentoCpfOuCnpj(cpfCliente);
         if (!checkWizDoc.valido) {
-          const inpWizCpf = document.getElementById("wiz-client-cpf");
-          atualizarFeedbackVisualCpfCnpj(inpWizCpf, true);
-          inpWizCpf?.focus();
+          const inpWizCpfEl = document.getElementById("wiz-client-cpf");
+          atualizarFeedbackVisualCpfCnpj(inpWizCpfEl, true);
+          inpWizCpfEl?.focus();
           mostrarToast(checkWizDoc.mensagem, "error");
           alert(checkWizDoc.mensagem);
           return;
         }
       }
 
-      // Procura dados adicionais se o cliente já existir no banco
-      let clienteExistente = null;
-      if (window.SJ_DB && window.SJ_DB.clientes) {
-        clienteExistente = (window.SJ_DB.clientes.listar() || []).find(
-          (c) => (c.nome || "").toLowerCase() === nomeCliente.toLowerCase()
-        );
+      // Procura dados do cliente no banco ou no objeto selecionado
+      let clienteSalvo = wizardState.clienteSelecionado;
+      if (!clienteSalvo && window.SJ_DB && window.SJ_DB.clientes) {
+        const listaCli = window.SJ_DB.clientes.listar() || [];
+        const digitsDoc = cpfCliente.replace(/\D/g, "");
+        clienteSalvo = listaCli.find((c) => {
+          if (digitsDoc && (c.cnpjCpf || c.cpf) && (c.cnpjCpf || c.cpf).replace(/\D/g, "") === digitsDoc) return true;
+          return (c.nome || "").toLowerCase() === nomeCliente.toLowerCase();
+        });
+      }
+
+      // Auto-salva ou atualiza o cliente na base de dados (CRM)
+      if (window.SJ_DB && window.SJ_DB.clientes && nomeCliente && nomeCliente !== "Cliente Balcão") {
+        try {
+          const novoClienteObj = {
+            id: clienteSalvo?.id || ("cli-" + Date.now()),
+            nome: nomeCliente,
+            cnpjCpf: cpfCliente,
+            cpf: cpfCliente,
+            whatsapp: telefoneCliente,
+            cepTelefone: telefoneCliente,
+            endereco: clienteSalvo?.endereco || "",
+            bairroCidadeUf: clienteSalvo?.bairroCidadeUf || "Umuarama / PR",
+            email: clienteSalvo?.email || "",
+            origem: clienteSalvo?.origem || "Orçamento Timbrado"
+          };
+          window.SJ_DB.clientes.salvar(novoClienteObj);
+          clienteSalvo = novoClienteObj;
+        } catch (_) {}
       }
 
       const subtotal = (wizardState.itens || []).reduce(
@@ -11792,10 +12141,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         cliente: {
           nome: nomeCliente,
           cnpjCpf: cpfCliente,
-          endereco: (clienteExistente && clienteExistente.endereco) || "",
-          bairroCidadeUf: (clienteExistente && clienteExistente.bairroCidadeUf) || "Umuarama / PR",
+          endereco: clienteSalvo?.endereco || "",
+          bairroCidadeUf: clienteSalvo?.bairroCidadeUf || "Umuarama / PR",
           cepTelefone: telefoneCliente,
-          email: (clienteExistente && clienteExistente.email) || ""
+          email: clienteSalvo?.email || ""
         }
       };
 
@@ -11806,7 +12155,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         metadados: novosMetadados
       });
 
-      // Salva automaticamente no histórico e cadastra o cliente no banco
+      // Salva automaticamente no histórico de orçamentos
       if (window.SJ_DB && window.SJ_DB.orcamentos) {
         try {
           window.SJ_DB.orcamentos.salvar({
@@ -11817,6 +12166,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           });
         } catch (_) {}
       }
+
+      mostrarToast(`📄 Orçamento <strong>${numeroOrcamento}</strong> pronto! Adicione os produtos e imprima/envie.`, "success");
+    }
+
+    document.getElementById("form-quote-wizard")?.addEventListener("submit", executarGeracaoOrcamentoWizard);
+    document.getElementById("btn-wizard-submit")?.addEventListener("click", (e) => {
+      const form = document.getElementById("form-quote-wizard");
+      if (form && !form.checkValidity()) {
+        form.reportValidity();
+        return;
+      }
+      executarGeracaoOrcamentoWizard(e);
     });
 
     // Botões da Barra Exclusiva do Vendedor Autenticado (#admin-vendor-topbar)
