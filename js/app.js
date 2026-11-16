@@ -7827,6 +7827,9 @@
             <button type="button" class="qb-btn-top-action secondary" id="btn-qb-history">
               📂 Histórico
             </button>
+            <button type="button" class="qb-btn-top-action" id="btn-qb-generate-top" style="background:#E84520; border-color:#E84520; color:#ffffff; font-weight:800;">
+              📄 Gerar Timbrado Oficial →
+            </button>
             <button type="button" class="qb-btn-top-action primary" id="btn-qb-preview-timbrado">
               👁️ Ver Folha Timbrada
             </button>
@@ -8141,14 +8144,17 @@
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // Gerar Orçamento Timbrado Oficial (CTA Principal)
-    document.getElementById("btn-qb-generate-official-quote")?.addEventListener("click", () => {
+    // Gerar Orçamento Timbrado Oficial (Top e Bottom)
+    const acaoGerarTimbrado = () => {
       salvarOrcamentoNoHistorico();
       state.orcamentoModoVisao = "timbrado";
       renderizarTelaOrcamento();
       window.scrollTo({ top: 0, behavior: "smooth" });
       mostrarToast("📄 Orçamento Timbrado gerado com sucesso!", "success");
-    });
+    };
+
+    document.getElementById("btn-qb-generate-top")?.addEventListener("click", acaoGerarTimbrado);
+    document.getElementById("btn-qb-generate-official-quote")?.addEventListener("click", acaoGerarTimbrado);
 
     // =========================================================================
     // ETAPA 1: CLIENTES & BUSCA INTELIGENTE
