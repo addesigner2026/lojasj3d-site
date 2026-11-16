@@ -53,19 +53,19 @@ window.SITE_DATA = {
     btn2Url: "",
     regrasCards: [
       {
-        tag: "1️⃣ CUPONS GRÁTIS",
-        titulo: "Retirada na Loja Física",
-        texto: "Visite a loja física da Loja SJ 3D em Umuarama para retirar seus cupons gratuitos."
+        tag: "CUPONS GRÁTIS",
+        titulo: "Retirada Grátis no Showroom",
+        texto: "Visite a loja física da Loja SJ 3D em Umuarama, siga o Instagram @lojasj3d e retire até 3 cupons gratuitos por CPF, sem precisar comprar nada."
       },
       {
-        tag: "2️⃣ FILAMENTOS E PEÇAS",
-        titulo: "A cada R$ 60 em Compras",
-        texto: "Compras a partir de R$ 60 garantem 1 cupom a cada R$ 60 gastos."
+        tag: "FILAMENTOS & PEÇAS",
+        titulo: "1 Cupom a cada R$ 60 em Compras",
+        texto: "A cada R$ 60 gastos em filamentos, peças de reposição ou serviços na Loja SJ 3D você ganha 1 cupom cumulativo na urna."
       },
       {
-        tag: "🏆 IMPRESSORA 3D",
+        tag: "IMPRESSORAS 3D",
         titulo: "10 Cupons Imediatos",
-        texto: "Na compra de qualquer Impressora 3D você ganha 10 cupons na hora na urna!"
+        texto: "Na compra de qualquer impressora 3D Bambu Lab (A1 Mini, A1, P2S) ou Snapmaker U1 você garante 10 cupons na hora para concorrer!"
       }
     ]
   },

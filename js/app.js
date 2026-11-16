@@ -764,22 +764,22 @@
       btn2Url: "https://www.instagram.com/lojasj3d/",
       regrasCards: [
         {
-          tag: "1️⃣ 3 CUPONS GRÁTIS",
-          titulo: "Retirada Presencial (Por CPF)",
+          tag: "CUPONS GRÁTIS",
+          titulo: "Retirada Grátis no Showroom",
           texto:
-            'Siga <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> (1) + visite a loja (2) = <strong>3 cupons grátis</strong> sem compra!'
+            'Visite a loja física em Umuarama, siga o Instagram <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="raffle-insta-link">@lojasj3d</a> e retire até <strong>3 cupons gratuitos por CPF</strong>, sem precisar comprar nada!'
         },
         {
-          tag: "2️⃣ FILAMENTOS E PEÇAS",
-          titulo: "1 Cupom a cada R$ 60",
+          tag: "FILAMENTOS & PEÇAS",
+          titulo: "1 Cupom a cada R$ 60 em Compras",
           texto:
-            "Compras a partir de R$ 60 garantem <strong>1 cupom a cada R$ 60 gastos</strong> (até 10/compra)."
+            "A cada <strong>R$ 60 gastos</strong> em filamentos, peças de reposição ou serviços na Loja SJ 3D você ganha <strong>1 cupom na urna</strong>."
         },
         {
-          tag: "🏆 IMPRESSORA 3D",
+          tag: "IMPRESSORAS 3D",
           titulo: "10 Cupons Imediatos",
           texto:
-            "Na compra de <strong>qualquer Impressora 3D</strong> você ganha <strong>10 cupons na hora</strong> na urna!"
+            "Na compra de <strong>qualquer impressora Bambu Lab ou Snapmaker</strong> você garante <strong>10 cupons na hora</strong> na urna!"
         }
       ]
     };
@@ -829,27 +829,31 @@
     bodyEl.innerHTML = `
       <div class="raffle-modal-hero-summary">
         ${b.tituloKicker ? `<span class="raffle-modal-kicker">${b.tituloKicker}</span>` : ""}
-        <h2 id="raffle-modal-title" class="raffle-modal-main-title">${b.tituloPrincipal || "SORTEIO A1 MINI"}</h2>
+        <h2 id="raffle-modal-title" class="raffle-modal-main-title">${b.tituloPrincipal || "SORTEIO <em>BAMBU LAB A1 MINI</em>"}</h2>
         ${b.subtituloPremio ? `<p class="raffle-modal-subtitle">${b.subtituloPremio}</p>` : ""}
+        <p class="raffle-modal-desc">Participe do sorteio oficial de fim de ano da Loja SJ 3D! O sorteio da impressora Bambu Lab A1 Mini lacrada com kit de 4 kg de filamentos será transmitido ao vivo no dia <strong>20 de Dezembro de 2026</strong> pelo Instagram oficial <strong>@lojasj3d</strong>.</p>
       </div>
 
       ${
         cards.length > 0
           ? `
-        <div class="raffle-modal-section-label">COMO GANHAR CUPONS PARA CONCORRER:</div>
+        <div class="raffle-modal-section-label">COMO PARTICIPAR E GARANTIR SEUS CUPONS:</div>
         <div class="raffle-modal-rules-grid">
           ${cards
             .map(
-              (rc, i) => `
+              (rc, i) => {
+                const tagLimpa = String(rc.tag || "").replace(/^[0-9️⃣\s]+/u, "").trim();
+                return `
               <div class="raffle-modal-rule-card">
                 <div class="raffle-modal-rule-top">
                   <span class="raffle-modal-step-num">${i + 1}</span>
-                  <span class="raffle-modal-rule-tag">${rc.tag || ""}</span>
+                  <span class="raffle-modal-rule-tag">${tagLimpa || `ETAPA ${i + 1}`}</span>
                 </div>
                 <strong>${rc.titulo || ""}</strong>
                 <p>${rc.texto || ""}</p>
               </div>
-            `
+            `;
+              }
             )
             .join("")}
         </div>
@@ -861,16 +865,13 @@
 
       <div class="raffle-modal-store-box">
         <div class="raffle-modal-store-info">
-          <span class="raffle-modal-store-badge">📍 LOJA FÍSICA & BALCÃO DE RETIRADA EM UMUARAMA - PR</span>
-          <strong>Av. Portugal, 6759 — Zona I-A • Umuarama / PR</strong>
-          <p>Passe em nossa loja física, conheça as impressoras Bambu Lab e Snapmaker ao vivo, veja o mostruário com +80 cores de filamentos e retire seus <strong>+3 cupons grátis</strong> (1 retirada por CPF seguindo <strong>@lojasj3d</strong>).</p>
+          <span class="raffle-modal-store-badge">📍 SHOWROOM &amp; BALCÃO DE RETIRADA EM UMUARAMA - PR</span>
+          <strong>Avenida Portugal, 6759 — Zona I-A • Umuarama / PR</strong>
+          <p class="raffle-modal-store-desc">Passe em nossa loja física, conheça as impressoras Bambu Lab e Snapmaker ao vivo, veja o mostruário físico com +80 cores de filamentos e retire seus <strong>3 cupons gratuitos</strong> (1 retirada por CPF seguindo <strong>@lojasj3d</strong> no Instagram).</p>
         </div>
-        <div class="raffle-modal-store-links" style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+        <div class="raffle-modal-store-links">
           <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="sj-social-logo-btn instagram" title="Instagram @lojasj3d" aria-label="Instagram Loja SJ 3D">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-          </a>
-          <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-logo-btn facebook" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
           </a>
           <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="sj-social-logo-btn whatsapp" title="WhatsApp (44) 99135-1318" aria-label="WhatsApp Loja SJ 3D">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
@@ -878,32 +879,61 @@
           <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="sj-social-logo-btn maps" title="Localização no Google Maps" aria-label="Google Maps Loja SJ 3D">
             <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
           </a>
+          <a href="https://www.facebook.com/lojasj3d" target="_blank" rel="noopener" class="sj-social-logo-btn facebook" title="Facebook /lojasj3d" aria-label="Facebook Loja SJ 3D">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path></svg>
+          </a>
         </div>
       </div>
 
-      <div class="raffle-modal-footer-actions">
-        <button type="button" class="btn-raffle-whatsapp" style="background:#f04e23;" id="btn-raffle-abrir-cadastro">
-          🎁 Fazer Meu Cadastro & Concorrer
-        </button>
-        ${
-          b.btn1Texto
-            ? `
-          <a href="${b.btn1Url || "https://wa.me/5544991351318"}" target="_blank" rel="noopener" class="btn-raffle-whatsapp">
-            ${b.btn1Texto}
-          </a>
-        `
-            : ""
-        }
+      <!-- SEÇÃO EXPLICATIVA: COMO GARANTIR CUPONS NO WHATSAPP -->
+      <div class="raffle-modal-action-card">
+        <div class="raffle-modal-action-header">
+          <span class="raffle-modal-action-badge">✅ CANAL OFICIAL DE VALIDAÇÃO DE CUPONS</span>
+          <h3>Como Garantir Seus Cupons no WhatsApp?</h3>
+          <p>Tanto para compras feitas no site quanto na loja física, nossa equipe faz o registro oficial dos seus cupons e os deposita diretamente na urna lacrada.</p>
+        </div>
+
+        <div class="raffle-modal-info-points">
+          <div class="raffle-info-point">
+            <span class="point-icon">⚡</span>
+            <div>
+              <strong>1. Envie seu Comprovante</strong>
+              <span>Após fazer seu pedido no site ou na loja, envie uma mensagem com o número do pedido ou foto do comprovante.</span>
+            </div>
+          </div>
+          <div class="raffle-info-point">
+            <span class="point-icon">🗳️</span>
+            <div>
+              <strong>2. Depósito Físico na Urna</strong>
+              <span>Seus cupons são impressos e preenchidos com seu nome, telefone e CPF, e depositados na urna do showroom.</span>
+            </div>
+          </div>
+          <div class="raffle-info-point">
+            <span class="point-icon">📱</span>
+            <div>
+              <strong>3. Sorteio ao Vivo</strong>
+              <span>Acompanhe a transmissão no dia <strong>20/12/2026</strong> em live no Instagram <strong>@lojasj3d</strong>.</span>
+            </div>
+          </div>
+        </div>
+
+        <a
+          href="${b.btn1Url || "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!"}"
+          target="_blank"
+          rel="noopener"
+          class="btn-raffle-whatsapp-large"
+        >
+          <svg viewBox="0 0 24 24" width="22" height="22" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
+          <span>Garantir Meus Cupons no WhatsApp →</span>
+        </a>
+      </div>
+
+      <div class="raffle-modal-footer-clean">
         <button type="button" class="raffle-modal-btn-done" id="btn-raffle-modal-entendi">
-          Fechar
+          Fechar Janela
         </button>
       </div>
     `;
-
-    bodyEl.querySelector("#btn-raffle-abrir-cadastro")?.addEventListener("click", () => {
-      fecharModalRegrasSorteio();
-      abrirModalCadastroCliente();
-    });
 
     bodyEl.querySelector("#btn-raffle-modal-entendi")?.addEventListener("click", fecharModalRegrasSorteio);
 

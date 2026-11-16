@@ -9193,96 +9193,195 @@ body.admin-standalone-body {
 }
 
 .raffle-modal-rule-card strong {
-  font-size: 0.92rem;
+  font-size: 0.94rem;
   font-weight: 800;
   color: #ffffff;
+  line-height: 1.3;
 }
 
 .raffle-modal-rule-card p {
-  font-size: 0.79rem;
+  font-size: 0.81rem;
   color: #d4d4d8;
-  line-height: 1.42;
+  line-height: 1.48;
   margin: 0;
 }
 
+.raffle-modal-rule-card p strong {
+  color: #ffffff;
+}
+
+.raffle-modal-desc {
+  font-size: 0.86rem;
+  color: #d4d4d8;
+  line-height: 1.55;
+  margin-top: 8px;
+}
+
+.raffle-modal-desc strong {
+  color: #ffffff;
+}
+
 .raffle-modal-store-box {
-  background: rgba(240, 78, 35, 0.09);
-  border: 1px solid rgba(240, 78, 35, 0.35);
-  border-radius: 10px;
-  padding: 16px 18px;
+  background: linear-gradient(135deg, rgba(240, 78, 35, 0.12) 0%, rgba(20, 20, 26, 0.96) 100%);
+  border: 1px solid rgba(240, 78, 35, 0.38);
+  border-radius: 12px;
+  padding: 18px 20px;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
-  margin-bottom: 20px;
+  gap: 18px;
+  margin-bottom: 18px;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.25);
 }
 
 .raffle-modal-store-badge {
-  display: block;
+  display: inline-block;
   font-size: 0.68rem;
-  font-weight: 800;
+  font-weight: 850;
   color: var(--sj-orange);
-  letter-spacing: 0.05em;
-  margin-bottom: 3px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 4px;
 }
 
 .raffle-modal-store-info strong {
   display: block;
-  font-size: 0.9rem;
+  font-size: 0.94rem;
   color: #ffffff;
-  margin-bottom: 4px;
+  margin-bottom: 5px;
 }
 
-.raffle-modal-store-info p {
-  font-size: 0.78rem;
+.raffle-modal-store-desc {
+  font-size: 0.81rem;
   color: #d4d4d8;
-  line-height: 1.4;
+  line-height: 1.5;
   margin: 0;
+}
+
+.raffle-modal-store-desc strong {
+  color: #ffffff;
 }
 
 .raffle-modal-store-links {
   display: flex;
-  flex-direction: column;
+  align-items: center;
   gap: 8px;
+  flex-wrap: wrap;
   flex-shrink: 0;
 }
 
-.raffle-modal-map-link,
-.raffle-modal-insta-btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 8px 13px;
-  border-radius: 6px;
-  font-size: 0.76rem;
-  font-weight: 800;
-  white-space: nowrap;
-  text-decoration: none;
+/* Card Explicativo: Garantia de Cupons no WhatsApp (UX Pro Max) */
+.raffle-modal-action-card {
+  background: linear-gradient(135deg, rgba(14, 26, 18, 0.95) 0%, rgba(12, 17, 14, 0.98) 100%);
+  border: 1.5px solid rgba(37, 211, 102, 0.4);
+  border-radius: 12px;
+  padding: 20px 22px;
+  margin-top: 6px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
 }
 
-.raffle-modal-map-link {
-  background: #ffffff;
-  color: #111114;
+.raffle-modal-action-badge {
+  display: inline-block;
+  font-size: 0.68rem;
+  font-weight: 850;
+  color: #25d366;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 6px;
 }
 
-.raffle-modal-insta-btn {
-  background: rgba(255, 255, 255, 0.1);
-  border: 1px solid rgba(255, 255, 255, 0.24);
+.raffle-modal-action-header h3 {
+  font-size: 1.12rem;
+  font-weight: 850;
   color: #ffffff;
+  margin: 0 0 6px 0;
+  line-height: 1.3;
 }
 
-.raffle-modal-footer-actions {
+.raffle-modal-action-header p {
+  font-size: 0.83rem;
+  color: #a1a1aa;
+  line-height: 1.5;
+  margin: 0 0 16px 0;
+}
+
+.raffle-modal-info-points {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  margin-bottom: 18px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 8px;
+  padding: 12px 14px;
+}
+
+.raffle-info-point {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.raffle-info-point .point-icon {
+  font-size: 1.25rem;
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.raffle-info-point strong {
+  display: block;
+  font-size: 0.81rem;
+  font-weight: 800;
+  color: #ffffff;
+  margin-bottom: 3px;
+  line-height: 1.25;
+}
+
+.raffle-info-point span {
+  display: block;
+  font-size: 0.75rem;
+  color: #d4d4d8;
+  line-height: 1.4;
+}
+
+.btn-raffle-whatsapp-large {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  flex-wrap: wrap;
-  gap: 12px;
-  padding-top: 14px;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 15px 22px;
+  background: linear-gradient(135deg, #25d366 0%, #1ea952 100%);
+  color: #ffffff;
+  font-size: 0.98rem;
+  font-weight: 850;
+  border-radius: 8px;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(37, 211, 102, 0.35);
+  transition: all 0.22s ease;
+  letter-spacing: 0.02em;
+  text-align: center;
+  border: none;
+  cursor: pointer;
+}
+
+.btn-raffle-whatsapp-large:hover {
+  background: linear-gradient(135deg, #2bf074 0%, #20b859 100%);
+  color: #ffffff;
+  box-shadow: 0 8px 28px rgba(37, 211, 102, 0.55);
+  transform: translateY(-2px);
+}
+
+.raffle-modal-footer-clean {
+  display: flex;
+  justify-content: center;
+  padding-top: 4px;
 }
 
 .raffle-modal-btn-done {
-  padding: 11px 20px;
+  padding: 10px 24px;
   border-radius: 6px;
   border: 1px solid rgba(255, 255, 255, 0.22);
   background: transparent;
@@ -9290,6 +9389,7 @@ body.admin-standalone-body {
   font-size: 0.84rem;
   font-weight: 700;
   cursor: pointer;
+  transition: all 0.18s ease;
 }
 
 .raffle-modal-btn-done:hover {
@@ -9300,14 +9400,25 @@ body.admin-standalone-body {
 @media (max-width: 760px) {
   .raffle-modal-rules-grid {
     grid-template-columns: 1fr;
+    gap: 10px;
   }
   .raffle-modal-store-box {
     flex-direction: column;
     align-items: stretch;
+    padding: 16px;
   }
   .raffle-modal-store-links {
     flex-direction: row;
     flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+  .raffle-modal-info-points {
+    grid-template-columns: 1fr;
+    gap: 12px;
+  }
+  .btn-raffle-whatsapp-large {
+    font-size: 0.92rem;
+    padding: 13px 18px;
   }
 }
 
