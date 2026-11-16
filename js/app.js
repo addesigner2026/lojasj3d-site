@@ -7615,7 +7615,7 @@
     if (adminTopBar) adminTopBar.style.display = "none";
 
     state.emissorAberto = true;
-    state.orcamentoModoVisao = "editor"; // "editor" (Workspace amplo) | "timbrado" (Folha Timbrada Oficial A4)
+    state.orcamentoModoVisao = "editor"; // "editor" (Workspace amplo) | "timbrado" (Folha A4)
 
     if (Array.isArray(dadosIniciais)) {
       state.itensOrcamento = dadosIniciais;
@@ -7628,7 +7628,7 @@
         tipoDesconto: "nenhum",
         formaPagamento: "PIX à Vista (5% OFF)",
         prazoEntrega: "Pronta Entrega / Imediato",
-        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        observacoes: "Produtos novos lacrados com garantia oficial Grupo SJ. Av. Portugal, 6759 - Umuarama/PR. Chave PIX CNPJ: 66.275.129/0001-10",
         cliente: {
           nome: "",
           cnpjCpf: "",
@@ -7645,7 +7645,6 @@
         state.orcamentoMetadados.tipoDesconto = Number(state.orcamentoMetadados.desconto) > 0 ? "personalizado" : "nenhum";
       }
     } else if (dadosIniciais && typeof dadosIniciais === "object" && dadosIniciais.metadados) {
-      // Aberto a partir de um cliente no painel CMS
       state.orcamentoMetadados = {
         numero: gerarNumeroOrcamento(),
         data: obterDataHojeFormatada(),
@@ -7655,7 +7654,7 @@
         tipoDesconto: "nenhum",
         formaPagamento: "PIX à Vista (5% OFF)",
         prazoEntrega: "Pronta Entrega / Imediato",
-        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        observacoes: "Produtos novos lacrados com garantia oficial Grupo SJ. Av. Portugal, 6759 - Umuarama/PR. Chave PIX CNPJ: 66.275.129/0001-10",
         ...dadosIniciais.metadados
       };
       if (!Array.isArray(state.itensOrcamento) || state.itensOrcamento.length === 0) {
@@ -7680,7 +7679,7 @@
         tipoDesconto: "nenhum",
         formaPagamento: "PIX à Vista (5% OFF)",
         prazoEntrega: "Pronta Entrega / Imediato",
-        observacoes: "Produtos novos com garantia oficial Grupo SJ. Suporte técnico especializado na Av. Portugal, 6759 - Umuarama/PR.",
+        observacoes: "Produtos novos lacrados com garantia oficial Grupo SJ. Av. Portugal, 6759 - Umuarama/PR. Chave PIX CNPJ: 66.275.129/0001-10",
         cliente: {
           nome: "",
           cnpjCpf: "",
@@ -7742,7 +7741,7 @@
       0
     );
 
-    // Cálculo dinâmico do desconto
+    // Desconto dinâmico
     let descontoCalculado = Number(meta.desconto) || 0;
     if (meta.tipoDesconto === "vista5") {
       descontoCalculado = Math.round(subtotal * 0.05 * 100) / 100;
@@ -7754,54 +7753,53 @@
 
     const frete = Number(meta.frete) || 0;
     const totalGeral = Math.max(0, subtotal + frete - descontoCalculado);
+    const totalUnidades = state.itensOrcamento.reduce((acc, it) => acc + (Number(it.qtd) || 0), 0);
 
-    // Itens sugeridos para inclusão rápida com 1 clique
     const itensRapidos = [
-      { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 79.90, img: "assets/produtos/filamentos/masterprint-pla-preto.jpg" },
-      { nome: "Filamento Bambu Lab PLA Basic RFID (1kg)", cod: "CÓD. 137", preco: 139.90, img: "assets/produtos/filamentos/bambulab-pla-preto.jpg" },
-      { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "CÓD. BAMBU-02", preco: 4049.00, img: "assets/produtos/impressora-a1_combo.jpg" },
-      { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "CÓD. BAMBU-01", preco: 2980.00, img: "assets/produtos/impressora-a1_mini_combo.jpg" },
-      { nome: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab", cod: "CÓD. PECA-01", preco: 119.00, img: "assets/produtos/pecas/bico-hotend-04.jpg" }
+      { nome: "PLA Masterprint (CÓD. 34)", cod: "CÓD. 34", preco: 79.90, full: "Filamento PLA Masterprint 1.75mm (1kg)" },
+      { nome: "Bambu Lab PLA (CÓD. 137)", cod: "CÓD. 137", preco: 139.90, full: "Filamento Bambu Lab PLA Basic RFID (1kg)" },
+      { nome: "Bambu Lab A1 Combo", cod: "BAMBU-02", preco: 4049.00, full: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)" },
+      { nome: "Bambu Lab A1 Mini Combo", cod: "BAMBU-01", preco: 2980.00, full: "Impressora 3D Bambu Lab A1 Mini Combo" },
+      { nome: "Bico Hotend Aço 0.4mm", cod: "PECA-01", preco: 119.00, full: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab" }
     ];
 
     const tabelaLinhasHtml = state.itensOrcamento.map((item, idx) => {
       const rowTot = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
       return `
-        <tr data-row-idx="${idx}" class="qb-row">
-          <td class="col-center qb-col-num">${idx + 1}</td>
-          <td class="qb-col-product">
+        <tr data-row-idx="${idx}">
+          <td class="col-center" style="font-weight:700; color:#64748b;">${idx + 1}</td>
+          <td>
             <div class="qb-product-search-wrap">
               <input 
                 type="text" 
                 class="qb-product-search-input" 
                 data-idx="${idx}" 
                 value="${escaparHtml(item.descricao || '')}" 
-                placeholder="🔍 Digite o nome ou código (ex: 34, 137, Bambu, Hotend)..." 
+                placeholder="🔍 Digite código (ex: 34, 137, BAMBU) ou nome do produto..." 
                 autocomplete="off" 
               />
               <div class="qb-product-predict-dropdown" id="qb-product-predict-${idx}" style="display:none;"></div>
             </div>
-            ${item.codigo ? `<span class="qb-item-badge-sku">${escaparHtml(item.codigo)}</span>` : ''}
           </td>
-          <td class="col-center qb-col-qty">
+          <td class="col-center">
             <div class="qb-qty-stepper">
-              <button type="button" class="btn-qb-qty-minus" data-idx="${idx}" title="Diminuir">">−</button>
+              <button type="button" class="qb-qty-btn btn-qty-minus" data-idx="${idx}" title="Diminuir">&minus;</button>
               <input type="number" min="1" step="1" class="qb-qty-input" data-idx="${idx}" value="${item.qtd || 1}" />
-              <button type="button" class="btn-qb-qty-plus" data-idx="${idx}" title="Aumentar">+</button>
+              <button type="button" class="qb-qty-btn btn-qty-plus" data-idx="${idx}" title="Aumentar">+</button>
             </div>
           </td>
-          <td class="col-right qb-col-price">
+          <td class="col-right">
             <div class="qb-price-field">
               <span class="qb-currency-symbol">R$</span>
               <input type="number" step="0.01" min="0" class="qb-price-input" data-idx="${idx}" value="${(Number(item.precoUnitario) || 0).toFixed(2)}" />
             </div>
           </td>
-          <td class="col-right qb-col-total">
-            <strong class="qb-row-total-val" id="qb-row-total-${idx}">${formatarMoedaBR(rowTot)}</strong>
+          <td class="col-right">
+            <strong class="qb-row-total" id="qb-row-total-${idx}">${formatarMoedaBR(rowTot)}</strong>
           </td>
-          <td class="col-center qb-col-action">
-            <button type="button" class="btn-qb-del-row" data-idx="${idx}" title="Remover item da proposta">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+          <td class="col-center">
+            <button type="button" class="qb-row-del-btn" data-idx="${idx}" title="Remover item da proposta">
+              ✕
             </button>
           </td>
         </tr>
@@ -7817,295 +7815,243 @@
             <button type="button" class="qb-btn-back" id="btn-qb-back-catalog">
               ← Voltar ao Catálogo
             </button>
-            <div class="qb-topbar-title-box">
-              <span class="qb-badge-live">● Sistema de Orçamento Comercial</span>
-              <h2 class="qb-topbar-title">Emissor de Proposta &amp; Orçamento Timbrado</h2>
+            <div class="qb-topbar-title-wrap">
+              <h2 class="qb-doc-title">Orçamento Comercial</h2>
+              <span class="qb-doc-num-badge">${escaparHtml(meta.numero || 'SJ-2026')}</span>
             </div>
           </div>
           <div class="qb-topbar-right">
             <div class="qb-operator-pill">
-              <span class="qb-operator-icon">👤</span>
-              <div class="qb-operator-info">
-                <span class="qb-operator-label">Vendedor / Operador</span>
-                <strong class="qb-operator-name">${escaparHtml(vendedorNome)}</strong>
-              </div>
+              <span>👤 Operador: <strong>${escaparHtml(vendedorNome)}</strong></span>
             </div>
-            <button type="button" class="qb-btn-secondary" id="btn-qb-history">
-              📂 Histórico de Orçamentos
+            <button type="button" class="qb-btn-top-action secondary" id="btn-qb-history">
+              📂 Histórico
             </button>
-            <button type="button" class="qb-btn-outline-primary" id="btn-qb-preview-timbrado">
+            <button type="button" class="qb-btn-top-action primary" id="btn-qb-preview-timbrado">
               👁️ Ver Folha Timbrada
             </button>
           </div>
         </div>
 
         <!-- 2. ETAPA 1: CLIENTE & CONTATO -->
-        <div class="qb-card qb-card-client">
+        <div class="qb-card">
           <div class="qb-card-header">
-            <div class="qb-step-number">1</div>
-            <div>
-              <h3 class="qb-card-title">Identificação do Cliente &amp; Contato</h3>
-              <p class="qb-card-subtitle">Localize por Telefone/WhatsApp, Nome ou CNPJ/CPF cadastrado, ou adicione um novo cliente.</p>
+            <div class="qb-card-header-left">
+              <span class="qb-step-badge">1</span>
+              <div>
+                <h3 class="qb-card-title">Identificação do Cliente</h3>
+                <p class="qb-card-subtitle">Busque por WhatsApp, Nome ou CPF/CNPJ cadastrado, ou cadastre rapidamente.</p>
+              </div>
             </div>
           </div>
 
-          <!-- CARD DE CLIENTE CONFIRMADO (QUANDO JÁ SELECIONADO) -->
+          <!-- CARD DE CLIENTE CONFIRMADO -->
           <div id="qb-client-confirmed-card" class="qb-confirmed-client-box" style="display: ${temCliente ? 'flex' : 'none'};">
-            <div class="qb-confirmed-avatar">✓</div>
-            <div class="qb-confirmed-details">
-              <div class="qb-confirmed-name-row">
+            <div class="qb-confirmed-left">
+              <div class="qb-confirmed-header-line">
                 <strong class="qb-confirmed-name" id="qb-confirmed-name-text">${escaparHtml(cliente.nome || 'Cliente Selecionado')}</strong>
-                <span class="qb-confirmed-badge-valid">✓ Cliente Validado no Sistema</span>
+                <span class="qb-confirmed-badge">✓ Cliente Selecionado</span>
               </div>
-              <div class="qb-confirmed-info-grid">
-                <div>
-                  <span class="qb-info-label">WhatsApp / Telefone:</span>
-                  <a href="https://wa.me/55${(cliente.cepTelefone || '').replace(/\D/g, '')}" target="_blank" rel="noopener" class="qb-info-val-link" id="qb-confirmed-phone-text">
-                    📱 ${escaparHtml(cliente.cepTelefone || 'Não informado')}
-                  </a>
-                </div>
-                <div>
-                  <span class="qb-info-label">CPF / CNPJ:</span>
-                  <strong class="qb-info-val" id="qb-confirmed-doc-text">${escaparHtml(cliente.cnpjCpf || 'Não informado')}</strong>
-                </div>
-                <div>
-                  <span class="qb-info-label">Endereço / Cidade:</span>
-                  <span class="qb-info-val" id="qb-confirmed-addr-text">${escaparHtml((cliente.endereco || '') + (cliente.bairroCidadeUf ? ' — ' + cliente.bairroCidadeUf : ''))}</span>
-                </div>
-                <div>
-                  <span class="qb-info-label">E-mail:</span>
-                  <span class="qb-info-val" id="qb-confirmed-email-text">${escaparHtml(cliente.email || 'Não informado')}</span>
-                </div>
+              <div class="qb-confirmed-meta-row">
+                <span>📱 <a href="https://wa.me/55${(cliente.cepTelefone || '').replace(/\D/g, '')}" target="_blank" rel="noopener" id="qb-confirmed-phone-text">${escaparHtml(cliente.cepTelefone || 'Sem telefone')}</a></span>
+                <span>📄 <strong id="qb-confirmed-doc-text">${escaparHtml(cliente.cnpjCpf || 'Sem documento')}</strong></span>
+                <span>📍 <span id="qb-confirmed-addr-text">${escaparHtml((cliente.endereco || '') + (cliente.bairroCidadeUf ? ' — ' + cliente.bairroCidadeUf : ''))}</span></span>
               </div>
             </div>
-            <button type="button" class="qb-btn-edit-client" id="btn-qb-change-client" title="Trocar ou selecionar outro cliente">
+            <button type="button" class="qb-btn-edit-client" id="btn-qb-change-client">
               ✏️ Trocar Cliente
             </button>
           </div>
 
-          <!-- SEÇÃO DE BUSCA E AUTOCOMPLETE (QUANDO NÃO HÁ CLIENTE OU AO CLICAR EM TROCAR) -->
+          <!-- BUSCA DE CLIENTE -->
           <div id="qb-client-search-section" style="display: ${temCliente ? 'none' : 'block'};">
             <div class="qb-client-search-row">
               <div class="qb-search-input-wrap">
-                <svg class="qb-search-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <svg class="qb-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
                 <input 
                   type="text" 
                   id="qb-client-search-input" 
                   class="qb-search-input" 
-                  placeholder="Pesquisar cliente por WhatsApp/Telefone, Nome ou CNPJ/CPF..." 
+                  placeholder="Pesquisar cliente por WhatsApp, Nome ou CPF/CNPJ..." 
                   autocomplete="off" 
                 />
-                <button type="button" id="btn-qb-clear-client-search" class="qb-search-clear-btn" style="display:none;">✕</button>
+                <div id="qb-client-search-results" class="qb-client-dropdown" style="display:none;"></div>
               </div>
               <button type="button" class="qb-btn-new-client" id="btn-qb-toggle-new-client">
-                ➕ Cadastrar Novo Cliente
+                ➕ Novo Cliente
               </button>
             </div>
-            <div id="qb-client-search-results" class="qb-client-dropdown" style="display:none;"></div>
           </div>
 
-          <!-- FORMULÁRIO INLINE DE NOVO CLIENTE -->
+          <!-- CADASTRO RÁPIDO INLINE -->
           <div id="qb-new-client-box" class="qb-new-client-box" style="display:none;">
-            <div class="qb-new-client-header">
-              <div class="qb-new-client-title-box">
-                <span class="qb-form-badge">CADASTRO RÁPIDO</span>
-                <h4 style="margin:4px 0 0; font-size:1.05rem; font-weight:800;">Adicionar Novo Cliente no Sistema</h4>
-                <p style="margin:2px 0 0; font-size:0.8rem; color:#6b7280;">Preencha o contato e dados para salvar no banco de dados e continuar com o orçamento.</p>
-              </div>
-              <button type="button" class="qb-btn-close-new-client" id="btn-qb-close-new-client">✕ Cancelar</button>
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+              <strong style="font-size:0.95rem; color:#0f172a;">Cadastrar Novo Cliente no Sistema</strong>
+              <button type="button" id="btn-qb-close-new-client" style="background:none; border:none; color:#64748b; font-size:1.1rem; cursor:pointer;">✕</button>
             </div>
-
-            <form id="qb-form-inline-new-client" class="qb-inline-form">
+            <form id="qb-form-inline-new-client">
               <div class="qb-form-grid-3">
                 <div class="qb-field">
-                  <label>Nome Completo ou Razão Social <span class="req">*</span></label>
-                  <input type="text" id="qb-input-new-name" placeholder="Ex: Roberto Silva ou Empresa XYZ" required />
+                  <label>Nome Completo / Razão Social *</label>
+                  <input type="text" id="qb-input-new-name" placeholder="Ex: Roberto Silva" required />
                 </div>
                 <div class="qb-field">
-                  <label>WhatsApp / Telefone <span class="req">*</span></label>
+                  <label>WhatsApp / Telefone *</label>
                   <input type="tel" id="qb-input-new-phone" placeholder="(44) 99999-9999" required />
                 </div>
                 <div class="qb-field">
                   <label>CPF ou CNPJ</label>
-                  <input type="text" id="qb-input-new-doc" placeholder="000.000.000-00 ou 00.000.000/0001-00" />
+                  <input type="text" id="qb-input-new-doc" placeholder="000.000.000-00" />
                   <span class="qb-doc-feedback" id="qb-new-doc-feedback"></span>
                 </div>
               </div>
-
-              <div class="qb-form-grid-4">
+              <div class="qb-form-grid-3" style="margin-top:10px;">
                 <div class="qb-field">
                   <label>CEP (Busca Automática)</label>
                   <input type="text" id="qb-input-new-cep" placeholder="87501-000" maxlength="9" />
                 </div>
-                <div class="qb-field" style="grid-column: span 2;">
-                  <label>Logradouro / Rua e Número</label>
-                  <input type="text" id="qb-input-new-addr" placeholder="Ex: Av. Paraná, 1234" />
-                </div>
                 <div class="qb-field">
-                  <label>Bairro</label>
-                  <input type="text" id="qb-input-new-bairro" placeholder="Ex: Centro" />
+                  <label>Endereço / Logradouro</label>
+                  <input type="text" id="qb-input-new-addr" placeholder="Rua, Número, Bairro" />
                 </div>
-              </div>
-
-              <div class="qb-form-grid-3">
                 <div class="qb-field">
                   <label>Cidade / UF</label>
-                  <input type="text" id="qb-input-new-city" value="Umuarama / PR" placeholder="Umuarama / PR" />
+                  <input type="text" id="qb-input-new-city" value="Umuarama / PR" />
                 </div>
-                <div class="qb-field">
-                  <label>E-mail (para envio da proposta)</label>
-                  <input type="email" id="qb-input-new-email" placeholder="cliente@email.com" />
-                </div>
-                <div class="qb-field qb-field-btn-align">
-                  <button type="submit" class="qb-btn-save-new-client" id="btn-qb-submit-new-client">
-                    ✓ Concluir Cadastro &amp; Voltar ao Orçamento
-                  </button>
-                </div>
+              </div>
+              <div style="margin-top:12px; display:flex; justify-content:flex-end;">
+                <button type="submit" class="qb-btn-top-action primary" style="background:#16a34a; border-color:#16a34a;">
+                  ✓ Salvar e Selecionar no Orçamento
+                </button>
               </div>
             </form>
           </div>
         </div>
 
         <!-- 3. ETAPA 2: FORMA DE PAGAMENTO & DESCONTO -->
-        <div class="qb-card qb-card-payment">
+        <div class="qb-card">
           <div class="qb-card-header">
-            <div class="qb-step-number">2</div>
-            <div>
-              <h3 class="qb-card-title">Condições Comerciais, Pagamento &amp; Desconto</h3>
-              <p class="qb-card-subtitle">Defina o meio de pagamento negociado, desconto à vista ou personalizado e prazo de entrega.</p>
+            <div class="qb-card-header-left">
+              <span class="qb-step-badge">2</span>
+              <div>
+                <h3 class="qb-card-title">Condições de Pagamento &amp; Desconto</h3>
+                <p class="qb-card-subtitle">Forma de pagamento, desconto à vista ou personalizado e prazos de entrega.</p>
+              </div>
             </div>
           </div>
 
-          <div class="qb-pay-grid">
-            <label class="qb-pay-card ${meta.formaPagamento.includes('PIX') ? 'selected' : ''}">
-              <input type="radio" name="qb-pay-option" value="PIX à Vista (5% OFF)" ${meta.formaPagamento.includes('PIX') ? 'checked' : ''} />
-              <div class="qb-pay-content">
-                <div class="qb-pay-icon-box">⚡</div>
-                <div>
-                  <strong class="qb-pay-title">PIX à Vista</strong>
-                  <span class="qb-pay-sub">5% de Desconto Imediato</span>
+          <div class="qb-condicoes-grid">
+            <!-- COLUNA PAGAMENTO -->
+            <div>
+              <div class="qb-section-subtitle">Forma de Pagamento:</div>
+              <div class="qb-pay-grid">
+                <div class="qb-pay-card ${meta.formaPagamento.includes('PIX') ? 'active' : ''}" data-pay="PIX à Vista (5% OFF)">
+                  <div class="qb-pay-top">
+                    <span class="qb-pay-name">⚡ PIX à Vista</span>
+                    <span class="qb-pay-badge-off">5% OFF</span>
+                  </div>
+                  <span class="qb-pay-sub">Desconto imediato</span>
                 </div>
-              </div>
-              <span class="qb-pay-badge-rec">Recomendado</span>
-            </label>
 
-            <label class="qb-pay-card ${meta.formaPagamento === 'Dinheiro à Vista' ? 'selected' : ''}">
-              <input type="radio" name="qb-pay-option" value="Dinheiro à Vista" ${meta.formaPagamento === 'Dinheiro à Vista' ? 'checked' : ''} />
-              <div class="qb-pay-content">
-                <div class="qb-pay-icon-box">💵</div>
-                <div>
-                  <strong class="qb-pay-title">Dinheiro</strong>
-                  <span class="qb-pay-sub">Pagamento no Balcão</span>
+                <div class="qb-pay-card ${meta.formaPagamento === 'Dinheiro à Vista' ? 'active' : ''}" data-pay="Dinheiro à Vista">
+                  <div class="qb-pay-top">
+                    <span class="qb-pay-name">💵 Dinheiro</span>
+                  </div>
+                  <span class="qb-pay-sub">No balcão</span>
                 </div>
-              </div>
-            </label>
 
-            <label class="qb-pay-card ${meta.formaPagamento === 'Cartão Débito' ? 'selected' : ''}">
-              <input type="radio" name="qb-pay-option" value="Cartão Débito" ${meta.formaPagamento === 'Cartão Débito' ? 'checked' : ''} />
-              <div class="qb-pay-content">
-                <div class="qb-pay-icon-box">💳</div>
-                <div>
-                  <strong class="qb-pay-title">Cartão Débito</strong>
+                <div class="qb-pay-card ${meta.formaPagamento === 'Cartão Débito' ? 'active' : ''}" data-pay="Cartão Débito">
+                  <div class="qb-pay-top">
+                    <span class="qb-pay-name">💳 Débito</span>
+                  </div>
                   <span class="qb-pay-sub">Todas as bandeiras</span>
                 </div>
-              </div>
-            </label>
 
-            <label class="qb-pay-card ${meta.formaPagamento.includes('Crédito') ? 'selected' : ''}">
-              <input type="radio" name="qb-pay-option" value="Cartão Crédito (até 12x)" ${meta.formaPagamento.includes('Crédito') ? 'checked' : ''} />
-              <div class="qb-pay-content">
-                <div class="qb-pay-icon-box">💳</div>
-                <div>
-                  <strong class="qb-pay-title">Cartão Crédito</strong>
-                  <span class="qb-pay-sub">Parcelado em até 12x</span>
+                <div class="qb-pay-card ${meta.formaPagamento.includes('Crédito') ? 'active' : ''}" data-pay="Cartão Crédito (até 12x)">
+                  <div class="qb-pay-top">
+                    <span class="qb-pay-name">💳 Crédito</span>
+                  </div>
+                  <span class="qb-pay-sub">Até 12x</span>
+                </div>
+
+                <div class="qb-pay-card ${meta.formaPagamento.includes('Faturado') || meta.formaPagamento.includes('Boleto') ? 'active' : ''}" data-pay="Boleto / Faturado PJ">
+                  <div class="qb-pay-top">
+                    <span class="qb-pay-name">📑 Faturado PJ</span>
+                  </div>
+                  <span class="qb-pay-sub">Boleto empresarial</span>
                 </div>
               </div>
-            </label>
+            </div>
 
-            <label class="qb-pay-card ${meta.formaPagamento.includes('Faturado') || meta.formaPagamento.includes('Boleto') ? 'selected' : ''}">
-              <input type="radio" name="qb-pay-option" value="Boleto / Faturado PJ" ${meta.formaPagamento.includes('Faturado') || meta.formaPagamento.includes('Boleto') ? 'checked' : ''} />
-              <div class="qb-pay-content">
-                <div class="qb-pay-icon-box">📑</div>
-                <div>
-                  <strong class="qb-pay-title">Faturado PJ</strong>
-                  <span class="qb-pay-sub">Boleto sob aprovação</span>
-                </div>
-              </div>
-            </label>
-          </div>
-
-          <!-- SELETORES ADICIONAIS: DESCONTO & PRAZO -->
-          <div class="qb-pay-subgrid">
-            <div class="qb-discount-box">
-              <label class="qb-sub-label">🎁 Desconto Comercial Aplicado:</label>
+            <!-- COLUNA DESCONTO & PRAZOS -->
+            <div class="qb-discount-group">
+              <div class="qb-section-subtitle">Desconto Comercial:</div>
               <div class="qb-discount-pills">
-                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'nenhum' ? 'active' : ''}" data-discount="nenhum">
+                <button type="button" class="qb-discount-btn ${meta.tipoDesconto === 'nenhum' ? 'active' : ''}" data-discount="nenhum">
                   Sem Desconto
                 </button>
-                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'vista5' ? 'active' : ''}" data-discount="vista5">
+                <button type="button" class="qb-discount-btn ${meta.tipoDesconto === 'vista5' ? 'active' : ''}" data-discount="vista5" id="qb-btn-discount-5">
                   5% à Vista (- ${formatarMoedaBR(Math.round(subtotal * 0.05 * 100) / 100)})
                 </button>
-                <button type="button" class="qb-discount-pill ${meta.tipoDesconto === 'personalizado' ? 'active' : ''}" data-discount="personalizado">
+                <button type="button" class="qb-discount-btn ${meta.tipoDesconto === 'personalizado' ? 'active' : ''}" data-discount="personalizado">
                   Personalizado (R$)
                 </button>
               </div>
-              <div id="qb-custom-discount-wrap" style="display:${meta.tipoDesconto === 'personalizado' ? 'block' : 'none'}; margin-top:8px;">
-                <div class="qb-price-field" style="max-width:200px;">
+
+              <div id="qb-custom-discount-wrap" class="qb-custom-discount-wrap" style="display:${meta.tipoDesconto === 'personalizado' ? 'flex' : 'none'};">
+                <div class="qb-price-field">
                   <span class="qb-currency-symbol">R$</span>
                   <input type="number" step="0.01" min="0" id="qb-custom-discount-input" value="${(Number(meta.desconto) || 0).toFixed(2)}" placeholder="0.00" />
                 </div>
+                <span style="font-size:0.8rem; color:#64748b;">Valor em R$ a ser abatido</span>
               </div>
-            </div>
 
-            <div class="qb-terms-box">
-              <div class="qb-field-inline">
-                <label>🚚 Prazo de Entrega:</label>
-                <select id="qb-select-delivery" class="qb-select">
-                  <option value="Pronta Entrega / Imediato" ${meta.prazoEntrega === 'Pronta Entrega / Imediato' ? 'selected' : ''}>Pronta Entrega / Imediato (Balcão Umuarama)</option>
-                  <option value="1 a 2 dias úteis" ${meta.prazoEntrega === '1 a 2 dias úteis' ? 'selected' : ''}>1 a 2 dias úteis</option>
-                  <option value="3 a 5 dias úteis" ${meta.prazoEntrega === '3 a 5 dias úteis' ? 'selected' : ''}>3 a 5 dias úteis</option>
-                  <option value="Sob Encomenda (7 a 10 dias)" ${meta.prazoEntrega.includes('Encomenda') ? 'selected' : ''}>Sob Encomenda (7 a 10 dias)</option>
-                </select>
-              </div>
-              <div class="qb-field-inline">
-                <label>⏳ Validade da Proposta:</label>
-                <select id="qb-select-validity" class="qb-select">
-                  <option value="15 dias" ${meta.validade === '15 dias' ? 'selected' : ''}>15 dias</option>
-                  <option value="30 dias" ${meta.validade === '30 dias' ? 'selected' : ''}>30 dias</option>
-                  <option value="7 dias" ${meta.validade === '7 dias' ? 'selected' : ''}>7 dias</option>
-                  <option value="3 dias" ${meta.validade === '3 dias' ? 'selected' : ''}>3 dias</option>
-                </select>
+              <div class="qb-terms-row">
+                <div class="qb-field">
+                  <label>Prazo de Entrega:</label>
+                  <select id="qb-select-delivery" class="qb-select">
+                    <option value="Pronta Entrega / Imediato" ${meta.prazoEntrega === 'Pronta Entrega / Imediato' ? 'selected' : ''}>Pronta Entrega / Imediato</option>
+                    <option value="1 a 2 dias úteis" ${meta.prazoEntrega === '1 a 2 dias úteis' ? 'selected' : ''}>1 a 2 dias úteis</option>
+                    <option value="3 a 5 dias úteis" ${meta.prazoEntrega === '3 a 5 dias úteis' ? 'selected' : ''}>3 a 5 dias úteis</option>
+                    <option value="Sob Encomenda (7 a 10 dias)" ${meta.prazoEntrega.includes('Encomenda') ? 'selected' : ''}>Sob Encomenda</option>
+                  </select>
+                </div>
+                <div class="qb-field">
+                  <label>Validade da Proposta:</label>
+                  <select id="qb-select-validity" class="qb-select">
+                    <option value="15 dias" ${meta.validade === '15 dias' ? 'selected' : ''}>15 dias</option>
+                    <option value="30 dias" ${meta.validade === '30 dias' ? 'selected' : ''}>30 dias</option>
+                    <option value="7 dias" ${meta.validade === '7 dias' ? 'selected' : ''}>7 dias</option>
+                    <option value="3 dias" ${meta.validade === '3 dias' ? 'selected' : ''}>3 dias</option>
+                  </select>
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- 4. ETAPA 3: TABELA AMPLA DE PRODUTOS -->
-        <div class="qb-card qb-card-products">
-          <div class="qb-card-header qb-card-header-flex">
-            <div style="display:flex; align-items:center; gap:12px;">
-              <div class="qb-step-number">3</div>
+        <!-- 4. ETAPA 3: ITENS DO ORÇAMENTO -->
+        <div class="qb-card">
+          <div class="qb-card-header">
+            <div class="qb-card-header-left">
+              <span class="qb-step-badge">3</span>
               <div>
-                <h3 class="qb-card-title">Produtos &amp; Itens da Proposta</h3>
-                <p class="qb-card-subtitle">Pesquise por <strong>Nome</strong> ou <strong>Código</strong> (ex: 34, 137, A1, Hotend), ajuste a quantidade e confira os valores em tempo real.</p>
+                <h3 class="qb-card-title">Itens do Orçamento</h3>
+                <p class="qb-card-subtitle">Pesquise por código ou nome, ajuste as quantidades e confira os preços.</p>
               </div>
             </div>
-            <button type="button" class="qb-btn-add-item" id="btn-qb-add-row">
-              ➕ Adicionar Nova Linha
-            </button>
           </div>
 
-          <!-- TABELA AMPLA COM AUTOCOMPLETE PREDITIVO -->
           <div class="qb-table-wrap">
-            <table class="qb-table" id="qb-products-table">
+            <table class="qb-table">
               <thead>
                 <tr>
-                  <th class="col-center" style="width: 44px;">#</th>
+                  <th class="center" style="width: 40px;">#</th>
                   <th>Produto / Descrição (Pesquise por Nome ou Código)</th>
-                  <th class="col-center" style="width: 140px;">Qtd.</th>
-                  <th class="col-right" style="width: 160px;">Preço Unitário</th>
-                  <th class="col-right" style="width: 150px;">Valor Total</th>
-                  <th class="col-center" style="width: 50px;">Ações</th>
+                  <th class="center" style="width: 130px;">Qtd.</th>
+                  <th class="right" style="width: 140px;">Valor Unitário</th>
+                  <th class="right" style="width: 130px;">Subtotal</th>
+                  <th class="center" style="width: 46px;"></th>
                 </tr>
               </thead>
               <tbody id="qb-table-body">
@@ -8114,53 +8060,56 @@
             </table>
           </div>
 
-          <!-- CHIPS RÁPIDOS DE ITENS POPULARES -->
-          <div class="qb-quick-chips-box">
-            <span class="qb-quick-chips-label">⚡ Inclusão Rápida em 1 Clique:</span>
-            <div class="qb-quick-chips-list">
+          <div class="qb-table-bottom-bar">
+            <button type="button" class="qb-btn-add-item" id="btn-qb-add-row">
+              ➕ Adicionar Linha de Produto
+            </button>
+            <div class="qb-quick-chips-wrap">
+              <span class="qb-quick-chips-title">Inclusão Rápida:</span>
               ${itensRapidos.map((it, qIdx) => `
-                <button type="button" class="qb-chip" data-quick-idx="${qIdx}">
-                  + ${it.nome} (${it.cod}) • ${formatarMoedaBR(it.preco)}
+                <button type="button" class="qb-quick-chip" data-quick-idx="${qIdx}">
+                  + ${it.nome} • ${formatarMoedaBR(it.preco)}
                 </button>
               `).join("")}
             </div>
           </div>
         </div>
 
-        <!-- 5. ETAPA 4: RESUMO FINANCEIRO & BOTÃO TIMBRADO -->
-        <div class="qb-card qb-card-totals">
-          <div class="qb-totals-grid">
-            <div class="qb-totals-notes">
-              <label class="qb-sub-label">📝 Observações / Condições Especiais no Orçamento:</label>
-              <textarea id="qb-input-obs" class="qb-textarea" rows="3" placeholder="Informações adicionais para o cliente, dados bancários, termos de garantia...">${escaparHtml(meta.observacoes || '')}</textarea>
+        <!-- 5. PARTE DE BAIXO: OBSERVAÇÕES & RESUMO FINANCEIRO -->
+        <div class="qb-card">
+          <div class="qb-bottom-grid">
+            <div class="qb-notes-box">
+              <label style="font-size:0.8rem; font-weight:800; color:#475569; text-transform:uppercase;">📝 Observações da Proposta Comercial:</label>
+              <textarea class="qb-notes-textarea" id="qb-input-obs" placeholder="Termos de garantia, dados bancários do Grupo SJ, observações de entrega...">${escaparHtml(meta.observacoes || '')}</textarea>
             </div>
 
             <div class="qb-totals-panel">
-              <div class="qb-totals-line">
-                <span class="qb-tot-label">Subtotal dos Itens (${state.itensOrcamento.length} itens):</span>
-                <span class="qb-tot-val" id="qb-summary-subtotal">${formatarMoedaBR(subtotal)}</span>
+              <div class="qb-totals-row">
+                <span>Subtotal (${totalUnidades} unid.):</span>
+                <strong id="qb-summary-subtotal">${formatarMoedaBR(subtotal)}</strong>
               </div>
-              <div class="qb-totals-line qb-tot-discount-line" style="display:${descontoCalculado > 0 ? 'flex' : 'none'};" id="qb-summary-discount-row">
-                <span class="qb-tot-label">Desconto Aplicado:</span>
-                <span class="qb-tot-val qb-tot-green" id="qb-summary-discount">- ${formatarMoedaBR(descontoCalculado)}</span>
+              <div class="qb-totals-row discount-row" id="qb-summary-discount-row" style="display:${descontoCalculado > 0 ? 'flex' : 'none'};">
+                <span id="qb-summary-discount-label">Desconto:</span>
+                <strong id="qb-summary-discount">- ${formatarMoedaBR(descontoCalculado)}</strong>
               </div>
-              <div class="qb-totals-line">
-                <span class="qb-tot-label">Frete / Entrega:</span>
-                <div class="qb-frete-field">
+              <div class="qb-totals-row">
+                <span>Frete / Entrega:</span>
+                <div class="qb-price-field" style="height:32px;">
                   <span class="qb-currency-symbol">R$</span>
-                  <input type="number" step="0.01" min="0" id="qb-input-frete" value="${(Number(meta.frete) || 0).toFixed(2)}" />
+                  <input type="number" step="0.01" min="0" id="qb-input-frete" value="${(Number(meta.frete) || 0).toFixed(2)}" style="width:70px;" />
                 </div>
               </div>
+
               <div class="qb-totals-divider"></div>
-              <div class="qb-totals-grand-line">
+
+              <div class="qb-totals-grand-row">
                 <div>
-                  <strong class="qb-grand-title">TOTAL DO ORÇAMENTO</strong>
-                  <span class="qb-grand-sub" id="qb-summary-pay-desc">${escaparHtml(meta.formaPagamento || 'PIX à Vista')}</span>
+                  <span class="qb-grand-title">TOTAL DO ORÇAMENTO</span>
+                  <span class="qb-grand-sub" id="qb-summary-pay-desc">${escaparHtml(meta.formaPagamento)}</span>
                 </div>
                 <strong class="qb-grand-val" id="qb-summary-grand-total">${formatarMoedaBR(totalGeral)}</strong>
               </div>
 
-              <!-- BOTÃO PRIMÁRIO DE DESTAQUE: GERAR ORÇAMENTO TIMBRADO -->
               <button type="button" class="qb-btn-generate-quote" id="btn-qb-generate-official-quote">
                 <span>📄 Gerar Orçamento Timbrado Oficial →</span>
               </button>
@@ -8180,19 +8129,19 @@
       fecharEmissorOrcamento();
     });
 
-    // Abrir Histórico
+    // Histórico
     document.getElementById("btn-qb-history")?.addEventListener("click", () => {
       abrirModalHistoricoOrcamentos();
     });
 
-    // Visualizar Folha Timbrada Diretamente
+    // Visualizar Folha Timbrada
     document.getElementById("btn-qb-preview-timbrado")?.addEventListener("click", () => {
       state.orcamentoModoVisao = "timbrado";
       renderizarTelaOrcamento();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // Botão Gerar Orçamento Timbrado Oficial (Ação Principal da Proposta)
+    // Gerar Orçamento Timbrado Oficial (CTA Principal)
     document.getElementById("btn-qb-generate-official-quote")?.addEventListener("click", () => {
       salvarOrcamentoNoHistorico();
       state.orcamentoModoVisao = "timbrado";
@@ -8205,7 +8154,6 @@
     // ETAPA 1: CLIENTES & BUSCA INTELIGENTE
     // =========================================================================
     const searchInput = document.getElementById("qb-client-search-input");
-    const clearSearchBtn = document.getElementById("btn-qb-clear-client-search");
     const searchResults = document.getElementById("qb-client-search-results");
     const btnToggleNewClient = document.getElementById("btn-qb-toggle-new-client");
     const newClientBox = document.getElementById("qb-new-client-box");
@@ -8214,7 +8162,6 @@
     const searchSection = document.getElementById("qb-client-search-section");
     const confirmedCard = document.getElementById("qb-client-confirmed-card");
 
-    // Botão Trocar Cliente
     btnChangeClient?.addEventListener("click", () => {
       confirmedCard.style.display = "none";
       searchSection.style.display = "block";
@@ -8222,7 +8169,6 @@
       searchInput.focus();
     });
 
-    // Alternar formulário inline de novo cliente
     btnToggleNewClient?.addEventListener("click", () => {
       newClientBox.style.display = newClientBox.style.display === "none" ? "block" : "none";
       if (newClientBox.style.display === "block") {
@@ -8234,19 +8180,15 @@
       newClientBox.style.display = "none";
     });
 
-    // Busca de clientes em tempo real (Nome, Contato ou CNPJ/CPF)
     if (searchInput) {
       searchInput.addEventListener("input", () => {
         const query = searchInput.value.trim().toLowerCase();
-        if (clearSearchBtn) clearSearchBtn.style.display = query ? "block" : "none";
-
         if (!query) {
           searchResults.style.display = "none";
           searchResults.innerHTML = "";
           return;
         }
 
-        // Obtém lista de clientes cadastrados no banco
         const listaClientes = (window.SJ_DB && window.SJ_DB.clientes && typeof window.SJ_DB.clientes.listar === "function") 
           ? window.SJ_DB.clientes.listar() 
           : [];
@@ -8264,9 +8206,9 @@
 
         if (filtrados.length === 0) {
           searchResults.innerHTML = `
-            <div class="qb-client-no-result">
-              <span>Nenhum cliente cadastrado encontrado com "<strong>${escaparHtml(searchInput.value)}</strong>"</span>
-              <button type="button" class="qb-btn-inline-add" id="btn-qb-quick-add-from-search">+ Cadastrar com este nome/contato</button>
+            <div style="padding: 12px; font-size: 0.82rem; color: #64748b; text-align: center;">
+              Nenhum cliente encontrado com "<strong>${escaparHtml(searchInput.value)}</strong>".
+              <button type="button" id="btn-qb-quick-add-from-search" style="margin-top: 6px; display: block; width: 100%; background: #fff5f2; border: 1px solid #fdba74; color: #c2410c; border-radius: 8px; padding: 6px; font-weight: 700; cursor: pointer;">+ Cadastrar este cliente</button>
             </div>
           `;
           searchResults.style.display = "block";
@@ -8288,23 +8230,17 @@
           return;
         }
 
-        searchResults.innerHTML = filtrados.slice(0, 8).map((c) => `
+        searchResults.innerHTML = filtrados.slice(0, 6).map((c) => `
           <div class="qb-client-dropdown-item" data-client-id="${c.id}">
-            <div class="qb-cd-avatar">👤</div>
-            <div class="qb-cd-info">
-              <strong class="qb-cd-name">${escaparHtml(c.nome)}</strong>
-              <div class="qb-cd-meta">
-                <span>📱 ${escaparHtml(c.whatsapp || c.cepTelefone || 'Sem tel')}</span>
-                <span>📄 ${escaparHtml(c.cnpjCpf || c.cpf || 'Sem documento')}</span>
-                <span>📍 ${escaparHtml(c.bairroCidadeUf || c.cidade || 'Umuarama/PR')}</span>
-              </div>
+            <div>
+              <strong style="font-size:0.88rem; color:#0f172a;">${escaparHtml(c.nome)}</strong>
+              <div style="font-size:0.75rem; color:#64748b;">📱 ${escaparHtml(c.whatsapp || c.cepTelefone || 'Sem tel')} • 📄 ${escaparHtml(c.cnpjCpf || c.cpf || 'Sem doc')}</div>
             </div>
-            <span class="qb-cd-badge">Selecionar</span>
+            <span style="font-size:0.75rem; font-weight:800; color:#E84520;">Selecionar →</span>
           </div>
         `).join("");
         searchResults.style.display = "block";
 
-        // Clique no item do dropdown seleciona o cliente
         searchResults.querySelectorAll(".qb-client-dropdown-item").forEach((item) => {
           item.addEventListener("click", () => {
             const cid = item.dataset.clientId;
@@ -8322,74 +8258,27 @@
               searchSection.style.display = "none";
               newClientBox.style.display = "none";
 
-              // Atualiza e exibe o card de cliente confirmado
               document.getElementById("qb-confirmed-name-text").textContent = meta.cliente.nome;
-              document.getElementById("qb-confirmed-phone-text").textContent = "📱 " + (meta.cliente.cepTelefone || "Não informado");
+              document.getElementById("qb-confirmed-phone-text").textContent = meta.cliente.cepTelefone || "Não informado";
               document.getElementById("qb-confirmed-phone-text").href = "https://wa.me/55" + (meta.cliente.cepTelefone || "").replace(/\D/g, "");
               document.getElementById("qb-confirmed-doc-text").textContent = meta.cliente.cnpjCpf || "Não informado";
               document.getElementById("qb-confirmed-addr-text").textContent = (meta.cliente.endereco || "") + (meta.cliente.bairroCidadeUf ? " — " + meta.cliente.bairroCidadeUf : "");
-              document.getElementById("qb-confirmed-email-text").textContent = meta.cliente.email || "Não informado";
               confirmedCard.style.display = "flex";
 
-              mostrarToast(`Cliente <strong>${selecionado.nome}</strong> selecionado no orçamento.`, "success");
+              mostrarToast(`Cliente <strong>${selecionado.nome}</strong> selecionado!`, "success");
             }
           });
         });
       });
+
+      document.addEventListener("click", (e) => {
+        if (!searchInput.contains(e.target) && !searchResults.contains(e.target)) {
+          searchResults.style.display = "none";
+        }
+      });
     }
 
-    clearSearchBtn?.addEventListener("click", () => {
-      searchInput.value = "";
-      clearSearchBtn.style.display = "none";
-      searchResults.style.display = "none";
-      searchInput.focus();
-    });
-
-    // Validação de Documento no Cadastro Rápido de Cliente
-    const docInput = document.getElementById("qb-input-new-doc");
-    const docFeedback = document.getElementById("qb-new-doc-feedback");
-    docInput?.addEventListener("blur", () => {
-      const val = docInput.value.replace(/\D/g, "");
-      if (!val) {
-        if (docFeedback) docFeedback.textContent = "";
-        return;
-      }
-      if (val.length === 11) {
-        const ok = validarCpfOficial(val);
-        if (docFeedback) {
-          docFeedback.textContent = ok ? "✓ CPF Oficial Válido" : "✗ CPF Inválido";
-          docFeedback.className = "qb-doc-feedback " + (ok ? "valid" : "invalid");
-        }
-      } else if (val.length === 14) {
-        const ok = validarCnpjOficial(val);
-        if (docFeedback) {
-          docFeedback.textContent = ok ? "✓ CNPJ Oficial Válido" : "✗ CNPJ Inválido";
-          docFeedback.className = "qb-doc-feedback " + (ok ? "valid" : "invalid");
-        }
-      }
-    });
-
-    // CEP com busca automática via ViaCEP
-    const cepInput = document.getElementById("qb-input-new-cep");
-    cepInput?.addEventListener("blur", async () => {
-      const cep = cepInput.value.replace(/\D/g, "");
-      if (cep.length === 8) {
-        try {
-          const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-          const data = await res.json();
-          if (!data.erro) {
-            const addrInput = document.getElementById("qb-input-new-addr");
-            const bairroInput = document.getElementById("qb-input-new-bairro");
-            const cityInput = document.getElementById("qb-input-new-city");
-            if (addrInput && !addrInput.value) addrInput.value = data.logradouro || "";
-            if (bairroInput && !bairroInput.value) bairroInput.value = data.bairro || "";
-            if (cityInput) cityInput.value = `${data.localidade || 'Umuarama'} / ${data.uf || 'PR'}`;
-          }
-        } catch (_) {}
-      }
-    });
-
-    // Salvar Novo Cliente Inline e Retornar ao Orçamento
+    // Formulário de Novo Cliente
     const formNewClient = document.getElementById("qb-form-inline-new-client");
     formNewClient?.addEventListener("submit", (e) => {
       e.preventDefault();
@@ -8397,16 +8286,13 @@
       const phone = document.getElementById("qb-input-new-phone")?.value.trim();
       const doc = document.getElementById("qb-input-new-doc")?.value.trim();
       const addr = document.getElementById("qb-input-new-addr")?.value.trim();
-      const bairro = document.getElementById("qb-input-new-bairro")?.value.trim();
       const city = document.getElementById("qb-input-new-city")?.value.trim() || "Umuarama / PR";
-      const email = document.getElementById("qb-input-new-email")?.value.trim();
 
       if (!nome || !phone) {
-        mostrarToast("Preencha ao menos Nome e WhatsApp/Telefone.", "error");
+        mostrarToast("Preencha Nome e WhatsApp.", "error");
         return;
       }
 
-      // Salva no banco de clientes
       const novoCliente = {
         id: "cli-" + Date.now(),
         nome,
@@ -8415,9 +8301,8 @@
         cnpjCpf: doc,
         cpf: doc,
         endereco: addr,
-        bairroCidadeUf: bairro ? `${bairro} — ${city}` : city,
+        bairroCidadeUf: city,
         cidade: city,
-        email,
         dataCadastro: new Date().toISOString()
       };
 
@@ -8425,63 +8310,59 @@
         window.SJ_DB.clientes.salvar(novoCliente);
       }
 
-      // Vincula ao orçamento
       meta.cliente = {
         nome: novoCliente.nome,
         cnpjCpf: novoCliente.cnpjCpf,
         endereco: novoCliente.endereco,
         bairroCidadeUf: novoCliente.bairroCidadeUf,
-        cepTelefone: novoCliente.cepTelefone,
-        email: novoCliente.email
+        cepTelefone: novoCliente.cepTelefone
       };
 
       newClientBox.style.display = "none";
       searchSection.style.display = "none";
 
       document.getElementById("qb-confirmed-name-text").textContent = meta.cliente.nome;
-      document.getElementById("qb-confirmed-phone-text").textContent = "📱 " + (meta.cliente.cepTelefone || "Não informado");
-      document.getElementById("qb-confirmed-phone-text").href = "https://wa.me/55" + (meta.cliente.cepTelefone || "").replace(/\D/g, "");
+      document.getElementById("qb-confirmed-phone-text").textContent = meta.cliente.cepTelefone;
+      document.getElementById("qb-confirmed-phone-text").href = "https://wa.me/55" + meta.cliente.cepTelefone.replace(/\D/g, "");
       document.getElementById("qb-confirmed-doc-text").textContent = meta.cliente.cnpjCpf || "Não informado";
       document.getElementById("qb-confirmed-addr-text").textContent = (meta.cliente.endereco || "") + (meta.cliente.bairroCidadeUf ? " — " + meta.cliente.bairroCidadeUf : "");
-      document.getElementById("qb-confirmed-email-text").textContent = meta.cliente.email || "Não informado";
       confirmedCard.style.display = "flex";
 
-      mostrarToast(`Cliente <strong>${novoCliente.nome}</strong> cadastrado e vinculado ao orçamento!`, "success");
+      mostrarToast(`Cliente <strong>${novoCliente.nome}</strong> cadastrado e vinculado!`, "success");
     });
 
     // =========================================================================
-    // ETAPA 2: FORMA DE PAGAMENTO & DESCONTO
+    // ETAPA 2: FORMAS DE PAGAMENTO & DESCONTO
     // =========================================================================
-    quoteView.querySelectorAll('input[name="qb-pay-option"]').forEach((radio) => {
-      radio.addEventListener("change", (e) => {
-        meta.formaPagamento = e.target.value;
-        quoteView.querySelectorAll(".qb-pay-card").forEach((c) => c.classList.remove("selected"));
-        e.target.closest(".qb-pay-card")?.classList.add("selected");
+    quoteView.querySelectorAll(".qb-pay-card").forEach((card) => {
+      card.addEventListener("click", () => {
+        quoteView.querySelectorAll(".qb-pay-card").forEach((c) => c.classList.remove("active"));
+        card.classList.add("active");
+        meta.formaPagamento = card.dataset.pay;
 
         const payDescEl = document.getElementById("qb-summary-pay-desc");
         if (payDescEl) payDescEl.textContent = meta.formaPagamento;
 
-        // Se escolher PIX, pode sugerir o desconto de 5%
-        if (e.target.value.includes("PIX") && meta.tipoDesconto === "nenhum") {
+        if (meta.formaPagamento.includes("PIX") && meta.tipoDesconto === "nenhum") {
           meta.tipoDesconto = "vista5";
-          atualizarPillsDesconto();
+          atualizarBotoesDesconto();
         }
         recalcularTotaisWorkspace();
       });
     });
 
-    function atualizarPillsDesconto() {
-      quoteView.querySelectorAll(".qb-discount-pill").forEach((p) => {
-        p.classList.toggle("active", p.dataset.discount === meta.tipoDesconto);
+    function atualizarBotoesDesconto() {
+      quoteView.querySelectorAll(".qb-discount-btn").forEach((btn) => {
+        btn.classList.toggle("active", btn.dataset.discount === meta.tipoDesconto);
       });
       const customWrap = document.getElementById("qb-custom-discount-wrap");
-      if (customWrap) customWrap.style.display = meta.tipoDesconto === "personalizado" ? "block" : "none";
+      if (customWrap) customWrap.style.display = meta.tipoDesconto === "personalizado" ? "flex" : "none";
     }
 
-    quoteView.querySelectorAll(".qb-discount-pill").forEach((pill) => {
-      pill.addEventListener("click", () => {
-        meta.tipoDesconto = pill.dataset.discount;
-        atualizarPillsDesconto();
+    quoteView.querySelectorAll(".qb-discount-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        meta.tipoDesconto = btn.dataset.discount;
+        atualizarBotoesDesconto();
         recalcularTotaisWorkspace();
       });
     });
@@ -8528,12 +8409,10 @@
           return;
         }
 
-        // Obtém todos os itens do catálogo (produtos + 51 cores com seus códigos oficiais)
         const todosItens = (typeof obterListaTodosItensCatalogoParaConsulta === "function") 
           ? obterListaTodosItensCatalogoParaConsulta() 
           : [];
 
-        // Filtra por Nome OU Código
         const correspondencias = todosItens.filter((it) => {
           const nomeMatch = (it.nome || "").toLowerCase().includes(query);
           const subMatch = (it.subtitulo || "").toLowerCase().includes(query);
@@ -8547,22 +8426,24 @@
           return;
         }
 
-        dropdownEl.innerHTML = correspondencias.slice(0, 7).map((item) => `
-          <div class="qb-predict-item" data-idx="${idx}" data-price="${item.precoValor || 0}" data-desc="${escaparHtml(item.nome)}" data-sku="${escaparHtml(item.codigo || '')}">
-            <img src="${item.imagem || 'assets/produtos/impressora-a1_mini.jpg'}" alt="" class="qb-predict-thumb" />
-            <div class="qb-predict-info">
-              <span class="qb-predict-name">${escaparHtml(item.nome)}</span>
-              <div class="qb-predict-meta">
-                <span class="qb-predict-sku">${escaparHtml(item.codigo || '')}</span>
-                <span class="qb-predict-brand">${escaparHtml(item.marca || '')}</span>
+        dropdownEl.innerHTML = correspondencias.slice(0, 8).map((item) => `
+          <div class="qb-product-predict-item" data-idx="${idx}" data-price="${item.precoValor || 0}" data-desc="${escaparHtml(item.nome)}" data-sku="${escaparHtml(item.codigo || '')}">
+            <div class="qb-prod-item-left">
+              <img src="${item.imagem || 'assets/produtos/impressora-a1_mini.jpg'}" alt="" class="qb-prod-thumb" />
+              <div class="qb-prod-details">
+                <span class="qb-prod-name">${escaparHtml(item.nome)}</span>
+                <div class="qb-prod-meta">
+                  <span class="qb-prod-code-badge">${escaparHtml(item.codigo || 'PROD')}</span>
+                  <span class="qb-prod-brand">${escaparHtml(item.marca || '')}</span>
+                </div>
               </div>
             </div>
-            <strong class="qb-predict-price">${formatarMoedaBR(item.precoValor || 0)}</strong>
+            <strong class="qb-prod-price">${formatarMoedaBR(item.precoValor || 0)}</strong>
           </div>
         `).join("");
         dropdownEl.style.display = "block";
 
-        dropdownEl.querySelectorAll(".qb-predict-item").forEach((opt) => {
+        dropdownEl.querySelectorAll(".qb-product-predict-item").forEach((opt) => {
           opt.addEventListener("click", () => {
             const desc = opt.dataset.desc;
             const price = parseFloat(opt.dataset.price) || 0;
@@ -8577,7 +8458,6 @@
             inputEl.value = desc;
             dropdownEl.style.display = "none";
 
-            // Atualiza input de preço unitário e total da linha
             const priceInput = quoteView.querySelector(`.qb-price-input[data-idx="${idx}"]`);
             if (priceInput) priceInput.value = price.toFixed(2);
 
@@ -8588,12 +8468,10 @@
             }
 
             recalcularTotaisWorkspace();
-            mostrarToast(`Item selecionado: <strong>${desc}</strong> (${sku})`, "info");
           });
         });
       });
 
-      // Fecha dropdown se clicar fora
       document.addEventListener("click", (e) => {
         if (!inputEl.contains(e.target) && !dropdownEl.contains(e.target)) {
           dropdownEl.style.display = "none";
@@ -8601,11 +8479,10 @@
       });
     }
 
-    // Vincula autocomplete para todas as linhas existentes
     state.itensOrcamento.forEach((_, idx) => vincularAutocompleteLinha(idx));
 
-    // Stepper de Quantidade (- e +) e digitação direta
-    quoteView.querySelectorAll(".btn-qb-qty-minus").forEach((btn) => {
+    // Stepper de Quantidade (- e +)
+    quoteView.querySelectorAll(".btn-qty-minus").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.dataset.idx);
         if (state.itensOrcamento[idx] && state.itensOrcamento[idx].qtd > 1) {
@@ -8618,7 +8495,7 @@
       });
     });
 
-    quoteView.querySelectorAll(".btn-qb-qty-plus").forEach((btn) => {
+    quoteView.querySelectorAll(".btn-qty-plus").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.dataset.idx);
         if (state.itensOrcamento[idx]) {
@@ -8662,21 +8539,20 @@
       }
     }
 
-    // Excluir linha de produto
-    quoteView.querySelectorAll(".btn-qb-del-row").forEach((btn) => {
+    // Excluir Linha
+    quoteView.querySelectorAll(".qb-row-del-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         const idx = Number(btn.dataset.idx);
         if (state.itensOrcamento.length <= 1) {
-          mostrarToast("O orçamento deve conter pelo menos 1 item.", "info");
+          mostrarToast("O orçamento precisa de pelo menos 1 item.", "info");
           return;
         }
         state.itensOrcamento.splice(idx, 1);
         renderizarTelaOrcamento();
-        mostrarToast("Item removido do orçamento.", "info");
       });
     });
 
-    // Adicionar nova linha em branco
+    // Adicionar Linha
     document.getElementById("btn-qb-add-row")?.addEventListener("click", () => {
       state.itensOrcamento.push({
         id: "item-" + Date.now(),
@@ -8691,21 +8567,20 @@
       if (novoInput) novoInput.focus();
     });
 
-    // Chips Rápidos de Inclusão em 1 Clique
-    const itensRapidos = [
+    // Chips de Acesso Rápido
+    const listaRapida = [
       { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 79.90 },
       { nome: "Filamento Bambu Lab PLA Basic RFID (1kg)", cod: "CÓD. 137", preco: 139.90 },
-      { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "CÓD. BAMBU-02", preco: 4049.00 },
-      { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "CÓD. BAMBU-01", preco: 2980.00 },
-      { nome: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab", cod: "CÓD. PECA-01", preco: 119.00 }
+      { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "BAMBU-02", preco: 4049.00 },
+      { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "BAMBU-01", preco: 2980.00 },
+      { nome: "Bico Hotend Aço Endurecido 0.4mm Bambu Lab", cod: "PECA-01", preco: 119.00 }
     ];
 
-    quoteView.querySelectorAll(".qb-chip").forEach((chip) => {
+    quoteView.querySelectorAll(".qb-quick-chip").forEach((chip) => {
       chip.addEventListener("click", () => {
         const qIdx = Number(chip.dataset.quickIdx);
-        const itemInfo = itensRapidos[qIdx];
+        const itemInfo = listaRapida[qIdx];
         if (itemInfo) {
-          // Se o último item estiver vazio, preenche ele; caso contrário adiciona nova linha
           const ult = state.itensOrcamento[state.itensOrcamento.length - 1];
           if (ult && !ult.descricao && Number(ult.precoUnitario) === 0) {
             ult.descricao = itemInfo.nome;
@@ -8740,6 +8615,12 @@
       } else if (meta.tipoDesconto === "nenhum") {
         desc = 0;
         meta.desconto = 0;
+      }
+
+      // Atualiza texto do botão de 5% se ele existir
+      const btn5 = document.getElementById("qb-btn-discount-5");
+      if (btn5) {
+        btn5.textContent = `5% à Vista (- ${formatarMoedaBR(Math.round(sub * 0.05 * 100) / 100)})`;
       }
 
       const fr = Number(meta.frete) || 0;
@@ -8979,25 +8860,21 @@
   }
 
   function vincularEventosFolhaTimbradaOrcamento(quoteView) {
-    // Voltar para o Editor
     document.getElementById("btn-quote-back-editor")?.addEventListener("click", () => {
       state.orcamentoModoVisao = "editor";
       renderizarTelaOrcamento();
       window.scrollTo({ top: 0, behavior: "smooth" });
     });
 
-    // Histórico
     document.getElementById("btn-quote-history")?.addEventListener("click", () => {
       abrirModalHistoricoOrcamentos();
     });
 
-    // Salvar Proposta
     document.getElementById("btn-quote-save")?.addEventListener("click", () => {
       salvarOrcamentoNoHistorico();
       mostrarToast("💾 Proposta salva com sucesso no histórico!", "success");
     });
 
-    // Enviar no WhatsApp
     document.getElementById("btn-quote-whatsapp")?.addEventListener("click", () => {
       salvarOrcamentoNoHistorico();
       const meta = state.orcamentoMetadados;
@@ -9034,11 +8911,11 @@
       window.open(`https://wa.me/${foneDestino}?text=${encodeURIComponent(mensagem)}`, "_blank");
     });
 
-    // Imprimir / Salvar PDF
     document.getElementById("btn-quote-print")?.addEventListener("click", () => {
       window.print();
     });
   }
+
 
   function recalcularTotaisOrcamentoAoVivo() {
     const subtotal = state.itensOrcamento.reduce(
