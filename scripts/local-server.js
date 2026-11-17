@@ -543,8 +543,10 @@ const server = http.createServer(async (req, res) => {
     }
 
     // 10. Gestão de Acessos da Calculadora 3D
+    const PADRAO_CALC_APROVADOS = ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br", "sheilagarcia1606@gmail.com", "sjnovaisecia@gmail.com"];
+
     if (pathname === "/api/calc/acessos" && req.method === "GET") {
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
       responderJson(res, 200, {
         sucesso: true,
         solicitacoes: db.calculadora.solicitacoes || [],
@@ -555,7 +557,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/calc/solicitar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
       db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
       if (body && body.email) {
         const emailLower = String(body.email).toLowerCase().trim();
@@ -577,7 +579,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/calc/aprovar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
       db.calculadora.aprovados = db.calculadora.aprovados || [];
       db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
       if (body && body.email) {
@@ -596,7 +598,7 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/calc/revogar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"] };
+      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
       db.calculadora.aprovados = db.calculadora.aprovados || [];
       if (body && body.email) {
         const emailLower = String(body.email).toLowerCase().trim();

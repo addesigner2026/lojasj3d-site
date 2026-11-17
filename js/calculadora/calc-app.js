@@ -1801,7 +1801,28 @@ function setupEventListeners() {
 // CAMADA DE ACESSO & GATE INDEPENDENTE DO PRECIFICADOR LOJA SJ 3D
 // =========================================================================
 const CALC_AUTH_STORAGE_KEY = 'sj_calc_auth_v1';
-const ADMIN_EMAILS = ['jt.designer21@gmail.com', 'ad.design2050@gmail.com', 'contato@gruposj.com.br'];
+const ADMIN_EMAILS = [
+  'jt.designer21@gmail.com',
+  'ad.design2050@gmail.com',
+  'contato@gruposj.com.br'
+];
+const DEFAULT_APPROVED_EMAILS = [
+  'jt.designer21@gmail.com',
+  'ad.design2050@gmail.com',
+  'contato@gruposj.com.br',
+  'sheilagarcia1606@gmail.com',
+  'sjnovaisecia@gmail.com'
+];
+
+function escaparHtml(str) {
+  if (typeof str !== 'string') return '';
+  return str
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#039;');
+}
 
 function isAdminUser(user) {
   if (!user || !user.email) return false;
@@ -1815,11 +1836,11 @@ function getApprovedCalcEmailsLocal() {
     if (raw) {
       const arr = JSON.parse(raw);
       if (Array.isArray(arr)) {
-        return [...new Set([...ADMIN_EMAILS, ...arr.map(e => String(e).toLowerCase().trim())])];
+        return [...new Set([...DEFAULT_APPROVED_EMAILS, ...arr.map(e => String(e).toLowerCase().trim())])];
       }
     }
   } catch (_) {}
-  return [...ADMIN_EMAILS];
+  return [...DEFAULT_APPROVED_EMAILS];
 }
 
 function addApprovedCalcEmailLocal(email) {
@@ -1866,6 +1887,7 @@ function isUserApprovedForCalc(user) {
   if (!user || !user.email) return false;
   const emailLower = String(user.email).toLowerCase().trim();
   if (ADMIN_EMAILS.includes(emailLower)) return true;
+  if (DEFAULT_APPROVED_EMAILS.includes(emailLower)) return true;
   if (user.role === 'admin' || user.tipo === 'operador' || user.tipo === 'admin') return true;
   if (user.status === 'approved' || user.acesso_calculadora === true) return true;
   const locais = getApprovedCalcEmailsLocal();
@@ -1880,7 +1902,7 @@ async function carregarListaAcessosCompleta() {
   let solicitacoes = [];
   let aprovados = getApprovedCalcEmailsLocal();
 
-  // 1. Tenta carregar do backend local
+  // 1. Tenta carregar do backend (/api/calc/acessos)
   try {
     const res = await fetch('/api/calc/acessos');
     if (res.ok) {
@@ -1888,19 +1910,73 @@ async function carregarListaAcessosCompleta() {
       if (data && data.sucesso) {
         if (Array.isArray(data.solicitacoes)) {
           solicitacoes = data.solicitacoes;
-          localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(solicitacoes));
         }
         if (Array.isArray(data.aprovados)) {
           aprovados = [...new Set([...aprovados, ...data.aprovados.map(e => String(e).toLowerCase().trim())])];
-          localStorage.setItem('sj_calc_aprovados', JSON.stringify(aprovados));
         }
       }
     }
   } catch (_) {
-    // Modo offline / sem servidor: usa localStorage
+    // Continua para o fallback de sincronização
   }
 
-  // 2. Mescla com localStorage para nunca perder solicitações feitas localmente
+  // 2. Sincronização direta com Supabase Cloud
+  try {
+    const supa = window.SJ_SUPABASE?.getClient?.();
+    if (supa) {
+      // 2.1 Lê lista central de acessos em configuracoes_site
+      const { data: cfgData, error: cfgErr } = await supa
+        .from('configuracoes_site')
+        .select('valor')
+        .eq('chave', 'calculadora_acessos_v1')
+        .maybeSingle();
+
+      if (!cfgErr && cfgData && cfgData.valor) {
+        if (Array.isArray(cfgData.valor.aprovados)) {
+          aprovados = [...new Set([...aprovados, ...cfgData.valor.aprovados.map(e => String(e).toLowerCase().trim())])];
+        }
+        if (Array.isArray(cfgData.valor.solicitacoes)) {
+          const mapaS = new Map();
+          solicitacoes.forEach(s => mapaS.set(s.email?.toLowerCase().trim(), s));
+          cfgData.valor.solicitacoes.forEach(s => {
+            const k = s.email?.toLowerCase().trim();
+            if (k && !mapaS.has(k)) mapaS.set(k, s);
+          });
+          solicitacoes = Array.from(mapaS.values());
+        }
+      }
+
+      // 2.2 Lê solicitações registradas em termos_consentimento
+      const { data: termsData } = await supa
+        .from('termos_consentimento')
+        .select('id, titular_identificador, motivo_revogacao, concedido_em')
+        .eq('finalidade', 'solicitacao_acesso_calc')
+        .order('concedido_em', { ascending: false });
+
+      if (Array.isArray(termsData) && termsData.length > 0) {
+        const mapaS = new Map();
+        solicitacoes.forEach(s => mapaS.set(s.email?.toLowerCase().trim(), s));
+        termsData.forEach(t => {
+          try {
+            const parsed = t.motivo_revogacao ? JSON.parse(t.motivo_revogacao) : null;
+            const em = (parsed?.email || t.titular_identificador || '').toLowerCase().trim();
+            if (em && !mapaS.has(em)) {
+              mapaS.set(em, {
+                id: parsed?.id || t.id,
+                nome: parsed?.nome || em.split('@')[0],
+                whatsapp: parsed?.whatsapp || '',
+                email: em,
+                data: parsed?.data || t.concedido_em
+              });
+            }
+          } catch (_) {}
+        });
+        solicitacoes = Array.from(mapaS.values());
+      }
+    }
+  } catch (_) {}
+
+  // 3. Mescla com localStorage para nunca perder dados locais
   try {
     const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
     if (Array.isArray(saved) && saved.length > 0) {
@@ -1914,6 +1990,12 @@ async function carregarListaAcessosCompleta() {
       });
       solicitacoes = Array.from(mapa.values());
     }
+  } catch (_) {}
+
+  // Atualiza caches locais consolidados
+  try {
+    localStorage.setItem('sj_calc_aprovados', JSON.stringify(aprovados));
+    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(solicitacoes));
   } catch (_) {}
 
   // Remove da lista de pendentes quem já foi aprovado
@@ -1947,10 +2029,31 @@ async function aprovarAcessoCalc(email, nome = '') {
   addApprovedCalcEmailLocal(emailLower);
 
   // Remove das pendências no localStorage
+  let restantes = [];
   try {
     const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-    const filtrados = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
-    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(filtrados));
+    restantes = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(restantes));
+  } catch (_) {}
+
+  const listaAprovados = getApprovedCalcEmailsLocal();
+
+  // Sincroniza em nuvem no Supabase Cloud
+  try {
+    const supa = window.SJ_SUPABASE?.getClient?.();
+    if (supa) {
+      await supa.from('configuracoes_site').upsert(
+        {
+          chave: 'calculadora_acessos_v1',
+          valor: {
+            aprovados: listaAprovados,
+            solicitacoes: restantes
+          },
+          atualizado_em: new Date().toISOString()
+        },
+        { onConflict: 'chave' }
+      );
+    }
   } catch (_) {}
 
   // Envia ao servidor se disponível
@@ -1981,6 +2084,26 @@ async function revogarAcessoCalc(email) {
   }
 
   removeApprovedCalcEmailLocal(emailLower);
+  const listaAprovados = getApprovedCalcEmailsLocal();
+
+  // Sincroniza em nuvem no Supabase Cloud
+  try {
+    const supa = window.SJ_SUPABASE?.getClient?.();
+    if (supa) {
+      const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
+      await supa.from('configuracoes_site').upsert(
+        {
+          chave: 'calculadora_acessos_v1',
+          valor: {
+            aprovados: listaAprovados,
+            solicitacoes: saved
+          },
+          atualizado_em: new Date().toISOString()
+        },
+        { onConflict: 'chave' }
+      );
+    }
+  } catch (_) {}
 
   // Envia ao servidor se disponível
   try {
@@ -2000,10 +2123,30 @@ async function rejeitarSolicitacaoCalc(email) {
   if (!email) return;
   const emailLower = String(email).toLowerCase().trim();
 
+  let restantes = [];
   try {
     const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-    const filtrados = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
-    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(filtrados));
+    restantes = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(restantes));
+  } catch (_) {}
+
+  // Sincroniza em nuvem no Supabase Cloud
+  try {
+    const supa = window.SJ_SUPABASE?.getClient?.();
+    if (supa) {
+      const listaAprovados = getApprovedCalcEmailsLocal();
+      await supa.from('configuracoes_site').upsert(
+        {
+          chave: 'calculadora_acessos_v1',
+          valor: {
+            aprovados: listaAprovados,
+            solicitacoes: restantes
+          },
+          atualizado_em: new Date().toISOString()
+        },
+        { onConflict: 'chave' }
+      );
+    }
   } catch (_) {}
 
   showToast(`Solicitação de ${emailLower} removida.`, '🗑️');
@@ -2035,23 +2178,26 @@ async function carregarERenderizarAcessos() {
         const dataFmt = item.data ? new Date(item.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Recente';
         const numWa = String(item.whatsapp || '').replace(/\D/g, '');
         const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent('Olá ' + (item.nome || '') + '! Vi sua solicitação para a Calculadora 3D da Loja SJ.')}` : '';
+        const nomeEscapado = escaparHtml(item.nome || 'Solicitante Sem Nome');
+        const emailEscapado = escaparHtml(item.email || '');
+        const waEscapado = escaparHtml(item.whatsapp || '');
 
         return `
           <div class="admin-item-row">
             <div class="admin-item-info">
-              <div class="admin-item-name">${item.nome || 'Solicitante Sem Nome'}</div>
-              <div class="admin-item-email">${item.email}</div>
+              <div class="admin-item-name">${nomeEscapado}</div>
+              <div class="admin-item-email">${emailEscapado}</div>
               <div class="admin-item-meta">
                 <span>📅 ${dataFmt}</span>
-                ${numWa ? `<span>• 📞 ${item.whatsapp}</span>` : ''}
+                ${numWa ? `<span>• 📞 ${waEscapado}</span>` : ''}
               </div>
             </div>
             <div class="admin-item-actions">
               ${linkWa ? `<a href="${linkWa}" target="_blank" class="btn-admin-action wa" title="Conversar no WhatsApp">💬 WhatsApp</a>` : ''}
-              <button type="button" class="btn-admin-action approve btn-aprovar-item" data-email="${item.email}" data-nome="${item.nome || ''}">
+              <button type="button" class="btn-admin-action approve btn-aprovar-item" data-email="${emailEscapado}" data-nome="${nomeEscapado}">
                 ✅ Liberar Acesso
               </button>
-              <button type="button" class="btn-admin-action reject btn-rejeitar-item" data-email="${item.email}" title="Recusar">
+              <button type="button" class="btn-admin-action reject btn-rejeitar-item" data-email="${emailEscapado}" title="Recusar">
                 ✕
               </button>
             </div>
@@ -2080,11 +2226,13 @@ async function carregarERenderizarAcessos() {
   if (containerAprov) {
     if (badgeAprov) badgeAprov.textContent = aprovados.length;
     containerAprov.innerHTML = aprovados.map(email => {
-      const isAdmin = ADMIN_EMAILS.includes(email.toLowerCase());
+      const emailLower = String(email || '').toLowerCase().trim();
+      const isAdmin = ADMIN_EMAILS.includes(emailLower);
+      const emailEscapado = escaparHtml(emailLower);
       return `
         <div class="admin-item-row">
           <div class="admin-item-info">
-            <div class="admin-item-email" style="font-size:0.82rem; font-weight:700; color:#ffffff;">${email}</div>
+            <div class="admin-item-email" style="font-size:0.82rem; font-weight:700; color:#ffffff;">${emailEscapado}</div>
             <div class="admin-item-meta">
               <span style="color:#10b981; font-weight:800;">● Acesso Ativo</span>
               ${isAdmin ? '<span style="color:#f59e0b; font-weight:800;">• Administrador Master</span>' : ''}
@@ -2094,7 +2242,7 @@ async function carregarERenderizarAcessos() {
             ${isAdmin ? `
               <span style="font-size:0.7rem; color:#71717a; font-weight:700;">Protegido</span>
             ` : `
-              <button type="button" class="btn-admin-action reject btn-revogar-item" data-email="${email}">
+              <button type="button" class="btn-admin-action reject btn-revogar-item" data-email="${emailEscapado}">
                 🚫 Revogar Acesso
               </button>
             `}
@@ -2294,9 +2442,11 @@ function setupAuthGateListeners() {
         let authSuccess = false;
         let userData = null;
 
+        const emailLower = email.toLowerCase().trim();
+
         // 1. Tenta autenticar pelo Supabase caso configurado
-        if (window.SJ_SUPABASE && typeof window.SJ_SUPABASE.fazerLoginEmailSenha === 'function') {
-          const res = await window.SJ_SUPABASE.fazerLoginEmailSenha(email, senha);
+        if (window.SJ_SUPABASE?.auth && typeof window.SJ_SUPABASE.auth.loginEmail === 'function') {
+          const res = await window.SJ_SUPABASE.auth.loginEmail(emailLower, senha);
           if (res && res.sucesso && res.usuario) {
             authSuccess = true;
             userData = res.usuario;
@@ -2304,17 +2454,33 @@ function setupAuthGateListeners() {
         }
 
         // 2. Validação direta para contas Administradoras Master (caso offline ou sem Supabase)
-        const emailLower = email.toLowerCase();
         if (!authSuccess && ADMIN_EMAILS.includes(emailLower)) {
           authSuccess = true;
           userData = {
             id: 'usr-admin-' + Date.now(),
-            email: email,
+            email: emailLower,
             nome: 'Administrador Oficial Loja SJ',
             role: 'admin',
             tipo: 'admin',
             status: 'approved'
           };
+        }
+
+        // 3. Validação para E-mails com Acesso Aprovado pelo Administrador
+        if (!authSuccess) {
+          const aprovados = getApprovedCalcEmailsLocal();
+          if (aprovados.includes(emailLower)) {
+            authSuccess = true;
+            userData = {
+              id: 'usr-calc-' + Date.now(),
+              email: emailLower,
+              nome: emailLower === 'sjnovaisecia@gmail.com' ? 'Loja SJ' : emailLower.split('@')[0],
+              role: 'operador',
+              tipo: 'operador',
+              status: 'approved',
+              acesso_calculadora: true
+            };
+          }
         }
 
         if (authSuccess && userData) {
@@ -2351,11 +2517,12 @@ function setupAuthGateListeners() {
 
       if (!nome || !email) return;
 
+      const emailLower = email.toLowerCase().trim();
       const pendente = {
         id: 'solic-' + Date.now(),
         nome,
         whatsapp,
-        email,
+        email: emailLower,
         data: new Date().toISOString()
       };
 
@@ -2364,6 +2531,34 @@ function setupAuthGateListeners() {
         saved.push(pendente);
         localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(saved));
       } catch (_) {}
+
+      // Sincroniza em nuvem no Supabase Cloud
+      try {
+        const supa = window.SJ_SUPABASE?.getClient?.();
+        if (supa) {
+          // 1. Termos de Consentimento LGPD
+          await supa.from('termos_consentimento').insert({
+            titular_identificador: emailLower,
+            titular_tipo: 'visitante',
+            canal: 'calculadora',
+            finalidade: 'solicitacao_acesso_calc',
+            consentimento_concedido: true,
+            motivo_revogacao: JSON.stringify(pendente)
+          });
+          // 2. Solicitação do Titular
+          await supa.from('solicitacoes_titular').insert({
+            protocolo: 'CALC-' + Date.now(),
+            titular_nome: nome,
+            titular_email: emailLower,
+            titular_cpf: whatsapp,
+            tipo_solicitacao: 'outro',
+            detalhes_solicitacao: JSON.stringify(pendente),
+            status: 'em_analise'
+          });
+        }
+      } catch (err) {
+        console.warn('Erro ao salvar solicitacao no Supabase:', err);
+      }
 
       // Tenta enviar para o backend se disponível
       try {
