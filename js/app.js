@@ -12389,7 +12389,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     btnMobileClose?.addEventListener("click", fecharMenuMobileAdmin);
     mobileBackdrop?.addEventListener("click", fecharMenuMobileAdmin);
 
-    // Ao selecionar uma aba no mobile, fecha automaticamente a gaveta lateral
     document.querySelectorAll(".admin-cms-tab-btn").forEach((btn) => {
       btn.addEventListener("click", () => {
         if (window.innerWidth <= 1024) {
