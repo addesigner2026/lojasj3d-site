@@ -16231,6 +16231,7 @@ button.color-swatch-more:hover {
 }
 
 .quote-official-letterhead {
+  position: relative;
   width: 794px;
   max-width: 100%;
   background: #ffffff;
@@ -16241,201 +16242,211 @@ button.color-swatch-more:hover {
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   color: #1e293b;
   page-break-inside: auto;
+  overflow: hidden;
 }
 
-/* Proteção global contra quebras de texto no meio de blocos */
-.quote-header-brand,
-.quote-doc-ribbon,
-.quote-parties-grid,
-.party-col,
+/* Faixa Laranja de Topo */
+.quote-top-accent-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 5px;
+  background: #E84520;
+}
+
+/* Marca d'água sutil SJ no fundo */
+.quote-watermark-sj {
+  position: absolute;
+  top: 48%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 210px;
+  font-weight: 900;
+  color: rgba(232, 69, 32, 0.038);
+  letter-spacing: -8px;
+  pointer-events: none;
+  user-select: none;
+  z-index: 0;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Proteção global contra quebras de texto */
+.quote-header-modern,
+.quote-cards-grid,
+.quote-info-card,
+.quote-section-label,
 .quote-table-wrapper,
 .quote-items-table,
 .quote-items-table thead,
 .quote-items-table tbody,
 .quote-items-table tr,
-.quote-totals-wrapper,
-.quote-totals-box,
-.quote-terms-section,
-.terms-grid,
-.term-col,
-.bank-info-box,
-.quote-obs-box,
-.quote-signature-row,
-.signature-box,
-.quote-footer-bottom {
+.quote-item-row,
+.quote-totals-container,
+.totals-pill-box,
+.totals-grand-highlight,
+.quote-bottom-grid,
+.bottom-col,
+.quote-observations-section,
+.quote-signatures-modern,
+.modern-sig-col,
+.quote-modern-footer {
+  position: relative;
+  z-index: 1;
   page-break-inside: avoid !important;
   break-inside: avoid !important;
   break-inside: avoid-page !important;
 }
 
-/* Cabeçalho Grupo SJ */
-.quote-header-brand {
+/* Cabeçalho Moderno (Topo Esquerda: Marca / Topo Direita: Proposta) */
+.quote-header-modern {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  height: 68px;
-  overflow: hidden;
-  margin-bottom: 12px;
-  border-bottom: 2px solid #0f172a;
-  padding-bottom: 8px;
+  margin-top: 6px;
+  margin-bottom: 18px;
 }
 
-.brand-left {
+.brand-logo-title {
   display: flex;
-  align-items: center;
-  gap: 14px;
+  align-items: baseline;
+  gap: 4px;
 }
 
-.group-logo-wrap {
-  display: flex;
-  flex-direction: column;
-  background: #18181b;
-  color: #ffffff;
-  padding: 6px 12px;
-  border-radius: 6px;
-  text-align: center;
-}
-
-.brand-group-name {
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 1.5px;
-  color: #E84520;
-}
-
-.brand-main-name {
+.logo-loja {
   font-size: 1.85rem;
   font-weight: 900;
-  line-height: 1;
-  color: #ffffff;
-  letter-spacing: -1px;
+  color: #E84520;
+  letter-spacing: -0.5px;
 }
 
-.brand-slogan-box {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+.logo-sj {
+  font-size: 1.95rem;
+  font-weight: 900;
+  color: #E84520;
+  letter-spacing: -0.5px;
 }
 
-.brand-slogan {
+.brand-slogan-lines {
+  margin-top: 4px;
+}
+
+.brand-slogan-main {
   font-size: 0.82rem;
   font-weight: 700;
-  color: #0f172a;
+  color: #18181b;
   margin: 0;
+  line-height: 1.3;
 }
 
 .brand-slogan-sub {
   font-size: 0.74rem;
-  color: #64748b;
+  font-weight: 400;
+  color: #71717a;
   margin: 0;
+  line-height: 1.3;
 }
 
-.brand-header-curve {
-  width: 250px;
-  height: 56px;
+.header-doc-box {
+  text-align: right;
 }
 
-.brand-header-curve svg {
-  width: 100%;
-  height: 100%;
-}
-
-/* Faixa de Título / Documento */
-.quote-doc-ribbon {
-  background: #f8fafc;
-  border-left: 4px solid #E84520;
-  border-top: 1px solid #e2e8f0;
-  border-right: 1px solid #e2e8f0;
-  border-bottom: 1px solid #e2e8f0;
-  border-radius: 6px;
-  padding: 6px 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 12px;
-}
-
-.ribbon-title {
-  font-size: 0.88rem;
-  font-weight: 900;
-  color: #0f172a;
-  letter-spacing: 0.4px;
-}
-
-.ribbon-meta {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 0.78rem;
-}
-
-.meta-field {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-.meta-lbl {
-  color: #64748b;
-  font-weight: 600;
-}
-
-.meta-val {
-  font-weight: 700;
-  color: #0f172a;
-}
-
-.meta-val.highlight {
+.doc-badge-title {
+  font-size: 0.72rem;
+  font-weight: 800;
   color: #E84520;
-  font-size: 0.88rem;
-}
-
-/* Partes: Fornecedor e Cliente */
-.quote-parties-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  overflow: hidden;
-  margin-bottom: 12px;
-}
-
-.party-col {
-  padding: 8px 14px;
-}
-
-.supplier-col {
-  border-right: 1px solid #cbd5e1;
-  background: #fafaf9;
-}
-
-.client-col {
-  background: #ffffff;
-}
-
-.party-header-tag {
-  font-size: 0.65rem;
-  font-weight: 900;
-  color: #E84520;
-  letter-spacing: 0.8px;
+  letter-spacing: 0.6px;
   text-transform: uppercase;
 }
 
-.party-name {
-  font-size: 0.92rem;
+.doc-number-main {
+  font-size: 1.65rem;
   font-weight: 900;
   color: #0f172a;
-  margin: 2px 0 4px;
+  letter-spacing: -0.5px;
+  margin: 2px 0;
 }
 
-.party-details p {
-  margin: 1.5px 0;
+.doc-emission-date {
+  font-size: 0.75rem;
+  color: #71717a;
+  font-weight: 500;
+}
+
+/* Cards Fornecedor e Cliente */
+.quote-cards-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.quote-info-card {
+  background: #fbf9f6;
+  border: 1px solid #ede8e1;
+  border-radius: 12px;
+  padding: 12px 16px;
+}
+
+.card-tag {
+  font-size: 0.65rem;
+  font-weight: 800;
+  color: #E84520;
+  letter-spacing: 0.8px;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+
+.card-main-title {
+  font-size: 0.95rem;
+  font-weight: 900;
+  color: #0f172a;
+  margin: 0 0 6px;
+}
+
+.card-divider {
+  border-bottom: 1px solid #e8e3dc;
+  margin: 6px 0 8px;
+}
+
+.card-field-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.card-field {
+  display: flex;
+  align-items: baseline;
+  gap: 6px;
   font-size: 0.74rem;
-  color: #334155;
   line-height: 1.35;
+  color: #4b5563;
 }
 
-/* Tabela Institucional com Cabeçalho Laranja */
+.card-field strong {
+  font-weight: 700;
+  color: #18181b;
+  flex-shrink: 0;
+}
+
+.card-field span {
+  color: #4b5563;
+  word-break: break-word;
+}
+
+/* Rótulo de Seção */
+.quote-section-label {
+  font-size: 0.74rem;
+  font-weight: 800;
+  color: #E84520;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-top: 6px;
+  margin-bottom: 8px;
+}
+
+/* Tabela de Itens */
 .quote-table-wrapper {
   margin-bottom: 10px;
 }
@@ -16447,13 +16458,13 @@ button.color-swatch-more:hover {
 }
 
 .quote-items-table th {
-  background: #E84520;
+  background: #1c1917;
   color: #ffffff;
-  padding: 6px 10px;
-  font-size: 0.72rem;
+  padding: 7px 10px;
+  font-size: 0.70rem;
   font-weight: 800;
+  letter-spacing: 0.5px;
   text-transform: uppercase;
-  letter-spacing: 0.4px;
   text-align: left;
 }
 
@@ -16461,162 +16472,237 @@ button.color-swatch-more:hover {
 .quote-items-table th.col-right { text-align: right; }
 
 .quote-items-table td {
-  padding: 6px 10px;
-  border-bottom: 1px solid #e4e4e7;
+  padding: 7px 10px;
+  border-bottom: 1px solid #f0ece6;
   color: #1e293b;
-  line-height: 1.3;
+  vertical-align: middle;
 }
 
 .quote-items-table tbody tr:nth-child(even) {
-  background: #fafafa;
+  background: #faf8f5;
 }
 
 .quote-items-table td.col-center { text-align: center; }
 .quote-items-table td.col-right { text-align: right; }
 
-/* Totais */
-.quote-totals-wrapper {
+.item-num {
+  font-weight: 700;
+  color: #18181b;
+}
+
+.item-name {
+  font-weight: 700;
+  color: #18181b;
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
+.item-code {
+  color: #71717a;
+  font-size: 0.68rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.item-qty {
+  font-weight: 600;
+  color: #374151;
+}
+
+.item-unit {
+  color: #4b5563;
+  font-size: 0.78rem;
+}
+
+.item-total {
+  font-weight: 800;
+  color: #111827;
+  font-size: 0.80rem;
+}
+
+/* Resumo Financeiro (Totais) */
+.quote-totals-container {
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 10px;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 8px;
+  margin-bottom: 14px;
 }
 
-.quote-totals-box {
-  width: 280px;
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  overflow: hidden;
-  background: #f8fafc;
-}
-
-.total-row {
+.totals-pill-box {
+  width: 300px;
+  background: #fbf9f6;
+  border: 1px solid #ede8e1;
+  border-radius: 8px;
+  padding: 6px 14px;
   display: flex;
   justify-content: space-between;
-  padding: 4px 12px;
-  font-size: 0.80rem;
-  color: #475569;
-  border-bottom: 1px solid #f1f5f9;
+  align-items: center;
+  font-size: 0.78rem;
+  box-sizing: border-box;
 }
 
-.total-row.discount-row {
-  color: #15803d;
+.totals-pill-lbl {
+  color: #4b5563;
+  font-weight: 500;
+}
+
+.totals-pill-val {
   font-weight: 700;
+  color: #111827;
 }
 
-.total-row.grand-total-row {
-  background: #0f172a;
-  color: #ffffff;
-  font-weight: 900;
-  font-size: 0.94rem;
-  border-bottom: none;
-  padding: 6px 12px;
+.totals-pill-box.discount-pill {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
 }
 
-.total-row.grand-total-row .val {
-  color: #fdba74;
-  font-size: 1.15rem;
+.totals-pill-box.discount-pill .totals-pill-lbl {
+  color: #15803d;
+  font-weight: 600;
 }
 
-/* Condições Comerciais & Banco */
-.quote-terms-section {
-  border: 1px solid #cbd5e1;
-  border-radius: 6px;
-  padding: 8px 14px;
-  background: #fafaf9;
-  margin-bottom: 10px;
-}
-
-.terms-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-}
-
-.term-title {
-  font-size: 0.72rem;
-  font-weight: 900;
-  color: #0f172a;
-  text-transform: uppercase;
-  letter-spacing: 0.4px;
-  margin-bottom: 4px;
-}
-
-.term-list {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  font-size: 0.74rem;
-  line-height: 1.4;
-  color: #334155;
-}
-
-.bank-info-box p {
-  margin: 1.5px 0;
-  font-size: 0.74rem;
-  color: #334155;
-}
-
-.bank-info-box code {
-  background: #f1f5f9;
-  padding: 1px 5px;
-  border-radius: 3px;
+.totals-pill-box.discount-pill .totals-pill-val {
+  color: #15803d;
   font-weight: 800;
-  color: #0f172a;
 }
 
-.bank-sub {
-  font-size: 0.68rem;
-  color: #64748b;
-  margin-top: 3px !important;
+.totals-grand-highlight {
+  width: 300px;
+  background: #faebe7;
+  border: 1px solid #f6d8d0;
+  border-radius: 8px;
+  padding: 8px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  box-sizing: border-box;
 }
 
-.quote-obs-box {
-  margin-top: 6px;
-  padding-top: 6px;
-  border-top: 1px dashed #cbd5e1;
-  font-size: 0.74rem;
-  color: #475569;
+.grand-highlight-lbl {
+  color: #9a2812;
+  font-weight: 800;
+  font-size: 0.76rem;
+  letter-spacing: 0.4px;
+  text-transform: uppercase;
 }
 
-/* Assinaturas */
-.quote-signature-row {
+.grand-highlight-val {
+  color: #c83212;
+  font-weight: 900;
+  font-size: 1.35rem;
+  letter-spacing: -0.5px;
+}
+
+/* Condições Comerciais e Dados Bancários */
+.quote-bottom-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 28px;
-  margin: 16px 0 8px;
+  gap: 24px;
+  margin-top: 10px;
+  margin-bottom: 12px;
 }
 
-.signature-box {
+.bottom-col-title {
+  font-size: 0.70rem;
+  font-weight: 800;
+  color: #E84520;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  margin-bottom: 5px;
+}
+
+.bottom-field {
+  font-size: 0.74rem;
+  line-height: 1.45;
+  color: #4b5563;
+  margin-bottom: 2px;
+}
+
+.bottom-field strong {
+  font-weight: 700;
+  color: #18181b;
+  margin-right: 4px;
+}
+
+.bottom-warranty {
+  font-size: 0.72rem;
+  color: #4b5563;
+  margin-top: 4px;
+  line-height: 1.35;
+}
+
+.bottom-subtext {
+  font-size: 0.70rem;
+  color: #6b7280;
+  margin-top: 4px;
+}
+
+.bottom-phone {
+  font-weight: 800;
+  color: #18181b;
+  font-size: 0.78rem;
+  margin-top: 1px;
+}
+
+/* Observações */
+.quote-observations-section {
+  margin-top: 6px;
+  margin-bottom: 12px;
+}
+
+.obs-text {
+  font-size: 0.72rem;
+  color: #4b5563;
+  line-height: 1.4;
+  margin: 0;
+}
+
+/* Assinaturas Modernas */
+.quote-signatures-modern {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 36px;
+  margin-top: 18px;
+  margin-bottom: 12px;
+  text-align: center;
+}
+
+.modern-sig-col {
   display: flex;
   flex-direction: column;
   align-items: center;
-  text-align: center;
 }
 
-.sig-line {
-  width: 75%;
-  border-top: 1px solid #0f172a;
-  margin-bottom: 4px;
+.modern-sig-line {
+  width: 80%;
+  border-top: 1px solid #1c1917;
+  margin-bottom: 5px;
 }
 
-.sig-name {
-  font-size: 0.82rem;
+.modern-sig-name {
   font-weight: 800;
   color: #0f172a;
+  font-size: 0.82rem;
 }
 
-.sig-role {
+.modern-sig-role {
+  color: #6b7280;
   font-size: 0.70rem;
-  color: #64748b;
+  margin-top: 2px;
 }
 
-.quote-footer-bottom {
-  border-top: 1px solid #e2e8f0;
-  padding-top: 6px;
-  margin-top: 4px;
-  text-align: center;
+/* Rodapé Moderno */
+.quote-modern-footer {
+  border-top: 1px solid #ede8e1;
+  padding-top: 8px;
+  margin-top: 8px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   font-size: 0.68rem;
-  color: #64748b;
+  color: #6b7280;
 }
 
 /* Print Rules */
@@ -16644,27 +16730,26 @@ button.color-swatch-more:hover {
   .quote-official-letterhead {
     box-shadow: none !important;
     border-radius: 0 !important;
-    padding: 16px 20px !important;
+    padding: 16px 24px !important;
     width: 100% !important;
   }
 
-  .quote-header-brand,
-  .quote-doc-ribbon,
-  .quote-parties-grid,
-  .party-col,
+  .quote-header-modern,
+  .quote-cards-grid,
+  .quote-info-card,
+  .quote-section-label,
   .quote-table-wrapper,
   .quote-items-table tr,
   .quote-item-row,
-  .quote-totals-wrapper,
-  .quote-totals-box,
-  .quote-terms-section,
-  .terms-grid,
-  .term-col,
-  .bank-info-box,
-  .quote-obs-box,
-  .quote-signature-row,
-  .signature-box,
-  .quote-footer-bottom {
+  .quote-totals-container,
+  .totals-pill-box,
+  .totals-grand-highlight,
+  .quote-bottom-grid,
+  .bottom-col,
+  .quote-observations-section,
+  .quote-signatures-modern,
+  .modern-sig-col,
+  .quote-modern-footer {
     page-break-inside: avoid !important;
     break-inside: avoid !important;
   }

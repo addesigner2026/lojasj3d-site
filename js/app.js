@@ -8662,14 +8662,14 @@
       const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
       return `
         <tr class="quote-item-row">
-          <td class="col-center" style="font-weight:700;">${idx + 1}</td>
+          <td class="col-center item-num">${idx + 1}</td>
           <td>
-            <div style="font-weight:700; color:#18181b;">${escaparHtml(item.descricao || '')}</div>
-            ${item.codigo ? `<span style="font-size:0.75rem; color:#6b7280; font-family:monospace;">${escaparHtml(item.codigo)}</span>` : ''}
+            <div class="item-name">${escaparHtml(item.descricao || '')}</div>
+            ${item.codigo ? `<div class="item-code">CÓD. ${escaparHtml(item.codigo)}</div>` : ''}
           </td>
-          <td class="col-center" style="font-weight:700;">${item.qtd || 1}</td>
-          <td class="col-right">${formatarMoedaBR(Number(item.precoUnitario) || 0)}</td>
-          <td class="col-right" style="font-weight:800; color:#E84520;">${formatarMoedaBR(totLinha)}</td>
+          <td class="col-center item-qty">${item.qtd || 1}</td>
+          <td class="col-right item-unit">${formatarMoedaBR(Number(item.precoUnitario) || 0)}</td>
+          <td class="col-right item-total">${formatarMoedaBR(totLinha)}</td>
         </tr>
       `;
     }).join("");
@@ -8706,79 +8706,76 @@
       <div class="quote-paper-container">
         <div class="quote-official-letterhead">
           
-          <!-- CABEÇALHO GRUPO SJ -->
-          <div class="quote-header-brand">
-            <div class="brand-left">
-              <div class="group-logo-wrap">
-                <span class="brand-group-name">GRUPO</span>
-                <span class="brand-main-name">SJ</span>
+          <!-- FAIXA LARANJA DE TOPO -->
+          <div class="quote-top-accent-bar"></div>
+
+          <!-- MARCA D'ÁGUA SUTIL CENTRAL "SJ" -->
+          <div class="quote-watermark-sj" aria-hidden="true">SJ</div>
+
+          <!-- CABEÇALHO MODERNO -->
+          <div class="quote-header-modern">
+            <div class="header-brand-box">
+              <div class="brand-logo-title">
+                <span class="logo-loja">LOJA</span> <span class="logo-sj">SJ</span>
               </div>
-              <div class="brand-slogan-box">
-                <p class="brand-slogan">Um grupo. Muitas soluções.</p>
+              <div class="brand-slogan-lines">
+                <p class="brand-slogan-main">Um grupo. Muitas soluções.</p>
                 <p class="brand-slogan-sub">A mesma confiança.</p>
               </div>
             </div>
-            <div class="brand-header-curve">
-              <svg viewBox="0 0 400 90" preserveAspectRatio="none">
-                <path d="M 0,0 C 150,0 200,90 400,90 L 400,0 Z" fill="#18181b" />
-                <path d="M 50,0 C 180,0 250,90 400,90 L 400,45 C 270,45 190,0 50,0 Z" fill="#E84520" />
-              </svg>
+
+            <div class="header-doc-box">
+              <div class="doc-badge-title">ORÇAMENTO / PROPOSTA COMERCIAL</div>
+              <div class="doc-number-main">${escaparHtml(meta.numero || 'SJ-2026-0001')}</div>
+              <div class="doc-emission-date">Emissão em ${escaparHtml(meta.data || obterDataHojeFormatada())}</div>
             </div>
           </div>
 
-          <!-- FAIXA IDENTIFICADORA DE DOCUMENTO COMERCIAL -->
-          <div class="quote-doc-ribbon">
-            <div class="ribbon-title">ORÇAMENTO / PROPOSTA COMERCIAL</div>
-            <div class="ribbon-meta">
-              <div class="meta-field">
-                <span class="meta-lbl">Nº Orçamento:</span>
-                <strong class="meta-val highlight">${escaparHtml(meta.numero || 'SJ-2026-0001')}</strong>
-              </div>
-              <div class="meta-field">
-                <span class="meta-lbl">Data:</span>
-                <span class="meta-val">${escaparHtml(meta.data || obterDataHojeFormatada())}</span>
-              </div>
-            </div>
-          </div>
-
-          <!-- GRID FORNECEDOR E CLIENTE -->
-          <div class="quote-parties-grid">
-            <div class="party-col supplier-col">
-              <div class="party-header-tag supplier-tag">FORNECEDOR</div>
-              <h4 class="party-name">SJ NOVAIS E CIA LTDA</h4>
-              <div class="party-details">
-                <p><strong>CNPJ:</strong> 66.275.129/0001-10</p>
-                <p><strong>Inscrição Estadual:</strong> 91222907-67</p>
-                <p><strong>Endereço:</strong> Avenida Portugal, nº 6759</p>
-                <p><strong>Bairro — Cidade/UF:</strong> Zona 1A - Umuarama/PR</p>
-                <p><strong>Telefone:</strong> (44) 99135-1318</p>
-                <p><strong>Vendedor:</strong> ${escaparHtml(vendedorNome)}</p>
+          <!-- CARDS FORNECEDOR E CLIENTE -->
+          <div class="quote-cards-grid">
+            <!-- FORNECEDOR -->
+            <div class="quote-info-card">
+              <div class="card-tag">FORNECEDOR</div>
+              <div class="card-main-title">SJ NOVAIS E CIA LTDA</div>
+              <div class="card-divider"></div>
+              <div class="card-field-list">
+                <div class="card-field"><strong>CNPJ</strong> <span>66.275.129/0001-10</span></div>
+                <div class="card-field"><strong>Inscrição estadual</strong> <span>91222907-67</span></div>
+                <div class="card-field"><strong>Endereço</strong> <span>Avenida Portugal, nº 6759</span></div>
+                <div class="card-field"><strong>Bairro / Cidade / UF</strong> <span>Zona 1A - Umuarama/PR</span></div>
+                <div class="card-field"><strong>Telefone</strong> <span>(44) 99135-1318</span></div>
+                <div class="card-field"><strong>Vendedor</strong> <span>${escaparHtml(vendedorNome)}</span></div>
               </div>
             </div>
 
-            <div class="party-col client-col">
-              <div class="party-header-tag client-tag">CLIENTE</div>
-              <h4 class="party-name">${escaparHtml(cliente.nome || 'Cliente Balcão')}</h4>
-              <div class="party-details">
-                <p><strong>Documento (CPF/CNPJ):</strong> ${escaparHtml(cliente.cnpjCpf || 'Não informado')}</p>
-                <p><strong>Endereço:</strong> ${escaparHtml(cliente.endereco || 'Umuarama e Região')}</p>
-                <p><strong>Cidade / UF:</strong> ${escaparHtml(cliente.bairroCidadeUf || 'Umuarama / PR')}</p>
-                <p><strong>Telefone / WhatsApp:</strong> ${escaparHtml(cliente.cepTelefone || 'Não informado')}</p>
-                <p><strong>E-mail:</strong> ${escaparHtml(cliente.email || 'Não informado')}</p>
+            <!-- CLIENTE -->
+            <div class="quote-info-card">
+              <div class="card-tag">CLIENTE</div>
+              <div class="card-main-title">${escaparHtml(cliente.nome || 'Cliente Balcão')}</div>
+              <div class="card-divider"></div>
+              <div class="card-field-list">
+                <div class="card-field"><strong>Documento (CPF/CNPJ)</strong> <span>${escaparHtml(cliente.cnpjCpf || 'Não informado')}</span></div>
+                <div class="card-field"><strong>Endereço</strong> <span>${escaparHtml(cliente.endereco || 'Umuarama e Região')}</span></div>
+                <div class="card-field"><strong>Cidade / UF</strong> <span>${escaparHtml(cliente.bairroCidadeUf || 'Umuarama / PR')}</span></div>
+                <div class="card-field"><strong>Telefone / WhatsApp</strong> <span>${escaparHtml(cliente.cepTelefone || 'Não informado')}</span></div>
+                <div class="card-field"><strong>E-mail</strong> <span>${escaparHtml(cliente.email || 'Não informado')}</span></div>
               </div>
             </div>
           </div>
 
-          <!-- TABELA INSTITUCIONAL DE ITENS COM CABEÇALHO LARANJA -->
+          <!-- TÍTULO SEÇÃO ITENS -->
+          <div class="quote-section-label">ITENS DO ORÇAMENTO</div>
+
+          <!-- TABELA DE ITENS -->
           <div class="quote-table-wrapper">
             <table class="quote-items-table">
               <thead>
                 <tr>
-                  <th class="col-center" style="width: 44px;">Item</th>
-                  <th>Descrição do produto / serviço</th>
-                  <th class="col-center" style="width: 60px;">Qtd.</th>
-                  <th class="col-right" style="width: 130px;">Valor unitário R$</th>
-                  <th class="col-right" style="width: 130px;">Valor total R$</th>
+                  <th class="col-center" style="width: 44px;">ITEM</th>
+                  <th>DESCRIÇÃO DO PRODUTO / SERVIÇO</th>
+                  <th class="col-center" style="width: 48px;">QTD.</th>
+                  <th class="col-right" style="width: 130px;">VALOR UNITÁRIO</th>
+                  <th class="col-right" style="width: 130px;">VALOR TOTAL</th>
                 </tr>
               </thead>
               <tbody>
@@ -8787,77 +8784,74 @@
             </table>
           </div>
 
-          <!-- RESUMO FINANCEIRO -->
-          <div class="quote-totals-wrapper">
-            <div class="quote-totals-box">
-              <div class="total-row">
-                <span class="lbl">Subtotal dos Itens:</span>
-                <span class="val">${formatarMoedaBR(subtotal)}</span>
+          <!-- RESUMO FINANCEIRO (TOTAIS) -->
+          <div class="quote-totals-container">
+            <div class="totals-pill-box">
+              <span class="totals-pill-lbl">Subtotal dos itens</span>
+              <span class="totals-pill-val">${formatarMoedaBR(subtotal)}</span>
+            </div>
+            ${desconto > 0 ? `
+              <div class="totals-pill-box discount-pill">
+                <span class="totals-pill-lbl">Desconto comercial</span>
+                <span class="totals-pill-val">- ${formatarMoedaBR(desconto)}</span>
               </div>
-              ${desconto > 0 ? `
-                <div class="total-row discount-row">
-                  <span class="lbl">Desconto Comercial:</span>
-                  <span class="val">- ${formatarMoedaBR(desconto)}</span>
-                </div>
-              ` : ''}
-              ${frete > 0 ? `
-                <div class="total-row">
-                  <span class="lbl">Frete / Entrega:</span>
-                  <span class="val">+ ${formatarMoedaBR(frete)}</span>
-                </div>
-              ` : ''}
-              <div class="total-row grand-total-row">
-                <span class="lbl">VALOR TOTAL:</span>
-                <span class="val">${formatarMoedaBR(totalGeral)}</span>
+            ` : ''}
+            ${frete > 0 ? `
+              <div class="totals-pill-box">
+                <span class="totals-pill-lbl">Frete / Entrega</span>
+                <span class="totals-pill-val">+ ${formatarMoedaBR(frete)}</span>
               </div>
+            ` : ''}
+            <div class="totals-grand-highlight">
+              <span class="grand-highlight-lbl">VALOR TOTAL</span>
+              <span class="grand-highlight-val">${formatarMoedaBR(totalGeral)}</span>
             </div>
           </div>
 
           <!-- CONDIÇÕES COMERCIAIS & DADOS BANCÁRIOS -->
-          <div class="quote-terms-section">
-            <div class="terms-grid">
-              <div class="term-col">
-                <div class="term-title">Condições Comerciais</div>
-                <ul class="term-list">
-                  <li><strong>Forma de Pagamento:</strong> ${escaparHtml(meta.formaPagamento || 'PIX à Vista (5% OFF)')}</li>
-                  <li><strong>Prazo de Entrega:</strong> ${escaparHtml(meta.prazoEntrega || 'Pronta Entrega / Imediato')}</li>
-                  <li><strong>Validade desta Proposta:</strong> ${escaparHtml(meta.validade || '15 dias')}</li>
-                  <li><strong>Garantia:</strong> Produtos novos lacrados com garantia oficial do Grupo SJ.</li>
-                </ul>
-              </div>
-              <div class="term-col">
-                <div class="term-title">Dados Bancários / Chave PIX</div>
-                <div class="bank-info-box">
-                  <p><strong>Favorecido:</strong> SJ NOVAIS E CIA LTDA</p>
-                  <p><strong>Chave PIX (CNPJ):</strong> <code>66.275.129/0001-10</code></p>
-                  <p class="bank-sub">Envio de comprovante para o WhatsApp oficial: (44) 99135-1318</p>
-                </div>
-              </div>
+          <div class="quote-bottom-grid">
+            <div class="bottom-col">
+              <div class="bottom-col-title">CONDIÇÕES COMERCIAIS</div>
+              <div class="bottom-field"><strong>Pagamento</strong> <span>${escaparHtml(meta.formaPagamento || 'PIX à vista (chave CNPJ)')}</span></div>
+              <div class="bottom-field"><strong>Prazo de entrega</strong> <span>${escaparHtml(meta.prazoEntrega || 'Pronta entrega / imediato')}</span></div>
+              <div class="bottom-field"><strong>Validade da proposta</strong> <span>${escaparHtml(meta.validade || '15 dias')}</span></div>
+              <div class="bottom-warranty">Garantia oficial do Grupo SJ em produtos novos lacrados.</div>
             </div>
-            ${meta.observacoes ? `
-              <div class="quote-obs-box">
-                <strong>Observações Especiais:</strong>
-                <p>${escaparHtml(meta.observacoes)}</p>
-              </div>
-            ` : ''}
-          </div>
 
-          <!-- ASSINATURA E RODAPÉ OFICIAL -->
-          <div class="quote-signature-row">
-            <div class="signature-box">
-              <div class="sig-line"></div>
-              <span class="sig-name">${escaparHtml(vendedorNome)}</span>
-              <span class="sig-role">Loja SJ 3D • Consultor Técnico</span>
-            </div>
-            <div class="signature-box">
-              <div class="sig-line"></div>
-              <span class="sig-name">${escaparHtml(cliente.nome || 'Assinatura do Cliente')}</span>
-              <span class="sig-role">De Acordo / Aceite da Proposta</span>
+            <div class="bottom-col">
+              <div class="bottom-col-title">DADOS BANCÁRIOS / PIX</div>
+              <div class="bottom-field"><strong>Favorecido</strong> <span>SJ NOVAIS E CIA LTDA</span></div>
+              <div class="bottom-field"><strong>Chave PIX (CNPJ)</strong> <span>66.275.129/0001-10</span></div>
+              <div class="bottom-subtext">WhatsApp para envio do comprovante</div>
+              <div class="bottom-phone">(44) 99135-1318</div>
             </div>
           </div>
 
-          <div class="quote-footer-bottom">
-            <p>Loja SJ 3D — Revendedor Autorizado Bambu Lab e Masterprint • Av. Portugal, 6759 — Umuarama / PR • Telefone: (44) 99135-1318</p>
+          <!-- OBSERVAÇÕES -->
+          <div class="quote-observations-section">
+            <div class="bottom-col-title">OBSERVAÇÕES</div>
+            <p class="obs-text">${escaparHtml(meta.observacoes || 'Produtos novos com garantia oficial do Grupo SJ. Suporte técnico na Av. Portugal, 6759 - Umuarama/PR.')}</p>
+          </div>
+
+          <!-- ASSINATURAS -->
+          <div class="quote-signatures-modern">
+            <div class="modern-sig-col">
+              <div class="modern-sig-line"></div>
+              <div class="modern-sig-name">${escaparHtml(vendedorNome)}</div>
+              <div class="modern-sig-role">Loja SJ 3D • Consultor técnico</div>
+            </div>
+
+            <div class="modern-sig-col">
+              <div class="modern-sig-line"></div>
+              <div class="modern-sig-name">${escaparHtml(cliente.nome || 'Ado Thiago RIBEIRO')}</div>
+              <div class="modern-sig-role">De acordo / Aceite da proposta</div>
+            </div>
+          </div>
+
+          <!-- RODAPÉ MODERNO -->
+          <div class="quote-modern-footer">
+            <span>Loja SJ 3D • Revendedor autorizado Bambu Lab e Masterprint</span>
+            <span>Av. Portugal, 6759 • Umuarama/PR • (44) 99135-1318</span>
           </div>
 
         </div>
@@ -9023,23 +9017,22 @@
       pagebreak: {
         mode: ['css', 'legacy'],
         avoid: [
-          '.quote-header-brand',
-          '.quote-doc-ribbon',
-          '.quote-parties-grid',
-          '.party-col',
+          '.quote-header-modern',
+          '.quote-cards-grid',
+          '.quote-info-card',
+          '.quote-section-label',
           '.quote-table-wrapper',
           '.quote-items-table tr',
           '.quote-item-row',
-          '.quote-totals-wrapper',
-          '.quote-totals-box',
-          '.quote-terms-section',
-          '.terms-grid',
-          '.term-col',
-          '.bank-info-box',
-          '.quote-obs-box',
-          '.quote-signature-row',
-          '.signature-box',
-          '.quote-footer-bottom'
+          '.quote-totals-container',
+          '.totals-pill-box',
+          '.totals-grand-highlight',
+          '.quote-bottom-grid',
+          '.bottom-col',
+          '.quote-observations-section',
+          '.quote-signatures-modern',
+          '.modern-sig-col',
+          '.quote-modern-footer'
         ]
       }
     };
