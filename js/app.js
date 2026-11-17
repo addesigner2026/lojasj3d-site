@@ -12369,6 +12369,35 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("btn-admin-logout")?.addEventListener("click", encerrarSessaoAdministrativa);
     document.getElementById("btn-admin-logout-sidebar")?.addEventListener("click", encerrarSessaoAdministrativa);
 
+    // Menu Mobile da Barra Lateral do Admin (Gaveta Deslizante & Backdrop)
+    const btnMobileToggle = document.getElementById("btn-admin-mobile-toggle");
+    const btnMobileClose = document.getElementById("btn-admin-sidebar-close");
+    const mobileBackdrop = document.getElementById("admin-mobile-backdrop");
+    const adminSidebar = document.querySelector(".admin-standalone-sidebar");
+
+    function abrirMenuMobileAdmin() {
+      if (adminSidebar) adminSidebar.classList.add("mobile-open");
+      if (mobileBackdrop) mobileBackdrop.classList.add("active");
+    }
+
+    function fecharMenuMobileAdmin() {
+      if (adminSidebar) adminSidebar.classList.remove("mobile-open");
+      if (mobileBackdrop) mobileBackdrop.classList.remove("active");
+    }
+
+    btnMobileToggle?.addEventListener("click", abrirMenuMobileAdmin);
+    btnMobileClose?.addEventListener("click", fecharMenuMobileAdmin);
+    mobileBackdrop?.addEventListener("click", fecharMenuMobileAdmin);
+
+    // Ao selecionar uma aba no mobile, fecha automaticamente a gaveta lateral
+    document.querySelectorAll(".admin-cms-tab-btn").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (window.innerWidth <= 1024) {
+          fecharMenuMobileAdmin();
+        }
+      });
+    });
+
     // Configura abas do Gate (Login vs Solicitar Acesso)
     document.querySelectorAll("[data-gate-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {

@@ -123,7 +123,7 @@ function verificarAutorizacaoAdmin(req, db) {
   if (token && db && Array.isArray(db.usuarios)) {
     const user = db.usuarios.find(
       (u) => (u.id === token || u.email?.toLowerCase() === token.toLowerCase()) &&
-             (u.tipo === "operador" || u.tipo === "admin" || String(u.cargo).toLowerCase().includes("vendedor") || String(u.cargo).toLowerCase().includes("admin"))
+        (u.tipo === "operador" || u.tipo === "admin" || String(u.cargo).toLowerCase().includes("vendedor") || String(u.cargo).toLowerCase().includes("admin"))
     );
     if (user) return true;
   }

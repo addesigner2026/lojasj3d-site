@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261116_09" />
+  <link rel="stylesheet" href="css/styles.css?v=20261117_04" />
 </head>
 
 <body class="admin-standalone-body">
@@ -123,16 +123,20 @@
 
   <div class="admin-standalone-shell" id="admin-standalone-app" style="display: none;">
 
+    <!-- BACKDROP MOBILE PARA FECHAR O MENU COM 1 TOQUE -->
+    <div id="admin-mobile-backdrop" class="admin-mobile-backdrop"></div>
+
     <!-- COLUNA ESQUERDA: MENU LATERAL PERMANENTE (CLEAN NEUTRAL LIGHT SAAS SIDEBAR) -->
     <aside class="admin-standalone-sidebar">
       <div>
         <!-- Logo e Identidade da Loja SJ -->
         <div class="sj-crm-brand">
           <div class="sj-crm-brand-icon">SJ</div>
-          <div>
+          <div class="sj-crm-brand-info">
             <div class="sj-crm-brand-title">LOJA SJ 3D</div>
             <div class="sj-crm-brand-sub">Plataforma de Gestão Oficial</div>
           </div>
+          <button type="button" id="btn-admin-sidebar-close" class="btn-admin-sidebar-close" aria-label="Fechar menu lateral">✕</button>
         </div>
 
         <!-- Box do Operador Autenticado -->
@@ -208,27 +212,56 @@
     <!-- COLUNA DIREITA: TOPBAR SAAS + ÁREA ROLÁVEL DE TRABALHO -->
     <main class="admin-standalone-main">
       <header class="admin-standalone-topbar">
-        <div>
-          <span style="font-size:0.68rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.6px;">PAINEL DEDICADO DE OPERAÇÕES • LOJA SJ 3D</span>
-          <h3 id="admin-cms-title" style="margin:2px 0 0; font-size:1.18rem; font-weight:900; color:#0f172a;">Catálogo, Preços &amp; Controle de Estoque</h3>
+        <!-- Lado Esquerdo: Menu Mobile + Breadcrumb e Título da Página com respiro -->
+        <div class="admin-topbar-left">
+          <button type="button" id="btn-admin-mobile-toggle" class="btn-admin-mobile-toggle" aria-label="Abrir menu de navegação">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="3" y1="12" x2="21" y2="12"></line>
+              <line x1="3" y1="6" x2="21" y2="6"></line>
+              <line x1="3" y1="18" x2="21" y2="18"></line>
+            </svg>
+          </button>
+          <div class="admin-topbar-titles">
+            <div class="admin-topbar-badge-row">
+              <span class="admin-topbar-brand-badge">LOJA SJ 3D</span>
+              <span class="admin-topbar-badge-sep">•</span>
+              <span class="admin-topbar-status-badge">
+                <span class="status-dot-pulse"></span>
+                Painel Oficial de Operações
+              </span>
+            </div>
+            <h1 id="admin-cms-title" class="admin-topbar-h1">Catálogo, Preços &amp; Controle de Estoque</h1>
+          </div>
         </div>
 
-        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-          <button type="button" id="crm-top-btn-qr-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #fed7aa; background:#fff7ed; color:#c2410c; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-            <span>📷 Ler QR / Preço</span>
+        <!-- Lado Direito: Ações Rápidas sem quebras -->
+        <div class="admin-topbar-right">
+          <!-- Atalhos rápidos compactos -->
+          <button type="button" id="crm-top-btn-qr-shortcut" class="admin-topbar-action-btn highlight" title="Abrir Leitor e Consulta de QR Code">
+            <span class="action-icon">📷</span>
+            <span class="action-label">Ler QR</span>
           </button>
-          <button type="button" id="crm-top-btn-clients-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #e2e8f0; background:#ffffff; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-            <span>📇 Clientes &amp; Leads</span>
+
+          <button type="button" id="crm-top-btn-clients-shortcut" class="admin-topbar-action-btn hide-on-mobile-sm" title="Acessar Clientes e Leads">
+            <span class="action-icon">📇</span>
+            <span class="action-label">Clientes &amp; Leads</span>
           </button>
-          <button type="button" id="crm-top-btn-equipe-shortcut" style="padding:8px 14px; border-radius:9px; border:1.5px solid #e2e8f0; background:#ffffff; color:#18181b; font-size:0.78rem; font-weight:800; cursor:pointer; display:inline-flex; align-items:center; gap:6px;">
-            <span>👥 Equipe</span>
-            <span id="crm-top-pending-pill" style="background:#EF4444; color:#fff; font-size:0.7rem; padding:1px 7px; border-radius:999px; font-weight:800; display:none;">0</span>
+
+          <button type="button" id="crm-top-btn-equipe-shortcut" class="admin-topbar-action-btn hide-on-tablet" title="Gerenciar Equipe e Permissões">
+            <span class="action-icon">👥</span>
+            <span class="action-label">Equipe</span>
+            <span id="crm-top-pending-pill" class="badge-danger-pill" style="display:none;">0</span>
           </button>
-          <a href="index.html" target="_blank" style="padding:8px 14px; border-radius:9px; border:1.5px solid #cbd5e1; background:#f8fafc; color:#0f172a; font-size:0.78rem; font-weight:800; text-decoration:none; display:inline-flex; align-items:center; gap:6px;">
-            <span>🌐 Ver Loja Pública ↗</span>
+
+          <a href="index.html" target="_blank" class="admin-topbar-action-btn ghost" title="Visualizar a loja como cliente público">
+            <span class="action-icon">🌐</span>
+            <span class="action-label">Loja Pública ↗</span>
           </a>
-          <button type="button" id="btn-admin-logout" class="btn-admin-logout-top" title="Encerrar sessão administrativa e bloquear todos os acessos">
-            <span>🔴 Sair / Encerrar Sessão</span>
+
+          <!-- Botão Sair Clean & Sofisticado -->
+          <button type="button" id="btn-admin-logout" class="admin-topbar-logout-btn" title="Encerrar sessão administrativa">
+            <span class="action-icon">🚪</span>
+            <span class="action-label">Sair</span>
           </button>
         </div>
       </header>
@@ -1213,7 +1246,7 @@
   <script src="js/supabase-client.js?v=20261114_01"></script>
   <script src="js/dados.js?v=20261113_02"></script>
   <script src="js/database.js?v=20261113_02"></script>
-  <script src="js/app.js?v=20261116_09"></script>
+  <script src="js/app.js?v=20261117_04"></script>
 
 </body>
 
