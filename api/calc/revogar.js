@@ -48,6 +48,54 @@ module.exports = async function handler(req, res) {
     return res.end(JSON.stringify({ sucesso: false, mensagem: "Não é permitido revogar um administrador mestre." }));
   }
 
+  const SUPABASE_URL = process.env.SUPABASE_URL || "https://tqeifmettwhwngeyzboh.supabase.co";
+  const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY || "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZWlmbWV0dHdod25nZXl6Ym9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5MDM5NjUsImV4cCI6MjEwOTQ3OTk2NX0.cgc9bDqnscMv9PCe8ttB7aYlkAmuBYOrnT_j_ukUrX0";
+
+  try {
+    const cfgRes = await fetch(`${SUPABASE_URL}/rest/v1/configuracoes_site?chave=eq.calculadora_leads_v1&select=valor`, {
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`
+      }
+    });
+
+    let leads = [];
+    let revogados = [];
+    if (cfgRes.ok) {
+      const rows = await cfgRes.json();
+      if (Array.isArray(rows) && rows[0]?.valor) {
+        leads = Array.isArray(rows[0].valor.leads) ? rows[0].valor.leads : [];
+        revogados = Array.isArray(rows[0].valor.revogados) ? rows[0].valor.revogados : [];
+      }
+    }
+
+    if (!revogados.includes(email)) {
+      revogados.push(email);
+    }
+
+    leads = leads.map(l => {
+      if (String(l.email || "").toLowerCase().trim() === email) {
+        return { ...l, status: "revogado" };
+      }
+      return l;
+    });
+
+    await fetch(`${SUPABASE_URL}/rest/v1/configuracoes_site`, {
+      method: "POST",
+      headers: {
+        "apikey": SUPABASE_ANON_KEY,
+        "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+        "Content-Type": "application/json",
+        "Prefer": "resolution=merge-duplicates"
+      },
+      body: JSON.stringify({
+        chave: "calculadora_leads_v1",
+        valor: { leads, revogados },
+        atualizado_em: new Date().toISOString()
+      })
+    });
+  } catch (_) {}
+
   res.statusCode = 200;
   res.setHeader("Content-Type", "application/json; charset=utf-8");
   res.end(JSON.stringify({ sucesso: true, mensagem: `Acesso revogado com sucesso para ${email}` }));

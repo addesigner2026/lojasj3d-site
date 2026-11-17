@@ -542,35 +542,45 @@ const server = http.createServer(async (req, res) => {
       return;
     }
 
-    // 10. Gestão de Acessos da Calculadora 3D
+    // 10. Gestão de Acessos e Leads da Calculadora 3D
     const PADRAO_CALC_APROVADOS = ["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br", "sheilagarcia1606@gmail.com", "sjnovaisecia@gmail.com"];
 
     if (pathname === "/api/calc/acessos" && req.method === "GET") {
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      const leads = db.calculadora.leads || [];
+      const revogados = db.calculadora.revogados || [];
+      const aprovados = [...new Set([...(db.calculadora.aprovados || PADRAO_CALC_APROVADOS), ...leads.filter(l => l.status !== "revogado").map(l => l.email)])];
       responderJson(res, 200, {
         sucesso: true,
-        solicitacoes: db.calculadora.solicitacoes || [],
-        aprovados: db.calculadora.aprovados || []
+        leads,
+        revogados,
+        aprovados,
+        solicitacoes: db.calculadora.solicitacoes || []
       });
       return;
     }
 
     if (pathname === "/api/calc/solicitar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
-      db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora.leads = db.calculadora.leads || [];
+      db.calculadora.revogados = db.calculadora.revogados || [];
       if (body && body.email) {
         const emailLower = String(body.email).toLowerCase().trim();
-        db.calculadora.solicitacoes = db.calculadora.solicitacoes.filter(s => s.email?.toLowerCase().trim() !== emailLower);
-        db.calculadora.solicitacoes.unshift({
-          id: "solic-" + Date.now(),
+        db.calculadora.revogados = db.calculadora.revogados.filter(e => e.toLowerCase().trim() !== emailLower);
+        const novoLead = {
+          id: "lead-" + Date.now(),
           nome: String(body.nome || "").trim(),
           email: emailLower,
           whatsapp: String(body.whatsapp || "").trim(),
-          data: new Date().toISOString()
-        });
+          cidade: String(body.cidade || "").trim(),
+          data: new Date().toISOString(),
+          status: "ativo"
+        };
+        db.calculadora.leads = db.calculadora.leads.filter(l => l.email?.toLowerCase().trim() !== emailLower);
+        db.calculadora.leads.unshift(novoLead);
         salvarBanco(db);
-        responderJson(res, 200, { sucesso: true, mensagem: "Solicitação registrada com sucesso!" });
+        responderJson(res, 200, { sucesso: true, lead: novoLead, mensagem: "Lead cadastrado e liberado com sucesso!" });
       } else {
         responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
       }
@@ -579,15 +589,14 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/calc/aprovar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
       db.calculadora.aprovados = db.calculadora.aprovados || [];
-      db.calculadora.solicitacoes = db.calculadora.solicitacoes || [];
       if (body && body.email) {
         const emailLower = String(body.email).toLowerCase().trim();
         if (!db.calculadora.aprovados.includes(emailLower)) {
           db.calculadora.aprovados.push(emailLower);
         }
-        db.calculadora.solicitacoes = db.calculadora.solicitacoes.filter(s => s.email?.toLowerCase().trim() !== emailLower);
+        db.calculadora.revogados = (db.calculadora.revogados || []).filter(e => e.toLowerCase().trim() !== emailLower);
         salvarBanco(db);
         responderJson(res, 200, { sucesso: true, mensagem: `Acesso liberado com sucesso para ${emailLower}` });
       } else {
@@ -598,17 +607,61 @@ const server = http.createServer(async (req, res) => {
 
     if (pathname === "/api/calc/revogar" && req.method === "POST") {
       const body = await lerCorpoRequisicao(req);
-      db.calculadora = db.calculadora || { solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
-      db.calculadora.aprovados = db.calculadora.aprovados || [];
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora.revogados = db.calculadora.revogados || [];
       if (body && body.email) {
         const emailLower = String(body.email).toLowerCase().trim();
         if (["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"].includes(emailLower)) {
           responderJson(res, 400, { sucesso: false, mensagem: "Não é permitido revogar um administrador mestre." });
           return;
         }
-        db.calculadora.aprovados = db.calculadora.aprovados.filter(e => e.toLowerCase().trim() !== emailLower);
+        if (!db.calculadora.revogados.includes(emailLower)) {
+          db.calculadora.revogados.push(emailLower);
+        }
+        if (Array.isArray(db.calculadora.leads)) {
+          db.calculadora.leads = db.calculadora.leads.map(l => l.email?.toLowerCase().trim() === emailLower ? { ...l, status: "revogado" } : l);
+        }
         salvarBanco(db);
         responderJson(res, 200, { sucesso: true, mensagem: `Acesso revogado com sucesso para ${emailLower}` });
+      } else {
+        responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
+      }
+      return;
+    }
+
+    if (pathname === "/api/calc/reativar" && req.method === "POST") {
+      const body = await lerCorpoRequisicao(req);
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora.revogados = db.calculadora.revogados || [];
+      if (body && body.email) {
+        const emailLower = String(body.email).toLowerCase().trim();
+        db.calculadora.revogados = db.calculadora.revogados.filter(e => e.toLowerCase().trim() !== emailLower);
+        if (Array.isArray(db.calculadora.leads)) {
+          db.calculadora.leads = db.calculadora.leads.map(l => l.email?.toLowerCase().trim() === emailLower ? { ...l, status: "ativo" } : l);
+        }
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: `Acesso reativado com sucesso para ${emailLower}` });
+      } else {
+        responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
+      }
+      return;
+    }
+
+    if (pathname === "/api/calc/excluir" && req.method === "POST") {
+      const body = await lerCorpoRequisicao(req);
+      db.calculadora = db.calculadora || { leads: [], revogados: [], solicitacoes: [], aprovados: [...PADRAO_CALC_APROVADOS] };
+      db.calculadora.leads = db.calculadora.leads || [];
+      db.calculadora.revogados = db.calculadora.revogados || [];
+      if (body && body.email) {
+        const emailLower = String(body.email).toLowerCase().trim();
+        if (["jt.designer21@gmail.com", "ad.design2050@gmail.com", "contato@gruposj.com.br"].includes(emailLower)) {
+          responderJson(res, 400, { sucesso: false, mensagem: "Não é permitido excluir um administrador mestre." });
+          return;
+        }
+        db.calculadora.leads = db.calculadora.leads.filter(l => l.email?.toLowerCase().trim() !== emailLower);
+        db.calculadora.revogados = db.calculadora.revogados.filter(e => e.toLowerCase().trim() !== emailLower);
+        salvarBanco(db);
+        responderJson(res, 200, { sucesso: true, mensagem: `Lead ${emailLower} excluído com sucesso.` });
       } else {
         responderJson(res, 400, { sucesso: false, mensagem: "E-mail obrigatório" });
       }

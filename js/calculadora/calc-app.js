@@ -1798,20 +1798,48 @@ function setupEventListeners() {
 }
 
 // =========================================================================
-// CAMADA DE ACESSO & GATE INDEPENDENTE DO PRECIFICADOR LOJA SJ 3D
+// CAMADA DE ACESSO & GESTÃO DE LEADS — PRECIFICADOR LOJA SJ 3D
+// Auto-aprovação imediata no cadastro + Painel de CRM & Exportação de Leads
 // =========================================================================
 const CALC_AUTH_STORAGE_KEY = 'sj_calc_auth_v1';
+const LEADS_STORAGE_KEY = 'sj_calc_leads_v1';
+const REVOGADOS_STORAGE_KEY = 'sj_calc_revogados_v1';
+
 const ADMIN_EMAILS = [
   'jt.designer21@gmail.com',
   'ad.design2050@gmail.com',
   'contato@gruposj.com.br'
 ];
-const DEFAULT_APPROVED_EMAILS = [
-  'jt.designer21@gmail.com',
-  'ad.design2050@gmail.com',
-  'contato@gruposj.com.br',
-  'sheilagarcia1606@gmail.com',
-  'sjnovaisecia@gmail.com'
+
+const DEFAULT_INITIAL_LEADS = [
+  {
+    id: 'lead-master-1',
+    nome: 'José Thiago',
+    email: 'jt.designer21@gmail.com',
+    whatsapp: '(44) 99135-1318',
+    cidade: 'Umuarama/PR',
+    data: '2026-11-04T12:00:00.000Z',
+    status: 'ativo',
+    isMaster: true
+  },
+  {
+    id: 'lead-master-2',
+    nome: 'Loja SJ (Oficina)',
+    email: 'sjnovaisecia@gmail.com',
+    whatsapp: '(44) 99860-4639',
+    cidade: 'Umuarama/PR',
+    data: '2026-11-17T11:00:00.000Z',
+    status: 'ativo'
+  },
+  {
+    id: 'lead-master-3',
+    nome: 'Sheila Garcia',
+    email: 'sheilagarcia1606@gmail.com',
+    whatsapp: '(44) 99135-1318',
+    cidade: 'Umuarama/PR',
+    data: '2026-11-16T15:00:00.000Z',
+    status: 'ativo'
+  }
 ];
 
 function escaparHtml(str) {
@@ -1827,39 +1855,48 @@ function escaparHtml(str) {
 function isAdminUser(user) {
   if (!user || !user.email) return false;
   const emailLower = String(user.email).toLowerCase().trim();
-  return ADMIN_EMAILS.includes(emailLower) || user.role === 'admin' || user.tipo === 'admin';
+  return ADMIN_EMAILS.includes(emailLower) || user.role === 'admin' || user.tipo === 'admin' || user.isMaster === true;
 }
 
-function getApprovedCalcEmailsLocal() {
+function getCalcLeadsLocal() {
   try {
-    const raw = localStorage.getItem('sj_calc_aprovados');
+    const raw = localStorage.getItem(LEADS_STORAGE_KEY);
     if (raw) {
       const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) {
-        return [...new Set([...DEFAULT_APPROVED_EMAILS, ...arr.map(e => String(e).toLowerCase().trim())])];
+      if (Array.isArray(arr) && arr.length > 0) {
+        const mapa = new Map();
+        DEFAULT_INITIAL_LEADS.forEach(l => mapa.set(l.email.toLowerCase().trim(), l));
+        arr.forEach(l => {
+          const em = String(l.email || '').toLowerCase().trim();
+          if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
+        });
+        return Array.from(mapa.values());
       }
     }
   } catch (_) {}
-  return [...DEFAULT_APPROVED_EMAILS];
+  return [...DEFAULT_INITIAL_LEADS];
 }
 
-function addApprovedCalcEmailLocal(email) {
+function saveCalcLeadsLocal(leads) {
   try {
-    const list = getApprovedCalcEmailsLocal();
-    const emailLower = String(email).toLowerCase().trim();
-    if (!list.includes(emailLower)) {
-      list.push(emailLower);
-    }
-    localStorage.setItem('sj_calc_aprovados', JSON.stringify(list));
+    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
   } catch (_) {}
 }
 
-function removeApprovedCalcEmailLocal(email) {
+function getCalcRevogadosLocal() {
   try {
-    const list = getApprovedCalcEmailsLocal();
-    const emailLower = String(email).toLowerCase().trim();
-    const filtered = list.filter(e => e !== emailLower);
-    localStorage.setItem('sj_calc_aprovados', JSON.stringify(filtered));
+    const raw = localStorage.getItem(REVOGADOS_STORAGE_KEY);
+    if (raw) {
+      const arr = JSON.parse(raw);
+      if (Array.isArray(arr)) return arr.map(e => String(e).toLowerCase().trim());
+    }
+  } catch (_) {}
+  return [];
+}
+
+function saveCalcRevogadosLocal(list) {
+  try {
+    localStorage.setItem(REVOGADOS_STORAGE_KEY, JSON.stringify(list));
   } catch (_) {}
 }
 
@@ -1884,23 +1921,44 @@ function setCalcAuthUser(user) {
 }
 
 function isUserApprovedForCalc(user) {
-  if (!user || !user.email) return false;
-  const emailLower = String(user.email).toLowerCase().trim();
+  if (!user) return false;
+  const emailLower = String(user.email || '').toLowerCase().trim();
+  const waNum = String(user.whatsapp || '').replace(/\D/g, '');
+
+  // Se estiver na lista de revogados/bloqueados pelo admin
+  const revogados = getCalcRevogadosLocal();
+  if (emailLower && revogados.includes(emailLower)) return false;
+
+  // Admins Master têm acesso permanente
   if (ADMIN_EMAILS.includes(emailLower)) return true;
-  if (DEFAULT_APPROVED_EMAILS.includes(emailLower)) return true;
-  if (user.role === 'admin' || user.tipo === 'operador' || user.tipo === 'admin') return true;
-  if (user.status === 'approved' || user.acesso_calculadora === true) return true;
-  const locais = getApprovedCalcEmailsLocal();
-  if (locais.includes(emailLower)) return true;
+  if (user.role === 'admin' || user.tipo === 'admin' || user.isMaster === true) return true;
+
+  // Se o usuário logado tem status ativo
+  if (user.status === 'ativo' || user.status === 'approved' || user.acesso_calculadora === true) {
+    return true;
+  }
+
+  // Verifica na base de leads cadastrados
+  const leads = getCalcLeadsLocal();
+  const leadMatch = leads.find(l => {
+    const lEmail = String(l.email || '').toLowerCase().trim();
+    const lWa = String(l.whatsapp || '').replace(/\D/g, '');
+    return (emailLower && lEmail === emailLower) || (waNum && lWa && lWa === waNum);
+  });
+
+  if (leadMatch) {
+    return leadMatch.status !== 'revogado';
+  }
+
   return false;
 }
 
 // =========================================================================
-// GESTÃO DE ACESSOS E APROVAÇÃO (EXCLUSIVO PARA ADMIN: JT.DESIGNER21)
+// SINCRONIZAÇÃO EM NUVEM DE LEADS (SUPABASE CLOUD & API)
 // =========================================================================
-async function carregarListaAcessosCompleta() {
-  let solicitacoes = [];
-  let aprovados = getApprovedCalcEmailsLocal();
+async function carregarListaLeadsCompleta() {
+  let leads = getCalcLeadsLocal();
+  let revogados = getCalcRevogadosLocal();
 
   // 1. Tenta carregar do backend (/api/calc/acessos)
   try {
@@ -1908,169 +1966,119 @@ async function carregarListaAcessosCompleta() {
     if (res.ok) {
       const data = await res.json();
       if (data && data.sucesso) {
-        if (Array.isArray(data.solicitacoes)) {
-          solicitacoes = data.solicitacoes;
+        if (Array.isArray(data.leads)) {
+          const mapa = new Map();
+          leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
+          data.leads.forEach(l => {
+            const em = l.email?.toLowerCase().trim();
+            if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
+          });
+          leads = Array.from(mapa.values());
         }
-        if (Array.isArray(data.aprovados)) {
-          aprovados = [...new Set([...aprovados, ...data.aprovados.map(e => String(e).toLowerCase().trim())])];
+        if (Array.isArray(data.revogados)) {
+          revogados = [...new Set([...revogados, ...data.revogados.map(e => String(e).toLowerCase().trim())])];
         }
       }
     }
-  } catch (_) {
-    // Continua para o fallback de sincronização
-  }
+  } catch (_) {}
 
   // 2. Sincronização direta com Supabase Cloud
   try {
     const supa = window.SJ_SUPABASE?.getClient?.();
     if (supa) {
-      // 2.1 Lê lista central de acessos em configuracoes_site
+      // 2.1 Lê lista central de leads em configuracoes_site
       const { data: cfgData, error: cfgErr } = await supa
         .from('configuracoes_site')
         .select('valor')
-        .eq('chave', 'calculadora_acessos_v1')
+        .eq('chave', 'calculadora_leads_v1')
         .maybeSingle();
 
       if (!cfgErr && cfgData && cfgData.valor) {
-        if (Array.isArray(cfgData.valor.aprovados)) {
-          aprovados = [...new Set([...aprovados, ...cfgData.valor.aprovados.map(e => String(e).toLowerCase().trim())])];
-        }
-        if (Array.isArray(cfgData.valor.solicitacoes)) {
-          const mapaS = new Map();
-          solicitacoes.forEach(s => mapaS.set(s.email?.toLowerCase().trim(), s));
-          cfgData.valor.solicitacoes.forEach(s => {
-            const k = s.email?.toLowerCase().trim();
-            if (k && !mapaS.has(k)) mapaS.set(k, s);
+        if (Array.isArray(cfgData.valor.leads)) {
+          const mapa = new Map();
+          leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
+          cfgData.valor.leads.forEach(l => {
+            const em = l.email?.toLowerCase().trim();
+            if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
           });
-          solicitacoes = Array.from(mapaS.values());
+          leads = Array.from(mapa.values());
+        }
+        if (Array.isArray(cfgData.valor.revogados)) {
+          revogados = [...new Set([...revogados, ...cfgData.valor.revogados.map(e => String(e).toLowerCase().trim())])];
         }
       }
 
-      // 2.2 Lê solicitações registradas em termos_consentimento
+      // 2.2 Lê consentimentos / leads registrados em termos_consentimento
       const { data: termsData } = await supa
         .from('termos_consentimento')
         .select('id, titular_identificador, motivo_revogacao, concedido_em')
-        .eq('finalidade', 'solicitacao_acesso_calc')
+        .in('finalidade', ['cadastro_lead_calculadora', 'solicitacao_acesso_calc'])
         .order('concedido_em', { ascending: false });
 
       if (Array.isArray(termsData) && termsData.length > 0) {
-        const mapaS = new Map();
-        solicitacoes.forEach(s => mapaS.set(s.email?.toLowerCase().trim(), s));
+        const mapa = new Map();
+        leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
         termsData.forEach(t => {
           try {
             const parsed = t.motivo_revogacao ? JSON.parse(t.motivo_revogacao) : null;
             const em = (parsed?.email || t.titular_identificador || '').toLowerCase().trim();
-            if (em && !mapaS.has(em)) {
-              mapaS.set(em, {
+            if (em && !mapa.has(em)) {
+              mapa.set(em, {
                 id: parsed?.id || t.id,
                 nome: parsed?.nome || em.split('@')[0],
                 whatsapp: parsed?.whatsapp || '',
+                cidade: parsed?.cidade || '',
                 email: em,
-                data: parsed?.data || t.concedido_em
+                data: parsed?.data || t.concedido_em,
+                status: revogados.includes(em) ? 'revogado' : 'ativo'
               });
             }
           } catch (_) {}
         });
-        solicitacoes = Array.from(mapaS.values());
+        leads = Array.from(mapa.values());
       }
     }
   } catch (_) {}
 
-  // 3. Mescla com localStorage para nunca perder dados locais
-  try {
-    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-    if (Array.isArray(saved) && saved.length > 0) {
-      const mapa = new Map();
-      solicitacoes.forEach(s => mapa.set(s.email?.toLowerCase().trim(), s));
-      saved.forEach(s => {
-        const k = s.email?.toLowerCase().trim();
-        if (k && !mapa.has(k)) {
-          mapa.set(k, s);
-        }
-      });
-      solicitacoes = Array.from(mapa.values());
-    }
-  } catch (_) {}
-
   // Atualiza caches locais consolidados
-  try {
-    localStorage.setItem('sj_calc_aprovados', JSON.stringify(aprovados));
-    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(solicitacoes));
-  } catch (_) {}
+  saveCalcLeadsLocal(leads);
+  saveCalcRevogadosLocal(revogados);
 
-  // Remove da lista de pendentes quem já foi aprovado
-  solicitacoes = solicitacoes.filter(s => !aprovados.includes(s.email?.toLowerCase().trim()));
-
-  return { solicitacoes, aprovados };
+  return { leads, revogados };
 }
 
-async function atualizarBadgePendentes() {
-  try {
-    const { solicitacoes } = await carregarListaAcessosCompleta();
-    const count = solicitacoes.length;
-    const badgeHeader = document.getElementById('calc-pending-count-badge');
-    const badgeModal = document.getElementById('calc-admin-badge-pendentes');
-
-    if (badgeHeader) {
-      badgeHeader.textContent = count;
-      badgeHeader.style.display = count > 0 ? 'inline-flex' : 'none';
-    }
-    if (badgeModal) {
-      badgeModal.textContent = count;
-      badgeModal.style.display = count > 0 ? 'inline-flex' : 'none';
-    }
-  } catch (_) {}
-}
-
-async function aprovarAcessoCalc(email, nome = '') {
-  if (!email) return;
-  const emailLower = String(email).toLowerCase().trim();
-
-  addApprovedCalcEmailLocal(emailLower);
-
-  // Remove das pendências no localStorage
-  let restantes = [];
-  try {
-    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-    restantes = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
-    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(restantes));
-  } catch (_) {}
-
-  const listaAprovados = getApprovedCalcEmailsLocal();
-
-  // Sincroniza em nuvem no Supabase Cloud
+async function sincronizarLeadsNuvem(leads, revogados) {
   try {
     const supa = window.SJ_SUPABASE?.getClient?.();
     if (supa) {
       await supa.from('configuracoes_site').upsert(
         {
-          chave: 'calculadora_acessos_v1',
-          valor: {
-            aprovados: listaAprovados,
-            solicitacoes: restantes
-          },
+          chave: 'calculadora_leads_v1',
+          valor: { leads, revogados },
           atualizado_em: new Date().toISOString()
         },
         { onConflict: 'chave' }
       );
     }
   } catch (_) {}
-
-  // Envia ao servidor se disponível
-  try {
-    await fetch('/api/calc/aprovar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailLower, nome })
-    });
-  } catch (_) {}
-
-  showToast(`Acesso liberado com sucesso para ${emailLower}!`, '✅');
-  await carregarERenderizarAcessos();
-  await atualizarBadgePendentes();
 }
 
-async function revogarAcessoCalc(email) {
+async function atualizarBadgeLeads() {
+  try {
+    const { leads } = await carregarListaLeadsCompleta();
+    const count = leads.length;
+    const badgeHeader = document.getElementById('calc-pending-count-badge');
+    if (badgeHeader) {
+      badgeHeader.textContent = count;
+      badgeHeader.style.display = count > 0 ? 'inline-flex' : 'none';
+    }
+  } catch (_) {}
+}
+
+// =========================================================================
+// AÇÕES ADMINISTRATIVAS (REVOGAR, REATIVAR, EXCLUIR, ADICIONAR LEAD)
+// =========================================================================
+async function revogarAcessoLead(email) {
   if (!email) return;
   const emailLower = String(email).toLowerCase().trim();
 
@@ -2079,33 +2087,25 @@ async function revogarAcessoCalc(email) {
     return;
   }
 
-  if (!confirm(`Deseja realmente revogar o acesso do e-mail ${emailLower}?`)) {
+  if (!confirm(`Deseja revogar o acesso da calculadora para o e-mail ${emailLower}?`)) {
     return;
   }
 
-  removeApprovedCalcEmailLocal(emailLower);
-  const listaAprovados = getApprovedCalcEmailsLocal();
+  const { leads } = await carregarListaLeadsCompleta();
+  let revogados = getCalcRevogadosLocal();
+  if (!revogados.includes(emailLower)) {
+    revogados.push(emailLower);
+  }
+  saveCalcRevogadosLocal(revogados);
 
-  // Sincroniza em nuvem no Supabase Cloud
-  try {
-    const supa = window.SJ_SUPABASE?.getClient?.();
-    if (supa) {
-      const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-      await supa.from('configuracoes_site').upsert(
-        {
-          chave: 'calculadora_acessos_v1',
-          valor: {
-            aprovados: listaAprovados,
-            solicitacoes: saved
-          },
-          atualizado_em: new Date().toISOString()
-        },
-        { onConflict: 'chave' }
-      );
-    }
-  } catch (_) {}
+  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
+  if (idx !== -1) {
+    leads[idx].status = 'revogado';
+    saveCalcLeadsLocal(leads);
+  }
 
-  // Envia ao servidor se disponível
+  await sincronizarLeadsNuvem(leads, revogados);
+
   try {
     await fetch('/api/calc/revogar', {
       method: 'POST',
@@ -2115,135 +2115,342 @@ async function revogarAcessoCalc(email) {
   } catch (_) {}
 
   showToast(`Acesso revogado para ${emailLower}.`, '🚫');
-  await carregarERenderizarAcessos();
-  await atualizarBadgePendentes();
+  await carregarERenderizarLeadsAdmin();
+  await atualizarBadgeLeads();
 }
 
-async function rejeitarSolicitacaoCalc(email) {
+async function reativarAcessoLead(email) {
   if (!email) return;
   const emailLower = String(email).toLowerCase().trim();
 
-  let restantes = [];
+  const { leads } = await carregarListaLeadsCompleta();
+  let revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
+  saveCalcRevogadosLocal(revogados);
+
+  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
+  if (idx !== -1) {
+    leads[idx].status = 'ativo';
+    saveCalcLeadsLocal(leads);
+  }
+
+  await sincronizarLeadsNuvem(leads, revogados);
+
   try {
-    const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-    restantes = saved.filter(s => s.email?.toLowerCase().trim() !== emailLower);
-    localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(restantes));
+    await fetch('/api/calc/reativar', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailLower })
+    });
   } catch (_) {}
 
-  // Sincroniza em nuvem no Supabase Cloud
-  try {
-    const supa = window.SJ_SUPABASE?.getClient?.();
-    if (supa) {
-      const listaAprovados = getApprovedCalcEmailsLocal();
-      await supa.from('configuracoes_site').upsert(
-        {
-          chave: 'calculadora_acessos_v1',
-          valor: {
-            aprovados: listaAprovados,
-            solicitacoes: restantes
-          },
-          atualizado_em: new Date().toISOString()
-        },
-        { onConflict: 'chave' }
-      );
-    }
-  } catch (_) {}
-
-  showToast(`Solicitação de ${emailLower} removida.`, '🗑️');
-  await carregarERenderizarAcessos();
-  await atualizarBadgePendentes();
+  showToast(`Acesso reativado com sucesso para ${emailLower}!`, '✅');
+  await carregarERenderizarLeadsAdmin();
+  await atualizarBadgeLeads();
 }
 
-async function carregarERenderizarAcessos() {
-  const containerSolic = document.getElementById('calc-admin-solicitacoes-list');
-  const containerAprov = document.getElementById('calc-admin-aprovados-list');
-  const badgeAprov = document.getElementById('calc-admin-badge-aprovados');
+async function excluirLead(email) {
+  if (!email) return;
+  const emailLower = String(email).toLowerCase().trim();
 
-  if (containerSolic) {
-    containerSolic.innerHTML = '<div style="color:#71717a; font-size:0.8rem; text-align:center; padding:12px;">Carregando dados...</div>';
+  if (ADMIN_EMAILS.includes(emailLower)) {
+    alert('Não é permitido excluir um administrador mestre.');
+    return;
   }
 
-  const { solicitacoes, aprovados } = await carregarListaAcessosCompleta();
+  if (!confirm(`Deseja realmente excluir o lead com e-mail ${emailLower} do sistema?`)) {
+    return;
+  }
 
-  // 1. Renderiza Solicitações Pendentes
-  if (containerSolic) {
-    if (solicitacoes.length === 0) {
-      containerSolic.innerHTML = `
+  const { leads } = await carregarListaLeadsCompleta();
+  const filtrados = leads.filter(l => l.email?.toLowerCase().trim() !== emailLower);
+  const revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
+
+  saveCalcLeadsLocal(filtrados);
+  saveCalcRevogadosLocal(revogados);
+  await sincronizarLeadsNuvem(filtrados, revogados);
+
+  try {
+    await fetch('/api/calc/excluir', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email: emailLower })
+    });
+  } catch (_) {}
+
+  showToast(`Lead ${emailLower} excluído com sucesso.`, '🗑️');
+  await carregarERenderizarLeadsAdmin();
+  await atualizarBadgeLeads();
+}
+
+async function cadastrarLeadAdmin(nome, whatsapp, email, cidade = '') {
+  if (!nome || !email) return;
+  const emailLower = String(email).toLowerCase().trim();
+
+  const { leads } = await carregarListaLeadsCompleta();
+  const revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
+  saveCalcRevogadosLocal(revogados);
+
+  const novoLead = {
+    id: 'lead-' + Date.now(),
+    nome: nome.trim(),
+    whatsapp: (whatsapp || '').trim(),
+    email: emailLower,
+    cidade: (cidade || '').trim(),
+    data: new Date().toISOString(),
+    status: 'ativo'
+  };
+
+  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
+  if (idx !== -1) {
+    leads[idx] = { ...leads[idx], ...novoLead };
+  } else {
+    leads.unshift(novoLead);
+  }
+
+  saveCalcLeadsLocal(leads);
+  await sincronizarLeadsNuvem(leads, revogados);
+
+  showToast(`Lead ${nome} adicionado com sucesso!`, '⚡');
+  await carregarERenderizarLeadsAdmin();
+  await atualizarBadgeLeads();
+}
+
+// =========================================================================
+// EXPORTAÇÃO DE CONTATOS (WHATSAPP .VCF & EXCEL .CSV)
+// =========================================================================
+function exportarContatosVcf() {
+  const leads = getCalcLeadsLocal();
+  if (!leads || leads.length === 0) {
+    alert('Nenhum lead disponível para exportação.');
+    return;
+  }
+
+  let vcf = '';
+  leads.forEach(l => {
+    const nome = (l.nome || 'Lead Calculadora').trim();
+    const numLimpo = String(l.whatsapp || '').replace(/\D/g, '');
+    const email = String(l.email || '').trim();
+    const dataCad = l.data ? new Date(l.data).toLocaleDateString('pt-BR') : '';
+
+    vcf += 'BEGIN:VCARD\r\n';
+    vcf += 'VERSION:3.0\r\n';
+    vcf += `FN:${nome} (Loja SJ 3D)\r\n`;
+    vcf += `N:;${nome} (Loja SJ 3D);;;\r\n`;
+    if (numLimpo) {
+      const telFormatado = numLimpo.startsWith('55') ? `+${numLimpo}` : `+55${numLimpo}`;
+      vcf += `TEL;TYPE=CELL,VOICE:${telFormatado}\r\n`;
+    }
+    if (email) {
+      vcf += `EMAIL;TYPE=INTERNET:${email}\r\n`;
+    }
+    vcf += 'ORG:Loja SJ 3D - Precificador\r\n';
+    vcf += `NOTE:Lead capturado no Precificador 3D Loja SJ${dataCad ? ' em ' + dataCad : ''}.\r\n`;
+    vcf += 'END:VCARD\r\n';
+  });
+
+  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `contatos-leads-lojasj3d-${new Date().toISOString().slice(0, 10)}.vcf`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast('📲 Arquivo .vcf baixado! Abra no celular ou Google Contatos para importar no WhatsApp.', '✅');
+}
+
+function exportarPlanilhaCsv() {
+  const leads = getCalcLeadsLocal();
+  if (!leads || leads.length === 0) {
+    alert('Nenhum lead disponível para exportação.');
+    return;
+  }
+
+  const cabecalho = ['Nome', 'WhatsApp', 'WhatsApp_Numerico', 'Email', 'Cidade_UF', 'Data_Cadastro', 'Status'];
+  const linhas = leads.map(l => {
+    const numLimpo = String(l.whatsapp || '').replace(/\D/g, '');
+    const dataCad = l.data ? new Date(l.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+    return [
+      `"${(l.nome || '').replace(/"/g, '""')}"`,
+      `"${(l.whatsapp || '').replace(/"/g, '""')}"`,
+      `"${numLimpo}"`,
+      `"${(l.email || '').replace(/"/g, '""')}"`,
+      `"${(l.cidade || '').replace(/"/g, '""')}"`,
+      `"${dataCad}"`,
+      `"${l.status || 'ativo'}"`
+    ].join(';');
+  });
+
+  // UTF-8 BOM (\uFEFF) para abrir com acentuação correta no Excel brasileiro
+  const csvContent = '\uFEFF' + [cabecalho.join(';'), ...linhas].join('\r\n');
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = `leads-calculadora-lojasj3d-${new Date().toISOString().slice(0, 10)}.csv`;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  showToast('📊 Planilha CSV exportada com sucesso!', '✅');
+}
+
+function copiarTelefonesLeads() {
+  const leads = getCalcLeadsLocal();
+  const telefones = leads
+    .map(l => String(l.whatsapp || '').replace(/\D/g, ''))
+    .filter(t => t.length >= 10);
+
+  if (telefones.length === 0) {
+    showToast('Nenhum número de WhatsApp encontrado.', '⚠️');
+    return;
+  }
+
+  const texto = telefones.join(', ');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto);
+    showToast(`📋 ${telefones.length} números copiados para a área de transferência!`, '✅');
+  } else {
+    prompt('Copie os números abaixo:', texto);
+  }
+}
+
+function copiarEmailsLeads() {
+  const leads = getCalcLeadsLocal();
+  const emails = leads
+    .map(l => String(l.email || '').toLowerCase().trim())
+    .filter(e => e.includes('@'));
+
+  if (emails.length === 0) {
+    showToast('Nenhum e-mail encontrado.', '⚠️');
+    return;
+  }
+
+  const texto = emails.join(', ');
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(texto);
+    showToast(`✉️ ${emails.length} e-mails copiados para a área de transferência!`, '✅');
+  } else {
+    prompt('Copie os e-mails abaixo:', texto);
+  }
+}
+
+// =========================================================================
+// RENDERIZAÇÃO DO PAINEL DO ADMINISTRADOR
+// =========================================================================
+let filtroStatusAtual = 'todos';
+let buscaTextoAtual = '';
+
+async function carregarERenderizarLeadsAdmin() {
+  const containerList = document.getElementById('calc-admin-leads-list');
+  const statTotal = document.getElementById('stat-leads-total');
+  const statAtivos = document.getElementById('stat-leads-ativos');
+  const statRevogados = document.getElementById('stat-leads-revogados');
+  const countTodos = document.getElementById('count-filter-todos');
+  const countAtivos = document.getElementById('count-filter-ativos');
+  const countRevogados = document.getElementById('count-filter-revogados');
+
+  if (containerList) {
+    containerList.innerHTML = '<div style="color:#71717a; font-size:0.8rem; text-align:center; padding:12px;">Carregando leads da nuvem...</div>';
+  }
+
+  const { leads, revogados } = await carregarListaLeadsCompleta();
+
+  // Atualiza Métricas
+  const totalLeads = leads.length;
+  const totalRevogados = leads.filter(l => l.status === 'revogado' || revogados.includes(l.email?.toLowerCase().trim())).length;
+  const totalAtivos = totalLeads - totalRevogados;
+
+  if (statTotal) statTotal.textContent = totalLeads;
+  if (statAtivos) statAtivos.textContent = totalAtivos;
+  if (statRevogados) statRevogados.textContent = totalRevogados;
+  if (countTodos) countTodos.textContent = totalLeads;
+  if (countAtivos) countAtivos.textContent = totalAtivos;
+  if (countRevogados) countRevogados.textContent = totalRevogados;
+
+  // Filtragem
+  let filtrados = leads.filter(l => {
+    const isRev = l.status === 'revogado' || revogados.includes(l.email?.toLowerCase().trim());
+    if (filtroStatusAtual === 'ativos' && isRev) return false;
+    if (filtroStatusAtual === 'revogados' && !isRev) return false;
+
+    if (buscaTextoAtual) {
+      const q = buscaTextoAtual.toLowerCase();
+      const matchNome = (l.nome || '').toLowerCase().includes(q);
+      const matchEmail = (l.email || '').toLowerCase().includes(q);
+      const matchWa = (l.whatsapp || '').includes(q);
+      const matchCidade = (l.cidade || '').toLowerCase().includes(q);
+      return matchNome || matchEmail || matchWa || matchCidade;
+    }
+    return true;
+  });
+
+  if (containerList) {
+    if (filtrados.length === 0) {
+      containerList.innerHTML = `
         <div class="admin-empty-state">
-          Nenhuma solicitação de acesso pendente no momento.
+          Nenhum lead localizado para o filtro atual.
         </div>
       `;
-    } else {
-      containerSolic.innerHTML = solicitacoes.map(item => {
-        const dataFmt = item.data ? new Date(item.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Recente';
-        const numWa = String(item.whatsapp || '').replace(/\D/g, '');
-        const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent('Olá ' + (item.nome || '') + '! Vi sua solicitação para a Calculadora 3D da Loja SJ.')}` : '';
-        const nomeEscapado = escaparHtml(item.nome || 'Solicitante Sem Nome');
-        const emailEscapado = escaparHtml(item.email || '');
-        const waEscapado = escaparHtml(item.whatsapp || '');
-
-        return `
-          <div class="admin-item-row">
-            <div class="admin-item-info">
-              <div class="admin-item-name">${nomeEscapado}</div>
-              <div class="admin-item-email">${emailEscapado}</div>
-              <div class="admin-item-meta">
-                <span>📅 ${dataFmt}</span>
-                ${numWa ? `<span>• 📞 ${waEscapado}</span>` : ''}
-              </div>
-            </div>
-            <div class="admin-item-actions">
-              ${linkWa ? `<a href="${linkWa}" target="_blank" class="btn-admin-action wa" title="Conversar no WhatsApp">💬 WhatsApp</a>` : ''}
-              <button type="button" class="btn-admin-action approve btn-aprovar-item" data-email="${emailEscapado}" data-nome="${nomeEscapado}">
-                ✅ Liberar Acesso
-              </button>
-              <button type="button" class="btn-admin-action reject btn-rejeitar-item" data-email="${emailEscapado}" title="Recusar">
-                ✕
-              </button>
-            </div>
-          </div>
-        `;
-      }).join('');
-
-      containerSolic.querySelectorAll('.btn-aprovar-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const email = btn.getAttribute('data-email');
-          const nome = btn.getAttribute('data-nome');
-          aprovarAcessoCalc(email, nome);
-        });
-      });
-
-      containerSolic.querySelectorAll('.btn-rejeitar-item').forEach(btn => {
-        btn.addEventListener('click', () => {
-          const email = btn.getAttribute('data-email');
-          rejeitarSolicitacaoCalc(email);
-        });
-      });
+      return;
     }
-  }
 
-  // 2. Renderiza Aprovados
-  if (containerAprov) {
-    if (badgeAprov) badgeAprov.textContent = aprovados.length;
-    containerAprov.innerHTML = aprovados.map(email => {
-      const emailLower = String(email || '').toLowerCase().trim();
-      const isAdmin = ADMIN_EMAILS.includes(emailLower);
-      const emailEscapado = escaparHtml(emailLower);
+    containerList.innerHTML = filtrados.map(lead => {
+      const emailLower = (lead.email || '').toLowerCase().trim();
+      const isAdmin = ADMIN_EMAILS.includes(emailLower) || lead.isMaster === true;
+      const isRev = lead.status === 'revogado' || revogados.includes(emailLower);
+      const numWa = String(lead.whatsapp || '').replace(/\D/g, '');
+      const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent('Olá ' + (lead.nome || '') + '! Vi seu cadastro no Precificador 3D da Loja SJ.')}` : '';
+      const dataFmt = lead.data ? new Date(lead.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Recente';
+
+      const nomeEsc = escaparHtml(lead.nome || 'Lead Sem Nome');
+      const emailEsc = escaparHtml(emailLower);
+      const waEsc = escaparHtml(lead.whatsapp || 'Não informado');
+      const cidadeEsc = escaparHtml(lead.cidade || '');
+
+      let badgeStatus = '';
+      if (isAdmin) {
+        badgeStatus = '<span style="color:#f59e0b; font-weight:800;">👑 Administrador Master</span>';
+      } else if (isRev) {
+        badgeStatus = '<span style="color:#ef4444; font-weight:800;">🔴 Acesso Revogado</span>';
+      } else {
+        badgeStatus = '<span style="color:#10b981; font-weight:800;">🟢 Acesso Ativo</span>';
+      }
+
       return `
-        <div class="admin-item-row">
+        <div class="admin-item-row" style="${isRev ? 'opacity:0.75; border-color:rgba(239,68,68,0.25);' : ''}">
           <div class="admin-item-info">
-            <div class="admin-item-email" style="font-size:0.82rem; font-weight:700; color:#ffffff;">${emailEscapado}</div>
+            <div style="display:flex; align-items:center; gap:8px;">
+              <span class="admin-item-name">${nomeEsc}</span>
+              ${cidadeEsc ? `<span style="font-size:0.7rem; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:#a1a1aa;">📍 ${cidadeEsc}</span>` : ''}
+            </div>
+            <div class="admin-item-email">${emailEsc}</div>
             <div class="admin-item-meta">
-              <span style="color:#10b981; font-weight:800;">● Acesso Ativo</span>
-              ${isAdmin ? '<span style="color:#f59e0b; font-weight:800;">• Administrador Master</span>' : ''}
+              <span>📅 ${dataFmt}</span>
+              <span>• 📞 ${waEsc}</span>
+              <span>• ${badgeStatus}</span>
             </div>
           </div>
           <div class="admin-item-actions">
+            ${linkWa ? `<a href="${linkWa}" target="_blank" class="btn-admin-action wa" title="Abrir conversa no WhatsApp">💬 WhatsApp</a>` : ''}
             ${isAdmin ? `
               <span style="font-size:0.7rem; color:#71717a; font-weight:700;">Protegido</span>
+            ` : isRev ? `
+              <button type="button" class="btn-admin-action approve btn-reativar-lead" data-email="${emailEsc}" title="Reativar acesso do lead">
+                ✅ Reativar
+              </button>
+              <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir lead definitivamente">
+                🗑️
+              </button>
             ` : `
-              <button type="button" class="btn-admin-action reject btn-revogar-item" data-email="${emailEscapado}">
-                🚫 Revogar Acesso
+              <button type="button" class="btn-admin-action reject btn-revogar-lead" data-email="${emailEsc}" title="Suspender acesso">
+                🚫 Revogar
+              </button>
+              <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir lead definitivamente">
+                🗑️
               </button>
             `}
           </div>
@@ -2251,10 +2458,25 @@ async function carregarERenderizarAcessos() {
       `;
     }).join('');
 
-    containerAprov.querySelectorAll('.btn-revogar-item').forEach(btn => {
+    // Listeners de Ações
+    containerList.querySelectorAll('.btn-revogar-lead').forEach(btn => {
       btn.addEventListener('click', () => {
         const email = btn.getAttribute('data-email');
-        revogarAcessoCalc(email);
+        revogarAcessoLead(email);
+      });
+    });
+
+    containerList.querySelectorAll('.btn-reativar-lead').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-email');
+        reativarAcessoLead(email);
+      });
+    });
+
+    containerList.querySelectorAll('.btn-excluir-lead').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const email = btn.getAttribute('data-email');
+        excluirLead(email);
       });
     });
   }
@@ -2279,7 +2501,7 @@ async function checkAuthAndRenderUI() {
   const currentUser = supaUser || getCalcAuthUser();
 
   if (currentUser && isUserApprovedForCalc(currentUser)) {
-    // Acesso Autorizado!
+    // Acesso Autorizado e Liberado!
     if (gateEl) gateEl.style.display = 'none';
     if (mainEl) mainEl.style.display = 'block';
 
@@ -2287,17 +2509,17 @@ async function checkAuthAndRenderUI() {
 
     if (userPill) userPill.style.display = 'inline-flex';
     if (userEmailEl) {
-      userEmailEl.textContent = isAdm ? `${currentUser.email} (Admin)` : (currentUser.email || 'Autorizado');
+      userEmailEl.textContent = isAdm ? `${currentUser.email} (Admin)` : (currentUser.nome ? `${currentUser.nome} (${currentUser.email})` : currentUser.email);
     }
     if (adminCurrentEmail && currentUser.email) {
       adminCurrentEmail.textContent = currentUser.email;
     }
 
-    // Exibe botão de Liberar Acessos exclusivamente para administradores
+    // Exibe botão de Gestão de Leads exclusivamente para administradores
     if (btnAdminAccess) {
       if (isAdm) {
         btnAdminAccess.style.display = 'inline-flex';
-        atualizarBadgePendentes();
+        atualizarBadgeLeads();
       } else {
         btnAdminAccess.style.display = 'none';
       }
@@ -2316,34 +2538,31 @@ async function checkAuthAndRenderUI() {
     }
     return true;
   } else if (currentUser && !isUserApprovedForCalc(currentUser)) {
-    // Usuário logado, mas SEM permissão de acesso à calculadora (ex: cliente da loja pública)
+    // Usuário revogado pelo administrador
     if (mainEl) mainEl.style.display = 'none';
     if (gateEl) {
       gateEl.style.display = 'flex';
       const feedback = document.getElementById('calc-gate-feedback');
       if (feedback) {
         feedback.innerHTML = `
-          <div style="background:rgba(245,158,11,0.12); border:1px solid #f59e0b; color:#fde68a; padding:12px 14px; border-radius:8px; font-size:0.8rem; line-height:1.45; text-align:left; margin-bottom:14px;">
-            ⚠️ <strong>Acesso em Análise (${currentUser.email})</strong><br>
-            Sua conta de cliente não possui permissão ativa para o Precificador 3D. O acesso é exclusivo para operadores e parceiros autorizados.<br>
+          <div style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#fca5a5; padding:12px 14px; border-radius:8px; font-size:0.8rem; line-height:1.45; text-align:left; margin-bottom:14px;">
+            🚫 <strong>Acesso Suspenso (${escaparHtml(currentUser.email)})</strong><br>
+            Seu acesso ao Precificador 3D foi suspenso pelo administrador. Entre em contato para reativar seu cadastro:<br>
             <div style="margin-top:8px; display:flex; gap:8px;">
-              <a href="https://wa.me/5544991351318?text=${encodeURIComponent('Olá, solicitei liberação da Calculadora 3D com o e-mail ' + currentUser.email + '.')}" target="_blank" style="background:#22c55e; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:800; text-decoration:none; font-size:0.75rem;">📲 Solicitar no WhatsApp</a>
-              <button type="button" id="btn-gate-switch-user" style="background:transparent; border:1px solid #71717a; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.75rem;">Sair / Trocar Conta</button>
+              <a href="https://wa.me/5544991351318?text=${encodeURIComponent('Olá Thiago, meu acesso à Calculadora 3D (' + currentUser.email + ') está suspenso. Pode me ajudar?')}" target="_blank" style="background:#22c55e; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:800; text-decoration:none; font-size:0.75rem;">📲 Falar no WhatsApp</a>
+              <button type="button" id="btn-gate-switch-user" style="background:transparent; border:1px solid #71717a; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.75rem;">Sair / Trocar E-mail</button>
             </div>
           </div>
         `;
         document.getElementById('btn-gate-switch-user')?.addEventListener('click', () => {
           setCalcAuthUser(null);
-          if (window.SJ_SUPABASE && typeof window.SJ_SUPABASE.fazerLogout === 'function') {
-            window.SJ_SUPABASE.fazerLogout();
-          }
           window.location.reload();
         });
       }
     }
     return false;
   } else {
-    // Não logado: Exibe o Gate de Login
+    // Não cadastrado/logado: Exibe o Gate de Cadastro & Login
     if (mainEl) mainEl.style.display = 'none';
     if (gateEl) gateEl.style.display = 'flex';
     return false;
@@ -2356,17 +2575,46 @@ function setupAuthGateListeners() {
   const formRegister = document.getElementById('form-calc-gate-register');
   const feedback = document.getElementById('calc-gate-feedback');
 
-  // Modal de Administração de Acessos
+  // Modal de Administração de Leads
   const adminModal = document.getElementById('modal-calc-admin-access');
   const btnOpenAdmin = document.getElementById('btn-calc-admin-access');
   const btnCloseAdmin = document.getElementById('close-admin-modal');
   const btnRefreshAcessos = document.getElementById('btn-refresh-acessos');
-  const formManual = document.getElementById('form-admin-liberar-manual');
+  const formManual = document.getElementById('form-admin-add-lead');
+
+  // Botões de Exportação
+  const btnExportVcf = document.getElementById('btn-export-vcf');
+  const btnExportCsv = document.getElementById('btn-export-csv');
+  const btnCopyPhones = document.getElementById('btn-copy-phones');
+  const btnCopyEmails = document.getElementById('btn-copy-emails');
+  const inputSearch = document.getElementById('input-search-leads');
+
+  if (btnExportVcf) btnExportVcf.addEventListener('click', exportarContatosVcf);
+  if (btnExportCsv) btnExportCsv.addEventListener('click', exportarPlanilhaCsv);
+  if (btnCopyPhones) btnCopyPhones.addEventListener('click', copiarTelefonesLeads);
+  if (btnCopyEmails) btnCopyEmails.addEventListener('click', copiarEmailsLeads);
+
+  if (inputSearch) {
+    inputSearch.addEventListener('input', (e) => {
+      buscaTextoAtual = e.target.value.trim();
+      carregarERenderizarLeadsAdmin();
+    });
+  }
+
+  // Abas de Filtro de Leads (Todos, Ativos, Revogados)
+  document.querySelectorAll('[data-lead-filter]').forEach(tab => {
+    tab.addEventListener('click', () => {
+      document.querySelectorAll('[data-lead-filter]').forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      filtroStatusAtual = tab.getAttribute('data-lead-filter') || 'todos';
+      carregarERenderizarLeadsAdmin();
+    });
+  });
 
   if (btnOpenAdmin && adminModal) {
     btnOpenAdmin.addEventListener('click', () => {
       adminModal.style.display = 'flex';
-      carregarERenderizarAcessos();
+      carregarERenderizarLeadsAdmin();
     });
   }
 
@@ -2385,30 +2633,42 @@ function setupAuthGateListeners() {
   }
 
   if (btnRefreshAcessos) {
-    btnRefreshAcessos.addEventListener('click', () => {
-      carregarERenderizarAcessos();
-      atualizarBadgePendentes();
-      showToast('Lista de acessos atualizada.', '🔄');
+    btnRefreshAcessos.addEventListener('click', async () => {
+      await carregarERenderizarLeadsAdmin();
+      await atualizarBadgeLeads();
+      showToast('Leads e acessos atualizados com sucesso.', '🔄');
     });
   }
 
+  // Formulário: Cadastrar Lead Manualmente pelo Admin
   if (formManual) {
     formManual.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const input = document.getElementById('input-admin-liberar-email');
-      const email = input?.value?.trim();
+      const nomeInput = document.getElementById('input-admin-lead-nome');
+      const waInput = document.getElementById('input-admin-lead-whatsapp');
+      const emailInput = document.getElementById('input-admin-lead-email');
       const fb = document.getElementById('feedback-admin-manual');
-      if (!email) return;
 
-      await aprovarAcessoCalc(email, 'Cadastrado Manualmente');
-      if (input) input.value = '';
+      const nome = nomeInput?.value?.trim();
+      const wa = waInput?.value?.trim();
+      const email = emailInput?.value?.trim();
+
+      if (!nome || !email) return;
+
+      await cadastrarLeadAdmin(nome, wa, email);
+
+      if (nomeInput) nomeInput.value = '';
+      if (waInput) waInput.value = '';
+      if (emailInput) emailInput.value = '';
+
       if (fb) {
-        fb.innerHTML = `<span style="color:#10b981; font-size:0.78rem; font-weight:700;">✅ E-mail ${email} autorizado com sucesso!</span>`;
+        fb.innerHTML = `<span style="color:#10b981; font-size:0.78rem; font-weight:700;">✅ Lead ${nome} cadastrado com sucesso!</span>`;
         setTimeout(() => { if (fb) fb.innerHTML = ''; }, 4000);
       }
     });
   }
 
+  // Alternância das abas no Gate
   tabs.forEach(tab => {
     tab.addEventListener('click', () => {
       const mode = tab.getAttribute('data-calc-gate-tab');
@@ -2426,58 +2686,178 @@ function setupAuthGateListeners() {
     });
   });
 
-  // Login Form Submit
+  // SUBMIT 1: CADASTRO COM LIBERAÇÃO IMEDIATA (AUTO-APROVAÇÃO)
+  if (formRegister) {
+    formRegister.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const nome = document.getElementById('calc-reg-nome')?.value.trim();
+      const whatsapp = document.getElementById('calc-reg-whatsapp')?.value.trim();
+      const email = document.getElementById('calc-reg-email')?.value.trim();
+      const cidade = document.getElementById('calc-reg-cidade')?.value.trim() || '';
+      const btn = document.getElementById('btn-calc-gate-register');
+
+      if (!nome || !email) return;
+
+      const emailLower = email.toLowerCase().trim();
+
+      // Verifica se o e-mail está na lista de revogados
+      const revogados = getCalcRevogadosLocal();
+      if (revogados.includes(emailLower)) {
+        if (feedback) {
+          feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Este e-mail teve o acesso suspenso anteriormente. Entre em contato no WhatsApp da oficina (44) 99135-1318 para reativar.</div>';
+        }
+        return;
+      }
+
+      if (btn) btn.disabled = true;
+
+      const novoLead = {
+        id: 'lead-' + Date.now(),
+        nome,
+        whatsapp,
+        email: emailLower,
+        cidade,
+        data: new Date().toISOString(),
+        status: 'ativo'
+      };
+
+      // 1. Salva localmente de imediato
+      const leads = getCalcLeadsLocal();
+      const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
+      if (idx !== -1) {
+        leads[idx] = { ...leads[idx], ...novoLead, status: 'ativo' };
+      } else {
+        leads.unshift(novoLead);
+      }
+      saveCalcLeadsLocal(leads);
+
+      // 2. Define o usuário logado com ACESSO IMEDIATO
+      const userData = {
+        id: novoLead.id,
+        nome: novoLead.nome,
+        email: novoLead.email,
+        whatsapp: novoLead.whatsapp,
+        cidade: novoLead.cidade,
+        role: 'operador',
+        tipo: 'operador',
+        status: 'ativo',
+        acesso_calculadora: true
+      };
+      setCalcAuthUser(userData);
+
+      showToast(`🎉 Bem-vindo(a), ${nome}! Seu acesso ao Precificador 3D está liberado.`, '⚡');
+      checkAuthAndRenderUI();
+
+      // 3. Sincronização em segundo plano (nuvem e backend)
+      (async () => {
+        try {
+          const supa = window.SJ_SUPABASE?.getClient?.();
+          if (supa) {
+            await supa.from('termos_consentimento').insert({
+              titular_identificador: emailLower,
+              titular_tipo: 'visitante',
+              canal: 'calculadora',
+              finalidade: 'cadastro_lead_calculadora',
+              consentimento_concedido: true,
+              motivo_revogacao: JSON.stringify(novoLead)
+            });
+            await sincronizarLeadsNuvem(leads, revogados);
+          }
+        } catch (_) {}
+
+        try {
+          await fetch('/api/calc/solicitar', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(novoLead)
+          });
+        } catch (_) {}
+      })();
+    });
+  }
+
+  // SUBMIT 2: LOGIN DE USUÁRIO JÁ CADASTRADO OU ADMINISTRADOR
   if (formLogin) {
     formLogin.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const email = document.getElementById('calc-gate-email')?.value.trim();
+      const emailOrWa = document.getElementById('calc-gate-email')?.value.trim();
       const senha = document.getElementById('calc-gate-senha')?.value;
       const btn = document.getElementById('btn-calc-gate-login');
 
-      if (!email || !senha) return;
+      if (!emailOrWa) return;
       if (btn) btn.disabled = true;
-      if (feedback) feedback.innerHTML = '<span style="color:#f59e0b; font-size:0.8rem;">Verificando credenciais de acesso...</span>';
+      if (feedback) feedback.innerHTML = '<span style="color:#f59e0b; font-size:0.8rem;">Verificando credenciais...</span>';
 
       try {
+        const termo = emailOrWa.toLowerCase().trim();
+        const termoNum = termo.replace(/\D/g, '');
+
+        // 1. Verifica se é e-mail revogado
+        const revogados = getCalcRevogadosLocal();
+        if (revogados.includes(termo)) {
+          if (feedback) {
+            feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Seu acesso foi suspenso pelo administrador. Fale conosco no WhatsApp (44) 99135-1318 para reativar.</div>';
+          }
+          return;
+        }
+
         let authSuccess = false;
         let userData = null;
 
-        const emailLower = email.toLowerCase().trim();
-
-        // 1. Tenta autenticar pelo Supabase caso configurado
-        if (window.SJ_SUPABASE?.auth && typeof window.SJ_SUPABASE.auth.loginEmail === 'function') {
-          const res = await window.SJ_SUPABASE.auth.loginEmail(emailLower, senha);
-          if (res && res.sucesso && res.usuario) {
+        // 2. Se for Admin Master
+        if (ADMIN_EMAILS.includes(termo)) {
+          // Tenta Supabase Auth se houver senha
+          if (senha && window.SJ_SUPABASE?.auth && typeof window.SJ_SUPABASE.auth.loginEmail === 'function') {
+            try {
+              const res = await window.SJ_SUPABASE.auth.loginEmail(termo, senha);
+              if (res && res.sucesso && res.usuario) {
+                authSuccess = true;
+                userData = res.usuario;
+              }
+            } catch (_) {}
+          }
+          // Login direto de Administrador Master
+          if (!authSuccess) {
             authSuccess = true;
-            userData = res.usuario;
+            userData = {
+              id: 'usr-admin-' + Date.now(),
+              email: termo,
+              nome: 'Administrador Oficial Loja SJ',
+              role: 'admin',
+              tipo: 'admin',
+              isMaster: true,
+              status: 'approved'
+            };
           }
         }
 
-        // 2. Validação direta para contas Administradoras Master (caso offline ou sem Supabase)
-        if (!authSuccess && ADMIN_EMAILS.includes(emailLower)) {
-          authSuccess = true;
-          userData = {
-            id: 'usr-admin-' + Date.now(),
-            email: emailLower,
-            nome: 'Administrador Oficial Loja SJ',
-            role: 'admin',
-            tipo: 'admin',
-            status: 'approved'
-          };
-        }
-
-        // 3. Validação para E-mails com Acesso Aprovado pelo Administrador
+        // 3. Se for usuário/lead já cadastrado na ferramenta
         if (!authSuccess) {
-          const aprovados = getApprovedCalcEmailsLocal();
-          if (aprovados.includes(emailLower)) {
+          const leads = getCalcLeadsLocal();
+          const leadMatch = leads.find(l => {
+            const lEmail = String(l.email || '').toLowerCase().trim();
+            const lWa = String(l.whatsapp || '').replace(/\D/g, '');
+            return (lEmail && lEmail === termo) || (termoNum && lWa && lWa === termoNum);
+          });
+
+          if (leadMatch) {
+            if (leadMatch.status === 'revogado' || revogados.includes(leadMatch.email?.toLowerCase().trim())) {
+              if (feedback) {
+                feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Seu acesso está suspenso. Entre em contato no WhatsApp da Loja SJ (44) 99135-1318.</div>';
+              }
+              return;
+            }
+
             authSuccess = true;
             userData = {
-              id: 'usr-calc-' + Date.now(),
-              email: emailLower,
-              nome: emailLower === 'sjnovaisecia@gmail.com' ? 'Loja SJ' : emailLower.split('@')[0],
+              id: leadMatch.id,
+              nome: leadMatch.nome,
+              email: leadMatch.email,
+              whatsapp: leadMatch.whatsapp,
+              cidade: leadMatch.cidade,
               role: 'operador',
               tipo: 'operador',
-              status: 'approved',
+              status: 'ativo',
               acesso_calculadora: true
             };
           }
@@ -2485,15 +2865,20 @@ function setupAuthGateListeners() {
 
         if (authSuccess && userData) {
           setCalcAuthUser(userData);
-          if (isUserApprovedForCalc(userData)) {
-            showToast('Acesso autorizado! Bem-vindo ao Precificador 3D.', '⚡');
-            checkAuthAndRenderUI();
-          } else {
-            checkAuthAndRenderUI();
-          }
+          showToast(`⚡ Bem-vindo(a) de volta, ${userData.nome || userData.email}!`, '👋');
+          checkAuthAndRenderUI();
         } else {
           if (feedback) {
-            feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:8px 12px; border-radius:6px; margin-bottom:12px;">E-mail ou senha incorretos. Verifique suas credenciais ou solicite ativação.</div>';
+            feedback.innerHTML = `
+              <div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">
+                Não encontramos cadastro ativo para este e-mail/WhatsApp.<br>
+                <a href="javascript:void(0)" id="link-goto-register" style="color:#FF5500; font-weight:800; text-decoration:underline; display:inline-block; margin-top:4px;">Clique aqui para fazer seu cadastro gratuito (é rápido e imediato) →</a>
+              </div>
+            `;
+            document.getElementById('link-goto-register')?.addEventListener('click', () => {
+              const tabReg = document.querySelector('[data-calc-gate-tab="register"]');
+              if (tabReg) tabReg.click();
+            });
           }
         }
       } catch (err) {
@@ -2503,82 +2888,6 @@ function setupAuthGateListeners() {
         }
       } finally {
         if (btn) btn.disabled = false;
-      }
-    });
-  }
-
-  // Register / Solicitar Ativação Form Submit
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nome = document.getElementById('calc-reg-nome')?.value.trim();
-      const whatsapp = document.getElementById('calc-reg-whatsapp')?.value.trim();
-      const email = document.getElementById('calc-reg-email')?.value.trim();
-
-      if (!nome || !email) return;
-
-      const emailLower = email.toLowerCase().trim();
-      const pendente = {
-        id: 'solic-' + Date.now(),
-        nome,
-        whatsapp,
-        email: emailLower,
-        data: new Date().toISOString()
-      };
-
-      try {
-        const saved = JSON.parse(localStorage.getItem('sj_calc_solicitacoes_pendentes') || '[]');
-        saved.push(pendente);
-        localStorage.setItem('sj_calc_solicitacoes_pendentes', JSON.stringify(saved));
-      } catch (_) {}
-
-      // Sincroniza em nuvem no Supabase Cloud
-      try {
-        const supa = window.SJ_SUPABASE?.getClient?.();
-        if (supa) {
-          // 1. Termos de Consentimento LGPD
-          await supa.from('termos_consentimento').insert({
-            titular_identificador: emailLower,
-            titular_tipo: 'visitante',
-            canal: 'calculadora',
-            finalidade: 'solicitacao_acesso_calc',
-            consentimento_concedido: true,
-            motivo_revogacao: JSON.stringify(pendente)
-          });
-          // 2. Solicitação do Titular
-          await supa.from('solicitacoes_titular').insert({
-            protocolo: 'CALC-' + Date.now(),
-            titular_nome: nome,
-            titular_email: emailLower,
-            titular_cpf: whatsapp,
-            tipo_solicitacao: 'outro',
-            detalhes_solicitacao: JSON.stringify(pendente),
-            status: 'em_analise'
-          });
-        }
-      } catch (err) {
-        console.warn('Erro ao salvar solicitacao no Supabase:', err);
-      }
-
-      // Tenta enviar para o backend se disponível
-      try {
-        await fetch('/api/calc/solicitar', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(pendente)
-        });
-      } catch (_) {}
-
-      const msgWa = encodeURIComponent(`Olá Loja SJ 3D! Solicitei ativação da Calculadora 3D.\n*Nome:* ${nome}\n*E-mail:* ${email}\n*WhatsApp:* ${whatsapp}`);
-
-      if (feedback) {
-        feedback.innerHTML = `
-          <div style="background:rgba(16,185,129,0.12); border:1px solid #10b981; color:#34d399; padding:12px 14px; border-radius:8px; font-size:0.8rem; line-height:1.45; text-align:left; margin-bottom:14px;">
-            ✅ <strong>Solicitação enviada com sucesso!</strong><br>
-            Seus dados foram registrados para aprovação pelo administrador. Para agilizar a liberação imediata, envie uma mensagem no WhatsApp da oficina:<br>
-            <a href="https://wa.me/5544991351318?text=${msgWa}" target="_blank" style="display:inline-block; margin-top:8px; background:#22c55e; color:#ffffff; padding:7px 12px; border-radius:6px; font-weight:800; text-decoration:none;">📲 Confirmar no WhatsApp (44) 99135-1318</a>
-          </div>
-        `;
       }
     });
   }

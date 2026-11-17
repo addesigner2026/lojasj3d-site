@@ -224,6 +224,8 @@
     }
   ],
   "calculadora": {
+    "leads": [],
+    "revogados": [],
     "solicitacoes": [],
     "aprovados": [
       "jt.designer21@gmail.com",
