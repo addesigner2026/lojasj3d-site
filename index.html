@@ -66,7 +66,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261118_09" />
+  <link rel="stylesheet" href="css/styles.css?v=20261118_10" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -1393,110 +1393,204 @@
   <!-- ====================================================================
        MODAL DE SOLICITAÇÃO DE DIREITOS DO TITULAR (ART. 18 DA LGPD)
        ==================================================================== -->
-  <div class="modal-overlay" id="modal-lgpd-titular-request" style="display: none;" role="dialog" aria-modal="true"
-    aria-labelledby="lgpd-request-title">
-    <div class="client-auth-card"
-      style="max-height: 92vh; overflow-y: auto; max-width: 620px; width: 100%; text-align: left;">
-      <button type="button" class="modal-close-btn" id="close-lgpd-request-btn"
-        aria-label="Fechar formulário de direitos LGPD">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-
-      <div style="border-bottom: 1px solid #E5E7EB; padding-bottom: 12px; margin-bottom: 16px;">
-        <span
-          style="font-size:0.75rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.5px;">CANAL
-          DIRETO • ARTIGO 18 DA LEI 13.709/2018</span>
-        <h3 id="lgpd-request-title" style="margin:4px 0 6px; font-size:1.25rem; color:#0F172A;">Canal de Atendimento aos
-          Direitos do Titular</h3>
-        <p style="margin:0; font-size:0.8rem; color:#64748B;">
-          Solicite confirmação, acesso, correção, portabilidade ou eliminação de seus dados pessoais. Prazo legal de
-          resposta: <strong>15 dias</strong> (Art. 19, II da LGPD).
-        </p>
-      </div>
-
-      <!-- Abas: Nova Solicitação vs Consultar Protocolo -->
-      <div class="client-auth-tabs" style="margin-bottom:16px;">
-        <button type="button" class="client-auth-tab-btn active" id="tab-lgpd-nova-solic">Nova Solicitação</button>
-        <button type="button" class="client-auth-tab-btn" id="tab-lgpd-consultar-solic">Consultar Protocolo</button>
-      </div>
-
-      <!-- Formulário: Nova Solicitação -->
-      <form id="form-lgpd-solicitacao" style="display:flex; flex-direction:column; gap:12px;">
-        <div class="auth-field">
-          <label>Seu Nome Completo *</label>
-          <input type="text" name="titular_nome" required placeholder="Digite seu nome completo" />
-        </div>
-
-        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
-          <div class="auth-field">
-            <label>Seu E-mail Cadastrado *</label>
-            <input type="email" name="titular_email" required placeholder="seuemail@exemplo.com" />
-          </div>
-          <div class="auth-field">
-            <label>CPF ou CNPJ (Opcional)</label>
-            <input type="text" name="titular_cpf" placeholder="000.000.000-00" />
+  <dialog id="modal-lgpd-titular-request" class="lgpd-clean-dialog" closedby="any" aria-labelledby="lgpd-request-title">
+    <div class="lgpd-dialog-shell">
+      <div class="lgpd-dialog-header">
+        <div class="lgpd-dialog-brand">
+          <span class="lgpd-sj-mark" aria-hidden="true">SJ</span>
+          <div>
+            <h2 id="lgpd-request-title" class="lgpd-dialog-title">Seus dados, seus direitos</h2>
+            <p class="lgpd-dialog-subtitle">
+              Peça acesso, correção ou exclusão dos seus dados. Respondemos em até 15 dias.
+            </p>
           </div>
         </div>
-
-        <div class="auth-field">
-          <label>Tipo de Solicitação (Art. 18) *</label>
-          <select name="tipo_solicitacao" required
-            style="padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px; font-size:0.85rem; width:100%; background:#fff;">
-            <option value="acesso_dados">1. Confirmação de Tratamento &amp; Acesso aos Dados (Art. 18, I e II)</option>
-            <option value="portabilidade_dados">2. Portabilidade dos Dados em Arquivo JSON (Art. 18, V)</option>
-            <option value="correcao_dados">3. Correção de Dados Incompletos ou Inexatos (Art. 18, III)</option>
-            <option value="eliminacao_dados">4. Eliminação / Apagamento de Dados Pessoais (Art. 18, VI)</option>
-            <option value="revogacao_consentimento">5. Revogação de Consentimento de Comunicações (Art. 18, IX)</option>
-            <option value="informacao_compartilhamento">6. Informação sobre Compartilhamento com Terceiros (Art. 18,
-              VII)</option>
-            <option value="outro">7. Outra solicitação de privacidade</option>
-          </select>
-        </div>
-
-        <div class="auth-field">
-          <label>Detalhes ou Observações da Solicitação</label>
-          <textarea name="detalhes_solicitacao" rows="3"
-            placeholder="Descreva sua solicitação com clareza para facilitar o atendimento..."
-            style="padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px; font-size:0.85rem; resize:vertical;"></textarea>
-        </div>
-
-        <div
-          style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; font-size:0.75rem; color:#64748B; line-height:1.45;">
-          ℹ️ <strong>Ressalva Legal:</strong> Caso solicite a eliminação de dados, notas fiscais e dados de compras
-          faturadas emitidas nos últimos 5 anos serão mantidos obrigatoriamente por lei para cumprimento de obrigações
-          tributárias (Art. 16, I da LGPD c/c Art. 173 do Código Tributário Nacional).
-        </div>
-
-        <button type="submit" class="btn-client-submit-auth" id="btn-submit-lgpd-request">
-          <span>📨 Registrar Solicitação &amp; Gerar Protocolo</span>
+        <button type="button" class="lgpd-close-btn" id="close-lgpd-request-btn" aria-label="Fechar janela">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
         </button>
+      </div>
+
+      <details class="lgpd-learn-more">
+        <summary>Saiba mais</summary>
+        <p>
+          Atendimento gratuito conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018, Arts. 18 e 19).
+          Pedidos de exclusão passam por revisão manual porque notas fiscais e dados de compras faturadas precisam ser preservados por obrigação legal.
+        </p>
+      </details>
+
+      <!-- Abas discretas -->
+      <div class="lgpd-segmented-tabs" id="lgpd-modal-tabs" role="tablist" aria-label="Opções do canal LGPD">
+        <button type="button" class="lgpd-seg-btn active" id="tab-lgpd-nova-solic" role="tab" aria-selected="true">Nova solicitação</button>
+        <button type="button" class="lgpd-seg-btn" id="tab-lgpd-consultar-solic" role="tab" aria-selected="false">Consultar protocolo</button>
+      </div>
+
+      <!-- Formulário: Nova solicitação -->
+      <form id="form-lgpd-solicitacao" class="lgpd-clean-form" novalidate>
+        <fieldset class="lgpd-type-fieldset">
+          <legend class="lgpd-field-label">O que você deseja fazer? *</legend>
+          <div class="lgpd-type-grid" role="radiogroup" aria-label="Tipo de solicitação LGPD">
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="acesso_dados" checked />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Ver meus dados</strong>
+                <small>Confirmação, acesso e compartilhamento</small>
+              </span>
+            </label>
+
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="correcao_dados" />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Corrigir meus dados</strong>
+                <small>Atualizar dados incompletos ou errados</small>
+              </span>
+            </label>
+
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="eliminacao_dados" />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Excluir meus dados</strong>
+                <small>Solicitar remoção do cadastro</small>
+              </span>
+            </label>
+
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="portabilidade_dados" />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Levar meus dados</strong>
+                <small>Portabilidade em arquivo</small>
+              </span>
+            </label>
+
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="revogacao_consentimento" />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Parar de receber comunicações</strong>
+                <small>Revogar consentimento</small>
+              </span>
+            </label>
+
+            <label class="lgpd-type-card">
+              <input type="radio" name="tipo_solicitacao" value="outro" />
+              <span class="lgpd-type-icon" aria-hidden="true">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+              </span>
+              <span class="lgpd-type-text">
+                <strong>Outro assunto</strong>
+                <small>Dúvida ou outro pedido de privacidade</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <!-- Aviso discreto exibido apenas ao selecionar "Excluir meus dados" -->
+        <div id="lgpd-fiscal-notice" class="lgpd-fiscal-notice" hidden>
+          Notas fiscais e dados de compras faturadas são guardados por até 5 anos por obrigação legal.
+        </div>
+
+        <div class="lgpd-fields-row">
+          <div class="lgpd-field">
+            <label for="lgpd-input-nome">Nome *</label>
+            <input type="text" id="lgpd-input-nome" name="titular_nome" required maxlength="120" autocomplete="name" placeholder="Seu nome completo" />
+          </div>
+          <div class="lgpd-field">
+            <label for="lgpd-input-email">E-mail *</label>
+            <input type="email" id="lgpd-input-email" name="titular_email" required maxlength="160" autocomplete="email" placeholder="seuemail@exemplo.com" />
+          </div>
+        </div>
+
+        <div class="lgpd-field">
+          <label for="lgpd-input-detalhes">Detalhes <span class="lgpd-optional-hint">(opcional)</span></label>
+          <textarea id="lgpd-input-detalhes" name="detalhes_solicitacao" rows="2" maxlength="2000" placeholder="Se quiser, explique o que precisa..."></textarea>
+        </div>
+
+        <details id="lgpd-cpf-details" class="lgpd-cpf-toggle">
+          <summary>Adicionar CPF/CNPJ para agilizar a identificação</summary>
+          <div class="lgpd-field" style="margin-top:10px;">
+            <label for="lgpd-input-cpf">CPF ou CNPJ <span class="lgpd-optional-hint">(opcional)</span></label>
+            <input type="text" id="lgpd-input-cpf" name="titular_cpf" maxlength="18" inputmode="numeric" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+          </div>
+        </details>
+
+        <!-- Honeypot oculto anti-spam -->
+        <div style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+          <label for="lgpd-hp-website">Site</label>
+          <input type="text" id="lgpd-hp-website" name="website_url" tabindex="-1" autocomplete="off" />
+        </div>
+
+        <!-- Verificação anti-spam / CAPTCHA -->
+        <div id="lgpd-captcha-wrap" class="lgpd-captcha-wrap">
+          <div id="lgpd-turnstile-container" style="display:none;"></div>
+          <label id="lgpd-human-check-label" class="lgpd-human-check">
+            <input type="checkbox" id="lgpd-human-checkbox" />
+            <span>Não sou um robô — verificação de segurança</span>
+          </label>
+        </div>
+
+        <div id="lgpd-form-feedback" class="lgpd-inline-error" role="alert" hidden></div>
+
+        <div class="lgpd-form-actions">
+          <button type="button" id="btn-cancel-lgpd-request" class="lgpd-cancel-link">Cancelar</button>
+          <button type="submit" id="btn-submit-lgpd-request" class="lgpd-primary-btn">
+            Enviar solicitação
+          </button>
+        </div>
       </form>
 
-      <!-- Painel: Consultar Protocolo -->
-      <div id="pane-lgpd-consultar" style="display:none; flex-direction:column; gap:12px;">
-        <div class="auth-field">
-          <label>Digite o Número do Protocolo *</label>
-          <div style="display:flex; gap:8px;">
-            <input type="text" id="input-lgpd-busca-protocolo" placeholder="Ex: LGPD-2026-4821"
-              style="flex:1; padding:10px 12px; border:1px solid #D1D5DB; border-radius:10px; text-transform:uppercase;" />
-            <button type="button" id="btn-consultar-protocolo-exec" class="btn-client-submit-auth"
-              style="width:auto; padding:0 18px;">
-              🔍 Buscar
-            </button>
+      <!-- Tela de confirmação limpa -->
+      <div id="lgpd-confirm-screen" class="lgpd-confirm-screen" hidden>
+        <div class="lgpd-confirm-icon" aria-hidden="true">
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </div>
+        <h3 class="lgpd-confirm-title">Solicitação enviada</h3>
+        <div class="lgpd-protocol-box">
+          <span class="lgpd-protocol-label">Protocolo</span>
+          <div class="lgpd-protocol-row">
+            <strong id="lgpd-confirm-protocol-code" class="lgpd-protocol-code">LGPD-2026-000000</strong>
+            <button type="button" id="btn-lgpd-copy-protocol" class="lgpd-copy-btn">Copiar</button>
           </div>
         </div>
-
-        <div id="lgpd-consulta-resultado"
-          style="display:none; background:#F8FAFC; border:1px solid #E2E8F0; border-radius:10px; padding:14px;">
-          <!-- Resultado renderizado via JS -->
-        </div>
+        <p id="lgpd-confirm-deadline" class="lgpd-confirm-deadline">Prazo de resposta: até —</p>
+        <p class="lgpd-confirm-hint">Você pode acompanhar pelo protocolo ou, se tiver conta, no seu painel.</p>
+        <button type="button" id="btn-lgpd-confirm-close" class="lgpd-primary-btn">Fechar</button>
       </div>
+
+      <!-- Painel: Consultar protocolo -->
+      <form id="pane-lgpd-consultar" class="lgpd-clean-form" hidden novalidate>
+        <div class="lgpd-field">
+          <label for="input-lgpd-busca-protocolo">Número do protocolo *</label>
+          <input type="text" id="input-lgpd-busca-protocolo" required maxlength="40" placeholder="Ex: LGPD-2026-A1B2C3" style="text-transform:uppercase;" />
+        </div>
+        <div class="lgpd-field">
+          <label for="input-lgpd-busca-email">E-mail usado na solicitação *</label>
+          <input type="email" id="input-lgpd-busca-email" required maxlength="160" placeholder="seuemail@exemplo.com" />
+        </div>
+        <div id="lgpd-consulta-feedback" class="lgpd-inline-error" role="alert" hidden></div>
+        <div class="lgpd-form-actions">
+          <button type="button" id="btn-cancel-lgpd-consulta" class="lgpd-cancel-link">Cancelar</button>
+          <button type="submit" id="btn-consultar-protocolo-exec" class="lgpd-primary-btn">Consultar</button>
+        </div>
+        <div id="lgpd-consulta-resultado" class="lgpd-lookup-result" hidden></div>
+      </form>
     </div>
-  </div>
+  </dialog>
 
   <!-- ====================================================================
        POP-UP MODAL DE ACESSO DO CLIENTE (LOGIN / CADASTRO COM GOOGLE)
@@ -3966,10 +4060,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_09"></script>
-  <script src="js/dados.js?v=20261118_09"></script>
-  <script src="js/database.js?v=20261118_09"></script>
-  <script src="js/app.js?v=20261118_09"></script>
+  <script src="js/supabase-client.js?v=20261118_10"></script>
+  <script src="js/dados.js?v=20261118_10"></script>
+  <script src="js/database.js?v=20261118_10"></script>
+  <script src="js/app.js?v=20261118_10"></script>
 </body>
 
 </html>

@@ -1361,12 +1361,60 @@
     return true;
   }
 
+  async function carregarMinhasSolicitacoesLgpd() {
+    const listEl = document.getElementById("conta-lgpd-requests-list");
+    if (!listEl || !window.SJ_SUPABASE?.direitosTitular?.listarMinhasSolicitacoes) return;
+
+    const itens = await window.SJ_SUPABASE.direitosTitular.listarMinhasSolicitacoes();
+    if (!Array.isArray(itens) || itens.length === 0) {
+      listEl.innerHTML = `<div style="padding: 12px 14px; background: #f8fafc; border: 1px dashed #cbd5e1; border-radius: 10px; font-size: 0.82rem; color: #64748b;">Nenhuma solicitação de privacidade enviada por esta conta.</div>`;
+      return;
+    }
+
+    const tipoMap = {
+      acesso_dados: "Ver meus dados",
+      correcao_dados: "Corrigir meus dados",
+      eliminacao_dados: "Excluir meus dados",
+      portabilidade_dados: "Levar meus dados",
+      revogacao_consentimento: "Parar de receber comunicações",
+      informacao_compartilhamento: "Compartilhamento com terceiros",
+      outro: "Outro assunto"
+    };
+    const statusMap = {
+      recebida: { txt: "Recebida", bg: "#eff6ff", fg: "#1d4ed8", bd: "#bfdbfe" },
+      em_analise: { txt: "Em análise", bg: "#fffbeb", fg: "#b45309", bd: "#fde68a" },
+      concluida: { txt: "Concluída", bg: "#f0fdf4", fg: "#166534", bd: "#bbf7d0" },
+      negada_parcialmente: { txt: "Negada parcialmente", bg: "#fef2f2", fg: "#b91c1c", bd: "#fecaca" },
+      rejeitada: { txt: "Recusada", bg: "#fef2f2", fg: "#b91c1c", bd: "#fecaca" },
+      cancelada: { txt: "Cancelada", bg: "#f1f5f9", fg: "#475569", bd: "#e2e8f0" }
+    };
+
+    listEl.innerHTML = itens.map((s) => {
+      const st = statusMap[s.status] || statusMap.recebida;
+      const dtAbertura = s.created_at ? new Date(s.created_at).toLocaleDateString("pt-BR") : "—";
+      const dtPrazo = (s.prazo_resposta || s.prazo_limite) ? new Date(s.prazo_resposta || s.prazo_limite).toLocaleDateString("pt-BR") : "—";
+      return `
+        <div style="border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px 14px; background: #ffffff;">
+          <div style="display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap;">
+            <strong style="font-size: 0.86rem; color: #0f172a; font-family: ui-monospace, monospace;">${escaparHtml(s.protocolo)}</strong>
+            <span style="padding: 2px 9px; border-radius: 999px; font-size: 0.72rem; font-weight: 700; background: ${st.bg}; color: ${st.fg}; border: 1px solid ${st.bd};">${escaparHtml(st.txt)}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: #334155; margin-top: 4px;">
+            <strong>${escaparHtml(tipoMap[s.tipo_solicitacao] || s.tipo_solicitacao)}</strong> · Enviada em ${escaparHtml(dtAbertura)} · Prazo: ${escaparHtml(dtPrazo)}
+          </div>
+          ${s.resposta_texto ? `<div style="margin-top: 8px; padding: 8px 10px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; font-size: 0.78rem; color: #166534;"><strong>Resposta:</strong> ${escaparHtml(s.resposta_texto)}</div>` : ""}
+        </div>
+      `;
+    }).join("");
+  }
+
   async function carregarTodosOsDadosCliente() {
     await carregarCatalogoProdutos();
     await Promise.all([
       carregarMeusFavoritos(),
       carregarMeuCarrinho(),
-      carregarMeusOrcamentos()
+      carregarMeusOrcamentos(),
+      carregarMinhasSolicitacoesLgpd()
     ]);
   }
 
@@ -1377,6 +1425,7 @@
     window.SJ_SUPABASE?.favorites?.assinarRealtime(() => carregarMeusFavoritos());
     window.SJ_SUPABASE?.cart?.assinarRealtime(() => carregarMeuCarrinho());
     window.SJ_SUPABASE?.quotes?.assinarRealtime(() => carregarMeusOrcamentos());
+    window.SJ_SUPABASE?.direitosTitular?.assinarRealtime?.(() => carregarMinhasSolicitacoesLgpd());
     window.SJ_SUPABASE?.products?.assinarRealtime(async () => {
       await carregarCatalogoProdutos();
       renderizarMeusFavoritos();

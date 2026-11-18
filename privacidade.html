@@ -458,52 +458,65 @@
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
             <div>
               <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Seu Nome Completo *</label>
-              <input type="text" name="titular_nome" required placeholder="Digite seu nome completo" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+              <input type="text" name="titular_nome" required maxlength="120" placeholder="Digite seu nome completo" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
             </div>
             <div>
               <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Seu E-mail Cadastrado *</label>
-              <input type="email" name="titular_email" required placeholder="seuemail@exemplo.com" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+              <input type="email" name="titular_email" required maxlength="160" placeholder="seuemail@exemplo.com" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
             </div>
           </div>
 
           <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(240px, 1fr)); gap:12px;">
             <div>
               <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Tipo de Solicitação *</label>
-              <select name="tipo_solicitacao" required style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; background:#fff;">
-                <option value="acesso_dados">1. Confirmação &amp; Acesso aos Dados (Art. 18, I e II)</option>
-                <option value="portabilidade_dados">2. Portabilidade dos Dados em JSON (Art. 18, V)</option>
-                <option value="correcao_dados">3. Correção de Dados Incompletos ou Inexatos (Art. 18, III)</option>
-                <option value="eliminacao_dados">4. Eliminação / Apagamento de Dados (Art. 18, VI)</option>
-                <option value="revogacao_consentimento">5. Revogação de Consentimento de Ofertas (Art. 18, IX)</option>
-                <option value="informacao_compartilhamento">6. Informações sobre Compartilhamento (Art. 18, VII)</option>
-                <option value="outro">7. Outra solicitação de privacidade</option>
+              <select name="tipo_solicitacao" id="priv-page-tipo" required style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; background:#fff;">
+                <option value="acesso_dados">Ver meus dados (acesso e compartilhamento)</option>
+                <option value="correcao_dados">Corrigir meus dados</option>
+                <option value="eliminacao_dados">Excluir meus dados</option>
+                <option value="portabilidade_dados">Levar meus dados (portabilidade)</option>
+                <option value="revogacao_consentimento">Parar de receber comunicações</option>
+                <option value="outro">Outro assunto</option>
               </select>
             </div>
             <div>
               <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">CPF ou CNPJ (Opcional)</label>
-              <input type="text" name="titular_cpf" placeholder="000.000.000-00" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
+              <input type="text" name="titular_cpf" maxlength="18" placeholder="000.000.000-00" style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem;" />
             </div>
           </div>
 
           <div>
-            <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Detalhes / Especificação da Solicitação</label>
-            <textarea name="detalhes_solicitacao" rows="3" placeholder="Descreva brevemente o que deseja solicitar..." style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; resize:vertical;"></textarea>
+            <label style="display:block; font-size:0.8rem; font-weight:700; color:#334155; margin-bottom:4px;">Detalhes (opcional)</label>
+            <textarea name="detalhes_solicitacao" rows="3" maxlength="2000" placeholder="Descreva brevemente o que deseja solicitar..." style="width:100%; box-sizing:border-box; padding:10px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.88rem; resize:vertical;"></textarea>
           </div>
 
-          <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:8px; padding:10px 12px; font-size:0.75rem; color:#64748B;">
-            ⚠️ <strong>Trava Fiscal:</strong> Solicitações de exclusão não contemplam notas fiscais emitidas nos últimos 5 anos, preservadas por determinação legal expressa (Art. 16, I da LGPD c/c Art. 173 do Código Tributário Nacional).
+          <div id="priv-page-fiscal-notice" style="display:none; background:#FFFBEB; border:1px solid #FDE68A; border-radius:8px; padding:10px 12px; font-size:0.78rem; color:#92400E;">
+            Notas fiscais e dados de compras faturadas são guardados por até 5 anos por obrigação legal.
+          </div>
+
+          <div style="position:absolute; left:-9999px; width:1px; height:1px; overflow:hidden;" aria-hidden="true">
+            <input type="text" name="website_url" tabindex="-1" autocomplete="off" />
+          </div>
+
+          <div id="priv-page-captcha-wrap">
+            <div id="priv-page-turnstile" style="display:none;"></div>
+            <label id="priv-page-human-label" style="display:flex; align-items:center; gap:8px; font-size:0.84rem; color:#334155; cursor:pointer;">
+              <input type="checkbox" id="priv-page-human-check" />
+              <span>Não sou um robô — verificação de segurança</span>
+            </label>
           </div>
 
           <button type="submit" id="btn-priv-page-submit" style="background:#F04E23; color:#fff; border:none; padding:12px 24px; border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer;">
-            📨 Enviar Solicitação &amp; Gerar Protocolo
+            Enviar solicitação
           </button>
+          <div id="priv-page-submit-result" style="display:none; padding:14px; border-radius:10px; background:#F0FDF4; border:1px solid #BBF7D0; color:#166534; font-size:0.86rem;"></div>
         </form>
 
         <!-- Consulta de Protocolo na Página de Privacidade -->
         <div style="margin-top:24px; border-top:1px solid #E2E8F0; padding-top:16px;">
-          <h4 style="margin:0 0 8px; font-size:0.9rem; color:#0F172A;">🔍 Já possui um protocolo? Consulte o status:</h4>
-          <div style="display:flex; gap:8px; max-width:420px;">
-            <input type="text" id="input-priv-page-prot" placeholder="Ex: LGPD-2026-4821" style="flex:1; padding:8px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.85rem; text-transform:uppercase;" />
+          <h4 style="margin:0 0 8px; font-size:0.9rem; color:#0F172A;">Já possui um protocolo? Consulte o status:</h4>
+          <div style="display:grid; grid-template-columns:repeat(auto-fit, minmax(190px, 1fr)); gap:8px; max-width:620px;">
+            <input type="text" id="input-priv-page-prot" placeholder="Protocolo (ex: LGPD-2026-...)" style="padding:8px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.85rem; text-transform:uppercase;" />
+            <input type="email" id="input-priv-page-email" placeholder="E-mail usado na solicitação" style="padding:8px 12px; border:1px solid #CBD5E1; border-radius:8px; font-size:0.85rem;" />
             <button type="button" id="btn-priv-page-search-prot" style="padding:8px 16px; background:#0F172A; color:#fff; border:none; border-radius:8px; font-weight:700; font-size:0.82rem; cursor:pointer;">
               Consultar
             </button>
@@ -544,77 +557,128 @@
   <!-- Rodapé Simples -->
   <footer style="background:#0F172A; color:#94A3B8; padding:24px 20px; text-align:center; font-size:0.8rem;">
     <div style="max-width:920px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <span>© 2026 Loja SJ 3D • CNPJ: [PREENCHER: 66.275.129/0001-10] • Umuarama - PR</span>
+      <span>© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10 • Umuarama - PR</span>
       <a href="index.html" style="color:#F04E23; text-decoration:underline; font-weight:700;">Voltar ao Catálogo da Loja</a>
     </div>
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261110_01"></script>
+  <script src="js/supabase-client.js?v=20261118_10"></script>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
+    document.addEventListener("DOMContentLoaded", async () => {
       const form = document.getElementById("priv-page-lgpd-form");
       const btnSubmit = document.getElementById("btn-priv-page-submit");
+      const tipoSel = document.getElementById("priv-page-tipo");
+      const fiscalBox = document.getElementById("priv-page-fiscal-notice");
+      const submitResBox = document.getElementById("priv-page-submit-result");
       const btnSearch = document.getElementById("btn-priv-page-search-prot");
       const inputProt = document.getElementById("input-priv-page-prot");
+      const inputEmailBusca = document.getElementById("input-priv-page-email");
       const resultBox = document.getElementById("priv-page-prot-result");
+      let challengeToken = "";
+      let turnstileWidgetId = null;
+
+      function esc(t) {
+        return String(t == null ? "" : t).replace(/[&<>"']/g, (m) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;", "'": "&#39;" }[m]));
+      }
+
+      if (window.SJ_SUPABASE?.direitosTitular?.obterDesafio) {
+        const des = await window.SJ_SUPABASE.direitosTitular.obterDesafio();
+        challengeToken = des?.lgpdChallengeToken || "";
+        if (des?.turnstileSiteKey) {
+          const tsBox = document.getElementById("priv-page-turnstile");
+          const hmLbl = document.getElementById("priv-page-human-label");
+          if (tsBox && hmLbl) {
+            tsBox.style.display = "block";
+            hmLbl.style.display = "none";
+            if (!window.turnstile) {
+              const s = document.createElement("script");
+              s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+              s.async = true;
+              s.onload = () => {
+                if (window.turnstile && tsBox) {
+                  turnstileWidgetId = window.turnstile.render(tsBox, { sitekey: des.turnstileSiteKey });
+                }
+              };
+              document.head.appendChild(s);
+            } else {
+              turnstileWidgetId = window.turnstile.render(tsBox, { sitekey: des.turnstileSiteKey });
+            }
+          }
+        }
+      }
+
+      tipoSel?.addEventListener("change", () => {
+        if (fiscalBox) fiscalBox.style.display = tipoSel.value === "eliminacao_dados" ? "block" : "none";
+      });
 
       form?.addEventListener("submit", async (e) => {
         e.preventDefault();
         btnSubmit.disabled = true;
-        btnSubmit.textContent = "Registrando...";
+        btnSubmit.textContent = "Enviando...";
         const nome = form.querySelector('input[name="titular_nome"]')?.value;
         const email = form.querySelector('input[name="titular_email"]')?.value;
         const cpf = form.querySelector('input[name="titular_cpf"]')?.value;
-        const tipo = form.querySelector('select[name="tipo_solicitacao"]')?.value;
+        const tipo = tipoSel?.value;
         const detalhes = form.querySelector('textarea[name="detalhes_solicitacao"]')?.value;
+        const websiteUrl = form.querySelector('input[name="website_url"]')?.value || "";
+        const humanVerified = Boolean(document.getElementById("priv-page-human-check")?.checked);
+        const captchaToken = (window.turnstile && turnstileWidgetId !== null)
+          ? (window.turnstile.getResponse(turnstileWidgetId) || "")
+          : "";
 
         try {
-          let res = null;
-          if (window.SJ_SUPABASE?.direitosTitular?.solicitar) {
-            res = await window.SJ_SUPABASE.direitosTitular.solicitar({ nome, email, cpf, tipo, detalhes });
+          const res = await window.SJ_SUPABASE?.direitosTitular?.solicitar({
+            nome, email, cpf, tipo, detalhes, website_url: websiteUrl, humanVerified, challengeToken, captchaToken
+          });
+          if (!res?.sucesso) {
+            alert(res?.mensagem || "Não foi possível enviar a solicitação.");
+            return;
           }
-          const prot = res?.protocolo || ("LGPD-2026-" + Math.floor(1000 + Math.random() * 9000));
-          alert(`✅ Solicitação registrada com sucesso!\n\nProtocolo: ${prot}\nPrazo legal: até 15 dias (Art. 19, II da LGPD).\n\nGuarde seu protocolo para acompanhamento.`);
+          const dtPrazo = res.prazo_limite ? new Date(res.prazo_limite).toLocaleDateString("pt-BR") : "15 dias";
+          if (submitResBox) {
+            submitResBox.style.display = "block";
+            submitResBox.innerHTML = `<strong>Solicitação enviada!</strong> Protocolo: <code>${esc(res.protocolo)}</code> · Prazo: até ${esc(dtPrazo)}.`;
+          }
           form.reset();
+          if (fiscalBox) fiscalBox.style.display = "none";
         } catch (err) {
-          alert("Erro: " + err.message);
+          alert("Erro ao enviar solicitação.");
         } finally {
           btnSubmit.disabled = false;
-          btnSubmit.textContent = "📨 Enviar Solicitação & Gerar Protocolo";
+          btnSubmit.textContent = "Enviar solicitação";
         }
       });
 
       btnSearch?.addEventListener("click", async () => {
         const prot = String(inputProt?.value || "").trim().toUpperCase();
-        if (!prot) {
-          alert("Digite o protocolo.");
+        const email = String(inputEmailBusca?.value || "").trim().toLowerCase();
+        if (!prot || !email) {
+          alert("Informe o número do protocolo e o e-mail usado na solicitação.");
           return;
         }
         btnSearch.disabled = true;
         btnSearch.textContent = "...";
         try {
-          let s = null;
-          if (window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo) {
-            s = await window.SJ_SUPABASE.direitosTitular.consultarProtocolo(prot);
-          }
+          const s = await window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo(prot, email);
           if (!s) {
-            alert(`Protocolo "${prot}" não localizado.`);
-            if (resultBox) resultBox.style.display = "none";
+            if (resultBox) {
+              resultBox.style.display = "block";
+              resultBox.textContent = "Protocolo ou e-mail não encontrado.";
+            }
             return;
           }
           const dtAbertura = new Date(s.criado_em).toLocaleDateString("pt-BR");
           const dtLimite = new Date(s.prazo_limite).toLocaleDateString("pt-BR");
-          resultBox.style.display = "block";
-          resultBox.innerHTML = `
-            <strong>Protocolo: ${s.protocolo}</strong><br />
-            <span>Titular: ${s.titular_nome}</span><br />
-            <span>Status: <strong>${s.status}</strong></span><br />
-            <span>Abertura: ${dtAbertura} • Prazo Limite (15 dias): ${dtLimite}</span>
-            ${s.resposta_texto ? `<div style="margin-top:8px; padding:8px; background:#DCFCE7; border-radius:6px; color:#166534;"><strong>Resposta:</strong> ${s.resposta_texto}</div>` : ""}
-          `;
-        } catch (err) {
-          alert("Erro: " + err.message);
+          if (resultBox) {
+            resultBox.style.display = "block";
+            resultBox.innerHTML = `
+              <strong>Protocolo: ${esc(s.protocolo)}</strong><br />
+              <span>Status: <strong>${esc(s.status)}</strong></span><br />
+              <span>Abertura: ${esc(dtAbertura)} · Prazo: ${esc(dtLimite)}</span>
+              ${s.resposta_texto ? `<div style="margin-top:8px; padding:8px; background:#DCFCE7; border-radius:6px; color:#166534;"><strong>Resposta:</strong> ${esc(s.resposta_texto)}</div>` : ""}
+            `;
+          }
         } finally {
           btnSearch.disabled = false;
           btnSearch.textContent = "Consultar";

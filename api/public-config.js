@@ -11,21 +11,100 @@
  * NUNCA expõe service_role e NUNCA registra CPF/CNPJ em logs.
  */
 
+const crypto = require("crypto");
+
 const rateBucket = new Map();
 const RATE_WINDOW_MS = 60 * 1000;
 const RATE_MAX_REQ = 20;
 
-function verificarRateLimit(chave) {
+const lgpdRateBucket = new Map();
+
+function verificarRateLimitJanela(map, chave, maxHits, windowMs) {
   const agora = Date.now();
-  const item = rateBucket.get(chave) || { count: 0, resetAt: agora + RATE_WINDOW_MS };
+  const item = map.get(chave) || { count: 0, resetAt: agora + windowMs };
   if (agora > item.resetAt) {
     item.count = 0;
-    item.resetAt = agora + RATE_WINDOW_MS;
+    item.resetAt = agora + windowMs;
   }
   item.count += 1;
-  rateBucket.set(chave, item);
-  if (rateBucket.size > 2000) rateBucket.clear();
-  return item.count <= RATE_MAX_REQ;
+  map.set(chave, item);
+  if (map.size > 3000) map.clear();
+  return item.count <= maxHits;
+}
+
+function verificarRateLimit(chave) {
+  return verificarRateLimitJanela(rateBucket, chave, RATE_MAX_REQ, RATE_WINDOW_MS);
+}
+
+function obterChallengeSecret(supabaseAnonKey) {
+  return process.env.LGPD_CHALLENGE_SECRET || process.env.TURNSTILE_SECRET_KEY || `${supabaseAnonKey}:sj3d-lgpd-v1`;
+}
+
+function gerarTokenDesafioLgpd(supabaseAnonKey) {
+  const ts = String(Date.now());
+  const nonce = crypto.randomBytes(8).toString("hex");
+  const payload = `${ts}.${nonce}`;
+  const sig = crypto.createHmac("sha256", obterChallengeSecret(supabaseAnonKey)).update(payload).digest("hex");
+  return `${payload}.${sig}`;
+}
+
+function validarTokenDesafioLgpd(token, supabaseAnonKey) {
+  const parts = String(token || "").trim().split(".");
+  if (parts.length !== 3) return false;
+  const [tsStr, nonce, sig] = parts;
+  const ts = Number(tsStr);
+  if (!Number.isFinite(ts) || !nonce || !sig) return false;
+  const idadeMs = Date.now() - ts;
+  if (idadeMs < 800 || idadeMs > 2 * 60 * 60 * 1000) return false;
+  const expected = crypto.createHmac("sha256", obterChallengeSecret(supabaseAnonKey)).update(`${tsStr}.${nonce}`).digest("hex");
+  try {
+    return crypto.timingSafeEqual(Buffer.from(sig, "utf8"), Buffer.from(expected, "utf8"));
+  } catch (_) {
+    return false;
+  }
+}
+
+function validarCpfOficial(digits) {
+  if (!digits || digits.length !== 11) return false;
+  if (/^(\d)\1{10}$/.test(digits)) return false;
+  let sum = 0;
+  for (let i = 0; i < 9; i += 1) sum += Number(digits[i]) * (10 - i);
+  let d1 = (sum * 10) % 11;
+  if (d1 === 10) d1 = 0;
+  if (d1 !== Number(digits[9])) return false;
+  sum = 0;
+  for (let i = 0; i < 10; i += 1) sum += Number(digits[i]) * (11 - i);
+  let d2 = (sum * 10) % 11;
+  if (d2 === 10) d2 = 0;
+  return d2 === Number(digits[10]);
+}
+
+function sanitizarTextoSeguro(txt, maxLen) {
+  return String(txt || "")
+    .replace(/<[^>]*>/g, "")
+    .replace(/\s+/g, " ")
+    .trim()
+    .slice(0, maxLen);
+}
+
+async function lerBodyJson(req) {
+  if (req.body && typeof req.body === "object") return req.body;
+  if (typeof req.body === "string") {
+    if (req.body.length > 64 * 1024) return null;
+    try { return JSON.parse(req.body); } catch (_) { return null; }
+  }
+  return new Promise((resolve) => {
+    let raw = "";
+    let exceeded = false;
+    req.on("data", (chunk) => {
+      raw += chunk;
+      if (raw.length > 64 * 1024) exceeded = true;
+    });
+    req.on("end", () => {
+      if (exceeded) return resolve(null);
+      try { resolve(JSON.parse(raw || "{}")); } catch (_) { resolve(null); }
+    });
+  });
 }
 
 function validarCnpjOficial(digits) {
@@ -98,7 +177,7 @@ module.exports = async function handler(req, res) {
     process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
     "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InRxZWlmbWV0dHdod25nZXl6Ym9oIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTM5MDM5NjUsImV4cCI6MjEwOTQ3OTk2NX0.cgc9bDqnscMv9PCe8ttB7aYlkAmuBYOrnT_j_ukUrX0";
 
-  // 1) Modo padrão: apenas configurações públicas da loja (WhatsApp)
+  // 1) Modo padrão: apenas configurações públicas da loja (WhatsApp + CAPTCHA site key + desafio anti-bot)
   if (!tipo) {
     const rawWhatsapp =
       process.env.WHATSAPP_NUMBER ||
@@ -107,13 +186,219 @@ module.exports = async function handler(req, res) {
       "5544991351318";
 
     const whatsappNumber = String(rawWhatsapp).replace(/\D/g, "") || "5544991351318";
+    const turnstileSiteKey =
+      process.env.TURNSTILE_SITE_KEY ||
+      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
+      null;
 
     return res.status(200).json({
       ok: true,
       whatsappNumber,
       supabaseUrl: process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL || null,
-      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null
+      supabaseAnonKey: process.env.SUPABASE_ANON_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || null,
+      turnstileSiteKey,
+      lgpdChallengeToken: gerarTokenDesafioLgpd(SUPABASE_ANON_KEY)
     });
+  }
+
+  // 1B) Novo desafio anti-bot sob demanda
+  if (tipo === "lgpd-challenge") {
+    return res.status(200).json({
+      ok: true,
+      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null,
+      lgpdChallengeToken: gerarTokenDesafioLgpd(SUPABASE_ANON_KEY)
+    });
+  }
+
+  // 1C) Envio público ou autenticado de solicitação LGPD (com rate limit + CAPTCHA + sanitização)
+  if (tipo === "lgpd") {
+    if (req.method !== "POST") {
+      return res.status(405).json({ sucesso: false, mensagem: "Método não permitido." });
+    }
+
+    const ipBruto = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim();
+    const ipHash = ipBruto ? crypto.createHash("sha256").update(ipBruto).digest("hex").slice(0, 32) : "no-ip";
+
+    if (!verificarRateLimitJanela(lgpdRateBucket, `lgpd:ip:${ipHash}`, 5, 10 * 60 * 1000)) {
+      return res.status(429).json({
+        sucesso: false,
+        mensagem: "Muitas solicitações seguidas. Aguarde alguns minutos antes de tentar novamente."
+      });
+    }
+
+    const body = await lerBodyJson(req);
+    if (!body || typeof body !== "object") {
+      return res.status(400).json({ sucesso: false, mensagem: "Dados inválidos na solicitação." });
+    }
+
+    // Honeypot anti-bot
+    if (String(body.website_url || "").trim() !== "") {
+      return res.status(400).json({ sucesso: false, mensagem: "Validação de segurança recusada." });
+    }
+
+    // Verificação CAPTCHA (Turnstile quando configurado; senão desafio assinado pelo servidor)
+    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || "";
+    if (turnstileSecret) {
+      const cfToken = String(body.captchaToken || "").trim();
+      if (!cfToken) {
+        return res.status(400).json({ sucesso: false, mensagem: "Confirme o verificador de segurança (CAPTCHA) antes de enviar." });
+      }
+      try {
+        const formData = new URLSearchParams();
+        formData.set("secret", turnstileSecret);
+        formData.set("response", cfToken);
+        if (ipBruto) formData.set("remoteip", ipBruto);
+        const cfRes = await fetch("https://challenges.cloudflare.com/turnstile/v0/siteverify", {
+          method: "POST",
+          body: formData
+        });
+        const cfData = await cfRes.json();
+        if (!cfData?.success) {
+          return res.status(403).json({ sucesso: false, mensagem: "Verificação CAPTCHA inválida ou expirada. Tente novamente." });
+        }
+      } catch (_) {
+        return res.status(503).json({ sucesso: false, mensagem: "Falha ao validar CAPTCHA. Tente novamente em instantes." });
+      }
+    } else {
+      if (body.humanVerified !== true || !validarTokenDesafioLgpd(body.challengeToken, SUPABASE_ANON_KEY)) {
+        return res.status(400).json({ sucesso: false, mensagem: "Marque a caixa de verificação de segurança para enviar." });
+      }
+    }
+
+    const nome = sanitizarTextoSeguro(body.nome, 120);
+    const email = sanitizarTextoSeguro(body.email, 160).toLowerCase();
+    const tipoSolic = sanitizarTextoSeguro(body.tipo, 60);
+    const detalhes = sanitizarTextoSeguro(body.detalhes, 2000);
+    const docDigits = String(body.cpf_cnpj || body.cpf || "").replace(/\D/g, "");
+
+    const tiposValidos = new Set([
+      "acesso_dados",
+      "correcao_dados",
+      "eliminacao_dados",
+      "portabilidade_dados",
+      "revogacao_consentimento",
+      "outro"
+    ]);
+
+    if (nome.length < 2) {
+      return res.status(400).json({ sucesso: false, mensagem: "Informe seu nome completo." });
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({ sucesso: false, mensagem: "Informe um e-mail válido." });
+    }
+    if (!tiposValidos.has(tipoSolic)) {
+      return res.status(400).json({ sucesso: false, mensagem: "Escolha um tipo de solicitação válido." });
+    }
+    if (docDigits) {
+      const docOk = docDigits.length === 11 ? validarCpfOficial(docDigits) : (docDigits.length === 14 && validarCnpjOficial(docDigits));
+      if (!docOk) {
+        return res.status(400).json({ sucesso: false, mensagem: "CPF ou CNPJ inválido. Confira os dígitos ou deixe em branco." });
+      }
+    }
+
+    const emailHash = crypto.createHash("sha256").update(email).digest("hex").slice(0, 32);
+    if (!verificarRateLimitJanela(lgpdRateBucket, `lgpd:em:${emailHash}`, 4, 60 * 60 * 1000)) {
+      return res.status(429).json({
+        sucesso: false,
+        mensagem: "Você já enviou várias solicitações recentes para este e-mail. Aguarde antes de enviar outra."
+      });
+    }
+
+    const authHeader = String(req.headers.authorization || "").trim();
+    const userBearer = authHeader.toLowerCase().startsWith("bearer ") && authHeader.length > 40 && !authHeader.includes(SUPABASE_ANON_KEY)
+      ? authHeader
+      : `Bearer ${SUPABASE_ANON_KEY}`;
+
+    try {
+      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/criar_solicitacao_lgpd`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: userBearer,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          p_nome: nome,
+          p_email: email,
+          p_cpf_cnpj: docDigits || null,
+          p_tipo: tipoSolic,
+          p_detalhes: detalhes,
+          p_ip_hash: ipHash
+        })
+      });
+
+      const rpcData = await rpcRes.json().catch(() => ({}));
+      if (!rpcRes.ok || !rpcData?.sucesso) {
+        const msgSegura = typeof rpcData?.message === "string" && rpcData.message.includes("Limite")
+          ? rpcData.message
+          : "Não foi possível registrar a solicitação agora. Tente novamente em instantes.";
+        return res.status(rpcRes.status >= 400 && rpcRes.status < 500 ? rpcRes.status : 500).json({
+          sucesso: false,
+          mensagem: msgSegura
+        });
+      }
+
+      return res.status(200).json({
+        sucesso: true,
+        protocolo: rpcData.protocolo,
+        status: rpcData.status,
+        prazo_limite: rpcData.prazo_limite,
+        prazo_resposta: rpcData.prazo_resposta,
+        criado_em: rpcData.criado_em
+      });
+    } catch (_) {
+      return res.status(502).json({
+        sucesso: false,
+        mensagem: "Erro de comunicação ao registrar sua solicitação. Tente novamente."
+      });
+    }
+  }
+
+  // 1D) Consulta pública de protocolo (rate limit + protocolo & e-mail obrigatórios via RPC SECURITY DEFINER)
+  if (tipo === "lgpd-consulta") {
+    if (req.method !== "POST") {
+      return res.status(405).json({ sucesso: false, mensagem: "Método não permitido." });
+    }
+    const ipBruto = String(req.headers["x-forwarded-for"] || req.socket?.remoteAddress || "").split(",")[0].trim();
+    const ipHash = ipBruto ? crypto.createHash("sha256").update(ipBruto).digest("hex").slice(0, 32) : "no-ip";
+    if (!verificarRateLimitJanela(lgpdRateBucket, `lgpd:q:${ipHash}`, 15, 60 * 1000)) {
+      return res.status(429).json({
+        sucesso: false,
+        mensagem: "Muitas consultas em seguida. Aguarde 1 minuto."
+      });
+    }
+
+    const body = await lerBodyJson(req);
+    const protocolo = sanitizarTextoSeguro(body?.protocolo, 40).toUpperCase();
+    const email = sanitizarTextoSeguro(body?.email, 160).toLowerCase();
+    if (!protocolo || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      return res.status(400).json({
+        sucesso: false,
+        mensagem: "Informe o número do protocolo e o e-mail usado na solicitação."
+      });
+    }
+
+    try {
+      const rpcRes = await fetch(`${SUPABASE_URL}/rest/v1/rpc/consultar_protocolo_lgpd`, {
+        method: "POST",
+        headers: {
+          apikey: SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({
+          p_protocolo: protocolo,
+          p_email: email
+        })
+      });
+      const rpcData = await rpcRes.json().catch(() => null);
+      if (!rpcRes.ok || !rpcData || rpcData.encontrado !== true) {
+        return res.status(200).json({ sucesso: true, encontrado: false });
+      }
+      return res.status(200).json({ sucesso: true, encontrado: true, dados: rpcData });
+    } catch (_) {
+      return res.status(502).json({ sucesso: false, mensagem: "Erro ao consultar protocolo." });
+    }
   }
 
   // 2) Consultas fiscais (CNPJ / CEP): exigem usuário logado + rate limit

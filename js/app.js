@@ -1658,20 +1658,139 @@
     document.body.style.overflow = "";
   }
 
+  const lgpdModalState = {
+    challengeToken: "",
+    turnstileSiteKey: null,
+    turnstileWidgetId: null
+  };
+
+  async function inicializarDesafioLgpdModal() {
+    if (!window.SJ_SUPABASE?.direitosTitular?.obterDesafio) return;
+    const des = await window.SJ_SUPABASE.direitosTitular.obterDesafio();
+    lgpdModalState.challengeToken = des?.lgpdChallengeToken || "";
+    lgpdModalState.turnstileSiteKey = des?.turnstileSiteKey || null;
+
+    const tsContainer = document.getElementById("lgpd-turnstile-container");
+    const humanLabel = document.getElementById("lgpd-human-check-label");
+    if (lgpdModalState.turnstileSiteKey && tsContainer && humanLabel) {
+      tsContainer.style.display = "block";
+      humanLabel.style.display = "none";
+      const renderWidget = () => {
+        if (window.turnstile && tsContainer) {
+          if (lgpdModalState.turnstileWidgetId === null) {
+            lgpdModalState.turnstileWidgetId = window.turnstile.render(tsContainer, {
+              sitekey: lgpdModalState.turnstileSiteKey,
+              theme: "light"
+            });
+          } else {
+            window.turnstile.reset(lgpdModalState.turnstileWidgetId);
+          }
+        }
+      };
+      if (!window.turnstile) {
+        if (!document.getElementById("cf-turnstile-script")) {
+          const s = document.createElement("script");
+          s.id = "cf-turnstile-script";
+          s.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
+          s.async = true;
+          s.onload = renderWidget;
+          document.head.appendChild(s);
+        }
+      } else {
+        renderWidget();
+      }
+    } else if (tsContainer && humanLabel) {
+      tsContainer.style.display = "none";
+      humanLabel.style.display = "flex";
+    }
+  }
+
+  async function preencherDadosLogadoLgpd() {
+    const inpNome = document.getElementById("lgpd-input-nome");
+    const inpEmail = document.getElementById("lgpd-input-email");
+    if (!inpNome || !inpEmail) return;
+
+    let nomeLogado = "";
+    let emailLogado = "";
+
+    if (window.SJ_SUPABASE?.auth?.obterSessao) {
+      try {
+        const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+        if (sessao?.user?.email) {
+          emailLogado = sessao.user.email;
+          nomeLogado = sessao.user.user_metadata?.nome || sessao.user.user_metadata?.full_name || "";
+          if (window.SJ_SUPABASE?.profiles?.obterMeuPerfil) {
+            const pRes = await window.SJ_SUPABASE.profiles.obterMeuPerfil();
+            if (pRes?.perfil?.nome || pRes?.perfil?.razao_social) {
+              nomeLogado = pRes.perfil.razao_social || pRes.perfil.nome;
+            }
+          }
+        }
+      } catch (_) {}
+    } else if (state.usuarioGoogle?.email) {
+      emailLogado = state.usuarioGoogle.email;
+      nomeLogado = state.usuarioGoogle.nome || "";
+    }
+
+    if (emailLogado) {
+      inpEmail.value = emailLogado;
+      inpEmail.readOnly = true;
+      if (nomeLogado && !inpNome.value.trim()) {
+        inpNome.value = nomeLogado;
+      }
+    } else {
+      inpEmail.readOnly = false;
+    }
+  }
+
   function abrirModalLgpdSolicitacao() {
     const modal = document.getElementById("modal-lgpd-titular-request");
     if (!modal) return;
-    modal.style.display = "flex";
-    modal.setAttribute("aria-hidden", "false");
-    document.body.style.overflow = "hidden";
+
+    const form = document.getElementById("form-lgpd-solicitacao");
+    const paneConsulta = document.getElementById("pane-lgpd-consultar");
+    const confirmScreen = document.getElementById("lgpd-confirm-screen");
+    const tabsBar = document.getElementById("lgpd-modal-tabs");
+    const tabNova = document.getElementById("tab-lgpd-nova-solic");
+    const tabCons = document.getElementById("tab-lgpd-consultar-solic");
+    const fb = document.getElementById("lgpd-form-feedback");
+    const fbCons = document.getElementById("lgpd-consulta-feedback");
+
+    if (tabsBar) tabsBar.style.display = "inline-grid";
+    tabNova?.classList.add("active");
+    tabNova?.setAttribute("aria-selected", "true");
+    tabCons?.classList.remove("active");
+    tabCons?.setAttribute("aria-selected", "false");
+    if (form) form.hidden = false;
+    if (paneConsulta) paneConsulta.hidden = true;
+    if (confirmScreen) confirmScreen.hidden = true;
+    if (fb) fb.hidden = true;
+    if (fbCons) fbCons.hidden = true;
+
+    const checkedRadio = form?.querySelector('input[name="tipo_solicitacao"]:checked');
+    const fiscalNotice = document.getElementById("lgpd-fiscal-notice");
+    if (fiscalNotice) fiscalNotice.hidden = checkedRadio?.value !== "eliminacao_dados";
+
+    preencherDadosLogadoLgpd();
+    inicializarDesafioLgpdModal();
+
+    if (typeof modal.showModal === "function") {
+      if (!modal.open) modal.showModal();
+    } else {
+      modal.setAttribute("open", "");
+      modal.style.display = "flex";
+    }
   }
 
   function fecharModalLgpdSolicitacao() {
     const modal = document.getElementById("modal-lgpd-titular-request");
     if (!modal) return;
-    modal.style.display = "none";
-    modal.setAttribute("aria-hidden", "true");
-    document.body.style.overflow = "";
+    if (typeof modal.close === "function") {
+      if (modal.open) modal.close();
+    } else {
+      modal.removeAttribute("open");
+      modal.style.display = "none";
+    }
   }
 
   // ==========================================================================
@@ -1954,8 +2073,9 @@
     const tabLgpdConsultar = document.getElementById("tab-lgpd-consultar-solic");
     const formLgpdSolic = document.getElementById("form-lgpd-solicitacao");
     const paneLgpdConsultar = document.getElementById("pane-lgpd-consultar");
-    const btnConsultarProt = document.getElementById("btn-consultar-protocolo-exec");
+    const confirmScreenLgpd = document.getElementById("lgpd-confirm-screen");
     const inputBuscaProt = document.getElementById("input-lgpd-busca-protocolo");
+    const inputBuscaEmail = document.getElementById("input-lgpd-busca-email");
     const resultadoConsultaProt = document.getElementById("lgpd-consulta-resultado");
 
     footerLgpdLink?.addEventListener("click", (e) => {
@@ -1963,126 +2083,254 @@
       abrirModalLgpdSolicitacao();
     });
     closeLgpdBtn?.addEventListener("click", fecharModalLgpdSolicitacao);
-    modalLgpd?.addEventListener("click", (e) => {
-      if (e.target.id === "modal-lgpd-titular-request") fecharModalLgpdSolicitacao();
-    });
+    document.getElementById("btn-cancel-lgpd-request")?.addEventListener("click", fecharModalLgpdSolicitacao);
+    document.getElementById("btn-cancel-lgpd-consulta")?.addEventListener("click", fecharModalLgpdSolicitacao);
+    document.getElementById("btn-lgpd-confirm-close")?.addEventListener("click", fecharModalLgpdSolicitacao);
+
+    if (modalLgpd && !("closedBy" in HTMLDialogElement.prototype)) {
+      let outDown = false;
+      const foraDialog = (ev) => {
+        const r = modalLgpd.getBoundingClientRect();
+        return ev.clientX < r.left || ev.clientX > r.right || ev.clientY < r.top || ev.clientY > r.bottom;
+      };
+      modalLgpd.addEventListener("pointerdown", (ev) => { outDown = foraDialog(ev); });
+      modalLgpd.addEventListener("pointerup", (ev) => {
+        if (outDown && foraDialog(ev)) fecharModalLgpdSolicitacao();
+      });
+    }
 
     tabLgpdNova?.addEventListener("click", () => {
       tabLgpdNova.classList.add("active");
+      tabLgpdNova.setAttribute("aria-selected", "true");
       tabLgpdConsultar?.classList.remove("active");
-      if (formLgpdSolic) formLgpdSolic.style.display = "flex";
-      if (paneLgpdConsultar) paneLgpdConsultar.style.display = "none";
+      tabLgpdConsultar?.setAttribute("aria-selected", "false");
+      if (formLgpdSolic) formLgpdSolic.hidden = false;
+      if (paneLgpdConsultar) paneLgpdConsultar.hidden = true;
+      if (confirmScreenLgpd) confirmScreenLgpd.hidden = true;
     });
 
     tabLgpdConsultar?.addEventListener("click", () => {
       tabLgpdConsultar.classList.add("active");
+      tabLgpdConsultar.setAttribute("aria-selected", "true");
       tabLgpdNova?.classList.remove("active");
-      if (formLgpdSolic) formLgpdSolic.style.display = "none";
-      if (paneLgpdConsultar) paneLgpdConsultar.style.display = "flex";
+      tabLgpdNova?.setAttribute("aria-selected", "false");
+      if (formLgpdSolic) formLgpdSolic.hidden = true;
+      if (paneLgpdConsultar) paneLgpdConsultar.hidden = false;
+      if (confirmScreenLgpd) confirmScreenLgpd.hidden = true;
     });
+
+    // Aviso fiscal condicional somente ao selecionar "Excluir meus dados"
+    formLgpdSolic?.querySelectorAll('input[name="tipo_solicitacao"]').forEach((radio) => {
+      radio.addEventListener("change", () => {
+        const fiscalNotice = document.getElementById("lgpd-fiscal-notice");
+        if (fiscalNotice) fiscalNotice.hidden = radio.value !== "eliminacao_dados";
+      });
+    });
+
+    // Máscara leve de CPF/CNPJ opcional
+    aplicarMascaraCpfCnpj(document.getElementById("lgpd-input-cpf"));
 
     // Envio do formulário de solicitação de direitos
     formLgpdSolic?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const btnSubmit = document.getElementById("btn-submit-lgpd-request");
-      if (btnSubmit) {
-        btnSubmit.disabled = true;
-        btnSubmit.innerHTML = "<span>⏳ Registrando solicitação...</span>";
+      const fbEl = document.getElementById("lgpd-form-feedback");
+      const mostrarErroLgpd = (msg) => {
+        if (fbEl) {
+          fbEl.textContent = msg;
+          fbEl.hidden = false;
+        }
+      };
+      if (fbEl) fbEl.hidden = true;
+
+      const nome = String(document.getElementById("lgpd-input-nome")?.value || "").trim();
+      const email = String(document.getElementById("lgpd-input-email")?.value || "").trim().toLowerCase();
+      const cpfRaw = String(document.getElementById("lgpd-input-cpf")?.value || "").trim();
+      const tipo = formLgpdSolic.querySelector('input[name="tipo_solicitacao"]:checked')?.value || "acesso_dados";
+      const detalhes = String(document.getElementById("lgpd-input-detalhes")?.value || "").trim();
+      const websiteUrl = String(document.getElementById("lgpd-hp-website")?.value || "");
+      const humanVerified = Boolean(document.getElementById("lgpd-human-checkbox")?.checked);
+      const captchaToken = (window.turnstile && lgpdModalState.turnstileWidgetId !== null)
+        ? (window.turnstile.getResponse(lgpdModalState.turnstileWidgetId) || "")
+        : "";
+
+      if (nome.length < 2) {
+        mostrarErroLgpd("Informe seu nome completo.");
+        document.getElementById("lgpd-input-nome")?.focus();
+        return;
+      }
+      if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        mostrarErroLgpd("Informe um e-mail válido.");
+        document.getElementById("lgpd-input-email")?.focus();
+        return;
+      }
+      if (lgpdModalState.turnstileSiteKey && !captchaToken) {
+        mostrarErroLgpd("Confirme a verificação de segurança (CAPTCHA) antes de enviar.");
+        return;
+      }
+      if (!lgpdModalState.turnstileSiteKey && !humanVerified) {
+        mostrarErroLgpd("Marque a caixa de verificação de segurança para enviar.");
+        document.getElementById("lgpd-human-checkbox")?.focus();
+        return;
       }
 
-      const nome = formLgpdSolic.querySelector('input[name="titular_nome"]')?.value;
-      const email = formLgpdSolic.querySelector('input[name="titular_email"]')?.value;
-      const cpf = formLgpdSolic.querySelector('input[name="titular_cpf"]')?.value;
-      const tipo = formLgpdSolic.querySelector('select[name="tipo_solicitacao"]')?.value;
-      const detalhes = formLgpdSolic.querySelector('textarea[name="detalhes_solicitacao"]')?.value;
+      if (btnSubmit) {
+        btnSubmit.disabled = true;
+        btnSubmit.textContent = "Enviando...";
+      }
 
       try {
-        let res = null;
-        if (window.SJ_SUPABASE?.direitosTitular?.solicitar) {
-          res = await window.SJ_SUPABASE.direitosTitular.solicitar({
-            nome,
-            email,
-            cpf,
-            tipo,
-            detalhes
-          });
+        const res = await window.SJ_SUPABASE?.direitosTitular?.solicitar({
+          nome,
+          email,
+          cpf: cpfRaw,
+          tipo,
+          detalhes,
+          website_url: websiteUrl,
+          humanVerified,
+          challengeToken: lgpdModalState.challengeToken,
+          captchaToken
+        });
+
+        if (!res || !res.sucesso) {
+          mostrarErroLgpd(res?.mensagem || "Não foi possível enviar a solicitação. Tente novamente.");
+          return;
         }
-        const protocolo = res?.protocolo || ("LGPD-2026-" + Math.floor(1000 + Math.random() * 9000));
-        alert(`✅ Solicitação registrada com sucesso!\n\nSeu Protocolo: ${protocolo}\nPrazo de Resposta: até 15 dias (Art. 19, II da LGPD).\n\nGuarde este número para consultar o andamento a qualquer momento.`);
-        mostrarToast(`Protocolo ${protocolo} gerado com sucesso!`, "success");
+
+        const protocolo = res.protocolo;
+        const dtPrazo = res.prazo_limite ? new Date(res.prazo_limite).toLocaleDateString("pt-BR") : "15 dias";
+
+        const codeEl = document.getElementById("lgpd-confirm-protocol-code");
+        const deadlineEl = document.getElementById("lgpd-confirm-deadline");
+        const tabsBar = document.getElementById("lgpd-modal-tabs");
+        if (codeEl) codeEl.textContent = protocolo;
+        if (deadlineEl) deadlineEl.textContent = `Prazo de resposta: até ${dtPrazo}`;
+        if (tabsBar) tabsBar.style.display = "none";
         formLgpdSolic.reset();
-        fecharModalLgpdSolicitacao();
-      } catch (err) {
-        alert("Erro ao enviar solicitação: " + err.message);
+        const humanCb = document.getElementById("lgpd-human-checkbox");
+        if (humanCb) humanCb.checked = false;
+        formLgpdSolic.hidden = true;
+        if (confirmScreenLgpd) confirmScreenLgpd.hidden = false;
+      } catch (_) {
+        mostrarErroLgpd("Erro de comunicação ao registrar sua solicitação.");
       } finally {
         if (btnSubmit) {
           btnSubmit.disabled = false;
-          btnSubmit.innerHTML = "<span>📨 Registrar Solicitação &amp; Gerar Protocolo</span>";
+          btnSubmit.textContent = "Enviar solicitação";
         }
       }
     });
 
-    // Consulta de status de protocolo existente
-    btnConsultarProt?.addEventListener("click", async () => {
+    document.getElementById("btn-lgpd-copy-protocol")?.addEventListener("click", async () => {
+      const code = document.getElementById("lgpd-confirm-protocol-code")?.textContent?.trim();
+      const btnCopy = document.getElementById("btn-lgpd-copy-protocol");
+      if (!code) return;
+      try {
+        await navigator.clipboard.writeText(code);
+        if (btnCopy) {
+          btnCopy.textContent = "Copiado";
+          setTimeout(() => { btnCopy.textContent = "Copiar"; }, 2000);
+        }
+      } catch (_) {}
+    });
+
+    // Consulta de status de protocolo existente (exige protocolo + e-mail)
+    paneLgpdConsultar?.addEventListener("submit", async (e) => {
+      e.preventDefault();
       const prot = String(inputBuscaProt?.value || "").trim().toUpperCase();
-      if (!prot) {
-        alert("Digite o número do protocolo.");
+      const email = String(inputBuscaEmail?.value || "").trim().toLowerCase();
+      const fbCons = document.getElementById("lgpd-consulta-feedback");
+      const btnConsultarProt = document.getElementById("btn-consultar-protocolo-exec");
+      if (fbCons) fbCons.hidden = true;
+      if (resultadoConsultaProt) resultadoConsultaProt.hidden = true;
+
+      if (!prot || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+        if (fbCons) {
+          fbCons.textContent = "Informe o número do protocolo e o e-mail usado na solicitação.";
+          fbCons.hidden = false;
+        }
         return;
       }
-      btnConsultarProt.disabled = true;
-      btnConsultarProt.textContent = "Buscando...";
+
+      if (btnConsultarProt) {
+        btnConsultarProt.disabled = true;
+        btnConsultarProt.textContent = "Consultando...";
+      }
+
       try {
-        let solic = null;
-        if (window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo) {
-          solic = await window.SJ_SUPABASE.direitosTitular.consultarProtocolo(prot);
-        }
+        const solic = await window.SJ_SUPABASE?.direitosTitular?.consultarProtocolo?.(prot, email);
         if (!solic) {
-          alert(`Protocolo "${prot}" não localizado.`);
-          if (resultadoConsultaProt) resultadoConsultaProt.style.display = "none";
+          if (fbCons) {
+            fbCons.textContent = "Protocolo ou e-mail não encontrado.";
+            fbCons.hidden = false;
+          }
           return;
         }
 
         const statusMap = {
-          em_analise: "🟡 Em Análise (No Prazo)",
-          concluida: "🟢 Concluída",
-          rejeitada: "🔴 Rejeitada",
-          cancelada: "⚪ Cancelada"
+          recebida: { txt: "Recebida", cls: "is-neutral" },
+          em_analise: { txt: "Em análise", cls: "is-yellow" },
+          concluida: { txt: "Concluída", cls: "is-green" },
+          negada_parcialmente: { txt: "Negada parcialmente", cls: "is-red" },
+          rejeitada: { txt: "Recusada", cls: "is-red" },
+          cancelada: { txt: "Cancelada", cls: "is-neutral" }
         };
-        const statusTexto = statusMap[solic.status] || solic.status;
-        const dataAbertura = new Date(solic.criado_em).toLocaleDateString("pt-BR");
-        const dataLimite = new Date(solic.prazo_limite).toLocaleDateString("pt-BR");
+        const stInfo = statusMap[solic.status] || statusMap.recebida;
+        const tipoLabels = {
+          acesso_dados: "Ver meus dados",
+          correcao_dados: "Corrigir meus dados",
+          eliminacao_dados: "Excluir meus dados",
+          portabilidade_dados: "Levar meus dados",
+          revogacao_consentimento: "Parar de receber comunicações",
+          informacao_compartilhamento: "Compartilhamento com terceiros",
+          outro: "Outro assunto"
+        };
+        const dataAbertura = solic.criado_em ? new Date(solic.criado_em).toLocaleDateString("pt-BR") : "—";
+        const dataLimite = (solic.prazo_resposta || solic.prazo_limite) ? new Date(solic.prazo_resposta || solic.prazo_limite).toLocaleDateString("pt-BR") : "—";
 
         if (resultadoConsultaProt) {
-          resultadoConsultaProt.style.display = "block";
+          resultadoConsultaProt.hidden = false;
           resultadoConsultaProt.innerHTML = `
-            <div style="font-size:0.82rem; font-weight:800; color:#0F172A; margin-bottom:6px;">
-              Protocolo: ${escaparHtml(solic.protocolo)}
+            <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:8px;">
+              <strong style="font-family:ui-monospace, monospace;">${escaparHtml(solic.protocolo)}</strong>
+              <span class="cms-status-pill ${stInfo.cls}">${escaparHtml(stInfo.txt)}</span>
             </div>
-            <div style="font-size:0.78rem; color:#475569; display:grid; gap:4px; line-height:1.5;">
-              <div><strong>Titular:</strong> ${escaparHtml(solic.titular_nome)}</div>
-              <div><strong>Status:</strong> ${statusTexto}</div>
-              <div><strong>Data de Abertura:</strong> ${dataAbertura}</div>
-              <div><strong>Prazo Limite Legal (15 dias):</strong> ${dataLimite}</div>
+            <div style="display:grid; gap:4px; line-height:1.5; font-size:0.82rem; color:#475569;">
+              <div><strong>Assunto:</strong> ${escaparHtml(tipoLabels[solic.tipo_solicitacao] || solic.tipo_solicitacao)}</div>
+              <div><strong>Enviada em:</strong> ${escaparHtml(dataAbertura)} · <strong>Prazo limite:</strong> ${escaparHtml(dataLimite)}</div>
               ${solic.resposta_texto ? `
                 <div style="margin-top:8px; padding:10px; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; color:#166534;">
-                  <strong>Resposta Oficial da Loja SJ 3D:</strong><br />
+                  <strong>Resposta da Loja SJ 3D:</strong><br />
                   ${escaparHtml(solic.resposta_texto)}
                 </div>
               ` : `
-                <div style="margin-top:6px; color:#92400E; font-size:0.75rem;">
-                  ⏳ Sua solicitação está em processamento pelo Encarregado de Dados. A resposta será concluída dentro do prazo legal de 15 dias.
+                <div style="margin-top:6px; color:#64748b;">
+                  Sua solicitação está dentro do prazo legal de 15 dias.
                 </div>
               `}
             </div>
           `;
         }
-      } catch (err) {
-        alert("Erro ao consultar protocolo: " + err.message);
+      } catch (_) {
+        if (fbCons) {
+          fbCons.textContent = "Não foi possível consultar agora. Tente novamente em instantes.";
+          fbCons.hidden = false;
+        }
       } finally {
-        btnConsultarProt.disabled = false;
-        btnConsultarProt.textContent = "🔍 Buscar";
+        if (btnConsultarProt) {
+          btnConsultarProt.disabled = false;
+          btnConsultarProt.textContent = "Consultar";
+        }
       }
     });
+
+    // Abre automaticamente se veio com ?lgpd=1 ou #modal-lgpd-titular-request
+    try {
+      const p = new URLSearchParams(window.location.search);
+      if (p.get("lgpd") === "1" || window.location.hash === "#modal-lgpd-titular-request") {
+        setTimeout(abrirModalLgpdSolicitacao, 150);
+      }
+    } catch (_) {}
 
     // ========================================================================
     // EVENTOS E INICIALIZAÇÃO DO BANNER E MODAL DE COOKIES LGPD
@@ -9740,6 +9988,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     ultimoUndoSnapshot: null,
     quotesCache: [],
     profilesCache: [],
+    lgpdCache: [],
     produtoEditandoId: null,
     coresTempEditando: [],
     chavePaletaEditando: null
@@ -11273,7 +11522,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
   function selecionarAbaCms(aba) {
     // Trava de interface: apenas ADMIN pode abrir a aba de Acessos / Configurações críticas
-    const abasSomenteAdmin = ["equipe", "supabase", "exportar", "lgpd"];
+    const abasSomenteAdmin = ["equipe", "supabase", "exportar"];
     const papelAtual = String(state.usuarioGoogle?.role || "").toLowerCase();
     if (abasSomenteAdmin.includes(aba) && papelAtual && papelAtual !== "admin") {
       mostrarToast("Apenas o Administrador pode acessar esta área.", "warning");
@@ -11411,6 +11660,19 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const badgeSidebar = document.getElementById("cms-portal-quotes-badge");
     if (badgeSidebar) badgeSidebar.textContent = String(novosOrcamentos.length || quotes.length);
 
+    // Solicitações LGPD pendentes
+    let lgpdList = cmsState.lgpdCache || [];
+    if (window.SJ_SUPABASE?.direitosTitular?.listarSolicitacoes && lgpdList.length === 0) {
+      try {
+        const resLgpd = await window.SJ_SUPABASE.direitosTitular.listarSolicitacoes();
+        if (Array.isArray(resLgpd)) {
+          lgpdList = resLgpd;
+          cmsState.lgpdCache = lgpdList;
+        }
+      } catch (_) {}
+    }
+    atualizarBadgesLgpdAdmin(lgpdList);
+
     const blocks = [];
 
     // 1. Acessos pendentes (só admin)
@@ -11427,6 +11689,30 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             <div class="cms-attention-row-meta">Solicitação de funcionário aguardando aprovação (${escaparHtml(p.email)})</div>
           </div>
           <button type="button" class="btn-cms-secondary" data-inicio-action="acessos">Revisar acesso</button>
+        </div>
+      `);
+    });
+
+    // 1b. Solicitações LGPD pendentes ou com SLA próximo
+    const lgpdPendentes = lgpdList
+      .filter((s) => s.status === "recebida" || s.status === "em_analise")
+      .sort((a, b) => new Date(a.prazo_limite || a.prazo_resposta || 0) - new Date(b.prazo_limite || b.prazo_resposta || 0));
+    lgpdPendentes.slice(0, 4).forEach((s) => {
+      const prazoDate = new Date(s.prazo_limite || s.prazo_resposta || Date.now());
+      const diasRest = Math.ceil((prazoDate.getTime() - Date.now()) / (1000 * 60 * 60 * 24));
+      const pillClass = diasRest < 0 ? "is-red" : diasRest <= 5 ? "is-yellow" : "is-orange";
+      const pillTxt = diasRest < 0 ? `LGPD atrasada (${Math.abs(diasRest)}d)` : diasRest <= 5 ? `LGPD urgente (${diasRest}d)` : `LGPD pendente (${diasRest}d)`;
+      const nomeTitular = s.titular_nome || s.nome || "Titular";
+      blocks.push(`
+        <div class="cms-attention-row">
+          <div class="cms-attention-row-info">
+            <div class="cms-attention-row-title">
+              <span class="cms-status-pill ${pillClass}">${escaparHtml(pillTxt)}</span>
+              <span>${escaparHtml(s.protocolo)} — ${escaparHtml(nomeTitular)}</span>
+            </div>
+            <div class="cms-attention-row-meta">${escaparHtml(obterRotuloTipoLgpdCms(s.tipo_solicitacao || s.tipo))} · Prazo ${escaparHtml(prazoDate.toLocaleDateString("pt-BR"))}</div>
+          </div>
+          <button type="button" class="btn-cms-secondary" data-inicio-open-lgpd="${escaparHtml(s.id)}">Revisar LGPD</button>
         </div>
       `);
     });
@@ -11484,6 +11770,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         selecionarAbaCms("orcamentos-clientes");
         const q = (cmsState.quotesCache || []).find((item) => String(item.id) === String(qId));
         if (q) abrirGavetaOrcamentoPortalCms(q);
+      });
+    });
+
+    listEl.querySelectorAll("[data-inicio-open-lgpd]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sId = btn.dataset.inicioOpenLgpd;
+        selecionarAbaCms("lgpd");
+        const s = (cmsState.lgpdCache || []).find((item) => String(item.id) === String(sId));
+        if (s) abrirGavetaLgpdCms(s);
       });
     });
 
@@ -12038,187 +12333,380 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   // =====================================================================
   // PAINEL LGPD: ATENDIMENTO A DIREITOS DO TITULAR & SLA DE 15 DIAS
   // =====================================================================
-  async function renderizarPainelLgpdCms() {
+  function obterRotuloTipoLgpdCms(tipo) {
+    const mapa = {
+      acesso_dados: "Ver meus dados",
+      correcao_dados: "Corrigir meus dados",
+      eliminacao_dados: "Excluir meus dados",
+      portabilidade_dados: "Levar meus dados (Portabilidade)",
+      revogacao_consentimento: "Parar comunicações (Revogar)",
+      informacao_compartilhamento: "Compartilhamento com terceiros",
+      outro: "Outro assunto"
+    };
+    return mapa[tipo] || String(tipo || "Solicitação LGPD");
+  }
+
+  function mascararDocumentoLgpd(doc) {
+    const digits = String(doc || "").replace(/\D/g, "");
+    if (!digits) return "";
+    if (digits.length === 11) {
+      return `***.${digits.slice(3, 6)}.${digits.slice(6, 9)}-**`;
+    }
+    if (digits.length === 14) {
+      return `**.${digits.slice(2, 5)}.${digits.slice(5, 8)}/****-**`;
+    }
+    return digits.length > 4 ? `***${digits.slice(-4)}` : "***";
+  }
+
+  function formatarDocumentoLgpdLimpo(doc) {
+    const d = String(doc || "").replace(/\D/g, "");
+    if (d.length === 11) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+    if (d.length === 14) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    return String(doc || "");
+  }
+
+  function obterTelefoneTitularParaLgpd(email) {
+    const em = String(email || "").trim().toLowerCase();
+    if (!em) return "";
+    const prof = (cmsState.profilesCache || []).find((p) => String(p.email || "").toLowerCase() === em);
+    const cliLocal = window.SJ_DB?.clientes?.listar ? (window.SJ_DB.clientes.listar() || []).find((c) => String(c.email || "").toLowerCase() === em) : null;
+    const raw = prof?.telefone || prof?.whatsapp || cliLocal?.cep_telefone || cliLocal?.telefone || "";
+    const digits = String(raw).replace(/\D/g, "");
+    return digits.length >= 10 ? digits : "";
+  }
+
+  function atualizarBadgesLgpdAdmin(lista) {
+    const itens = Array.isArray(lista) ? lista : (cmsState.lgpdCache || []);
+    const pendentes = itens.filter((s) => s.status === "recebida" || s.status === "em_analise").length;
+    const kpiEl = document.getElementById("inicio-kpi-lgpd");
+    if (kpiEl) kpiEl.textContent = String(pendentes);
+    ["cms-lgpd-pending-badge", "cms-mais-lgpd-badge"].forEach((id) => {
+      const badge = document.getElementById(id);
+      if (!badge) return;
+      badge.textContent = String(pendentes);
+      badge.style.display = pendentes > 0 ? "inline-flex" : "none";
+    });
+  }
+
+  function abrirGavetaLgpdCms(s) {
+    const drawer = document.getElementById("cms-lgpd-drawer");
+    const titleEl = document.getElementById("cms-lgpd-drawer-title");
+    const subEl = document.getElementById("cms-lgpd-drawer-sub");
+    const bodyEl = document.getElementById("cms-lgpd-drawer-body");
+    if (!drawer || !bodyEl || !s) return;
+
+    const nomeTitular = s.titular_nome || s.nome || "Titular";
+    const emailTitular = s.titular_email || s.email || "";
+    const tipoSolic = s.tipo_solicitacao || s.tipo || "outro";
+    const detalhesTexto = s.detalhes_solicitacao ?? s.detalhes ?? "";
+    const docBruto = s.cpf_cnpj || s.titular_cpf || "";
+    const prazoRef = s.prazo_limite || s.prazo_resposta || s.criado_em;
+    const criadoEm = s.created_at || s.criado_em;
+    const dataAbertura = criadoEm ? new Date(criadoEm).toLocaleDateString("pt-BR") : "—";
+    const dataPrazo = prazoRef ? new Date(prazoRef).toLocaleDateString("pt-BR") : "—";
+    const diasRestantes = prazoRef ? Math.ceil((new Date(prazoRef).getTime() - Date.now()) / (1000 * 60 * 60 * 24)) : 15;
+    const respostaAtual = s.resposta_texto ?? s.resposta ?? "";
+    const motivoAtual = s.motivo_negativa || "";
+    const statusAtual = s.status || "recebida";
+    const finalizado = statusAtual === "concluida" || statusAtual === "negada_parcialmente";
+    const foneDigits = obterTelefoneTitularParaLgpd(emailTitular);
+
+    if (titleEl) titleEl.textContent = `Protocolo ${s.protocolo || ""}`;
+    if (subEl) subEl.textContent = `${obterRotuloTipoLgpdCms(tipoSolic)} · Aberta em ${dataAbertura}`;
+
+    let slaClass = "is-green";
+    let slaLabel = `${diasRestantes} dias restantes`;
+    if (statusAtual === "concluida") {
+      slaClass = "is-green";
+      slaLabel = "Concluída";
+    } else if (statusAtual === "negada_parcialmente") {
+      slaClass = "is-orange";
+      slaLabel = "Negada parcialmente";
+    } else if (diasRestantes < 0) {
+      slaClass = "is-red";
+      slaLabel = `Atrasada (${Math.abs(diasRestantes)}d)`;
+    } else if (diasRestantes <= 5) {
+      slaClass = "is-yellow";
+      slaLabel = `${diasRestantes}d restantes`;
+    }
+
+    bodyEl.innerHTML = `
+      <div class="cms-drawer-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:12px;">
+          <span class="cms-status-pill ${slaClass}">${escaparHtml(slaLabel)}</span>
+          <span style="font-size:0.78rem; color:#64748b;">Prazo legal (15 dias): <strong>${escaparHtml(dataPrazo)}</strong></span>
+        </div>
+
+        <div class="cms-drawer-meta-grid">
+          <div><small>Titular</small><strong>${escaparHtml(nomeTitular)}</strong></div>
+          <div><small>Origem da conta</small><strong>${s.user_id ? "Cliente logado" : "Sem login / Visitante"}</strong></div>
+          <div>
+            <small>E-mail</small>
+            <a href="mailto:${escaparHtml(emailTitular)}" style="font-weight:700; color:#ea580c; word-break:break-all;">${escaparHtml(emailTitular)}</a>
+          </div>
+          ${foneDigits ? `
+            <div>
+              <small>WhatsApp cadastrado</small>
+              <a href="https://wa.me/${foneDigits.startsWith("55") ? foneDigits : "55" + foneDigits}" target="_blank" rel="noopener noreferrer" style="font-weight:700; color:#15803d;">Abrir conversa no WhatsApp ↗</a>
+            </div>
+          ` : ""}
+        </div>
+
+        ${docBruto ? `
+          <div style="margin-top:12px; padding:10px 12px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; justify-content:space-between; gap:10px; flex-wrap:wrap;">
+            <div>
+              <small style="display:block; font-size:0.72rem; color:#64748b;">CPF / CNPJ informado</small>
+              <strong id="drawer-lgpd-doc-value" style="font-family:monospace; font-size:0.9rem; color:#0f172a;">${escaparHtml(mascararDocumentoLgpd(docBruto))}</strong>
+            </div>
+            <button type="button" id="btn-drawer-lgpd-revelar-doc" class="btn-cms-secondary" style="padding:6px 12px; font-size:0.78rem;">Revelar</button>
+          </div>
+        ` : ""}
+      </div>
+
+      ${detalhesTexto ? `
+        <div class="cms-drawer-section">
+          <h4>Detalhes enviados pelo titular</h4>
+          <div style="font-size:0.86rem; color:#334155; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 12px; white-space:pre-wrap; line-height:1.5;">${escaparHtml(detalhesTexto)}</div>
+        </div>
+      ` : ""}
+
+      ${tipoSolic === "eliminacao_dados" ? `
+        <div style="background:#fffbeb; border:1px solid #fde68a; border-radius:12px; padding:12px 14px; font-size:0.82rem; color:#92400e; line-height:1.5; margin-bottom:14px;">
+          <strong>Revisão manual obrigatória:</strong> Pedidos de exclusão nunca apagam cadastros automaticamente. Verifique se existem pedidos/notas fiscais vinculados (retenção legal de até 5 anos) antes de responder ou anonimizar manualmente.
+        </div>
+      ` : ""}
+
+      <div class="cms-drawer-section">
+        <div style="display:flex; justify-content:space-between; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:10px;">
+          <h4 style="margin:0;">Atendimento e Resposta</h4>
+          <button type="button" id="btn-drawer-lgpd-export" class="btn-cms-secondary" style="padding:6px 12px; font-size:0.78rem;">Baixar Portabilidade (.json)</button>
+        </div>
+
+        <div class="cms-field" style="margin-bottom:10px;">
+          <label for="drawer-lgpd-status">Status da solicitação</label>
+          <select id="drawer-lgpd-status" class="cms-select-clean" style="width:100%;">
+            <option value="recebida" ${statusAtual === "recebida" ? "selected" : ""}>Recebida</option>
+            <option value="em_analise" ${statusAtual === "em_analise" ? "selected" : ""}>Em análise</option>
+            <option value="concluida" ${statusAtual === "concluida" ? "selected" : ""}>Concluída</option>
+            <option value="negada_parcialmente" ${statusAtual === "negada_parcialmente" ? "selected" : ""}>Negada parcialmente</option>
+          </select>
+        </div>
+
+        <div class="cms-field" id="drawer-lgpd-motivo-wrap" style="margin-bottom:10px; display:${statusAtual === "negada_parcialmente" ? "block" : "none"};">
+          <label for="drawer-lgpd-motivo">Justificativa legal (obrigatório quando negada parcialmente)</label>
+          <textarea id="drawer-lgpd-motivo" rows="2" placeholder="Ex: Retenção de dados fiscais por 5 anos conforme obrigação legal tributária." style="width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:9px 12px; font-size:0.86rem;">${escaparHtml(motivoAtual)}</textarea>
+        </div>
+
+        <div class="cms-field" style="margin-bottom:12px;">
+          <label for="drawer-lgpd-resposta">Resposta oficial ao titular *</label>
+          <textarea id="drawer-lgpd-resposta" rows="4" placeholder="Escreva de forma clara o que foi atendido ou orientado..." style="width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:9px 12px; font-size:0.86rem;">${escaparHtml(respostaAtual)}</textarea>
+        </div>
+
+        ${s.respondido_por || s.responsavel_email ? `
+          <div style="font-size:0.76rem; color:#64748b; margin-bottom:12px;">
+            Última atualização por: <strong>${escaparHtml(s.respondido_por || s.responsavel_email)}</strong>
+          </div>
+        ` : ""}
+
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button type="button" id="btn-drawer-lgpd-salvar" class="btn-cms-secondary">Salvar status</button>
+          <button type="button" id="btn-drawer-lgpd-concluir" class="btn-cms-save">${finalizado ? "Atualizar conclusão" : "Marcar como concluída"}</button>
+        </div>
+      </div>
+    `;
+
+    const statusSel = document.getElementById("drawer-lgpd-status");
+    const motivoWrap = document.getElementById("drawer-lgpd-motivo-wrap");
+    statusSel?.addEventListener("change", () => {
+      if (motivoWrap) motivoWrap.style.display = statusSel.value === "negada_parcialmente" ? "block" : "none";
+    });
+
+    const btnRev = document.getElementById("btn-drawer-lgpd-revelar-doc");
+    const docValEl = document.getElementById("drawer-lgpd-doc-value");
+    let revelado = false;
+    btnRev?.addEventListener("click", async () => {
+      if (!docValEl) return;
+      revelado = !revelado;
+      if (revelado) {
+        docValEl.textContent = formatarDocumentoLgpdLimpo(docBruto);
+        btnRev.textContent = "Ocultar";
+        try {
+          const client = window.SJ_SUPABASE?.getClient?.();
+          if (client) {
+            await client.rpc("registrar_visualizacao_lgpd", {
+              p_solicitacao_id: String(s.id)
+            });
+          }
+        } catch (_) {}
+      } else {
+        docValEl.textContent = mascararDocumentoLgpd(docBruto);
+        btnRev.textContent = "Revelar";
+      }
+    });
+
+    document.getElementById("btn-drawer-lgpd-export")?.addEventListener("click", async (e) => {
+      const btn = e.currentTarget;
+      btn.disabled = true;
+      btn.textContent = "Gerando JSON...";
+      try {
+        const dados = await window.SJ_SUPABASE.direitosTitular.exportarDadosTitular(emailTitular);
+        const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `portabilidade_lgpd_${s.protocolo || s.id}.json`;
+        a.click();
+        URL.revokeObjectURL(url);
+        mostrarToast(`Portabilidade do protocolo ${s.protocolo} baixada.`, "success");
+      } catch (err) {
+        mostrarToast("Erro ao gerar portabilidade: " + (err?.message || "falha inesperada"), "error");
+      } finally {
+        btn.disabled = false;
+        btn.textContent = "Baixar Portabilidade (.json)";
+      }
+    });
+
+    const salvarGaveta = async (forcarConcluida = false) => {
+      const novoStatus = forcarConcluida ? "concluida" : (statusSel?.value || "em_analise");
+      const textoResp = String(document.getElementById("drawer-lgpd-resposta")?.value || "").trim();
+      const textoMotivo = String(document.getElementById("drawer-lgpd-motivo")?.value || "").trim();
+
+      if ((forcarConcluida || novoStatus === "concluida" || novoStatus === "negada_parcialmente") && !textoResp) {
+        mostrarToast("Escreva a resposta oficial antes de concluir ou negar.", "warning");
+        document.getElementById("drawer-lgpd-resposta")?.focus();
+        return;
+      }
+      if (novoStatus === "negada_parcialmente" && !textoMotivo) {
+        mostrarToast("Informe a justificativa legal para negativa parcial.", "warning");
+        document.getElementById("drawer-lgpd-motivo")?.focus();
+        return;
+      }
+
+      const btnSalvar = document.getElementById("btn-drawer-lgpd-salvar");
+      const btnConcluir = document.getElementById("btn-drawer-lgpd-concluir");
+      if (btnSalvar) btnSalvar.disabled = true;
+      if (btnConcluir) btnConcluir.disabled = true;
+
+      try {
+        const res = await window.SJ_SUPABASE.direitosTitular.atualizarSolicitacao(s.id, {
+          status: novoStatus,
+          resposta_texto: textoResp || null,
+          motivo_negativa: novoStatus === "negada_parcialmente" ? textoMotivo : null
+        });
+        if (!res?.sucesso) {
+          mostrarToast(res?.mensagem || "Não foi possível salvar a alteração.", "error");
+          return;
+        }
+        mostrarToast("Solicitação LGPD atualizada.", "success");
+        drawer.close();
+        await renderizarPainelLgpdCms(false);
+        if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+      } finally {
+        if (btnSalvar) btnSalvar.disabled = false;
+        if (btnConcluir) btnConcluir.disabled = false;
+      }
+    };
+
+    document.getElementById("btn-drawer-lgpd-salvar")?.addEventListener("click", () => salvarGaveta(false));
+    document.getElementById("btn-drawer-lgpd-concluir")?.addEventListener("click", () => salvarGaveta(true));
+
+    if (typeof drawer.showModal === "function") drawer.showModal();
+  }
+
+  async function renderizarPainelLgpdCms(apenasFiltro = false) {
     const listEl = document.getElementById("cms-lgpd-requests-list");
-    if (!listEl) return;
 
-    listEl.innerHTML = '<div style="text-align:center; padding:20px; color:#64748B;">Carregando solicitações de titulares...</div>';
-
-    let solicitacoes = [];
-    if (window.SJ_SUPABASE?.direitosTitular?.listarSolicitacoes) {
+    let solicitacoes = cmsState.lgpdCache || [];
+    if ((!apenasFiltro || solicitacoes.length === 0) && window.SJ_SUPABASE?.direitosTitular?.listarSolicitacoes) {
+      if (listEl && !apenasFiltro) {
+        listEl.innerHTML = '<div style="text-align:center; padding:22px; color:#64748B;">Carregando solicitações LGPD...</div>';
+      }
       try {
         solicitacoes = await window.SJ_SUPABASE.direitosTitular.listarSolicitacoes();
+        cmsState.lgpdCache = Array.isArray(solicitacoes) ? solicitacoes : [];
       } catch (e) {
         console.warn("[LGPD] Erro ao carregar solicitações:", e);
       }
     }
 
-    if (!Array.isArray(solicitacoes) || solicitacoes.length === 0) {
+    atualizarBadgesLgpdAdmin(cmsState.lgpdCache);
+    if (!listEl) return;
+
+    const termo = String(document.getElementById("cms-lgpd-search-input")?.value || "").trim().toLowerCase();
+    const filtroStatus = document.getElementById("cms-lgpd-status-filter")?.value || "todos";
+
+    const filtradas = (cmsState.lgpdCache || []).filter((s) => {
+      if (filtroStatus === "pendentes" && s.status !== "recebida" && s.status !== "em_analise") return false;
+      if (filtroStatus !== "todos" && filtroStatus !== "pendentes" && s.status !== filtroStatus) return false;
+      if (!termo) return true;
+      const hay = `${s.protocolo || ""} ${s.titular_nome || s.nome || ""} ${s.titular_email || s.email || ""}`.toLowerCase();
+      return hay.includes(termo);
+    });
+
+    if (filtradas.length === 0) {
       listEl.innerHTML = `
         <div style="text-align:center; padding:32px 16px; color:#64748B;">
-          <div style="font-size:2rem; margin-bottom:8px;">🛡️</div>
-          <strong style="color:#0F172A; display:block; margin-bottom:4px;">Nenhuma solicitação de titular pendente</strong>
-          <span style="font-size:0.82rem;">Quando um cliente ou titular preencher o formulário de direitos da LGPD, o pedido aparecerá aqui com contagem regressiva do SLA de 15 dias.</span>
+          <strong style="color:#0F172A; display:block; margin-bottom:4px;">Nenhuma solicitação encontrada</strong>
+          <span style="font-size:0.84rem;">Novos pedidos de direitos dos titulares aparecem aqui em tempo real com contagem do prazo de 15 dias.</span>
         </div>
       `;
       return;
     }
 
-    const agora = new Date();
-    const tipoMap = {
-      acesso_dados: "1. Confirmação & Acesso aos Dados",
-      portabilidade_dados: "2. Portabilidade (JSON)",
-      correcao_dados: "3. Correção de Dados",
-      eliminacao_dados: "4. Eliminação / Apagamento",
-      revogacao_consentimento: "5. Revogação de Consentimento",
-      informacao_compartilhamento: "6. Info sobre Compartilhamento",
-      outro: "7. Outro"
+    const agora = Date.now();
+    const statusMap = {
+      recebida: { label: "Recebida", cls: "is-orange" },
+      em_analise: { label: "Em análise", cls: "is-yellow" },
+      concluida: { label: "Concluída", cls: "is-green" },
+      negada_parcialmente: { label: "Negada parcialmente", cls: "is-neutral" }
     };
 
-    listEl.innerHTML = solicitacoes.map((s) => {
-      const dataAbertura = new Date(s.criado_em).toLocaleDateString("pt-BR");
-      const prazoLimite = new Date(s.prazo_limite);
-      const dataLimiteFmt = prazoLimite.toLocaleDateString("pt-BR");
-      const diasRestantes = Math.ceil((prazoLimite - agora) / (1000 * 60 * 60 * 24));
+    listEl.innerHTML = filtradas.map((s) => {
+      const criado = s.created_at || s.criado_em;
+      const dataAbertura = criado ? new Date(criado).toLocaleDateString("pt-BR") : "—";
+      const prazoLimite = new Date(s.prazo_limite || s.prazo_resposta || criado || agora);
+      const diasRestantes = Math.ceil((prazoLimite.getTime() - agora) / (1000 * 60 * 60 * 24));
+      const nomeTitular = s.titular_nome || s.nome || "Titular";
+      const emailTitular = s.titular_email || s.email || "";
+      const tipoTxt = obterRotuloTipoLgpdCms(s.tipo_solicitacao || s.tipo);
+      const stInfo = statusMap[s.status] || { label: s.status || "Recebida", cls: "is-neutral" };
 
-      let badgeSla = "";
-      if (s.status === "concluida") {
-        badgeSla = '<span style="background:#DCFCE7; color:#166534; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">✅ Concluída</span>';
+      let slaBadge = "";
+      if (s.status === "concluida" || s.status === "negada_parcialmente") {
+        slaBadge = '<span class="cms-status-pill is-neutral">Finalizada</span>';
       } else if (diasRestantes < 0) {
-        badgeSla = `<span style="background:#FEE2E2; color:#991B1B; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🔴 SLA Atrasado (${Math.abs(diasRestantes)}d)</span>`;
+        slaBadge = `<span class="cms-status-pill is-red">Atrasada ${Math.abs(diasRestantes)}d</span>`;
       } else if (diasRestantes <= 5) {
-        badgeSla = `<span style="background:#FEF3C7; color:#92400E; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🟡 Atenção (${diasRestantes} dias restantes)</span>`;
+        slaBadge = `<span class="cms-status-pill is-yellow">${diasRestantes}d restantes</span>`;
       } else {
-        badgeSla = `<span style="background:#DCFCE7; color:#166534; font-size:0.73rem; font-weight:800; padding:2px 8px; border-radius:999px;">🟢 No Prazo (${diasRestantes} dias)</span>`;
+        slaBadge = `<span class="cms-status-pill is-green">${diasRestantes}d restantes</span>`;
       }
 
-      const tipoFormatado = tipoMap[s.tipo_solicitacao] || s.tipo_solicitacao;
-
       return `
-        <div style="background:#F8FAFC; border:1px solid #E2E8F0; border-radius:12px; padding:16px; margin-bottom:12px;" data-solic-card="${s.id}">
-          <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:8px; margin-bottom:8px;">
-            <div>
-              <span style="font-size:0.85rem; font-weight:900; color:#0F172A; margin-right:8px;">${escaparHtml(s.protocolo)}</span>
-              <span style="font-size:0.82rem; font-weight:700; color:#3B82F6;">${tipoFormatado}</span>
-            </div>
-            <div>${badgeSla}</div>
+        <button type="button" class="cms-lgpd-row-btn" data-lgpd-row-id="${escaparHtml(s.id)}">
+          <div style="font-weight:800; color:#0f172a; font-family:monospace; font-size:0.84rem;">${escaparHtml(s.protocolo)}</div>
+          <div style="min-width:0;">
+            <div style="font-weight:700; color:#0f172a; font-size:0.88rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escaparHtml(nomeTitular)}</div>
+            <div style="font-size:0.76rem; color:#64748b; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escaparHtml(emailTitular)}</div>
           </div>
-
-          <div style="font-size:0.8rem; color:#475569; display:grid; grid-template-columns:repeat(auto-fit, minmax(200px, 1fr)); gap:6px; margin-bottom:10px;">
-            <div><strong>Titular:</strong> ${escaparHtml(s.titular_nome)}</div>
-            <div><strong>E-mail:</strong> ${escaparHtml(s.titular_email)}</div>
-            ${s.titular_cpf ? `<div><strong>CPF/CNPJ:</strong> ${escaparHtml(s.titular_cpf)}</div>` : ""}
-            <div><strong>Data:</strong> ${dataAbertura} (Limite: ${dataLimiteFmt})</div>
-          </div>
-
-          ${s.detalhes_solicitacao ? `
-            <div style="font-size:0.78rem; background:#FFFFFF; border:1px solid #E2E8F0; border-radius:8px; padding:8px 10px; color:#334155; margin-bottom:10px;">
-              <strong>Mensagem do Titular:</strong> ${escaparHtml(s.detalhes_solicitacao)}
-            </div>
-          ` : ""}
-
-          ${s.resposta_texto ? `
-            <div style="font-size:0.78rem; background:#F0FDF4; border:1px solid #BBF7D0; border-radius:8px; padding:8px 10px; color:#166534; margin-bottom:10px;">
-              <strong>Resposta Registrada:</strong> ${escaparHtml(s.resposta_texto)}
-            </div>
-          ` : ""}
-
-          <div style="display:flex; gap:8px; flex-wrap:wrap; border-top:1px solid #E2E8F0; padding-top:10px; align-items:center;">
-            <button type="button" class="btn-cms-secondary btn-export-portabilidade" data-solic-email="${escaparHtml(s.titular_email)}" data-solic-prot="${escaparHtml(s.protocolo)}" style="padding:5px 12px; font-size:0.75rem; border-color:#CBD5E1;">
-              📥 Baixar Portabilidade (JSON)
-            </button>
-
-            ${s.tipo_solicitacao === "eliminacao_dados" && s.status !== "concluida" ? `
-              <button type="button" class="btn-cms-secondary btn-processar-eliminacao" data-solic-id="${s.id}" data-solic-email="${escaparHtml(s.titular_email)}" style="padding:5px 12px; font-size:0.75rem; background:#FEF2F2; color:#DC2626; border-color:#FECACA;">
-                🗑️ Atender Eliminação / Trava Fiscal
-              </button>
-            ` : ""}
-
-            ${s.status !== "concluida" ? `
-              <button type="button" class="btn-cms-save btn-responder-solic" data-solic-id="${s.id}" style="padding:5px 14px; font-size:0.75rem;">
-                ✅ Responder &amp; Concluir
-              </button>
-            ` : ""}
-          </div>
-        </div>
+          <div style="font-size:0.83rem; font-weight:600; color:#334155;">${escaparHtml(tipoTxt)}</div>
+          <div style="font-size:0.8rem; color:#64748b;">${escaparHtml(dataAbertura)}</div>
+          <div>${slaBadge}</div>
+          <div><span class="cms-status-pill ${stInfo.cls}">${escaparHtml(stInfo.label)}</span></div>
+        </button>
       `;
     }).join("");
 
-    listEl.querySelectorAll(".btn-export-portabilidade").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const email = btn.dataset.solicEmail;
-        const prot = btn.dataset.solicProt;
-        btn.disabled = true;
-        btn.textContent = "Gerando JSON...";
-        try {
-          const dados = await window.SJ_SUPABASE.direitosTitular.exportarDadosTitular(email);
-          const blob = new Blob([JSON.stringify(dados, null, 2)], { type: "application/json" });
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement("a");
-          a.href = url;
-          a.download = `portabilidade_lgpd_${prot}.json`;
-          a.click();
-          URL.revokeObjectURL(url);
-          mostrarToast(`Arquivo de portabilidade do protocolo ${prot} baixado com sucesso!`, "success");
-        } catch (err) {
-          alert("Erro ao exportar portabilidade: " + err.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "📥 Baixar Portabilidade (JSON)";
-        }
-      });
-    });
-
-    listEl.querySelectorAll(".btn-processar-eliminacao").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.solicId;
-        const email = btn.dataset.solicEmail;
-        const confirma = confirm(`Deseja realmente processar a eliminação/bloqueio dos dados de ${email}?\n\nO sistema checará se há notas fiscais obrigatórias de 5 anos antes de apagar.`);
-        if (!confirma) return;
-
-        btn.disabled = true;
-        btn.textContent = "Processando...";
-        try {
-          const res = await window.SJ_SUPABASE.direitosTitular.processarEliminacao(id, email);
-          if (res?.sucesso) {
-            alert(`✅ Solicitação atendida com sucesso!\n\n${res.resposta}`);
-            mostrarToast("Eliminação/bloqueio processado com sucesso!", "success");
-            renderizarPainelLgpdCms();
-          } else {
-            alert("Erro: " + (res?.mensagem || "Não foi possível processar."));
-          }
-        } catch (err) {
-          alert("Erro ao processar eliminação: " + err.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "🗑️ Atender Eliminação / Trava Fiscal";
-        }
-      });
-    });
-
-    listEl.querySelectorAll(".btn-responder-solic").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.solicId;
-        const texto = prompt("Digite a resposta oficial a ser registrada no protocolo:");
-        if (!texto || !texto.trim()) return;
-
-        btn.disabled = true;
-        btn.textContent = "Salvando...";
-        try {
-          await window.SJ_SUPABASE.direitosTitular.concluirSolicitacao(id, texto.trim());
-          mostrarToast("Solicitação concluída com sucesso!", "success");
-          renderizarPainelLgpdCms();
-        } catch (err) {
-          alert("Erro ao concluir: " + err.message);
-        } finally {
-          btn.disabled = false;
-          btn.textContent = "✅ Responder & Concluir";
-        }
+    listEl.querySelectorAll("[data-lgpd-row-id]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const sId = btn.dataset.lgpdRowId;
+        const solic = (cmsState.lgpdCache || []).find((item) => String(item.id) === String(sId));
+        if (solic) abrirGavetaLgpdCms(solic);
       });
     });
   }
 
-  document.getElementById("btn-cms-refresh-lgpd")?.addEventListener("click", renderizarPainelLgpdCms);
+  document.getElementById("btn-cms-refresh-lgpd")?.addEventListener("click", () => renderizarPainelLgpdCms(false));
 
   // =====================================================================
   // PAINEL: ADMINISTRADORES & SENHA (aprovação / bloqueio / troca de senha)
@@ -14428,6 +14916,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     let dashboardAdminInicializado = false;
     let profilesRealtimeSub = null;
     let quotesRealtimeSub = null;
+    let lgpdRealtimeSub = null;
 
     function exibirFormularioLoginGate() {
       const statusScreen = document.getElementById("admin-gate-status-screen");
@@ -14635,10 +15124,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         document.getElementById("btn-inicio-kpi-clients")?.addEventListener("click", () => {
           selecionarAbaCms("clientes");
         });
+        document.getElementById("btn-inicio-kpi-lgpd")?.addEventListener("click", () => {
+          selecionarAbaCms("lgpd");
+        });
+        document.getElementById("cms-lgpd-search-input")?.addEventListener("input", () => renderizarPainelLgpdCms(true));
+        document.getElementById("cms-lgpd-status-filter")?.addEventListener("change", () => renderizarPainelLgpdCms(true));
+        document.getElementById("btn-cms-close-lgpd-drawer")?.addEventListener("click", () => {
+          const d = document.getElementById("cms-lgpd-drawer");
+          if (d?.close) d.close();
+        });
         document.getElementById("btn-inicio-refresh")?.addEventListener("click", async () => {
           cmsState.quotesCache = [];
+          cmsState.lgpdCache = [];
           await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
           if (ehAdmin) await renderizarPainelEquipeCms(true);
+          await renderizarPainelLgpdCms(false);
           renderizarPainelInicioCms();
         });
 
@@ -14799,6 +15299,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         atualizarStatusSupabaseNoCms();
         atualizarContadoresEstoqueKpiCms();
         await renderizarOrcamentosPortalCms();
+        await renderizarPainelLgpdCms(false);
         if (ehAdmin) await renderizarPainelEquipeCms(true);
         if (aba === "inicio") renderizarPainelInicioCms();
 
@@ -14821,10 +15322,18 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
           });
         }
+        // Realtime em solicitacoes_titular (LGPD) para equipe ver novos pedidos na hora
+        if (!lgpdRealtimeSub && window.SJ_SUPABASE?.direitosTitular?.assinarRealtime) {
+          lgpdRealtimeSub = window.SJ_SUPABASE.direitosTitular.assinarRealtime(async () => {
+            await renderizarPainelLgpdCms(false);
+            if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+          });
+        }
       } else {
         renderizarListaProdutosCms();
         atualizarContadoresEstoqueKpiCms();
         await renderizarOrcamentosPortalCms();
+        await renderizarPainelLgpdCms(false);
         if (ehAdmin) await renderizarPainelEquipeCms(true);
         if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
       }

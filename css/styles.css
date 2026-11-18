@@ -18777,5 +18777,571 @@ dialog::backdrop {
   }
 }
 
+/* Ajuste responsivo de 5 cartões no Início */
+.cms-home-kpi-grid {
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+}
+
+/* Lista LGPD no painel admin */
+.cms-lgpd-row-btn {
+  width: 100%;
+  display: grid;
+  grid-template-columns: minmax(140px, 175px) minmax(160px, 1.8fr) minmax(140px, 1.3fr) 100px 145px 135px;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border: none;
+  border-bottom: 1px solid #f1f5f9;
+  background: #ffffff;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.14s ease;
+}
+
+.cms-lgpd-row-btn:last-child {
+  border-bottom: none;
+}
+
+.cms-lgpd-row-btn:hover {
+  background: #f8fafc;
+}
+
+@media (max-width: 1024px) {
+  .cms-lgpd-row-btn {
+    grid-template-columns: 1fr auto;
+  }
+}
+
+/* ==========================================================================
+   MODAL CLEAN: CANAL DE DIREITOS DO TITULAR (LGPD)
+   ========================================================================== */
+.lgpd-clean-dialog {
+  margin: auto;
+  padding: 0;
+  border: none;
+  border-radius: 20px;
+  width: min(600px, 94vw);
+  max-height: 90dvh;
+  background: #ffffff;
+  color: #0f172a;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
+}
+
+.lgpd-clean-dialog[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.lgpd-dialog-shell {
+  padding: 26px 28px 24px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.lgpd-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 14px;
+}
+
+.lgpd-dialog-brand {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+
+.lgpd-sj-mark {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: #F04E23;
+  color: #ffffff;
+  font-weight: 800;
+  font-size: 0.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.lgpd-dialog-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+}
+
+.lgpd-dialog-subtitle {
+  margin: 4px 0 0;
+  font-size: 0.86rem;
+  color: #64748b;
+  line-height: 1.45;
+}
+
+.lgpd-close-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  border: none;
+  background: #f1f5f9;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.lgpd-close-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.lgpd-learn-more {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.lgpd-learn-more summary {
+  cursor: pointer;
+  color: #F04E23;
+  font-weight: 600;
+  display: inline-block;
+  list-style: none;
+}
+
+.lgpd-learn-more summary::-webkit-details-marker {
+  display: none;
+}
+
+.lgpd-learn-more summary:hover {
+  text-decoration: underline;
+}
+
+.lgpd-learn-more p {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+  line-height: 1.5;
+  color: #475569;
+}
+
+/* Abas discretas segmentadas */
+.lgpd-segmented-tabs {
+  display: inline-grid;
+  grid-template-columns: 1fr 1fr;
+  background: #f1f5f9;
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.lgpd-seg-btn {
+  border: none;
+  background: transparent;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 600;
+  padding: 9px 14px;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lgpd-seg-btn.active {
+  background: #ffffff;
+  color: #0f172a;
+  font-weight: 700;
+  box-shadow: 0 1px 4px rgba(15, 23, 42, 0.08);
+}
+
+.lgpd-clean-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.lgpd-clean-form[hidden] {
+  display: none;
+}
+
+.lgpd-type-fieldset {
+  border: none;
+  padding: 0;
+  margin: 0;
+}
+
+.lgpd-field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 700;
+  color: #334155;
+  margin-bottom: 8px;
+}
+
+.lgpd-type-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.lgpd-type-card {
+  position: relative;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 11px 12px;
+  border-radius: 12px;
+  border: 1.5px solid #e2e8f0;
+  background: #ffffff;
+  cursor: pointer;
+  transition: border-color 0.15s ease, background-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lgpd-type-card:hover {
+  border-color: #cbd5e1;
+  background: #fafbfc;
+}
+
+.lgpd-type-card input[type="radio"] {
+  position: absolute;
+  opacity: 0;
+  width: 1px;
+  height: 1px;
+}
+
+.lgpd-type-card:has(input[type="radio"]:checked) {
+  border-color: #F04E23;
+  background: #fff7ed;
+}
+
+.lgpd-type-card:has(input[type="radio"]:focus-visible) {
+  outline: 2px solid #F04E23;
+  outline-offset: 2px;
+}
+
+.lgpd-type-icon {
+  width: 30px;
+  height: 30px;
+  border-radius: 8px;
+  background: #f1f5f9;
+  color: #475569;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.lgpd-type-card:has(input[type="radio"]:checked) .lgpd-type-icon {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.lgpd-type-text {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.lgpd-type-text strong {
+  font-size: 0.83rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.25;
+}
+
+.lgpd-type-text small {
+  font-size: 0.74rem;
+  color: #64748b;
+  line-height: 1.3;
+}
+
+.lgpd-fiscal-notice {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+  border-radius: 10px;
+  padding: 10px 12px;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.lgpd-fields-row {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lgpd-field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.lgpd-field label {
+  font-size: 0.8rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.lgpd-optional-hint {
+  font-weight: 500;
+  color: #94a3b8;
+}
+
+.lgpd-field input,
+.lgpd-field textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 0.88rem;
+  font-family: inherit;
+  color: #0f172a;
+  background: #ffffff;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.lgpd-field input:focus,
+.lgpd-field textarea:focus {
+  outline: none;
+  border-color: #F04E23;
+  box-shadow: 0 0 0 3px rgba(240, 78, 35, 0.12);
+}
+
+.lgpd-field input[readonly] {
+  background: #f8fafc;
+  color: #475569;
+  cursor: default;
+}
+
+.lgpd-cpf-toggle {
+  font-size: 0.8rem;
+  color: #475569;
+}
+
+.lgpd-cpf-toggle summary {
+  cursor: pointer;
+  font-weight: 600;
+  color: #334155;
+}
+
+.lgpd-captcha-wrap {
+  padding: 10px 12px;
+  background: #f8fafc;
+  border-radius: 10px;
+}
+
+.lgpd-human-check {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+}
+
+.lgpd-human-check input[type="checkbox"] {
+  width: 17px;
+  height: 17px;
+  accent-color: #F04E23;
+}
+
+.lgpd-inline-error {
+  padding: 10px 12px;
+  border-radius: 10px;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #b91c1c;
+  font-size: 0.82rem;
+  font-weight: 600;
+}
+
+.lgpd-form-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 14px;
+  margin-top: 4px;
+}
+
+.lgpd-cancel-link {
+  border: none;
+  background: transparent;
+  color: #64748b;
+  font-size: 0.86rem;
+  font-weight: 600;
+  padding: 8px 10px;
+  cursor: pointer;
+}
+
+.lgpd-cancel-link:hover {
+  color: #0f172a;
+}
+
+.lgpd-primary-btn {
+  border: none;
+  border-radius: 10px;
+  background: #F04E23;
+  color: #ffffff;
+  font-size: 0.9rem;
+  font-weight: 700;
+  padding: 11px 20px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: background-color 0.15s ease, opacity 0.15s ease;
+}
+
+.lgpd-primary-btn:hover {
+  background: #d93f16;
+}
+
+.lgpd-primary-btn:disabled {
+  opacity: 0.7;
+  cursor: wait;
+}
+
+.lgpd-clean-dialog :is(button, a, input, textarea, summary):focus-visible {
+  outline: 2px solid #F04E23;
+  outline-offset: 2px;
+}
+
+/* Tela de confirmação */
+.lgpd-confirm-screen {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 12px 6px 6px;
+  gap: 12px;
+}
+
+.lgpd-confirm-screen[hidden] {
+  display: none;
+}
+
+.lgpd-confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #f0fdf4;
+  color: #16a34a;
+  border: 1px solid #bbf7d0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lgpd-confirm-title {
+  margin: 0;
+  font-size: 1.25rem;
+  font-weight: 800;
+  color: #0f172a;
+}
+
+.lgpd-protocol-box {
+  width: 100%;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.lgpd-protocol-label {
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.lgpd-protocol-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.lgpd-protocol-code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 1.05rem;
+  color: #0f172a;
+  letter-spacing: 0.03em;
+}
+
+.lgpd-copy-btn {
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.lgpd-copy-btn:hover {
+  background: #f1f5f9;
+}
+
+.lgpd-confirm-deadline {
+  margin: 0;
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.lgpd-confirm-hint {
+  margin: 0 0 6px;
+  font-size: 0.82rem;
+  color: #64748b;
+  line-height: 1.45;
+  max-width: 380px;
+}
+
+.lgpd-lookup-result {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  font-size: 0.84rem;
+  color: #1e293b;
+}
+
+@media (max-width: 640px) {
+  .lgpd-clean-dialog {
+    margin: auto 0 0 0;
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 94dvh;
+    border-radius: 20px 20px 0 0;
+  }
+  .lgpd-dialog-shell {
+    padding: 20px 18px 24px;
+  }
+  .lgpd-type-grid,
+  .lgpd-fields-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+
 
 

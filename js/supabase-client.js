@@ -619,95 +619,160 @@
 
   // Módulo de Direitos do Titular LGPD (Art. 18 e Art. 19)
   const direitosTitular = {
+    obterDesafio: async function () {
+      try {
+        const res = await fetch("/api/public-config?tipo=lgpd-challenge", { cache: "no-store" });
+        if (!res.ok) return { turnstileSiteKey: null, lgpdChallengeToken: null };
+        const json = await res.json().catch(() => ({}));
+        return {
+          turnstileSiteKey: json?.turnstileSiteKey || null,
+          lgpdChallengeToken: json?.lgpdChallengeToken || null
+        };
+      } catch (_) {
+        return { turnstileSiteKey: null, lgpdChallengeToken: null };
+      }
+    },
+
     solicitar: async function (dados) {
       if (!dados || !dados.nome || !dados.email || !dados.tipo) {
         return { sucesso: false, mensagem: "Nome, e-mail e tipo de solicitação são obrigatórios." };
       }
 
       const client = inicializarCliente();
-      const protocolo = "LGPD-2026-" + Math.floor(1000 + Math.random() * 9000);
       const emailLimpo = String(dados.email).trim().toLowerCase();
       const nomeLimpo = String(dados.nome).trim();
-      const docLimpo = String(dados.cpf || dados.cnpjCpf || "").trim();
+      const docDigits = String(dados.cpf_cnpj || dados.cpf || dados.cnpjCpf || "").replace(/\D/g, "");
+      const detalhesLimpo = String(dados.detalhes || "").trim();
 
-      const registro = {
-        protocolo,
-        titular_nome: nomeLimpo,
-        titular_email: emailLimpo,
-        titular_cpf: docLimpo || null,
-        tipo_solicitacao: dados.tipo,
-        detalhes_solicitacao: String(dados.detalhes || "").trim(),
-        status: "em_analise",
-        prazo_limite: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
-        criado_em: new Date().toISOString()
-      };
-
-      if (!client) {
+      let token = null;
+      if (client?.auth?.getSession) {
         try {
-          const chave = "sj_solicitacoes_titular_v1";
-          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
-          lista.unshift({ ...registro, id: "solic-" + Date.now() });
-          window.localStorage.setItem(chave, JSON.stringify(lista));
-        } catch (_) { }
-        return { sucesso: true, protocolo, local: true, registro };
+          const { data: sessData } = await client.auth.getSession();
+          token = sessData?.session?.access_token || null;
+        } catch (_) {}
       }
 
       try {
-        const { data, error } = await client
-          .from("solicitacoes_titular")
-          .insert(registro)
-          .select()
-          .maybeSingle();
+        const headers = { "Content-Type": "application/json" };
+        if (token) headers.Authorization = `Bearer ${token}`;
 
-        if (error) {
-          return { sucesso: false, mensagem: error.message };
+        const resp = await fetch("/api/public-config?tipo=lgpd", {
+          method: "POST",
+          headers,
+          cache: "no-store",
+          body: JSON.stringify({
+            nome: nomeLimpo,
+            email: emailLimpo,
+            cpf_cnpj: docDigits || null,
+            tipo: dados.tipo,
+            detalhes: detalhesLimpo,
+            captchaToken: dados.captchaToken || "",
+            humanVerified: Boolean(dados.humanVerified),
+            challengeToken: dados.challengeToken || "",
+            website_url: dados.website_url || ""
+          })
+        });
+        const json = await resp.json().catch(() => null);
+        if (resp.ok && json?.sucesso) {
+          return {
+            sucesso: true,
+            protocolo: json.protocolo,
+            status: json.status || "recebida",
+            prazo_limite: json.prazo_limite,
+            prazo_resposta: json.prazo_resposta || json.prazo_limite,
+            criado_em: json.criado_em
+          };
         }
-        return { sucesso: true, protocolo, registro: data };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
+        if (json && json.mensagem) {
+          return { sucesso: false, mensagem: json.mensagem };
+        }
+      } catch (_) {}
+
+      // Fallback apenas se a rota /api estiver indisponível localmente (sem pular RPC segura)
+      if (!client) {
+        return { sucesso: false, mensagem: "Serviço temporariamente indisponível. Tente novamente em instantes." };
+      }
+      try {
+        const { data, error } = await client.rpc("criar_solicitacao_lgpd", {
+          p_nome: nomeLimpo,
+          p_email: emailLimpo,
+          p_cpf_cnpj: docDigits || null,
+          p_tipo: dados.tipo,
+          p_detalhes: detalhesLimpo,
+          p_ip_hash: null
+        });
+        if (error || !data?.sucesso) {
+          return { sucesso: false, mensagem: "Não foi possível enviar a solicitação. Verifique os dados e tente novamente." };
+        }
+        return {
+          sucesso: true,
+          protocolo: data.protocolo,
+          status: data.status || "recebida",
+          prazo_limite: data.prazo_limite,
+          prazo_resposta: data.prazo_resposta || data.prazo_limite,
+          criado_em: data.criado_em
+        };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro de comunicação ao registrar solicitação." };
       }
     },
 
-    consultarProtocolo: async function (protocolo) {
-      if (!protocolo) return null;
-      const protLimpo = String(protocolo).trim().toUpperCase();
-      const client = inicializarCliente();
-
-      if (!client) {
-        try {
-          const chave = "sj_solicitacoes_titular_v1";
-          const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
-          return lista.find((s) => s.protocolo === protLimpo) || null;
-        } catch (_) {
-          return null;
-        }
-      }
+    consultarProtocolo: async function (protocolo, email) {
+      const protLimpo = String(protocolo || "").trim().toUpperCase();
+      const emailLimpo = String(email || "").trim().toLowerCase();
+      if (!protLimpo || !emailLimpo) return null;
 
       try {
-        const { data, error } = await client
-          .from("solicitacoes_titular")
-          .select("*")
-          .eq("protocolo", protLimpo)
-          .maybeSingle();
+        const resp = await fetch("/api/public-config?tipo=lgpd-consulta", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify({ protocolo: protLimpo, email: emailLimpo })
+        });
+        if (resp.ok) {
+          const json = await resp.json().catch(() => null);
+          if (json?.sucesso) {
+            return json.encontrado ? json.dados : null;
+          }
+        }
+      } catch (_) {}
 
-        if (error) return null;
+      const client = inicializarCliente();
+      if (!client) return null;
+      try {
+        const { data, error } = await client.rpc("consultar_protocolo_lgpd", {
+          p_protocolo: protLimpo,
+          p_email: emailLimpo
+        });
+        if (error || !data || data.encontrado !== true) return null;
         return data;
       } catch (_) {
         return null;
       }
     },
 
+    listarMinhasSolicitacoes: async function () {
+      const client = inicializarCliente();
+      if (!client) return [];
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return [];
+        const { data, error } = await client
+          .from("solicitacoes_titular")
+          .select("id, protocolo, tipo_solicitacao, status, prazo_limite, prazo_resposta, created_at, updated_at, concluida_em, resposta_texto, motivo_negativa")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+        if (error) return [];
+        return data || [];
+      } catch (_) {
+        return [];
+      }
+    },
+
     listarSolicitacoes: async function () {
       const client = inicializarCliente();
-      if (!client) {
-        try {
-          const chave = "sj_solicitacoes_titular_v1";
-          return JSON.parse(window.localStorage.getItem(chave) || "[]");
-        } catch (_) {
-          return [];
-        }
-      }
-
+      if (!client) return [];
       try {
         const { data, error } = await client
           .from("solicitacoes_titular")
@@ -719,6 +784,58 @@
       } catch (_) {
         return [];
       }
+    },
+
+    atualizarSolicitacao: async function (solicitacaoId, campos = {}) {
+      const client = inicializarCliente();
+      if (!client || !solicitacaoId) {
+        return { sucesso: false, mensagem: "Supabase não conectado." };
+      }
+
+      const payload = {};
+      if (campos.status) payload.status = campos.status;
+      if (campos.resposta_texto !== undefined) {
+        payload.resposta_texto = campos.resposta_texto;
+        payload.resposta = campos.resposta_texto;
+      }
+      if (campos.motivo_negativa !== undefined) {
+        payload.motivo_negativa = campos.motivo_negativa;
+      }
+
+      try {
+        const { error } = await client
+          .from("solicitacoes_titular")
+          .update(payload)
+          .eq("id", solicitacaoId);
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    concluirSolicitacao: async function (solicitacaoId, respostaTexto) {
+      return await direitosTitular.atualizarSolicitacao(solicitacaoId, {
+        status: "concluida",
+        resposta_texto: respostaTexto
+      });
+    },
+
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      const canal = client
+        .channel("sj3d-lgpd-solicitacoes-realtime")
+        .on(
+          "postgres_changes",
+          { event: "*", schema: "public", table: "solicitacoes_titular" },
+          (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          }
+        )
+        .subscribe();
+      return canal;
     },
 
     exportarDadosTitular: async function (emailOuDoc) {
@@ -752,7 +869,7 @@
             .select("*")
             .eq("titular_identificador", chave);
           consentimentos = resCons.data || [];
-        } catch (_) { }
+        } catch (_) {}
       }
 
       if (!cadastro && window.SJ_DB?.clientes?.listar) {
@@ -769,53 +886,6 @@
         historico_pedidos_e_orcamentos: orcamentos,
         historico_consentimentos: consentimentos
       };
-    },
-
-    processarEliminacao: async function (solicitacaoId, emailOuId, responsavelEmail = "admin@lojasj.com") {
-      const client = inicializarCliente();
-      if (!client) {
-        return { sucesso: false, mensagem: "Supabase não conectado." };
-      }
-
-      try {
-        const { data, error } = await client.rpc("processar_eliminacao_titular", {
-          p_solicitacao_id: solicitacaoId,
-          p_email_ou_id: emailOuId,
-          p_responsavel_email: responsavelEmail
-        });
-
-        if (error) {
-          return { sucesso: false, mensagem: error.message };
-        }
-        return data;
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    concluirSolicitacao: async function (solicitacaoId, respostaTexto, responsavelEmail = "admin@lojasj.com") {
-      const client = inicializarCliente();
-      if (!client) {
-        return { sucesso: false, mensagem: "Supabase não conectado." };
-      }
-
-      try {
-        const { error } = await client
-          .from("solicitacoes_titular")
-          .update({
-            status: "concluida",
-            resposta_texto: respostaTexto,
-            responsavel_email: responsavelEmail,
-            concluida_em: new Date().toISOString(),
-            atualizado_em: new Date().toISOString()
-          })
-          .eq("id", solicitacaoId);
-
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
     }
   };
 
