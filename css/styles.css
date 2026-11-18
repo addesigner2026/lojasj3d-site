@@ -11182,6 +11182,14 @@ button.color-swatch-more:hover {
   stroke: var(--sj-orange);
 }
 
+.card-fav-btn.fil-fav-btn {
+  top: auto;
+  bottom: 8px;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+}
+
 /* ==========================================================================
    POP-UP MODAL DE AUTENTICAÇÃO DO CLIENTE (LOGIN / CADASTRO COM GOOGLE)
    ========================================================================== */

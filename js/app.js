@@ -145,6 +145,35 @@
     }
   }
 
+  function obterChavePaletaPorChave(chave, isBambuOverride) {
+    if (isBambuOverride) return "coresBambuLab";
+    switch (chave) {
+      case "bambu":
+        return "coresBambuLab";
+      case "plasilk":
+        return "coresPlaSilk";
+      case "petg":
+        return "coresPetg";
+      case "tpu":
+        return "coresTpu";
+      case "absespeciais":
+        return "coresAbsEspeciais";
+      case "maxprint":
+      default:
+        return "coresMaxPrint";
+    }
+  }
+
+  function resolverIdCorBanco(cor, chavePaleta, idx = 0) {
+    if (!cor) return "";
+    if (cor._dbId) return cor._dbId;
+    const slug = String(cor.cod || cor.nome || idx)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "-")
+      .replace(/^-|-$/g, "");
+    return `cor-${chavePaleta}-${slug}-${idx + 1}`;
+  }
+
   function obterPaletaPorChave(chave, isBambuOverride) {
     if (isBambuOverride) return window.SITE_DATA.coresBambuLab;
     switch (chave) {
@@ -1018,12 +1047,127 @@
     atualizarBadgeFavoritos();
   }
 
+  const PENDING_STORE_ACTION_KEY = "sj_pending_store_action_v1";
+  let storefrontRealtimeSub = null;
+
+  function ehPaginaAdminAtual() {
+    return window.location.pathname.includes("admin") || Boolean(document.getElementById("admin-standalone-app"));
+  }
+
+  function redirecionarParaLoginComAcao(action, productId) {
+    const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
+    try {
+      sessionStorage.setItem(PENDING_STORE_ACTION_KEY, JSON.stringify({ action, productId, returnTo }));
+    } catch (_) {}
+    const url = `/conta?action=${encodeURIComponent(action)}&productId=${encodeURIComponent(productId)}&returnTo=${encodeURIComponent(returnTo)}`;
+    window.location.href = url;
+  }
+
+  async function sincronizarClienteLojaSupabase() {
+    if (ehPaginaAdminAtual() || !window.SJ_SUPABASE?.auth) return;
+    try {
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      if (!sessao?.user) {
+        state.supabaseStoreUser = null;
+        state.favoritos = [];
+        atualizarBadgeFavoritos();
+        atualizarBotaoHeaderConta();
+        const topBagBadge = document.getElementById("cart-count-badge");
+        if (topBagBadge) topBagBadge.textContent = "0";
+        sincronizarCoracoesNaTela();
+        return;
+      }
+
+      const resPerfil = await window.SJ_SUPABASE.profiles?.obterMeuPerfil?.();
+      const perfil = resPerfil?.perfil;
+      state.supabaseStoreUser = {
+        id: sessao.user.id,
+        nome: perfil?.nome || sessao.user.user_metadata?.nome || sessao.user.user_metadata?.name || sessao.user.email.split("@")[0],
+        email: sessao.user.email,
+        role: perfil?.role || "customer"
+      };
+      atualizarBotaoHeaderConta();
+
+      // Carrega Favoritos do banco (public.favorites)
+      if (window.SJ_SUPABASE.favorites) {
+        const resFav = await window.SJ_SUPABASE.favorites.listarMeus();
+        if (resFav?.sucesso) {
+          state.favoritos = (resFav.dados || []).map((f) => f.product_id);
+          atualizarBadgeFavoritos();
+          sincronizarCoracoesNaTela();
+        }
+      }
+
+      // Carrega Carrinho do banco (public.cart_items)
+      if (window.SJ_SUPABASE.cart) {
+        const resCart = await window.SJ_SUPABASE.cart.listarMeu();
+        if (resCart?.sucesso) {
+          const totalQtd = (resCart.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+          const topBagBadge = document.getElementById("cart-count-badge");
+          if (topBagBadge) topBagBadge.textContent = String(totalQtd);
+        }
+      }
+
+      // Assina Realtime em favoritos e carrinho do usuário
+      if (!storefrontRealtimeSub) {
+        storefrontRealtimeSub = true;
+        window.SJ_SUPABASE?.favorites?.assinarRealtime?.(() => sincronizarClienteLojaSupabase());
+        window.SJ_SUPABASE?.cart?.assinarRealtime?.(() => sincronizarClienteLojaSupabase());
+      }
+    } catch (_) {}
+  }
+
+  function sincronizarCoracoesNaTela() {
+    document.querySelectorAll("[data-toggle-fav]").forEach((btn) => {
+      const itemId = btn.dataset.toggleFav;
+      const fav = isFavorito(itemId);
+      btn.classList.toggle("active", fav);
+      const svg = btn.querySelector("svg");
+      if (svg) {
+        svg.setAttribute("fill", fav ? "#f04e23" : "none");
+        svg.setAttribute("stroke", fav ? "#f04e23" : "#71717a");
+      }
+    });
+  }
+
   function isFavorito(itemId) {
     return Array.isArray(state.favoritos) && state.favoritos.includes(itemId);
   }
 
-  function toggleFavorito(itemId) {
+  async function toggleFavorito(itemId) {
     if (!itemId) return;
+
+    // Na loja pública, exige usuário autenticado no Supabase para salvar no banco (public.favorites)
+    if (!ehPaginaAdminAtual() && window.SJ_SUPABASE?.auth && window.SJ_SUPABASE?.favorites) {
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      if (!sessao?.user) {
+        mostrarToast("🔐 Entre ou crie sua conta para salvar favoritos no seu perfil!", "info");
+        setTimeout(() => redirecionarParaLoginComAcao("fav", itemId), 350);
+        return;
+      }
+
+      const res = await window.SJ_SUPABASE.favorites.alternar(itemId);
+      if (!res?.sucesso) {
+        mostrarToast(`⚠️ ${escaparHtml(res?.mensagem || "Não foi possível atualizar seus favoritos.")}`, "warning");
+        return;
+      }
+
+      const adicionado = Boolean(res.favoritado);
+      if (!Array.isArray(state.favoritos)) state.favoritos = [];
+      if (adicionado) {
+        if (!state.favoritos.includes(itemId)) state.favoritos.unshift(itemId);
+        mostrarToast("❤️ Salvo nos seus Favoritos!", "success", {
+          acaoTexto: "Ver Favoritos →",
+          onClick: () => { window.location.href = "/conta?aba=favoritos"; }
+        });
+      } else {
+        state.favoritos = state.favoritos.filter((x) => x !== itemId);
+        mostrarToast("Item removido dos seus Favoritos.", "info");
+      }
+      atualizarBadgeFavoritos();
+      sincronizarCoracoesNaTela();
+      return;
+    }
 
     if (!Array.isArray(state.favoritos)) state.favoritos = [];
     const idx = state.favoritos.indexOf(itemId);
@@ -1040,7 +1184,6 @@
 
     salvarFavoritosLocal();
 
-    // Atualiza ícones de coração visíveis na tela
     document.querySelectorAll(`[data-toggle-fav="${itemId}"]`).forEach((btn) => {
       btn.classList.toggle("active", adicionado);
       const svg = btn.querySelector("svg");
@@ -1049,11 +1192,6 @@
         svg.setAttribute("stroke", adicionado ? "#f04e23" : "#71717a");
       }
     });
-
-    // Se estiver na Área do Cliente na aba de favoritos, re-renderiza
-    if (state.categoriaMenu === "minha-conta" && state.abaClienteAtiva === "favoritos") {
-      renderizarAreaCliente("favoritos");
-    }
   }
 
   function atualizarBadgeFavoritos() {
@@ -1069,11 +1207,12 @@
     const btn = document.getElementById("header-account-btn");
     if (!btnText || !btn) return;
 
-    if (state.clienteLogado) {
-      const primeiroNome = (state.clienteLogado.nome || "Cliente").split(" ")[0];
+    const usuarioAtivo = state.supabaseStoreUser || state.clienteLogado;
+    if (usuarioAtivo) {
+      const primeiroNome = (usuarioAtivo.nome || "Conta").split(" ")[0];
       btnText.textContent = `Olá, ${primeiroNome}`;
       btn.classList.add("logged-in");
-      btn.title = `Minha Conta (${state.clienteLogado.nome})`;
+      btn.title = `Minha Conta (${usuarioAtivo.nome || usuarioAtivo.email})`;
     } else {
       btnText.textContent = "Entrar / Conta";
       btn.classList.remove("logged-in");
@@ -3640,12 +3779,11 @@
       return;
     }
 
-    // Clique no botão Favoritos do Header
+    // Clique no botão Favoritos do Header -> abre aba Favoritos em /conta
     const btnHeaderFav = e.target.closest("#header-fav-btn");
     if (btnHeaderFav) {
       e.preventDefault();
-      navegarParaCategoria("minha-conta");
-      renderizarAreaCliente("favoritos");
+      window.location.href = "/conta?aba=favoritos";
       return;
     }
 
@@ -4257,6 +4395,10 @@
         </div>
       `;
 
+      const chavePaletaAtiva = itemAtivo
+        ? obterChavePaletaPorChave(itemAtivo.usaCoresDinamicas, false)
+        : "coresMaxPrint";
+
       gradeCoresHtml = `
         <div class="sj-fil-clean-grid">
           ${coresFiltradas
@@ -4266,6 +4408,8 @@
               const isEsg = stCor === "esgotado";
               const isPouc = stCor === "poucas_unidades";
               const nomeLimpo = formatarNomeCorClean(cor.nome, matAtivoId);
+              const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
+              const ehFavCor = isFavorito(corDbId);
               return `
                 <article class="filament-color-tile sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
@@ -4275,6 +4419,17 @@
                     title="Ver detalhes de ${cor.nome} (#${cor.cod})"
                   >
                     <span class="sj-fil-code-tag">#${cor.cod}</span>
+                    <button
+                      type="button"
+                      class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
+                      data-toggle-fav="${escaparHtml(corDbId)}"
+                      aria-label="Favoritar ${escaparHtml(cor.nome)}"
+                      title="Favoritar esta cor"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                    </button>
                     ${
                       isEsg
                         ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
@@ -4374,6 +4529,8 @@
               const isEsg = stCor === "esgotado";
               const isPouc = stCor === "poucas_unidades";
               const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
+              const corDbId = resolverIdCorBanco(cor, "coresBambuLab", cor.originalIdx);
+              const ehFavCor = isFavorito(corDbId);
               return `
                 <article class="filament-color-tile sj-fil-card bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
@@ -4386,6 +4543,17 @@
                     <span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${
                       ehRefil ? "Refil" : "Bobina RFID"
                     }</span>
+                    <button
+                      type="button"
+                      class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
+                      data-toggle-fav="${escaparHtml(corDbId)}"
+                      aria-label="Favoritar ${escaparHtml(cor.nome)}"
+                      title="Favoritar este filamento"
+                    >
+                      <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                      </svg>
+                    </button>
                     ${
                       isEsg
                         ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
@@ -4965,8 +5133,8 @@
     });
   }
 
-  // 5. Adiciona qualquer item do catálogo (Filamento, Impressora, Peça ou Manutenção) na Caixa Lateral
-  function adicionarItemNaCaixa(itemId, btnEl, customConfig) {
+  // 5. Adiciona qualquer item do catálogo (Filamento, Impressora, Peça ou Manutenção) ao Carrinho / Banco
+  async function adicionarItemNaCaixa(itemId, btnEl, customConfig) {
     const item = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
     if (!item) return;
 
@@ -4986,7 +5154,82 @@
       statusEstoque = sel2.options[sel2.selectedIndex].dataset.estoque || statusEstoque;
     }
     if (statusEstoque === "esgotado") {
-      mostrarNotificacaoToast("🔴 Este item está esgotado no momento. Consulte previsão pelo WhatsApp!");
+      mostrarToast("🔴 Este produto está esgotado no momento e não pode ser adicionado ao carrinho.", "warning");
+      return;
+    }
+
+    const qtdAdicionar = Math.max(
+      1,
+      Math.min(1000, parseInt(customConfig && customConfig.qtd ? customConfig.qtd : 1, 10) || 1)
+    );
+
+    // Resolve o ID oficial do item na tabela public.products (produto principal ou cor específica de filamento)
+    let dbProductId = item.id;
+    if (customConfig && customConfig.corObj) {
+      const chavePaleta = obterChavePaletaPorChave(item.usaCoresDinamicas, marcaEfetiva === "Bambu Lab");
+      const paleta = window.SITE_DATA[chavePaleta] || [];
+      const idxCor = paleta.findIndex((c) => c === customConfig.corObj || (c.cod && c.cod === customConfig.corObj.cod && c.nome === customConfig.corObj.nome));
+      dbProductId = resolverIdCorBanco(customConfig.corObj, chavePaleta, idxCor >= 0 ? idxCor : 0);
+    } else if (item.tipoFilamento && sel2 && sel2.selectedIndex >= 0) {
+      const chavePaleta = obterChavePaletaPorChave(item.usaCoresDinamicas, marcaEfetiva === "Bambu Lab");
+      const paleta = window.SITE_DATA[chavePaleta] || [];
+      const idxCor = Number(sel2.value);
+      const corSelecionada = paleta[idxCor] || paleta[sel2.selectedIndex];
+      if (corSelecionada) {
+        dbProductId = resolverIdCorBanco(corSelecionada, chavePaleta, idxCor >= 0 ? idxCor : sel2.selectedIndex);
+      }
+    }
+
+    // Na loja pública: exige usuário autenticado no Supabase para salvar no carrinho (public.cart_items)
+    if (!ehPaginaAdminAtual() && window.SJ_SUPABASE?.auth && window.SJ_SUPABASE?.cart) {
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      if (!sessao?.user) {
+        mostrarToast("🔐 Entre ou crie sua conta para adicionar itens ao seu carrinho!", "info");
+        setTimeout(() => redirecionarParaLoginComAcao("cart", dbProductId), 350);
+        return;
+      }
+
+      const textoOrigBtn = btnEl ? btnEl.textContent : "";
+      if (btnEl) {
+        btnEl.disabled = true;
+        btnEl.textContent = "⏳ Adicionando...";
+      }
+
+      const resCart = await window.SJ_SUPABASE.cart.adicionar(dbProductId, qtdAdicionar);
+
+      if (btnEl) {
+        btnEl.disabled = false;
+        btnEl.textContent = textoOrigBtn;
+      }
+
+      if (!resCart?.sucesso) {
+        mostrarToast(`⚠️ ${escaparHtml(resCart?.mensagem || "Não foi possível adicionar ao carrinho.")}`, "warning");
+        return;
+      }
+
+      // Atualiza badge do carrinho no header com o total real do banco
+      const listaAtual = await window.SJ_SUPABASE.cart.listarMeu();
+      if (listaAtual?.sucesso) {
+        const totalUnidades = (listaAtual.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+        const topBagBadge = document.getElementById("cart-count-badge");
+        if (topBagBadge) topBagBadge.textContent = String(totalUnidades);
+      }
+
+      if (btnEl) {
+        btnEl.textContent = "✓ No Carrinho!";
+        btnEl.classList.add("added-feedback");
+        setTimeout(() => {
+          btnEl.textContent = textoOrigBtn;
+          btnEl.classList.remove("added-feedback");
+        }, 950);
+      }
+
+      const nomeToast = customConfig?.corObj?.nome ? `${item.nome} — ${customConfig.corObj.nome}` : item.nome;
+      const avisoEstoque = statusEstoque === "poucas_unidades" ? " <strong>(Últimas unidades!)</strong>" : "";
+      mostrarToast(`🛒 <strong>${escaparHtml(nomeToast)}</strong> adicionado ao carrinho!${avisoEstoque}`, "success", {
+        acaoTexto: "Ver Carrinho →",
+        onClick: () => { window.location.href = "/conta?aba=carrinho"; }
+      });
       return;
     }
 
@@ -4996,8 +5239,6 @@
         : sel1
           ? sel1.value
           : "";
-    const qtdAdicionar =
-      customConfig && customConfig.qtd ? Number(customConfig.qtd) : 1;
 
     let valor2 = "";
     let corHex = "#F04E23";
@@ -5123,7 +5364,9 @@
     );
     const resumoCupons = calcularCuponsSorteio();
 
-    if (topBagBadge) topBagBadge.textContent = totalItens;
+    if (topBagBadge && ehPaginaAdminAtual()) {
+      topBagBadge.textContent = totalItens;
+    }
 
     if (clearBtn) {
       clearBtn.style.display = totalItens > 0 ? "inline-flex" : "none";
@@ -6574,7 +6817,17 @@
               </div>
 
               <button type="button" class="pdp-btn-add" id="pdp-btn-add">
-                ${item.categoria === "pecas" ? "Adicionar ao Orçamento" : `Adicionar ao Pedido ${precoUnitarioAtual > 0 ? `— ${formatarMoedaBR(precoUnitarioAtual)}` : ""}`}
+                ${item.categoria === "pecas" ? "Adicionar ao Carrinho" : `Adicionar ao Carrinho ${precoUnitarioAtual > 0 ? `— ${formatarMoedaBR(precoUnitarioAtual)}` : ""}`}
+              </button>
+              <button
+                type="button"
+                id="pdp-btn-fav"
+                class="btn-sj-pdp-fav ${isFavorito(corAtiva ? resolverIdCorBanco(corAtiva, obterChavePaletaPorChave(item.usaCoresDinamicas, marcaAtual === "Bambu Lab"), idxCorAtiva) : item.id) ? "active" : ""}"
+                data-toggle-fav="${escaparHtml(corAtiva ? resolverIdCorBanco(corAtiva, obterChavePaletaPorChave(item.usaCoresDinamicas, marcaAtual === "Bambu Lab"), idxCorAtiva) : item.id)}"
+                title="Favoritar este item"
+                style="padding: 12px 14px; border-radius: 12px; border: 1.5px solid #cbd5e1; background: #fff; cursor: pointer; display: inline-flex; align-items: center; justify-content: center;"
+              >
+                ❤️
               </button>
             </div>
 
@@ -6754,6 +7007,19 @@
       const dotIndicatorEl = document.getElementById("pdp-color-dot-indicator");
       if (dotIndicatorEl && corAtiva) {
         dotIndicatorEl.style.backgroundColor = corAtiva.hex;
+      }
+
+      const pdpFavBtn = document.getElementById("pdp-btn-fav");
+      if (pdpFavBtn) {
+        const targetFavId = corAtiva
+          ? resolverIdCorBanco(
+              corAtiva,
+              obterChavePaletaPorChave(item.usaCoresDinamicas, marcaAtual === "Bambu Lab"),
+              idxCorAtiva
+            )
+          : item.id;
+        pdpFavBtn.dataset.toggleFav = targetFavId;
+        pdpFavBtn.classList.toggle("active", isFavorito(targetFavId));
       }
 
       const addBtnEl = document.getElementById("pdp-btn-add");
@@ -10961,7 +11227,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const mapPanes = {
       produtos: "cms-pane-produtos",
       "orcamentos-clientes": "cms-pane-orcamentos-clientes",
-      "pedidos-clientes": "cms-pane-pedidos-clientes",
       "consulta-qr": "cms-pane-consulta-qr",
       clientes: "cms-pane-clientes",
       banner: "cms-pane-banner",
@@ -10972,8 +11237,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
     const mapTitles = {
       produtos: "Catálogo, Preços & Controle de Estoque",
-      "orcamentos-clientes": "Orçamentos Recebidos dos Clientes (/conta)",
-      "pedidos-clientes": "Pedidos dos Clientes & Fila de Produção",
+      "orcamentos-clientes": "Orçamentos Solicitados pelos Clientes (/conta)",
       "consulta-qr": "Consulta Rápida de Preço & Leitor QR Code",
       clientes: "Banco de Dados de Clientes Cadastrados & Leads",
       equipe: "Acessos: Funcionários, Administradores & Clientes",
@@ -10997,9 +11261,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (aba === "orcamentos-clientes") {
       renderizarOrcamentosPortalCms();
     }
-    if (aba === "pedidos-clientes") {
-      renderizarPedidosPortalCms();
-    }
     if (aba === "consulta-qr") {
       renderizarGradeConsultaQr();
     }
@@ -11018,12 +11279,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   // =====================================================================
-  // GESTÃO DE ORÇAMENTOS DOS CLIENTES (/conta -> public.quotes) — STAFF & ADMIN
+  // GESTÃO DE ORÇAMENTOS DOS CLIENTES (/conta -> public.quotes + quote_items) — STAFF & ADMIN
   // =====================================================================
   async function renderizarOrcamentosPortalCms() {
     const listEl = document.getElementById("cms-portal-quotes-list");
     const badgeEl = document.getElementById("cms-portal-quotes-badge");
     const filterEl = document.getElementById("cms-filter-quotes-status");
+    const searchEl = document.getElementById("cms-search-quotes-input");
     if (!window.SJ_SUPABASE?.quotes) return;
 
     if (listEl) {
@@ -11039,11 +11301,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
 
     const todos = res.dados || [];
-    const novosCount = todos.filter((q) => q.status === "enviado" || q.status === "em_analise").length;
+    const novosCount = todos.filter((q) => q.status === "solicitado" || q.changed_by_customer).length;
     if (badgeEl) badgeEl.textContent = String(novosCount || todos.length);
 
     const filtro = filterEl ? filterEl.value : "todos";
-    const filtrados = filtro === "todos" ? todos : todos.filter((q) => q.status === filtro);
+    const busca = (searchEl ? searchEl.value : "").trim().toLowerCase();
+
+    const filtrados = todos.filter((q) => {
+      if (filtro !== "todos" && q.status !== filtro) return false;
+      if (busca) {
+        const alvo = `${q.quote_number || ""} ${q.cliente_nome || ""} ${q.cliente_email || ""} ${q.cliente_telefone || ""}`.toLowerCase();
+        if (!alvo.includes(busca)) return false;
+      }
+      return true;
+    });
 
     if (!listEl) return;
     if (filtrados.length === 0) {
@@ -11052,66 +11323,89 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
 
     const statusLabels = {
-      enviado: "📨 Enviado",
+      solicitado: "📨 Solicitado",
       em_analise: "🔍 Em análise",
       respondido: "💬 Respondido",
       aprovado: "✅ Aprovado",
-      recusado: "✖️ Recusado"
+      recusado: "✖️ Recusado",
+      cancelado: "🚫 Cancelado"
     };
+    const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
     listEl.innerHTML = filtrados
       .map((q) => {
-        const valorFmt = q.valor_estimado != null ? String(q.valor_estimado) : "";
+        const valorFmt = q.admin_total != null ? String(q.admin_total) : "";
         const dataFmt = q.created_at ? new Date(q.created_at).toLocaleString("pt-BR") : "—";
+        const itens = Array.isArray(q.quote_items) ? q.quote_items : [];
+        const totalRef = itens.reduce((acc, it) => acc + Number(it.unit_price || 0) * Number(it.quantity || 1), 0);
+
+        const telDigitos = String(q.cliente_telefone || "").replace(/\D/g, "");
+        const telWa = telDigitos ? (telDigitos.startsWith("55") ? telDigitos : `55${telDigitos}`) : "";
+        const waMsgCliente = telWa
+          ? encodeURIComponent(`Olá ${q.cliente_nome || ""}! Aqui é da Loja SJ 3D sobre o seu Orçamento nº ${q.quote_number}.`)
+          : "";
+
+        const itensHtml = itens
+          .map(
+            (it) => `<li style="display:flex; justify-content:space-between; gap:8px; padding:5px 0; border-bottom:1px dashed #e2e8f0; font-size:0.83rem;">
+              <span><strong>${escaparHtml(it.quantity)}x</strong> ${escaparHtml(it.product_name)}</span>
+              <strong>${escaparHtml(fmtBRL(Number(it.unit_price || 0) * Number(it.quantity || 1)))}</strong>
+            </li>`
+          )
+          .join("");
+
         return `
-          <div style="border:1.5px solid #e2e8f0; border-radius:14px; padding:18px; margin-bottom:14px; background:#fff;">
+          <div style="border:1.5px solid ${q.changed_by_customer ? "#f59e0b" : "#e2e8f0"}; border-radius:14px; padding:18px; margin-bottom:14px; background:#fff;">
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
               <div>
-                <div style="font-size:0.74rem; font-weight:800; color:#64748b;">${escaparHtml(q.codigo || "")} • ${escaparHtml(dataFmt)}</div>
-                <div style="font-size:1.02rem; font-weight:800; color:#0f172a; margin-top:2px;">${escaparHtml(q.titulo || "Orçamento 3D")}</div>
-                <div style="font-size:0.82rem; color:#334155; margin-top:3px;">
-                  👤 <strong>${escaparHtml(q.cliente_nome || "Cliente")}</strong> • 📧 ${escaparHtml(q.cliente_email || "—")}
-                  ${q.cliente_telefone ? ` • 📱 ${escaparHtml(q.cliente_telefone)}` : ""}
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <strong style="font-size:1.04rem; color:#0f172a;">Orçamento nº ${escaparHtml(q.quote_number)}</strong>
+                  <span style="padding:3px 10px; border-radius:999px; font-size:0.74rem; font-weight:800; background:#f1f5f9; color:#0f172a;">
+                    ${escaparHtml(statusLabels[q.status] || q.status)}
+                  </span>
+                  ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px;">⚠️ Alterado pelo cliente</span>` : ""}
+                </div>
+                <div style="font-size:0.76rem; color:#64748b; margin-top:3px;">
+                  Recebido em ${escaparHtml(dataFmt)} • Referência catálogo: <strong>${escaparHtml(fmtBRL(totalRef))}</strong>
+                </div>
+                <div style="font-size:0.83rem; color:#334155; margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                  <span>👤 <strong>${escaparHtml(q.cliente_nome || "Cliente")}</strong></span>
+                  ${q.cliente_email ? `<span>📧 ${escaparHtml(q.cliente_email)}</span>` : ""}
+                  ${q.cliente_telefone ? `<span>📱 ${escaparHtml(q.cliente_telefone)}</span>` : ""}
+                  ${telWa ? `<a href="https://wa.me/${escaparHtml(telWa)}?text=${waMsgCliente}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:#16a34a; color:#fff; font-size:0.74rem; font-weight:800; text-decoration:none;">💬 Chamar no WhatsApp</a>` : ""}
                 </div>
               </div>
-              <span style="padding:4px 11px; border-radius:999px; font-size:0.75rem; font-weight:800; background:#f1f5f9; color:#0f172a;">
-                ${escaparHtml(statusLabels[q.status] || q.status)}
-              </span>
             </div>
 
-            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px; font-size:0.84rem; color:#334155; line-height:1.5;">
-              <div><strong>Descrição:</strong> ${escaparHtml(q.descricao)}</div>
-              <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:6px; font-size:0.79rem; color:#475569;">
-                <span>🔢 Qtd: <strong>${escaparHtml(q.quantidade)}</strong></span>
-                ${q.material_cor ? `<span>🎨 Material/Cor: <strong>${escaparHtml(q.material_cor)}</strong></span>` : ""}
-                ${q.arquivo_medidas ? `<span>📐 Arquivo/Medidas: <strong>${escaparHtml(q.arquivo_medidas)}</strong></span>` : ""}
-              </div>
-              ${q.observacoes ? `<div style="margin-top:6px; font-size:0.79rem; color:#475569;">📝 Obs.: ${escaparHtml(q.observacoes)}</div>` : ""}
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
+              ${itensHtml ? `<ul style="list-style:none; margin:0; padding:0;">${itensHtml}</ul>` : `<div style="font-size:0.82rem; color:#64748b;">Sem itens listados.</div>`}
+              ${q.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:0.8rem; color:#475569;">📝 <strong>Obs. do cliente:</strong> ${escaparHtml(q.notes)}</div>` : ""}
             </div>
 
-            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px; align-items:end;">
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
               <div>
                 <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Status do Orçamento</label>
                 <select data-quote-status-input="${escaparHtml(q.id)}" style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="enviado" ${q.status === "enviado" ? "selected" : ""}>📨 Enviado</option>
+                  <option value="solicitado" ${q.status === "solicitado" ? "selected" : ""}>📨 Solicitado</option>
                   <option value="em_analise" ${q.status === "em_analise" ? "selected" : ""}>🔍 Em análise</option>
                   <option value="respondido" ${q.status === "respondido" ? "selected" : ""}>💬 Respondido</option>
                   <option value="aprovado" ${q.status === "aprovado" ? "selected" : ""}>✅ Aprovado</option>
                   <option value="recusado" ${q.status === "recusado" ? "selected" : ""}>✖️ Recusado</option>
+                  <option value="cancelado" ${q.status === "cancelado" ? "selected" : ""}>🚫 Cancelado</option>
                 </select>
               </div>
               <div>
-                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Valor Orçado (R$)</label>
+                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Valor Total da Resposta (R$)</label>
                 <input type="number" step="0.01" min="0" data-quote-valor-input="${escaparHtml(q.id)}" value="${escaparHtml(valorFmt)}" placeholder="Ex: 149.90" style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.84rem;" />
               </div>
               <div style="grid-column: 1 / -1;">
-                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Resposta / Prazo para o Cliente</label>
-                <textarea data-quote-resp-input="${escaparHtml(q.id)}" rows="2" placeholder="Ex: Prazo de produção 2 dias úteis. Valor já inclui acabamento." style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.83rem; font-family:inherit;">${escaparHtml(q.resposta_equipe || "")}</textarea>
+                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Observação / Retorno para o Cliente</label>
+                <textarea data-quote-resp-input="${escaparHtml(q.id)}" rows="2" placeholder="Ex: Valor confirmado para retirada hoje ou prazo de envio..." style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.83rem; font-family:inherit;">${escaparHtml(q.admin_response || "")}</textarea>
               </div>
             </div>
             <div style="margin-top:10px; display:flex; justify-content:flex-end;">
               <button type="button" class="btn-cms-save" data-quote-save-btn="${escaparHtml(q.id)}" style="padding:9px 16px; border-radius:9px; font-size:0.82rem; cursor:pointer;">
-                💾 Salvar Resposta &amp; Notificar Cliente
+                💾 Salvar Status &amp; Resposta
               </button>
             </div>
           </div>
@@ -11129,136 +11423,27 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         btn.disabled = true;
         btn.textContent = "⏳ Salvando...";
 
-        let statusEscolhido = statusEl ? statusEl.value : "respondido";
+        let statusEscolhido = statusEl ? statusEl.value : "em_analise";
         const valorVal = valorEl ? valorEl.value.trim() : "";
         const respVal = respEl ? respEl.value.trim() : "";
-        // Se informou valor e ainda estava em "enviado", muda automaticamente para "respondido"
-        if (valorVal && statusEscolhido === "enviado") {
+        if ((valorVal || respVal) && statusEscolhido === "solicitado") {
           statusEscolhido = "respondido";
         }
 
         const r = await window.SJ_SUPABASE.quotes.responderEquipe(id, {
           status: statusEscolhido,
-          valor_estimado: valorVal,
-          resposta_equipe: respVal
+          admin_total: valorVal,
+          admin_response: respVal,
+          limparAlterado: true
         });
 
         btn.disabled = false;
         btn.textContent = origTxt;
         if (r && r.sucesso) {
-          mostrarToast("✅ Orçamento respondido! O cliente já vê o valor e o status no painel /conta.", "success");
+          mostrarToast("✅ Orçamento atualizado! O cliente já visualiza no painel /conta.", "success");
           await renderizarOrcamentosPortalCms();
         } else {
           mostrarToast(`❌ Erro ao salvar orçamento: ${escaparHtml(r?.mensagem || "verifique suas permissões")}`, "warning");
-        }
-      });
-    });
-  }
-
-  // =====================================================================
-  // GESTÃO DE PEDIDOS DOS CLIENTES (/conta -> public.orders) — STAFF & ADMIN
-  // =====================================================================
-  async function renderizarPedidosPortalCms() {
-    const listEl = document.getElementById("cms-portal-orders-list");
-    const badgeEl = document.getElementById("cms-portal-orders-badge");
-    const filterEl = document.getElementById("cms-filter-orders-status");
-    if (!window.SJ_SUPABASE?.orders) return;
-
-    if (listEl) {
-      listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b;">⏳ Carregando pedidos do Supabase...</div>`;
-    }
-
-    const res = await window.SJ_SUPABASE.orders.listarTodos();
-    if (!res.sucesso) {
-      if (listEl) {
-        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Pedidos dos Clientes." : (res.mensagem || "Erro ao carregar pedidos."))}</div>`;
-      }
-      return;
-    }
-
-    const todos = res.dados || [];
-    const ativosCount = todos.filter((o) => !["concluido", "cancelado"].includes(o.status)).length;
-    if (badgeEl) badgeEl.textContent = String(ativosCount || todos.length);
-
-    const filtro = filterEl ? filterEl.value : "todos";
-    const filtrados = filtro === "todos" ? todos : todos.filter((o) => o.status === filtro);
-
-    if (!listEl) return;
-    if (filtrados.length === 0) {
-      listEl.innerHTML = `<div style="padding:28px; text-align:center; border:1.5px dashed #cbd5e1; border-radius:12px; color:#64748b; font-size:0.86rem;">🛒 Nenhum pedido encontrado neste filtro.</div>`;
-      return;
-    }
-
-    const formatarBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-    listEl.innerHTML = filtrados
-      .map((ord) => {
-        const dataFmt = ord.created_at ? new Date(ord.created_at).toLocaleString("pt-BR") : "—";
-        const itens = Array.isArray(ord.order_items) ? ord.order_items : [];
-        const itensHtml = itens
-          .map(
-            (it) => `<li style="display:flex; justify-content:space-between; gap:8px; padding:4px 0; border-bottom:1px dashed #e2e8f0; font-size:0.82rem;">
-              <span><strong>${escaparHtml(it.quantidade)}x</strong> ${escaparHtml(it.nome)}${it.detalhes ? ` (${escaparHtml(it.detalhes)})` : ""}</span>
-              <strong>${escaparHtml(formatarBRL(it.subtotal))}</strong>
-            </li>`
-          )
-          .join("");
-
-        return `
-          <div style="border:1.5px solid #e2e8f0; border-radius:14px; padding:18px; margin-bottom:14px; background:#fff;">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
-              <div>
-                <div style="font-size:0.74rem; font-weight:800; color:#64748b;">${escaparHtml(ord.codigo || "")} • ${escaparHtml(dataFmt)}</div>
-                <div style="font-size:1.05rem; font-weight:900; color:#0f172a; margin-top:2px;">Total: ${escaparHtml(formatarBRL(ord.total))}</div>
-                <div style="font-size:0.82rem; color:#334155; margin-top:3px;">
-                  👤 <strong>${escaparHtml(ord.cliente_nome || "Cliente")}</strong> • 📧 ${escaparHtml(ord.cliente_email || "—")}
-                  ${ord.cliente_telefone ? ` • 📱 ${escaparHtml(ord.cliente_telefone)}` : ""}
-                </div>
-              </div>
-              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-                <select data-order-status-select="${escaparHtml(ord.id)}" style="padding:8px 11px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="recebido" ${ord.status === "recebido" ? "selected" : ""}>📥 Recebido</option>
-                  <option value="em_producao" ${ord.status === "em_producao" ? "selected" : ""}>⚙️ Em produção</option>
-                  <option value="pronto" ${ord.status === "pronto" ? "selected" : ""}>✨ Pronto</option>
-                  <option value="enviado_retirado" ${ord.status === "enviado_retirado" ? "selected" : ""}>🚚 Enviado / Retirado</option>
-                  <option value="concluido" ${ord.status === "concluido" ? "selected" : ""}>🎉 Concluído</option>
-                  <option value="cancelado" ${ord.status === "cancelado" ? "selected" : ""}>🚫 Cancelado</option>
-                </select>
-                <button type="button" class="btn-cms-save" data-order-save-btn="${escaparHtml(ord.id)}" style="padding:8px 14px; border-radius:9px; font-size:0.8rem; cursor:pointer;">
-                  💾 Atualizar
-                </button>
-              </div>
-            </div>
-
-            ${itensHtml ? `<ul style="list-style:none; margin:8px 0; padding:10px 12px; background:#f8fafc; border-radius:10px;">${itensHtml}</ul>` : ""}
-
-            <div style="font-size:0.78rem; color:#64748b; display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
-              <span>🚚 <strong>${ord.forma_entrega === "entrega" ? "Entrega" : "Retirada na loja"}</strong></span>
-              ${ord.endereco_entrega ? `<span>📍 ${escaparHtml(ord.endereco_entrega)}</span>` : ""}
-              ${ord.observacoes ? `<span>📝 ${escaparHtml(ord.observacoes)}</span>` : ""}
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    listEl.querySelectorAll("[data-order-save-btn]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.orderSaveBtn;
-        const sel = listEl.querySelector(`[data-order-status-select="${id}"]`);
-        const novoStatus = sel ? sel.value : "recebido";
-        const origTxt = btn.textContent;
-        btn.disabled = true;
-        btn.textContent = "⏳...";
-
-        const r = await window.SJ_SUPABASE.orders.atualizarStatus(id, novoStatus);
-        btn.disabled = false;
-        btn.textContent = origTxt;
-        if (r && r.sucesso) {
-          mostrarToast("✅ Status do pedido atualizado em tempo real para o cliente!", "success");
-          await renderizarPedidosPortalCms();
-        } else {
-          mostrarToast(`❌ Erro ao atualizar pedido: ${escaparHtml(r?.mensagem || "erro desconhecido")}`, "warning");
         }
       });
     });
@@ -12893,7 +13078,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     let dashboardAdminInicializado = false;
     let profilesRealtimeSub = null;
     let quotesRealtimeSub = null;
-    let ordersRealtimeSub = null;
 
     function exibirFormularioLoginGate() {
       const statusScreen = document.getElementById("admin-gate-status-screen");
@@ -12990,11 +13174,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const aba = urlParams.get("aba") || "produtos";
         const editId = urlParams.get("edit");
 
-        // Bind filtros e botões de atualizar das novas abas Orçamentos e Pedidos dos Clientes
+        // Bind filtros, busca e botão de atualizar da aba Orçamentos dos Clientes
         document.getElementById("cms-filter-quotes-status")?.addEventListener("change", () => renderizarOrcamentosPortalCms());
+        document.getElementById("cms-search-quotes-input")?.addEventListener("input", () => renderizarOrcamentosPortalCms());
         document.getElementById("btn-cms-refresh-portal-quotes")?.addEventListener("click", () => renderizarOrcamentosPortalCms());
-        document.getElementById("cms-filter-orders-status")?.addEventListener("change", () => renderizarPedidosPortalCms());
-        document.getElementById("btn-cms-refresh-portal-orders")?.addEventListener("click", () => renderizarPedidosPortalCms());
 
         selecionarAbaCms(aba);
         configurarFormularioSenhaAdmin();
@@ -13003,7 +13186,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         atualizarStatusSupabaseNoCms();
         atualizarContadoresEstoqueKpiCms();
         renderizarOrcamentosPortalCms();
-        renderizarPedidosPortalCms();
         if (ehAdmin) renderizarPainelEquipeCms(true);
 
         if (editId) abrirEditorProdutoCms(editId);
@@ -13017,18 +13199,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             }
           });
         }
-        // Realtime em quotes & orders para equipe ver novos orçamentos/pedidos ao vivo
+        // Realtime em quotes para equipe ver novos orçamentos e alterações ao vivo
         if (!quotesRealtimeSub && window.SJ_SUPABASE?.quotes?.assinarRealtime) {
           quotesRealtimeSub = window.SJ_SUPABASE.quotes.assinarRealtime(() => renderizarOrcamentosPortalCms());
-        }
-        if (!ordersRealtimeSub && window.SJ_SUPABASE?.orders?.assinarRealtime) {
-          ordersRealtimeSub = window.SJ_SUPABASE.orders.assinarRealtime(() => renderizarPedidosPortalCms());
         }
       } else {
         renderizarListaProdutosCms();
         atualizarContadoresEstoqueKpiCms();
         renderizarOrcamentosPortalCms();
-        renderizarPedidosPortalCms();
         if (ehAdmin) renderizarPainelEquipeCms(true);
       }
     }
@@ -14743,11 +14921,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
-    // Inicializa o Sistema do Cliente (Minha Conta, Favoritos, Pop-up e Nota Fiscal)
+    // Inicializa o Sistema do Cliente e sincroniza Favoritos + Carrinho com o Supabase
     configurarModalAuthCliente();
     atualizarBotaoHeaderConta();
     atualizarBadgeFavoritos();
     sincronizarStatusNotaFiscalCarrinho();
+    sincronizarClienteLojaSupabase();
+    window.addEventListener("sj-auth-state-changed", () => {
+      sincronizarClienteLojaSupabase();
+    });
 
     // Tecla ESC Global para fechar qualquer modal, gaveta ou busca aberta (UX Pro Max)
     document.addEventListener("keydown", (e) => {
@@ -14774,9 +14956,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("btn-clear-box")?.addEventListener("click", limparTodoPedido);
     document.getElementById("drawer-btn-clear-box")?.addEventListener("click", limparTodoPedido);
 
-    // Ícone da Sacola no Topo e Barra Flutuante -> abrem a Gaveta Deslizante do Pedido sem sair da página
+    // Ícone do Carrinho no Topo e Barra Flutuante -> abrem a aba Carrinho em /conta
     document.getElementById("header-bag-btn")?.addEventListener("click", () => {
-      abrirGavetaPedido();
+      if (!ehPaginaAdminAtual()) {
+        window.location.href = "/conta?aba=carrinho";
+      } else {
+        abrirGavetaPedido();
+      }
     });
 
     document.getElementById("mobile-cart-jump-btn")?.addEventListener("click", (e) => {

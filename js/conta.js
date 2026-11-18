@@ -1,26 +1,27 @@
 /**
  * PAINEL DO CLIENTE (/conta) — LOJA SJ 3D
  * =====================================================================
- * Porta de entrada exclusiva de CLIENTES:
- * - Cadastro cria automaticamente conta 'customer' com status 'approved' (entra na hora).
- * - Funcionário ('staff') ou 'admin' aprovado que entra aqui é redirecionado para /admin.
- * - Funcionário pendente ou bloqueado vê tela de status e não acessa o painel.
- * - Todas as leituras/escritas passam pelo RLS do Supabase (isolamento por user_id).
- * - Nunca utiliza service_role key no front-end.
+ * Implementa as 4 áreas do cliente:
+ * 1. Favoritos (public.favorites) -> Adicionar ao carrinho, Remover
+ * 2. Carrinho (public.cart_items) -> Alterar qtd, Remover, Esvaziar, Solicitar orçamento
+ * 3. Orçamentos (public.quotes + public.quote_items) -> Editar enquanto 'solicitado',
+ *    Enviar alteração no WhatsApp, Reenviar no WhatsApp, Trava após atendimento da equipe
+ * 4. Meus Dados (public.profiles) -> Nome, Telefone (WhatsApp), E-mail e Endereço opcional
  */
 (function () {
   "use strict";
 
+  const PENDING_ACTION_KEY = "sj_pending_store_action_v1";
+
   const contaState = {
     perfil: null,
     produtos: [],
+    favorites: [],
+    cartItems: [],
     quotes: [],
-    savedItems: [],
-    orders: [],
     realtimeAssinado: false
   };
 
-  // Sanitização obrigatória contra XSS em qualquer dado dinâmico inserido no DOM
   function escaparHtml(str) {
     return String(str == null ? "" : str)
       .replace(/&/g, "&amp;")
@@ -62,7 +63,7 @@
       el.style.opacity = "0";
       el.style.transition = "opacity 0.25s ease";
       setTimeout(() => el.remove(), 260);
-    }, 4000);
+    }, 4200);
   }
 
   function mostrarFeedback(elId, tipo, texto) {
@@ -91,25 +92,25 @@
 
   function labelStatusQuote(status) {
     const map = {
-      enviado: "📨 Enviado",
+      solicitado: "📨 Solicitado",
       em_analise: "🔍 Em análise",
       respondido: "💬 Respondido",
       aprovado: "✅ Aprovado",
-      recusado: "✖️ Recusado"
+      recusado: "✖️ Recusado",
+      cancelado: "🚫 Cancelado"
     };
     return map[status] || status;
   }
 
-  function labelStatusOrder(status) {
-    const map = {
-      recebido: "📥 Recebido",
-      em_producao: "⚙️ Em produção",
-      pronto: "✨ Pronto",
-      enviado_retirado: "🚚 Enviado / Retirado",
-      concluido: "🎉 Concluído",
-      cancelado: "🚫 Cancelado"
-    };
-    return map[status] || status;
+  function badgeEstoqueHtml(stockStatus) {
+    const st = stockStatus || "disponivel";
+    if (st === "esgotado") {
+      return `<span class="stock-pill stock-esgotado">🔴 Esgotado</span>`;
+    }
+    if (st === "poucas_unidades") {
+      return `<span class="stock-pill stock-poucas_unidades">🟠 Poucas unidades</span>`;
+    }
+    return `<span class="stock-pill stock-disponivel">🟢 Disponível</span>`;
   }
 
   // =========================================================================
@@ -148,8 +149,51 @@
     if (adminLink) adminLink.style.display = mostrarLinkAdmin ? "inline-flex" : "none";
   }
 
-  function exibirDashboardCliente(perfil) {
+  // Processa ação pendente caso o visitante tenha clicado em Favoritar ou Adicionar ao Carrinho deslogado
+  async function processarAcaoPendentePosLogin() {
+    const params = new URLSearchParams(window.location.search);
+    let pend = null;
+    try {
+      const raw = sessionStorage.getItem(PENDING_ACTION_KEY);
+      if (raw) {
+        pend = JSON.parse(raw);
+        sessionStorage.removeItem(PENDING_ACTION_KEY);
+      }
+    } catch (_) {}
+
+    const action = pend?.action || params.get("action");
+    const productId = pend?.productId || params.get("productId");
+    const returnTo = pend?.returnTo || params.get("returnTo");
+
+    if (action && productId) {
+      if (action === "fav") {
+        await window.SJ_SUPABASE?.favorites?.adicionar(productId);
+      } else if (action === "cart") {
+        await window.SJ_SUPABASE?.cart?.adicionar(productId, 1);
+      }
+    }
+
+    // Se veio de uma página da loja com returnTo, devolve a pessoa para onde ela estava!
+    if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.startsWith("/conta")) {
+      window.location.replace(returnTo);
+      return true;
+    }
+
+    // Seleciona aba inicial pedida na URL (?aba=carrinho | favoritos | orcamentos | dados)
+    const abaUrl = params.get("aba");
+    if (abaUrl && ["favoritos", "carrinho", "orcamentos", "dados"].includes(abaUrl)) {
+      ativarAbaConta(abaUrl);
+    } else if (action === "cart") {
+      ativarAbaConta("carrinho");
+    }
+    return false;
+  }
+
+  async function exibirDashboardCliente(perfil) {
     contaState.perfil = perfil;
+    const redirecionou = await processarAcaoPendentePosLogin();
+    if (redirecionou) return;
+
     const gate = document.getElementById("conta-auth-gate");
     const dash = document.getElementById("conta-dashboard-shell");
     if (gate) gate.style.display = "none";
@@ -159,11 +203,10 @@
     if (nameEl) nameEl.textContent = perfil.nome || perfil.email || "Cliente";
 
     preencherFormularioDados(perfil);
-    carregarTodosOsDadosCliente();
+    await carregarTodosOsDadosCliente();
     assinarRealtimeCliente();
   }
 
-  // Valida sessão real + papel/status em public.profiles
   async function verificarSessaoCliente() {
     if (!window.SJ_SUPABASE?.auth || !window.SJ_SUPABASE?.profiles) {
       exibirGateLogin();
@@ -177,35 +220,15 @@
     }
 
     const res = await window.SJ_SUPABASE.profiles.obterMeuPerfil();
-    if (!res.sucesso) {
-      if (res.tabelaAusente) {
-        exibirTelaStatus({
-          icon: "🛠️",
-          titulo: "Banco em atualização",
-          desc: "As tabelas de perfil ainda precisam ser ativadas no Supabase. Tente novamente em instantes.",
-          email: sessao.user.email
-        });
-        return;
-      }
+    if (!res.sucesso || !res.perfil) {
       exibirGateLogin();
       return;
     }
 
     const perfil = res.perfil;
-    if (!perfil) {
-      exibirTelaStatus({
-        icon: "⏳",
-        titulo: "Finalizando seu cadastro...",
-        desc: "Seu perfil está sendo sincronizado. Clique em sair e entre novamente.",
-        email: sessao.user.email
-      });
-      return;
-    }
-
     const role = String(perfil.role || "customer").toLowerCase();
     const status = String(perfil.status || "approved").toLowerCase();
 
-    // Conta bloqueada não acessa nada
     if (status === "blocked") {
       exibirTelaStatus({
         icon: "🚫",
@@ -216,80 +239,48 @@
       return;
     }
 
-    // Funcionário ou Admin aprovado que entra por /conta -> redireciona para /admin
     if ((role === "admin" || role === "staff") && status === "approved") {
       exibirTelaStatus({
         icon: "⚙️",
         titulo: "Redirecionando para o Painel de Gestão...",
-        desc: "Identificamos sua conta de equipe/administrador. Levando você para o painel /admin.",
+        desc: "Identificamos sua conta da equipe/administração. Levando você para /admin.",
         email: perfil.email,
         mostrarLinkAdmin: true
       });
       setTimeout(() => {
         window.location.replace("/admin");
-      }, 900);
+      }, 800);
       return;
     }
 
-    // Funcionário ainda pendente tentando entrar por /conta -> barrado com aviso claro
     if (role === "staff" && status === "pending") {
       exibirTelaStatus({
         icon: "⏳",
         titulo: "Aguardando aprovação do administrador",
-        desc: "Sua solicitação de acesso como funcionário está pendente. Assim que o administrador aprovar, entre pelo endereço /admin.",
+        desc: "Sua solicitação de funcionário ainda está pendente. Assim que for aprovada, acesse pelo endereço /admin.",
         email: perfil.email
       });
       return;
     }
 
-    // Cliente aprovado -> entra direto no painel /conta!
-    exibirDashboardCliente(perfil);
+    await exibirDashboardCliente(perfil);
   }
 
   // =========================================================================
-  // CARREGAMENTO DE DADOS DO CLIENTE (CATÁLOGO + QUOTES + SAVED + ORDERS)
+  // CARREGAMENTO DE DADOS DO CLIENTE (CATÁLOGO + FAVORITOS + CARRINHO + ORÇAMENTOS)
   // =========================================================================
-  async function carregarCatalogoParaSeletores() {
+  async function carregarCatalogoProdutos() {
     if (!window.SJ_SUPABASE?.products) return;
     const res = await window.SJ_SUPABASE.products.listarTodos();
     if (!res.sucesso) return;
     contaState.produtos = res.dados || [];
 
-    // 1. Preenche seletor de Material/Cor no formulário de Orçamento
-    const selMat = document.getElementById("quote-material-cor");
-    if (selMat) {
-      const cores = contaState.produtos.filter((p) => p.item_type === "filament_color" && p.stock_status !== "esgotado");
-      const opcoesPadrao = [
-        `<option value="A definir com a equipe">A definir com a equipe</option>`,
-        `<option value="PLA (cor a combinar)">PLA — cor a combinar</option>`,
-        `<option value="PETG (cor a combinar)">PETG — cor a combinar</option>`,
-        `<option value="ABS / TPU (a combinar)">ABS / TPU — a combinar</option>`
-      ];
-      const opcoesCores = cores.map((c) => {
-        const label = `${c.marca || "Filamento"} — ${c.nome}${c.cod ? " (" + c.cod + ")" : ""}`;
-        return `<option value="${escaparHtml(label)}">${escaparHtml(label)}</option>`;
-      });
-      selMat.innerHTML = opcoesPadrao.concat(opcoesCores).join("");
-    }
-
-    // 2. Preenche seletor de Favoritos
-    const selFav = document.getElementById("fav-product-select");
-    if (selFav) {
-      const opts = [`<option value="">-- Item personalizado / projeto livre --</option>`];
-      contaState.produtos.forEach((p) => {
-        const prefixo = p.item_type === "filament_color" ? "🎨 Filamento: " : "📦 Produto: ";
-        const statusTag = p.stock_status === "esgotado" ? " [ESGOTADO]" : "";
-        opts.push(`<option value="${escaparHtml(p.id)}">${escaparHtml(prefixo + p.nome + " — " + (p.preco || "") + statusTag)}</option>`);
-      });
-      selFav.innerHTML = opts.join("");
-    }
-
-    // 3. Preenche seletor de Pedido de Produto (desabilita itens esgotados!)
-    const selOrder = document.getElementById("order-product-select");
-    if (selOrder) {
+    // Preenche seletor rápido do carrinho (bloqueando itens esgotados)
+    const selQuick = document.getElementById("cart-quick-add-select");
+    if (selQuick) {
       const disponiveis = contaState.produtos.filter((p) => p.stock_status !== "esgotado");
       const esgotados = contaState.produtos.filter((p) => p.stock_status === "esgotado");
-      const opts = [`<option value="">Selecione um produto ou filamento...</option>`];
+      const opts = [`<option value="">+ Adicionar outro filamento ou impressora do catálogo...</option>`];
       disponiveis.forEach((p) => {
         const prefixo = p.item_type === "filament_color" ? "🎨 " : "📦 ";
         const aviso = p.stock_status === "poucas_unidades" ? " (Poucas unidades)" : "";
@@ -298,10 +289,244 @@
       esgotados.forEach((p) => {
         opts.push(`<option value="${escaparHtml(p.id)}" disabled>🔴 [ESGOTADO] ${escaparHtml(p.nome)}</option>`);
       });
-      selOrder.innerHTML = opts.join("");
+      selQuick.innerHTML = opts.join("");
     }
   }
 
+  // 1. FAVORITOS
+  async function carregarMeusFavoritos() {
+    const listEl = document.getElementById("conta-favorites-list");
+    const badgeEl = document.getElementById("badge-conta-favorites");
+    if (!window.SJ_SUPABASE?.favorites) return;
+
+    const res = await window.SJ_SUPABASE.favorites.listarMeus();
+    if (!res.sucesso) {
+      if (listEl) {
+        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Favoritos." : res.mensagem)}</div>`;
+      }
+      return;
+    }
+
+    contaState.favorites = res.dados || [];
+    if (badgeEl) badgeEl.textContent = String(contaState.favorites.length);
+    renderizarMeusFavoritos();
+  }
+
+  function renderizarMeusFavoritos() {
+    const listEl = document.getElementById("conta-favorites-list");
+    if (!listEl) return;
+
+    if (contaState.favorites.length === 0) {
+      listEl.innerHTML = `
+        <div class="conta-empty">
+          ❤️ Você ainda não favoritou nenhum filamento ou impressora.<br/>
+          Clique no coração nos produtos da <a href="index.html#filamentos" style="color:var(--sj-orange); font-weight:800;">Loja SJ 3D</a> para guardar seus itens preferidos aqui!
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = `<div class="conta-fav-grid">${contaState.favorites
+      .map((fav) => {
+        const p = fav.products || contaState.produtos.find((x) => x.id === fav.product_id) || {};
+        const nome = p.nome || fav.product_id;
+        const preco = p.preco || (p.preco_valor ? formatarMoeda(p.preco_valor) : "Sob consulta");
+        const stock = p.stock_status || "disponivel";
+        const esgotado = stock === "esgotado";
+        const img = p.imagem || "assets/produtos/vaso-padrao.png";
+
+        return `
+          <div class="conta-item-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between; gap:12px;">
+            <div>
+              <div style="display:flex; gap:12px; align-items:center; margin-bottom:10px;">
+                <img src="${escaparHtml(img)}" alt="${escaparHtml(nome)}" style="width:64px; height:64px; object-fit:contain; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; padding:4px;" />
+                <div style="flex:1; min-width:0;">
+                  <div style="font-size:0.7rem; font-weight:800; color:#64748b; text-transform:uppercase;">${escaparHtml(p.marca || "Loja SJ 3D")}</div>
+                  <div style="font-size:0.93rem; font-weight:800; color:#0f172a; line-height:1.3;">${escaparHtml(nome)}</div>
+                  <div style="font-size:0.92rem; font-weight:900; color:var(--sj-orange); margin-top:3px;">${escaparHtml(preco)}</div>
+                </div>
+              </div>
+              <div>${badgeEstoqueHtml(stock)}</div>
+            </div>
+
+            <div style="display:flex; gap:8px; flex-wrap:wrap; padding-top:10px; border-top:1px solid #f1f5f9;">
+              <button type="button" class="btn-sj-primary" style="flex:1; padding:9px 12px; font-size:0.8rem;" data-fav-add-cart="${escaparHtml(fav.product_id)}" ${esgotado ? "disabled" : ""}>
+                ${esgotado ? "🔴 Esgotado" : "🛒 Adicionar ao carrinho"}
+              </button>
+              <button type="button" class="btn-sj-danger" data-fav-remove="${escaparHtml(fav.product_id)}" title="Remover dos favoritos">
+                🗑️ Remover
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("")}</div>`;
+
+    listEl.querySelectorAll("[data-fav-add-cart]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pid = btn.dataset.favAddCart;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.cart.adicionar(pid, 1);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("🛒 Item adicionado ao seu carrinho!", "success");
+          await carregarMeuCarrinho();
+          ativarAbaConta("carrinho");
+        } else {
+          mostrarToast(`⚠️ ${escaparHtml(r.mensagem)}`, "warning");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-fav-remove]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pid = btn.dataset.favRemove;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.favorites.remover(pid);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("Removido dos seus favoritos.", "info");
+          await carregarMeusFavoritos();
+        } else {
+          mostrarToast(`❌ Erro: ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+  }
+
+  // 2. CARRINHO
+  async function carregarMeuCarrinho() {
+    const listEl = document.getElementById("conta-cart-list");
+    const badgeEl = document.getElementById("badge-conta-cart");
+    const headerCountEl = document.getElementById("header-conta-cart-count");
+    if (!window.SJ_SUPABASE?.cart) return;
+
+    const res = await window.SJ_SUPABASE.cart.listarMeu();
+    if (!res.sucesso) {
+      if (listEl) {
+        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar o Carrinho." : res.mensagem)}</div>`;
+      }
+      return;
+    }
+
+    contaState.cartItems = res.dados || [];
+    const totalUnidades = contaState.cartItems.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+    if (badgeEl) badgeEl.textContent = String(totalUnidades);
+    if (headerCountEl) headerCountEl.textContent = String(totalUnidades);
+    renderizarMeuCarrinho();
+  }
+
+  function renderizarMeuCarrinho() {
+    const listEl = document.getElementById("conta-cart-list");
+    const btnClear = document.getElementById("btn-cart-clear");
+    const btnReq = document.getElementById("btn-cart-request-quote");
+    const sumQty = document.getElementById("cart-summary-qty");
+    const sumTotal = document.getElementById("cart-summary-total");
+    if (!listEl) return;
+
+    const itens = contaState.cartItems;
+    if (btnClear) btnClear.style.display = itens.length > 0 ? "inline-flex" : "none";
+
+    const totalQtd = itens.reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
+    const valorTotal = itens.reduce((acc, it) => {
+      const p = it.products || contaState.produtos.find((x) => x.id === it.product_id) || {};
+      return acc + (Number(p.preco_valor || 0) * (Number(it.quantity) || 1));
+    }, 0);
+
+    if (sumQty) sumQty.textContent = String(totalQtd);
+    if (sumTotal) sumTotal.textContent = formatarMoeda(valorTotal);
+    if (btnReq) btnReq.disabled = itens.length === 0;
+
+    if (itens.length === 0) {
+      listEl.innerHTML = `
+        <div class="conta-empty">
+          🛒 Seu carrinho está vazio.<br/>
+          Adicione filamentos ou impressoras pelo <a href="index.html#filamentos" style="color:var(--sj-orange); font-weight:800;">Catálogo da Loja</a> ou escolha no seletor acima.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = itens
+      .map((item) => {
+        const p = item.products || contaState.produtos.find((x) => x.id === item.product_id) || {};
+        const nome = p.nome || item.product_id;
+        const unit = Number(p.preco_valor || 0);
+        const subtotal = unit * (Number(item.quantity) || 1);
+        const stock = p.stock_status || "disponivel";
+        const img = p.imagem || "assets/produtos/vaso-padrao.png";
+
+        return `
+          <div class="conta-item-card" style="display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap;">
+            <div style="display:flex; align-items:center; gap:12px; flex:1; min-width:220px;">
+              <img src="${escaparHtml(img)}" alt="${escaparHtml(nome)}" style="width:58px; height:58px; object-fit:contain; border-radius:10px; background:#f8fafc; border:1px solid #e2e8f0; padding:4px;" />
+              <div>
+                <div style="font-size:0.93rem; font-weight:800; color:#0f172a;">${escaparHtml(nome)}</div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-top:4px;">
+                  <span style="font-size:0.82rem; color:#475569;">Unit.: <strong>${escaparHtml(formatarMoeda(unit))}</strong></span>
+                  ${badgeEstoqueHtml(stock)}
+                </div>
+              </div>
+            </div>
+
+            <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+              <div class="qty-stepper">
+                <button type="button" data-cart-step="-1" data-cart-pid="${escaparHtml(item.product_id)}" aria-label="Diminuir quantidade">−</button>
+                <input type="number" min="1" max="1000" value="${escaparHtml(item.quantity)}" data-cart-input="${escaparHtml(item.product_id)}" aria-label="Quantidade" />
+                <button type="button" data-cart-step="1" data-cart-pid="${escaparHtml(item.product_id)}" aria-label="Aumentar quantidade">+</button>
+              </div>
+              <div style="min-width:92px; text-align:right; font-weight:900; font-size:0.95rem; color:#0f172a;">
+                ${escaparHtml(formatarMoeda(subtotal))}
+              </div>
+              <button type="button" class="btn-sj-danger" data-cart-remove="${escaparHtml(item.product_id)}" title="Remover item">
+                🗑️
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    // Stepper +/-
+    listEl.querySelectorAll("[data-cart-step]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pid = btn.dataset.cartPid;
+        const delta = parseInt(btn.dataset.cartStep, 10) || 0;
+        const atual = contaState.cartItems.find((x) => x.product_id === pid);
+        if (!atual) return;
+        const novaQtd = (Number(atual.quantity) || 1) + delta;
+        if (novaQtd < 1) {
+          if (!confirm("Remover este item do carrinho?")) return;
+          await window.SJ_SUPABASE.cart.remover(pid);
+        } else {
+          await window.SJ_SUPABASE.cart.atualizarQuantidade(pid, novaQtd);
+        }
+        await carregarMeuCarrinho();
+      });
+    });
+
+    // Input direto de quantidade
+    listEl.querySelectorAll("[data-cart-input]").forEach((inp) => {
+      inp.addEventListener("change", async () => {
+        const pid = inp.dataset.cartInput;
+        const val = Math.max(1, Math.min(1000, parseInt(inp.value, 10) || 1));
+        inp.value = String(val);
+        await window.SJ_SUPABASE.cart.atualizarQuantidade(pid, val);
+        await carregarMeuCarrinho();
+      });
+    });
+
+    // Remover item
+    listEl.querySelectorAll("[data-cart-remove]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const pid = btn.dataset.cartRemove;
+        btn.disabled = true;
+        await window.SJ_SUPABASE.cart.remover(pid);
+        await carregarMeuCarrinho();
+        mostrarToast("Item removido do carrinho.", "info");
+      });
+    });
+  }
+
+  // 3. ORÇAMENTOS (SOLICITADOS VIA WHATSAPP + EDIÇÃO ENQUANTO 'solicitado')
   async function carregarMeusOrcamentos() {
     const listEl = document.getElementById("conta-quotes-list");
     const badgeEl = document.getElementById("badge-conta-quotes");
@@ -310,13 +535,13 @@
     const res = await window.SJ_SUPABASE.quotes.listarMeus();
     if (!res.sucesso) {
       if (listEl) {
-        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no Supabase para ativar Orçamentos." : res.mensagem)}</div>`;
+        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Orçamentos." : res.mensagem)}</div>`;
       }
       return;
     }
 
     contaState.quotes = res.dados || [];
-    if (badgeEl) badgeEl.textContent = contaState.quotes.length;
+    if (badgeEl) badgeEl.textContent = String(contaState.quotes.length);
     renderizarMeusOrcamentos();
   }
 
@@ -325,349 +550,256 @@
     if (!listEl) return;
 
     if (contaState.quotes.length === 0) {
-      listEl.innerHTML = `<div class="conta-empty">📋 Você ainda não solicitou nenhum orçamento.<br/>Use o formulário ao lado para enviar seu primeiro projeto 3D!</div>`;
+      listEl.innerHTML = `
+        <div class="conta-empty">
+          📋 Você ainda não possui orçamentos solicitados.<br/>
+          Adicione itens ao <strong>Carrinho</strong> e clique em <strong>Solicitar orçamento no WhatsApp</strong>!
+        </div>`;
       return;
     }
+
+    const opcoesCatalogoDisponiveis = contaState.produtos
+      .filter((p) => p.stock_status !== "esgotado")
+      .map((p) => {
+        const prefixo = p.item_type === "filament_color" ? "🎨 " : "📦 ";
+        return `<option value="${escaparHtml(p.id)}">${escaparHtml(prefixo + p.nome + " — " + (p.preco || formatarMoeda(p.preco_valor)))}</option>`;
+      })
+      .join("");
 
     listEl.innerHTML = contaState.quotes
       .map((q) => {
-        const temValor = q.valor_estimado != null && Number(q.valor_estimado) > 0;
-        const acoesCliente =
-          q.status === "respondido"
-            ? `
-              <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
-                <button type="button" class="btn-sj-success" data-quote-approve="${escaparHtml(q.id)}">✅ Aprovar Orçamento</button>
-                <button type="button" class="btn-sj-danger" data-quote-reject="${escaparHtml(q.id)}">✖️ Recusar</button>
-              </div>
-            `
-            : q.status === "aprovado"
-              ? `
-                <div style="margin-top:12px;">
-                  <button type="button" class="btn-sj-primary" style="padding:9px 14px; font-size:0.82rem;" data-quote-to-order="${escaparHtml(q.id)}">🛒 Transformar em Pedido Agora</button>
-                </div>
-              `
-              : q.status === "enviado"
-                ? `
-                  <div style="margin-top:10px;">
-                    <button type="button" class="btn-sj-danger" style="padding:6px 11px; font-size:0.75rem;" data-quote-del="${escaparHtml(q.id)}">🗑️ Cancelar solicitação</button>
-                  </div>
-                `
-                : "";
+        const editavel = q.status === "solicitado";
+        const itens = Array.isArray(q.quote_items) ? q.quote_items : [];
+        const totalRef = itens.reduce((acc, it) => acc + Number(it.unit_price || 0) * Number(it.quantity || 1), 0);
+        const temRespostaEquipe = Boolean(q.admin_response || (q.admin_total != null && Number(q.admin_total) > 0));
 
-        return `
-          <div class="conta-item-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:8px;">
-              <div>
-                <div style="font-size:0.72rem; font-weight:800; color:#64748b;">${escaparHtml(q.codigo || "")} • ${escaparHtml(formatarData(q.created_at))}</div>
-                <div style="font-size:0.96rem; font-weight:800; color:#0f172a; margin-top:2px;">${escaparHtml(q.titulo || "Orçamento 3D")}</div>
-              </div>
-              <span class="conta-status-badge status-${escaparHtml(q.status)}">${escaparHtml(labelStatusQuote(q.status))}</span>
-            </div>
-
-            <p style="margin:0 0 8px; font-size:0.84rem; color:#334155; line-height:1.5;">${escaparHtml(q.descricao)}</p>
-
-            <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.78rem; color:#64748b; margin-bottom:8px;">
-              <span>🔢 Qtd: <strong>${escaparHtml(q.quantidade)}</strong></span>
-              ${q.material_cor ? `<span>🎨 Material/Cor: <strong>${escaparHtml(q.material_cor)}</strong></span>` : ""}
-              ${q.arquivo_medidas ? `<span>📐 Arquivo/Medidas: <strong>${escaparHtml(q.arquivo_medidas)}</strong></span>` : ""}
-            </div>
-
-            ${q.observacoes ? `<div style="font-size:0.78rem; color:#64748b; margin-bottom:8px;">📝 Obs.: ${escaparHtml(q.observacoes)}</div>` : ""}
-
-            ${temValor || q.resposta_equipe ? `
-              <div style="margin-top:10px; padding:12px 14px; border-radius:10px; background:#f0fdf4; border:1px solid #bbf7d0;">
-                <div style="font-size:0.74rem; font-weight:800; color:#15803d; text-transform:uppercase; margin-bottom:4px;">Retorno da Equipe Loja SJ 3D</div>
-                ${temValor ? `<div style="font-size:1.15rem; font-weight:900; color:#14532d; margin-bottom:4px;">${escaparHtml(formatarMoeda(q.valor_estimado))}</div>` : ""}
-                ${q.resposta_equipe ? `<div style="font-size:0.83rem; color:#166534; line-height:1.45;">${escaparHtml(q.resposta_equipe)}</div>` : ""}
-              </div>
-            ` : ""}
-
-            ${acoesCliente}
-          </div>
-        `;
-      })
-      .join("");
-
-    // Bind ações dos cards
-    listEl.querySelectorAll("[data-quote-approve]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.quoteApprove;
-        btn.disabled = true;
-        const res = await window.SJ_SUPABASE.quotes.responderCliente(id, "aprovado");
-        btn.disabled = false;
-        if (res.sucesso) {
-          mostrarToast("✅ Orçamento aprovado! Agora você já pode transformar em pedido.", "success");
-          await carregarMeusOrcamentos();
-        } else {
-          mostrarToast(`❌ Erro: ${escaparHtml(res.mensagem)}`, "error");
-        }
-      });
-    });
-
-    listEl.querySelectorAll("[data-quote-reject]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.quoteReject;
-        if (!confirm("Deseja recusar este orçamento?")) return;
-        btn.disabled = true;
-        const res = await window.SJ_SUPABASE.quotes.responderCliente(id, "recusado");
-        btn.disabled = false;
-        if (res.sucesso) {
-          mostrarToast("Orçamento marcado como recusado.", "info");
-          await carregarMeusOrcamentos();
-        } else {
-          mostrarToast(`❌ Erro: ${escaparHtml(res.mensagem)}`, "error");
-        }
-      });
-    });
-
-    listEl.querySelectorAll("[data-quote-to-order]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.quoteToOrder;
-        const quote = contaState.quotes.find((x) => x.id === id);
-        if (!quote) return;
-        if (!confirm(`Confirmar criação de pedido para "${quote.titulo}" (${formatarMoeda(quote.valor_estimado || 0)})?`)) return;
-        btn.disabled = true;
-        const perfil = contaState.perfil || {};
-        const total = Number(quote.valor_estimado || 0);
-        const qtd = Math.max(1, Number(quote.quantidade || 1));
-        const res = await window.SJ_SUPABASE.orders.criarComItens(
-          {
-            quote_id: quote.id,
-            cliente_nome: perfil.nome || quote.cliente_nome,
-            cliente_email: perfil.email || quote.cliente_email,
-            cliente_telefone: perfil.telefone || quote.cliente_telefone,
-            endereco_entrega: [perfil.endereco, perfil.cidade_uf].filter(Boolean).join(" — "),
-            forma_entrega: perfil.endereco ? "entrega" : "retirada",
-            observacoes: `Originado do orçamento ${quote.codigo || ""}`,
-            total
-          },
-          [
-            {
-              nome: quote.titulo || "Impressão 3D Sob Encomenda",
-              detalhes: [quote.material_cor, quote.arquivo_medidas].filter(Boolean).join(" • "),
-              quantidade: qtd,
-              preco_unitario: qtd > 0 ? Number((total / qtd).toFixed(2)) : total
-            }
-          ]
-        );
-        btn.disabled = false;
-        if (res.sucesso) {
-          mostrarToast("🛒 Pedido criado com sucesso! Acompanhe na aba Meus Pedidos.", "success");
-          await carregarMeusPedidos();
-          ativarAbaConta("pedidos");
-        } else {
-          mostrarToast(`❌ Erro ao criar pedido: ${escaparHtml(res.mensagem)}`, "error");
-        }
-      });
-    });
-
-    listEl.querySelectorAll("[data-quote-del]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.quoteDel;
-        if (!confirm("Remover esta solicitação de orçamento?")) return;
-        btn.disabled = true;
-        const res = await window.SJ_SUPABASE.quotes.excluir(id);
-        btn.disabled = false;
-        if (res.sucesso) {
-          mostrarToast("🗑️ Solicitação removida.", "info");
-          await carregarMeusOrcamentos();
-        } else {
-          mostrarToast(`❌ Erro: ${escaparHtml(res.mensagem)}`, "error");
-        }
-      });
-    });
-  }
-
-  async function carregarMeusSalvos() {
-    const listEl = document.getElementById("conta-saved-list");
-    const badgeEl = document.getElementById("badge-conta-saved");
-    if (!window.SJ_SUPABASE?.savedItems) return;
-
-    const res = await window.SJ_SUPABASE.savedItems.listarMeus();
-    if (!res.sucesso) {
-      if (listEl) {
-        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no Supabase para ativar Salvos." : res.mensagem)}</div>`;
-      }
-      return;
-    }
-
-    contaState.savedItems = res.dados || [];
-    if (badgeEl) badgeEl.textContent = contaState.savedItems.length;
-    renderizarMeusSalvos();
-  }
-
-  function renderizarMeusSalvos() {
-    const listEl = document.getElementById("conta-saved-list");
-    if (!listEl) return;
-
-    if (contaState.savedItems.length === 0) {
-      listEl.innerHTML = `<div class="conta-empty">🔖 Nenhum item salvo ou rascunho ainda.<br/>Guarde produtos favoritos ao lado ou salve um rascunho de orçamento.</div>`;
-      return;
-    }
-
-    listEl.innerHTML = contaState.savedItems
-      .map((item) => {
-        const ehRascunho = item.item_kind === "rascunho";
-        const tag = ehRascunho
-          ? `<span class="conta-status-badge status-em_analise">📝 Rascunho de Orçamento</span>`
-          : `<span class="conta-status-badge status-enviado">🔖 Item Favorito</span>`;
-
-        return `
-          <div class="conta-item-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
-              <div>
-                <div style="font-size:0.94rem; font-weight:800; color:#0f172a;">${escaparHtml(item.titulo)}</div>
-                <div style="font-size:0.74rem; color:#64748b;">Salvo em ${escaparHtml(formatarData(item.created_at))}</div>
-              </div>
-              ${tag}
-            </div>
-            ${item.descricao ? `<p style="margin:6px 0; font-size:0.83rem; color:#334155;">${escaparHtml(item.descricao)}</p>` : ""}
-            <div style="display:flex; gap:12px; flex-wrap:wrap; font-size:0.78rem; color:#64748b; margin-bottom:10px;">
-              ${item.material_cor ? `<span>🎨 ${escaparHtml(item.material_cor)}</span>` : ""}
-              ${item.quantidade ? `<span>🔢 Qtd: ${escaparHtml(item.quantidade)}</span>` : ""}
-              ${item.preco_referencia ? `<span>💰 Ref.: <strong>${escaparHtml(formatarMoeda(item.preco_referencia))}</strong></span>` : ""}
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              ${ehRascunho ? `<button type="button" class="btn-sj-primary" style="padding:7px 12px; font-size:0.78rem;" data-saved-load-draft="${escaparHtml(item.id)}">✏️ Continuar Orçamento</button>` : ""}
-              ${!ehRascunho && item.product_id ? `<button type="button" class="btn-sj-primary" style="padding:7px 12px; font-size:0.78rem;" data-saved-to-order="${escaparHtml(item.id)}">🛒 Fazer Pedido</button>` : ""}
-              <button type="button" class="btn-sj-danger" style="padding:7px 12px; font-size:0.78rem;" data-saved-del="${escaparHtml(item.id)}">🗑️ Remover</button>
-            </div>
-          </div>
-        `;
-      })
-      .join("");
-
-    listEl.querySelectorAll("[data-saved-load-draft]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const item = contaState.savedItems.find((x) => x.id === btn.dataset.savedLoadDraft);
-        if (!item) return;
-        const d = item.dados || {};
-        const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
-        setVal("quote-titulo", item.titulo);
-        setVal("quote-descricao", item.descricao);
-        setVal("quote-arquivo-medidas", d.arquivo_medidas || "");
-        setVal("quote-quantidade", item.quantidade || 1);
-        setVal("quote-material-cor", item.material_cor || "A definir com a equipe");
-        setVal("quote-observacoes", d.observacoes || "");
-        ativarAbaConta("orcamentos");
-        mostrarToast("📝 Rascunho carregado no formulário de orçamento!", "info");
-      });
-    });
-
-    listEl.querySelectorAll("[data-saved-to-order]").forEach((btn) => {
-      btn.addEventListener("click", () => {
-        const item = contaState.savedItems.find((x) => x.id === btn.dataset.savedToOrder);
-        if (!item) return;
-        const sel = document.getElementById("order-product-select");
-        if (sel && item.product_id) sel.value = item.product_id;
-        ativarAbaConta("pedidos");
-        mostrarToast("📦 Produto pré-selecionado! Confira a quantidade e confirme seu pedido.", "info");
-      });
-    });
-
-    listEl.querySelectorAll("[data-saved-del]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const id = btn.dataset.savedDel;
-        btn.disabled = true;
-        const res = await window.SJ_SUPABASE.savedItems.excluir(id);
-        btn.disabled = false;
-        if (res.sucesso) {
-          mostrarToast("Item removido dos salvos.", "info");
-          await carregarMeusSalvos();
-        } else {
-          mostrarToast(`❌ Erro: ${escaparHtml(res.mensagem)}`, "error");
-        }
-      });
-    });
-  }
-
-  async function carregarMeusPedidos() {
-    const listEl = document.getElementById("conta-orders-list");
-    const badgeEl = document.getElementById("badge-conta-orders");
-    if (!window.SJ_SUPABASE?.orders) return;
-
-    const res = await window.SJ_SUPABASE.orders.listarMeus();
-    if (!res.sucesso) {
-      if (listEl) {
-        listEl.innerHTML = `<div class="conta-empty">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no Supabase para ativar Pedidos." : res.mensagem)}</div>`;
-      }
-      return;
-    }
-
-    contaState.orders = res.dados || [];
-    if (badgeEl) badgeEl.textContent = contaState.orders.length;
-    renderizarMeusPedidos();
-  }
-
-  function renderizarMeusPedidos() {
-    const listEl = document.getElementById("conta-orders-list");
-    if (!listEl) return;
-
-    if (contaState.orders.length === 0) {
-      listEl.innerHTML = `<div class="conta-empty">📦 Você ainda não fez nenhum pedido.<br/>Escolha um produto ao lado ou aprove um orçamento para começar!</div>`;
-      return;
-    }
-
-    const etapas = [
-      { key: "recebido", label: "1. Recebido" },
-      { key: "em_producao", label: "2. Produção" },
-      { key: "pronto", label: "3. Pronto" },
-      { key: "enviado_retirado", label: "4. Enviado" },
-      { key: "concluido", label: "5. Concluído" }
-    ];
-
-    listEl.innerHTML = contaState.orders
-      .map((ord) => {
-        const idxAtual = etapas.findIndex((e) => e.key === ord.status);
-        const itens = Array.isArray(ord.order_items) ? ord.order_items : [];
         const itensHtml = itens
-          .map(
-            (it) => `
-              <li style="display:flex; justify-content:space-between; gap:8px; padding:4px 0; font-size:0.82rem; border-bottom:1px dashed #e2e8f0;">
-                <span><strong>${escaparHtml(it.quantidade)}x</strong> ${escaparHtml(it.nome)}${it.detalhes ? ` <span style="color:#64748b;">(${escaparHtml(it.detalhes)})</span>` : ""}</span>
-                <span style="font-weight:700; white-space:nowrap;">${escaparHtml(formatarMoeda(it.subtotal))}</span>
-              </li>
-            `
-          )
+          .map((it) => {
+            const sub = Number(it.unit_price || 0) * Number(it.quantity || 1);
+            if (!editavel) {
+              return `
+                <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; padding:8px 0; border-bottom:1px dashed #e2e8f0; font-size:0.85rem;">
+                  <span><strong>${escaparHtml(it.quantity)}x</strong> ${escaparHtml(it.product_name)}</span>
+                  <span style="font-weight:800;">${escaparHtml(formatarMoeda(sub))}</span>
+                </div>`;
+            }
+            return `
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding:8px 0; border-bottom:1px dashed #e2e8f0;">
+                <div style="flex:1; min-width:180px;">
+                  <div style="font-size:0.86rem; font-weight:800; color:#0f172a;">${escaparHtml(it.product_name)}</div>
+                  <div style="font-size:0.76rem; color:#64748b;">Unit.: ${escaparHtml(formatarMoeda(it.unit_price))}</div>
+                </div>
+                <div style="display:flex; align-items:center; gap:8px;">
+                  <div class="qty-stepper">
+                    <button type="button" data-qitem-step="-1" data-quote-id="${escaparHtml(q.id)}" data-product-id="${escaparHtml(it.product_id)}" data-current-qty="${escaparHtml(it.quantity)}">−</button>
+                    <input type="number" min="1" max="1000" value="${escaparHtml(it.quantity)}" data-qitem-input="${escaparHtml(q.id)}" data-product-id="${escaparHtml(it.product_id)}" />
+                    <button type="button" data-qitem-step="1" data-quote-id="${escaparHtml(q.id)}" data-product-id="${escaparHtml(it.product_id)}" data-current-qty="${escaparHtml(it.quantity)}">+</button>
+                  </div>
+                  <button type="button" class="btn-sj-danger" style="padding:6px 10px;" data-qitem-del="${escaparHtml(it.id)}" title="Remover item do orçamento">🗑️</button>
+                </div>
+              </div>`;
+          })
           .join("");
 
-        const stepsHtml =
-          ord.status === "cancelado"
-            ? `<div style="margin:10px 0; padding:8px 12px; border-radius:8px; background:#fee2e2; color:#b91c1c; font-size:0.8rem; font-weight:700;">🚫 Este pedido foi cancelado.</div>`
-            : `
-              <div class="conta-progress-steps">
-                ${etapas
-                  .map((et, idx) => {
-                    const cls = idx < idxAtual ? "done" : idx === idxAtual ? "current" : "";
-                    return `<div class="conta-step ${cls}">${escaparHtml(et.label)}</div>`;
-                  })
-                  .join("")}
-              </div>
-            `;
-
         return `
-          <div class="conta-item-card">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:6px;">
+          <div class="conta-item-card" style="padding:18px;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:10px; flex-wrap:wrap; margin-bottom:10px;">
               <div>
-                <div style="font-size:0.74rem; font-weight:800; color:#64748b;">${escaparHtml(ord.codigo || "")} • ${escaparHtml(formatarData(ord.created_at))}</div>
-                <div style="font-size:1rem; font-weight:900; color:#0f172a; margin-top:2px;">Total: ${escaparHtml(formatarMoeda(ord.total))}</div>
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                  <span style="font-size:1.05rem; font-weight:900; color:#0f172a;">Orçamento nº ${escaparHtml(q.quote_number)}</span>
+                  <span class="conta-status-badge status-${escaparHtml(q.status)}">${escaparHtml(labelStatusQuote(q.status))}</span>
+                  ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">✏️ Alterado por você</span>` : ""}
+                </div>
+                <div style="font-size:0.76rem; color:#64748b; margin-top:3px;">
+                  Solicitado em ${escaparHtml(formatarData(q.created_at))} • Referência: <strong>${escaparHtml(formatarMoeda(totalRef))}</strong>
+                </div>
               </div>
-              <span class="conta-status-badge status-${escaparHtml(ord.status)}">${escaparHtml(labelStatusOrder(ord.status))}</span>
+
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                ${editavel && q.changed_by_customer ? `
+                  <button type="button" class="btn-sj-whatsapp" style="padding:8px 13px; font-size:0.8rem;" data-quote-whatsapp-updated="${escaparHtml(q.id)}">
+                    📲 Enviar alteração no WhatsApp
+                  </button>
+                ` : ""}
+                ${editavel ? `
+                  <button type="button" class="btn-sj-secondary" style="padding:8px 13px; font-size:0.8rem;" data-quote-whatsapp-resend="${escaparHtml(q.id)}">
+                    📲 Reenviar no WhatsApp
+                  </button>
+                ` : `
+                  <button type="button" class="btn-sj-secondary" style="padding:8px 13px; font-size:0.8rem;" data-quote-whatsapp-ask="${escaparHtml(q.id)}">
+                    💬 Falar no WhatsApp
+                  </button>
+                `}
+              </div>
             </div>
 
-            ${stepsHtml}
-
-            ${itensHtml ? `<ul style="list-style:none; margin:8px 0; padding:0;">${itensHtml}</ul>` : ""}
-
-            <div style="font-size:0.78rem; color:#64748b; display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
-              <span>🚚 ${ord.forma_entrega === "entrega" ? "Entrega" : "Retirada na loja"}</span>
-              ${ord.endereco_entrega ? `<span>📍 ${escaparHtml(ord.endereco_entrega)}</span>` : ""}
-              ${ord.observacoes ? `<span>📝 ${escaparHtml(ord.observacoes)}</span>` : ""}
+            <!-- Lista de Itens do Orçamento -->
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 14px; margin-bottom:12px;">
+              ${itensHtml || `<div style="font-size:0.82rem; color:#64748b; padding:6px 0;">Nenhum item neste orçamento.</div>`}
             </div>
+
+            ${editavel ? `
+              <!-- Controles de edição enquanto status === 'solicitado' -->
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
+                <select data-quote-add-select="${escaparHtml(q.id)}" class="conta-select" style="flex:1; min-width:210px; padding:8px 11px; font-size:0.8rem;">
+                  <option value="">+ Adicionar item do catálogo a este orçamento...</option>
+                  ${opcoesCatalogoDisponiveis}
+                </select>
+                <button type="button" class="btn-sj-secondary" style="padding:8px 13px; font-size:0.8rem;" data-quote-add-btn="${escaparHtml(q.id)}">+ Adicionar Item</button>
+              </div>
+
+              <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; padding-top:8px; border-top:1px solid #f1f5f9;">
+                <span style="font-size:0.76rem; color:#64748b;">💡 Você pode ajustar itens livremente enquanto a equipe ainda não iniciou o atendimento.</span>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn-sj-danger" data-quote-cancel="${escaparHtml(q.id)}">🚫 Cancelar Orçamento</button>
+                  <button type="button" class="btn-sj-danger" data-quote-delete="${escaparHtml(q.id)}">🗑️ Excluir</button>
+                </div>
+              </div>
+            ` : `
+              <div style="font-size:0.78rem; color:#475569; background:#f1f5f9; padding:9px 12px; border-radius:9px;">
+                🔒 Este orçamento já está com status <strong>${escaparHtml(labelStatusQuote(q.status))}</strong> e fica bloqueado para edição direta. Se precisar de ajustes, clique em <strong>Falar no WhatsApp</strong>.
+              </div>
+            `}
+
+            ${temRespostaEquipe ? `
+              <div style="margin-top:12px; padding:12px 14px; border-radius:10px; background:#f0fdf4; border:1px solid #bbf7d0;">
+                <div style="font-size:0.73rem; font-weight:800; color:#15803d; text-transform:uppercase; margin-bottom:4px;">Retorno da Equipe Loja SJ 3D</div>
+                ${q.admin_total != null && Number(q.admin_total) > 0 ? `<div style="font-size:1.12rem; font-weight:900; color:#14532d; margin-bottom:4px;">Valor Final: ${escaparHtml(formatarMoeda(q.admin_total))}</div>` : ""}
+                ${q.admin_response ? `<div style="font-size:0.84rem; color:#166534; line-height:1.45;">${escaparHtml(q.admin_response)}</div>` : ""}
+              </div>
+            ` : ""}
           </div>
         `;
       })
       .join("");
+
+    // Bind botões de edição de itens de orçamento (enquanto 'solicitado')
+    listEl.querySelectorAll("[data-qitem-step]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const quoteId = btn.dataset.quoteId;
+        const productId = btn.dataset.productId;
+        const atual = parseInt(btn.dataset.currentQty, 10) || 1;
+        const delta = parseInt(btn.dataset.qitemStep, 10) || 0;
+        const nova = atual + delta;
+        if (nova < 1) return;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.quotes.salvarItemCliente(quoteId, productId, nova);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("✏️ Quantidade atualizada! Clique em 'Enviar alteração no WhatsApp' para avisar a loja.", "success");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-qitem-input]").forEach((inp) => {
+      inp.addEventListener("change", async () => {
+        const quoteId = inp.dataset.qitemInput;
+        const productId = inp.dataset.productId;
+        const nova = Math.max(1, Math.min(1000, parseInt(inp.value, 10) || 1));
+        const r = await window.SJ_SUPABASE.quotes.salvarItemCliente(quoteId, productId, nova);
+        if (r.sucesso) {
+          mostrarToast("✏️ Quantidade atualizada!", "success");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-qitem-del]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const itemId = btn.dataset.qitemDel;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.quotes.removerItemCliente(itemId);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("Item removido do orçamento.", "info");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-quote-add-btn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const quoteId = btn.dataset.quoteAddBtn;
+        const sel = listEl.querySelector(`[data-quote-add-select="${quoteId}"]`);
+        const productId = sel ? sel.value : "";
+        if (!productId) {
+          mostrarToast("Selecione um produto do catálogo para incluir.", "warning");
+          return;
+        }
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.quotes.salvarItemCliente(quoteId, productId, 1);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("➕ Item incluído no orçamento! Clique em 'Enviar alteração no WhatsApp'.", "success");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-quote-cancel]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const quoteId = btn.dataset.quoteCancel;
+        if (!confirm("Deseja cancelar este orçamento?")) return;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.quotes.cancelarCliente(quoteId);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("Orçamento cancelado.", "info");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    listEl.querySelectorAll("[data-quote-delete]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const quoteId = btn.dataset.quoteDelete;
+        if (!confirm("Excluir permanentemente este orçamento?")) return;
+        btn.disabled = true;
+        const r = await window.SJ_SUPABASE.quotes.excluir(quoteId);
+        btn.disabled = false;
+        if (r.sucesso) {
+          mostrarToast("🗑️ Orçamento excluído.", "info");
+          await carregarMeusOrcamentos();
+        } else {
+          mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+        }
+      });
+    });
+
+    // Abrir WhatsApp (Reenviar / Enviar alteração / Pedir mudança)
+    async function abrirWhatsAppDoOrcamento(quoteId, ehAlteracao) {
+      const q = contaState.quotes.find((x) => x.id === quoteId);
+      if (!q) return;
+      const url = await window.SJ_SUPABASE.whatsapp.gerarUrlOrcamento({
+        quoteNumber: q.quote_number,
+        clienteNome: contaState.perfil?.nome || q.cliente_nome,
+        items: q.quote_items || [],
+        notes: q.notes || "",
+        ehAlteracao
+      });
+      window.open(url, "_blank", "noopener");
+    }
+
+    listEl.querySelectorAll("[data-quote-whatsapp-updated]").forEach((btn) => {
+      btn.addEventListener("click", () => abrirWhatsAppDoOrcamento(btn.dataset.quoteWhatsappUpdated, true));
+    });
+    listEl.querySelectorAll("[data-quote-whatsapp-resend]").forEach((btn) => {
+      btn.addEventListener("click", () => abrirWhatsAppDoOrcamento(btn.dataset.quoteWhatsappResend, false));
+    });
+    listEl.querySelectorAll("[data-quote-whatsapp-ask]").forEach((btn) => {
+      btn.addEventListener("click", () => abrirWhatsAppDoOrcamento(btn.dataset.quoteWhatsappAsk, true));
+    });
   }
 
   function preencherFormularioDados(perfil) {
@@ -676,21 +808,14 @@
     setVal("profile-nome", perfil.nome || "");
     setVal("profile-telefone", perfil.telefone || "");
     setVal("profile-endereco", perfil.endereco || "");
-    setVal("profile-cidade", perfil.cidade_uf || "");
-
-    // Pré-preenche endereço no formulário de pedido se estiver vazio
-    const ordEnd = document.getElementById("order-endereco");
-    if (ordEnd && !ordEnd.value && (perfil.endereco || perfil.cidade_uf)) {
-      ordEnd.value = [perfil.endereco, perfil.cidade_uf].filter(Boolean).join(" — ");
-    }
   }
 
   async function carregarTodosOsDadosCliente() {
+    await carregarCatalogoProdutos();
     await Promise.all([
-      carregarCatalogoParaSeletores(),
-      carregarMeusOrcamentos(),
-      carregarMeusSalvos(),
-      carregarMeusPedidos()
+      carregarMeusFavoritos(),
+      carregarMeuCarrinho(),
+      carregarMeusOrcamentos()
     ]);
   }
 
@@ -698,20 +823,16 @@
     if (contaState.realtimeAssinado) return;
     contaState.realtimeAssinado = true;
 
-    window.SJ_SUPABASE?.quotes?.assinarRealtime(() => {
-      carregarMeusOrcamentos();
-    });
-    window.SJ_SUPABASE?.orders?.assinarRealtime(() => {
-      carregarMeusPedidos();
-    });
-    window.SJ_SUPABASE?.products?.assinarRealtime(() => {
-      carregarCatalogoParaSeletores();
+    window.SJ_SUPABASE?.favorites?.assinarRealtime(() => carregarMeusFavoritos());
+    window.SJ_SUPABASE?.cart?.assinarRealtime(() => carregarMeuCarrinho());
+    window.SJ_SUPABASE?.quotes?.assinarRealtime(() => carregarMeusOrcamentos());
+    window.SJ_SUPABASE?.products?.assinarRealtime(async () => {
+      await carregarCatalogoProdutos();
+      renderizarMeusFavoritos();
+      renderizarMeuCarrinho();
     });
   }
 
-  // =========================================================================
-  // NAVEGAÇÃO DE ABAS E EVENTOS
-  // =========================================================================
   function ativarAbaConta(aba) {
     document.querySelectorAll("[data-conta-tab]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.contaTab === aba);
@@ -722,7 +843,7 @@
   }
 
   function inicializarEventos() {
-    // Troca de aba Login / Criar Conta no Gate
+    // Abas Login / Cadastro no Gate
     document.querySelectorAll("[data-conta-auth-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const tab = btn.dataset.contaAuthTab;
@@ -736,9 +857,13 @@
       });
     });
 
-    // Troca de abas do Dashboard
+    // Abas do Dashboard
     document.querySelectorAll("[data-conta-tab]").forEach((btn) => {
       btn.addEventListener("click", () => ativarAbaConta(btn.dataset.contaTab));
+    });
+
+    document.getElementById("btn-conta-header-cart")?.addEventListener("click", () => {
+      ativarAbaConta("carrinho");
     });
 
     // Login de Cliente
@@ -754,7 +879,6 @@
       if (btn) { btn.disabled = false; btn.textContent = "Entrar na Minha Conta →"; }
 
       if (!res.sucesso) {
-        // Mensagem genérica de segurança para impedir enumeração de usuários
         const msg = String(res.mensagem || "").toLowerCase().includes("confirm")
           ? res.mensagem
           : "E-mail ou senha incorretos.";
@@ -765,7 +889,7 @@
       await verificarSessaoCliente();
     });
 
-    // Login com Google
+    // Login Google
     document.getElementById("btn-conta-google")?.addEventListener("click", async () => {
       const btn = document.getElementById("btn-conta-google");
       if (btn) btn.disabled = true;
@@ -776,7 +900,7 @@
       }
     });
 
-    // Cadastro de Cliente (accountType: "customer" -> aprovado automaticamente no banco!)
+    // Cadastro de Cliente (accountType: 'customer')
     document.getElementById("form-conta-register")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = document.getElementById("conta-reg-nome")?.value.trim() || "";
@@ -812,7 +936,7 @@
         mostrarFeedback(
           "conta-reg-feedback",
           "success",
-          "✅ Conta criada! Confira sua caixa de entrada para confirmar o e-mail e depois clique em Entrar."
+          "✅ Conta criada! Confirme seu e-mail na caixa de entrada e depois clique em Entrar."
         );
         return;
       }
@@ -821,168 +945,97 @@
       await verificarSessaoCliente();
     });
 
-    // Logout (Header e tela de status)
+    // Logout
     async function fazerLogout() {
       await window.SJ_SUPABASE?.auth?.logout();
       contaState.perfil = null;
       exibirGateLogin();
-      mostrarToast("Você saiu da sua conta com segurança.", "info");
+      mostrarToast("Você saiu da sua conta.", "info");
     }
     document.getElementById("btn-conta-logout")?.addEventListener("click", fazerLogout);
     document.getElementById("btn-conta-status-logout")?.addEventListener("click", fazerLogout);
 
-    // Enviar Novo Orçamento
-    document.getElementById("form-conta-new-quote")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("btn-quote-submit");
-      const perfil = contaState.perfil || {};
-      const dados = {
-        cliente_nome: perfil.nome || "",
-        cliente_email: perfil.email || "",
-        cliente_telefone: perfil.telefone || "",
-        titulo: document.getElementById("quote-titulo")?.value.trim(),
-        descricao: document.getElementById("quote-descricao")?.value.trim(),
-        arquivo_medidas: document.getElementById("quote-arquivo-medidas")?.value.trim(),
-        quantidade: Number(document.getElementById("quote-quantidade")?.value) || 1,
-        material_cor: document.getElementById("quote-material-cor")?.value || "",
-        observacoes: document.getElementById("quote-observacoes")?.value.trim()
-      };
-
-      if (btn) { btn.disabled = true; btn.textContent = "⏳ Enviando..."; }
-      const res = await window.SJ_SUPABASE.quotes.criar(dados);
-      if (btn) { btn.disabled = false; btn.textContent = "📨 Enviar Orçamento"; }
-
-      if (!res.sucesso) {
-        mostrarToast(`❌ Erro ao enviar orçamento: ${escaparHtml(res.mensagem)}`, "error");
+    // Adicionar item rápido no carrinho
+    document.getElementById("btn-cart-quick-add")?.addEventListener("click", async () => {
+      const sel = document.getElementById("cart-quick-add-select");
+      const pid = sel ? sel.value : "";
+      if (!pid) {
+        mostrarToast("Selecione um produto ou filamento para adicionar.", "warning");
         return;
       }
-
-      e.target.reset();
-      mostrarToast("✅ Orçamento enviado! Nossa equipe responderá por aqui em breve.", "success");
-      await carregarMeusOrcamentos();
-    });
-
-    // Salvar Rascunho de Orçamento
-    document.getElementById("btn-quote-save-draft")?.addEventListener("click", async () => {
-      const titulo = document.getElementById("quote-titulo")?.value.trim();
-      const descricao = document.getElementById("quote-descricao")?.value.trim();
-      if (!titulo && !descricao) {
-        mostrarToast("Preencha ao menos o nome ou a descrição antes de salvar o rascunho.", "warning");
-        return;
-      }
-      const btn = document.getElementById("btn-quote-save-draft");
+      const btn = document.getElementById("btn-cart-quick-add");
       if (btn) btn.disabled = true;
-      const res = await window.SJ_SUPABASE.savedItems.criar({
-        item_kind: "rascunho",
-        titulo: titulo || "Rascunho de orçamento",
-        descricao: descricao || "",
-        material_cor: document.getElementById("quote-material-cor")?.value || "",
-        quantidade: Number(document.getElementById("quote-quantidade")?.value) || 1,
-        dados: {
-          arquivo_medidas: document.getElementById("quote-arquivo-medidas")?.value.trim() || "",
-          observacoes: document.getElementById("quote-observacoes")?.value.trim() || ""
-        }
-      });
+      const r = await window.SJ_SUPABASE.cart.adicionar(pid, 1);
       if (btn) btn.disabled = false;
+      if (r.sucesso) {
+        if (sel) sel.value = "";
+        mostrarToast("🛒 Produto adicionado ao carrinho!", "success");
+        await carregarMeuCarrinho();
+      } else {
+        mostrarToast(`⚠️ ${escaparHtml(r.mensagem)}`, "warning");
+      }
+    });
 
-      if (!res.sucesso) {
-        mostrarToast(`❌ Erro ao salvar rascunho: ${escaparHtml(res.mensagem)}`, "error");
+    // Esvaziar carrinho
+    document.getElementById("btn-cart-clear")?.addEventListener("click", async () => {
+      if (!confirm("Deseja esvaziar todo o seu carrinho?")) return;
+      const r = await window.SJ_SUPABASE.cart.esvaziar();
+      if (r.sucesso) {
+        mostrarToast("🧹 Carrinho esvaziado.", "info");
+        await carregarMeuCarrinho();
+      } else {
+        mostrarToast(`❌ ${escaparHtml(r.mensagem)}`, "error");
+      }
+    });
+
+    // SOLICITAR ORÇAMENTO (atômico: cria orçamento 'solicitado' no banco + abre WhatsApp + esvazia carrinho + vai para aba Orçamentos)
+    document.getElementById("btn-cart-request-quote")?.addEventListener("click", async () => {
+      if (contaState.cartItems.length === 0) {
+        mostrarToast("Adicione pelo menos 1 produto ao carrinho antes de solicitar orçamento.", "warning");
         return;
       }
-      mostrarToast("💾 Rascunho salvo! Você pode retomá-lo na aba Salvos & Rascunhos.", "success");
-      await carregarMeusSalvos();
-    });
 
-    // Pré-preencher título ao escolher produto no seletor de Favoritos
-    document.getElementById("fav-product-select")?.addEventListener("change", (e) => {
-      const prod = contaState.produtos.find((p) => p.id === e.target.value);
-      const inp = document.getElementById("fav-titulo");
-      if (prod && inp) inp.value = prod.nome;
-    });
+      const btn = document.getElementById("btn-cart-request-quote");
+      const notesEl = document.getElementById("cart-quote-notes");
+      const notes = notesEl ? notesEl.value.trim() : "";
 
-    // Salvar Favorito
-    document.getElementById("form-conta-save-favorite")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const prodId = document.getElementById("fav-product-select")?.value || null;
-      const prod = prodId ? contaState.produtos.find((p) => p.id === prodId) : null;
-      const btn = document.getElementById("btn-fav-submit");
-      if (btn) { btn.disabled = true; btn.textContent = "⏳ Salvando..."; }
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Gerando orçamento e abrindo WhatsApp...";
+      }
 
-      const res = await window.SJ_SUPABASE.savedItems.criar({
-        item_kind: "favorito",
-        product_id: prodId || null,
-        titulo: document.getElementById("fav-titulo")?.value.trim(),
-        descricao: document.getElementById("fav-descricao")?.value.trim(),
-        material_cor: prod?.marca || "",
-        preco_referencia: prod?.preco_valor || null,
-        imagem: prod?.imagem || ""
+      const res = await window.SJ_SUPABASE.quotes.criarDoCarrinho(notes);
+
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "📲 Solicitar orçamento no WhatsApp";
+      }
+
+      if (!res.sucesso || !res.orcamento) {
+        mostrarToast(`❌ Erro ao gerar orçamento: ${escaparHtml(res.mensagem || "verifique se executou a Migration 006")}`, "error");
+        return;
+      }
+
+      const orc = res.orcamento;
+      if (notesEl) notesEl.value = "";
+
+      // Gera link oficial do WhatsApp com número do orçamento, nome do cliente e itens
+      const urlWhatsApp = await window.SJ_SUPABASE.whatsapp.gerarUrlOrcamento({
+        quoteNumber: orc.quote_number,
+        clienteNome: contaState.perfil?.nome || orc.cliente_nome,
+        items: orc.items || [],
+        notes: orc.notes || "",
+        ehAlteracao: false
       });
 
-      if (btn) { btn.disabled = false; btn.textContent = "🔖 Salvar na Minha Lista"; }
-      if (!res.sucesso) {
-        mostrarToast(`❌ Erro ao salvar: ${escaparHtml(res.mensagem)}`, "error");
-        return;
-      }
+      window.open(urlWhatsApp, "_blank", "noopener");
 
-      e.target.reset();
-      mostrarToast("🔖 Item guardado nos seus Salvos!", "success");
-      await carregarMeusSalvos();
+      mostrarToast(`✅ Orçamento nº ${escaparHtml(orc.quote_number)} registrado! Abrindo WhatsApp...`, "success");
+      await Promise.all([carregarMeuCarrinho(), carregarMeusOrcamentos()]);
+      ativarAbaConta("orcamentos");
     });
 
-    // Criar Novo Pedido de Produto
-    document.getElementById("form-conta-new-order")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const prodId = document.getElementById("order-product-select")?.value;
-      const prod = contaState.produtos.find((p) => p.id === prodId);
-      if (!prod) {
-        mostrarToast("Escolha um produto ou filamento disponível.", "warning");
-        return;
-      }
-      if (prod.stock_status === "esgotado") {
-        mostrarToast("Este item está esgotado no momento.", "error");
-        return;
-      }
-
-      const btn = document.getElementById("btn-order-submit");
-      const qtd = Math.max(1, parseInt(document.getElementById("order-quantidade")?.value, 10) || 1);
-      const unit = Number(prod.preco_valor || 0);
-      const perfil = contaState.perfil || {};
-
-      if (btn) { btn.disabled = true; btn.textContent = "⏳ Registrando pedido..."; }
-      const res = await window.SJ_SUPABASE.orders.criarComItens(
-        {
-          cliente_nome: perfil.nome || "",
-          cliente_email: perfil.email || "",
-          cliente_telefone: perfil.telefone || "",
-          forma_entrega: document.getElementById("order-forma-entrega")?.value || "retirada",
-          endereco_entrega: document.getElementById("order-endereco")?.value.trim() || "",
-          observacoes: document.getElementById("order-observacoes")?.value.trim() || "",
-          total: Number((unit * qtd).toFixed(2))
-        },
-        [
-          {
-            product_id: prod.id,
-            nome: prod.nome,
-            detalhes: [prod.marca, prod.cod ? `Cód. ${prod.cod}` : ""].filter(Boolean).join(" • "),
-            quantidade: qtd,
-            preco_unitario: unit
-          }
-        ]
-      );
-      if (btn) { btn.disabled = false; btn.textContent = "🛒 Confirmar Pedido"; }
-
-      if (!res.sucesso) {
-        mostrarToast(`❌ Erro ao criar pedido: ${escaparHtml(res.mensagem)}`, "error");
-        return;
-      }
-
-      e.target.reset();
-      preencherFormularioDados(perfil);
-      mostrarToast("🎉 Pedido registrado com sucesso! Acompanhe o status ao lado.", "success");
-      await carregarMeusPedidos();
-    });
-
-    // Salvar Meus Dados (public.profiles)
+    // Salvar Meus Dados
     document.getElementById("form-conta-profile")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const btn = document.getElementById("btn-profile-save");
@@ -992,7 +1045,7 @@
         nome: document.getElementById("profile-nome")?.value.trim(),
         telefone: document.getElementById("profile-telefone")?.value.trim(),
         endereco: document.getElementById("profile-endereco")?.value.trim(),
-        cidade_uf: document.getElementById("profile-cidade")?.value.trim()
+        cidade_uf: contaState.perfil?.cidade_uf || ""
       });
 
       if (btn) { btn.disabled = false; btn.textContent = "💾 Salvar Meus Dados"; }
@@ -1007,13 +1060,11 @@
         const nameEl = document.getElementById("conta-header-user-name");
         if (nameEl) nameEl.textContent = res.perfil.nome || res.perfil.email;
       }
-      mostrarToast("✅ Seus dados foram atualizados com sucesso!", "success");
+      mostrarToast("✅ Seus dados foram salvos com sucesso!", "success");
     });
 
-    // Botões de atualizar
+    document.getElementById("btn-refresh-favorites")?.addEventListener("click", carregarMeusFavoritos);
     document.getElementById("btn-refresh-quotes")?.addEventListener("click", carregarMeusOrcamentos);
-    document.getElementById("btn-refresh-saved")?.addEventListener("click", carregarMeusSalvos);
-    document.getElementById("btn-refresh-orders")?.addEventListener("click", carregarMeusPedidos);
   }
 
   document.addEventListener("DOMContentLoaded", () => {

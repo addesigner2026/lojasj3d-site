@@ -58,10 +58,10 @@
     const supaGlobal =
       typeof window !== "undefined"
         ? (window.supabase && typeof window.supabase.createClient === "function"
-            ? window.supabase
-            : window.supabaseJs && typeof window.supabaseJs.createClient === "function"
-              ? window.supabaseJs
-              : null)
+          ? window.supabase
+          : window.supabaseJs && typeof window.supabaseJs.createClient === "function"
+            ? window.supabaseJs
+            : null)
         : null;
 
     if (!supaGlobal) {
@@ -408,7 +408,7 @@
           if (sessao?.user?.id) {
             userAuthId = sessao.user.id;
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const idGerado = dados.id || userAuthId || ("cli-" + Date.now());
@@ -501,7 +501,7 @@
           const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
           lista.unshift({ ...registro, id: "cons-" + Date.now() });
           window.localStorage.setItem(chave, JSON.stringify(lista.slice(0, 50)));
-        } catch (_) {}
+        } catch (_) { }
         return { sucesso: true, local: true, registro };
       }
 
@@ -542,7 +542,7 @@
             }
           });
           window.localStorage.setItem(chave, JSON.stringify(lista));
-        } catch (_) {}
+        } catch (_) { }
         return { sucesso: true, local: true };
       }
 
@@ -648,7 +648,7 @@
           const lista = JSON.parse(window.localStorage.getItem(chave) || "[]");
           lista.unshift({ ...registro, id: "solic-" + Date.now() });
           window.localStorage.setItem(chave, JSON.stringify(lista));
-        } catch (_) {}
+        } catch (_) { }
         return { sucesso: true, protocolo, local: true, registro };
       }
 
@@ -752,7 +752,7 @@
             .select("*")
             .eq("titular_identificador", chave);
           consentimentos = resCons.data || [];
-        } catch (_) {}
+        } catch (_) { }
       }
 
       if (!cadastro && window.SJ_DB?.clientes?.listar) {
@@ -984,7 +984,7 @@
             if (json && json.mensagem && resApi.status >= 400 && resApi.status < 500) {
               return { sucesso: false, mensagem: json.mensagem };
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         // Fallback direto via RLS (também protegido pelo trigger de auto-exclusão e último admin)
@@ -1121,7 +1121,265 @@
   };
 
   // =========================================================================
-  // MÓDULO DE ORÇAMENTOS DO CLIENTE (public.quotes + RLS + REALTIME)
+  // MÓDULO DE FAVORITOS DO CLIENTE (public.favorites + RLS)
+  // =========================================================================
+  const favorites = {
+    listarMeus: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, dados: [], mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("favorites")
+          .select("id, user_id, product_id, created_at, products(*)")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    adicionar: async function (productId) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login para favoritar." };
+
+        const { data, error } = await client
+          .from("favorites")
+          .upsert({ user_id: uid, product_id: String(productId) }, { onConflict: "user_id,product_id" })
+          .select("id, user_id, product_id, created_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, favoritado: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    remover: async function (productId) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login." };
+
+        const { error } = await client
+          .from("favorites")
+          .delete()
+          .eq("user_id", uid)
+          .eq("product_id", String(productId));
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, favoritado: false };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    alternar: async function (productId) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login para favoritar." };
+
+        const { data: existente } = await client
+          .from("favorites")
+          .select("id")
+          .eq("user_id", uid)
+          .eq("product_id", String(productId))
+          .maybeSingle();
+
+        if (existente?.id) {
+          return favorites.remover(productId);
+        }
+        return favorites.adicionar(productId);
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-favorites-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "favorites" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO DE CARRINHO DO CLIENTE (public.cart_items + RLS)
+  // =========================================================================
+  const cart = {
+    listarMeu: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, dados: [], mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("cart_items")
+          .select("id, user_id, product_id, quantity, updated_at, products(*)")
+          .eq("user_id", uid)
+          .order("updated_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    adicionar: async function (productId, deltaQtd = 1) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login para adicionar ao carrinho." };
+
+        const qtdAdd = Math.max(1, Math.min(1000, parseInt(deltaQtd, 10) || 1));
+
+        // Verifica se já existe no carrinho do usuário
+        const { data: existente } = await client
+          .from("cart_items")
+          .select("id, quantity")
+          .eq("user_id", uid)
+          .eq("product_id", String(productId))
+          .maybeSingle();
+
+        const novaQtd = Math.min(1000, (existente ? Number(existente.quantity || 0) : 0) + qtdAdd);
+
+        const { data, error } = await client
+          .from("cart_items")
+          .upsert(
+            {
+              user_id: uid,
+              product_id: String(productId),
+              quantity: novaQtd
+            },
+            { onConflict: "user_id,product_id" }
+          )
+          .select("id, user_id, product_id, quantity, updated_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    atualizarQuantidade: async function (productId, novaQtd) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      const qtdInt = parseInt(novaQtd, 10);
+      if (isNaN(qtdInt) || qtdInt < 1) {
+        return cart.remover(productId);
+      }
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login." };
+
+        const { data, error } = await client
+          .from("cart_items")
+          .update({ quantity: Math.min(1000, qtdInt) })
+          .eq("user_id", uid)
+          .eq("product_id", String(productId))
+          .select("id, product_id, quantity, updated_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    remover: async function (productId) {
+      const client = inicializarCliente();
+      if (!client || !productId) return { sucesso: false, mensagem: "Produto inválido." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login." };
+
+        const { error } = await client
+          .from("cart_items")
+          .delete()
+          .eq("user_id", uid)
+          .eq("product_id", String(productId));
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    esvaziar: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, naoAutenticado: true, mensagem: "Faça login." };
+
+        const { error } = await client.from("cart_items").delete().eq("user_id", uid);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-cart-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "cart_items" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO DE ORÇAMENTOS E ITENS (public.quotes + public.quote_items + RLS)
   // =========================================================================
   const quotes = {
     listarMeus: async function () {
@@ -1134,7 +1392,7 @@
 
         const { data, error } = await client
           .from("quotes")
-          .select("*")
+          .select("*, quote_items(*)")
           .eq("user_id", uid)
           .order("created_at", { ascending: false });
 
@@ -1154,7 +1412,7 @@
       try {
         const { data, error } = await client
           .from("quotes")
-          .select("*")
+          .select("*, quote_items(*)")
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -1167,30 +1425,43 @@
       }
     },
 
-    criar: async function (dados) {
+    // Chama a função RPC SECURITY DEFINER create_quote_from_cart no banco:
+    // cria orçamento 'solicitado', copia preços de public.products e esvazia o carrinho!
+    criarDoCarrinho: async function (notes = "") {
       const client = inicializarCliente();
       if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
       try {
-        const { data: sessData } = await client.auth.getSession();
-        const user = sessData?.session?.user;
-        if (!user?.id) return { sucesso: false, mensagem: "Faça login para enviar seu orçamento." };
+        const { data, error } = await client.rpc("create_quote_from_cart", {
+          p_notes: String(notes || "").trim()
+        });
 
-        const payload = {
-          user_id: user.id,
-          cliente_nome: String(dados.cliente_nome || "").trim(),
-          cliente_email: String(dados.cliente_email || user.email || "").trim().toLowerCase(),
-          cliente_telefone: String(dados.cliente_telefone || "").trim(),
-          titulo: String(dados.titulo || "Solicitação de Orçamento 3D").trim(),
-          descricao: String(dados.descricao || "").trim(),
-          arquivo_medidas: String(dados.arquivo_medidas || "").trim(),
-          quantidade: Math.max(1, parseInt(dados.quantidade, 10) || 1),
-          material_cor: String(dados.material_cor || "").trim(),
-          observacoes: String(dados.observacoes || "").trim()
-        };
+        if (error) {
+          return { sucesso: false, mensagem: error.message };
+        }
+        return { sucesso: true, orcamento: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
 
+    // Cliente altera quantidade ou adiciona um produto ao orçamento enquanto status = 'solicitado'
+    // O trigger do banco valida o status, busca nome/preço em public.products e marca changed_by_customer = true
+    salvarItemCliente: async function (quoteId, productId, quantity) {
+      const client = inicializarCliente();
+      if (!client || !quoteId || !productId) return { sucesso: false, mensagem: "Dados inválidos." };
+      const qtd = Math.max(1, Math.min(1000, parseInt(quantity, 10) || 1));
+      try {
         const { data, error } = await client
-          .from("quotes")
-          .insert(payload)
+          .from("quote_items")
+          .upsert(
+            {
+              quote_id: quoteId,
+              product_id: String(productId),
+              product_name: "Item do Catálogo", // sobrescrito pelo trigger no banco a partir de public.products
+              quantity: qtd
+            },
+            { onConflict: "quote_id,product_id" }
+          )
           .select("*")
           .maybeSingle();
 
@@ -1201,60 +1472,98 @@
       }
     },
 
-    // Equipe (staff/admin) responde orçamento com valor, texto e status
-    responderEquipe: async function (id, { status, valor_estimado, resposta_equipe }) {
+    // Cliente remove um item do orçamento enquanto status = 'solicitado'
+    removerItemCliente: async function (quoteItemId) {
+      const client = inicializarCliente();
+      if (!client || !quoteItemId) return { sucesso: false, mensagem: "Item inválido." };
+      try {
+        const { error } = await client.from("quote_items").delete().eq("id", quoteItemId);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Cliente edita observações enquanto status = 'solicitado'
+    atualizarObservacoesCliente: async function (quoteId, notes) {
+      const client = inicializarCliente();
+      if (!client || !quoteId) return { sucesso: false, mensagem: "Orçamento inválido." };
+      try {
+        const { data, error } = await client
+          .from("quotes")
+          .update({ notes: String(notes || "").trim() })
+          .eq("id", quoteId)
+          .select("*, quote_items(*)")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Cliente cancela o orçamento enquanto status = 'solicitado'
+    cancelarCliente: async function (quoteId) {
+      const client = inicializarCliente();
+      if (!client || !quoteId) return { sucesso: false, mensagem: "Orçamento inválido." };
+      try {
+        const { data, error } = await client
+          .from("quotes")
+          .update({ status: "cancelado" })
+          .eq("id", quoteId)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Cliente exclui o orçamento enquanto status = 'solicitado'
+    excluir: async function (quoteId) {
+      const client = inicializarCliente();
+      if (!client || !quoteId) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { error } = await client.from("quotes").delete().eq("id", quoteId);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Equipe (staff/admin) atualiza status, observação/resposta e valor total do orçamento
+    responderEquipe: async function (id, { status, admin_response, admin_total, limparAlterado = false }) {
       const client = inicializarCliente();
       if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
       try {
         const payload = {
-          status: status || "respondido",
-          resposta_equipe: String(resposta_equipe || "").trim()
+          status: status || "em_analise",
+          admin_response: String(admin_response || "").trim()
         };
-        if (valor_estimado !== undefined && valor_estimado !== "" && valor_estimado !== null) {
-          const num = Number(String(valor_estimado).replace(",", "."));
-          if (!isNaN(num) && num >= 0) payload.valor_estimado = num;
+        if (admin_total !== undefined && admin_total !== "" && admin_total !== null) {
+          const num = Number(String(admin_total).replace(",", "."));
+          if (!isNaN(num) && num >= 0) payload.admin_total = num;
+        } else if (admin_total === "") {
+          payload.admin_total = null;
         }
+        if (limparAlterado) {
+          payload.changed_by_customer = false;
+        }
+
         const { data, error } = await client
           .from("quotes")
           .update(payload)
           .eq("id", id)
-          .select("*")
+          .select("*, quote_items(*)")
           .maybeSingle();
 
         if (error) return { sucesso: false, mensagem: error.message };
         return { sucesso: true, item: data };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    // Cliente aprova ou recusa um orçamento que já foi respondido pela equipe
-    responderCliente: async function (id, decisao) {
-      const client = inicializarCliente();
-      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
-      const statusSeguro = decisao === "aprovado" ? "aprovado" : "recusado";
-      try {
-        const { data, error } = await client
-          .from("quotes")
-          .update({ status: statusSeguro })
-          .eq("id", id)
-          .select("*")
-          .maybeSingle();
-
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true, item: data };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    excluir: async function (id) {
-      const client = inicializarCliente();
-      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
-      try {
-        const { error } = await client.from("quotes").delete().eq("id", id);
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true };
       } catch (err) {
         return { sucesso: false, mensagem: err.message };
       }
@@ -1269,232 +1578,74 @@
           .on("postgres_changes", { event: "*", schema: "public", table: "quotes" }, (payload) => {
             if (typeof onChange === "function") onChange(payload);
           })
-          .subscribe();
-      } catch (_) {
-        return null;
-      }
-    }
-  };
-
-  // =========================================================================
-  // MÓDULO DE SALVOS & RASCUNHOS DO CLIENTE (public.saved_items + RLS)
-  // =========================================================================
-  const savedItems = {
-    listarMeus: async function () {
-      const client = inicializarCliente();
-      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
-      try {
-        const { data: sessData } = await client.auth.getSession();
-        const uid = sessData?.session?.user?.id;
-        if (!uid) return { sucesso: false, dados: [], mensagem: "Não autenticado." };
-
-        const { data, error } = await client
-          .from("saved_items")
-          .select("*")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
-          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
-        }
-        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
-      } catch (err) {
-        return { sucesso: false, dados: [], mensagem: err.message };
-      }
-    },
-
-    criar: async function (dados) {
-      const client = inicializarCliente();
-      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
-      try {
-        const { data: sessData } = await client.auth.getSession();
-        const uid = sessData?.session?.user?.id;
-        if (!uid) return { sucesso: false, mensagem: "Faça login para salvar itens." };
-
-        const payload = {
-          user_id: uid,
-          item_kind: dados.item_kind === "rascunho" ? "rascunho" : "favorito",
-          product_id: dados.product_id || null,
-          titulo: String(dados.titulo || "Item salvo").trim(),
-          descricao: String(dados.descricao || "").trim(),
-          material_cor: String(dados.material_cor || "").trim(),
-          quantidade: Math.max(1, parseInt(dados.quantidade, 10) || 1),
-          preco_referencia: dados.preco_referencia != null && !isNaN(Number(dados.preco_referencia)) ? Number(dados.preco_referencia) : null,
-          imagem: String(dados.imagem || "").trim(),
-          dados: dados.dados && typeof dados.dados === "object" ? dados.dados : {}
-        };
-
-        const { data, error } = await client
-          .from("saved_items")
-          .insert(payload)
-          .select("*")
-          .maybeSingle();
-
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true, item: data };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    excluir: async function (id) {
-      const client = inicializarCliente();
-      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
-      try {
-        const { error } = await client.from("saved_items").delete().eq("id", id);
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    }
-  };
-
-  // =========================================================================
-  // MÓDULO DE PEDIDOS DO CLIENTE (public.orders + public.order_items + RLS)
-  // =========================================================================
-  const orders = {
-    listarMeus: async function () {
-      const client = inicializarCliente();
-      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
-      try {
-        const { data: sessData } = await client.auth.getSession();
-        const uid = sessData?.session?.user?.id;
-        if (!uid) return { sucesso: false, dados: [], mensagem: "Não autenticado." };
-
-        const { data, error } = await client
-          .from("orders")
-          .select("*, order_items(*)")
-          .eq("user_id", uid)
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
-          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
-        }
-        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
-      } catch (err) {
-        return { sucesso: false, dados: [], mensagem: err.message };
-      }
-    },
-
-    listarTodos: async function () {
-      const client = inicializarCliente();
-      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
-      try {
-        const { data, error } = await client
-          .from("orders")
-          .select("*, order_items(*)")
-          .order("created_at", { ascending: false });
-
-        if (error) {
-          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
-          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
-        }
-        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
-      } catch (err) {
-        return { sucesso: false, dados: [], mensagem: err.message };
-      }
-    },
-
-    criarComItens: async function (pedido, itens = []) {
-      const client = inicializarCliente();
-      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
-      try {
-        const { data: sessData } = await client.auth.getSession();
-        const user = sessData?.session?.user;
-        if (!user?.id) return { sucesso: false, mensagem: "Faça login para criar um pedido." };
-
-        const itensNormalizados = (Array.isArray(itens) ? itens : []).map((it) => {
-          const qtd = Math.max(1, parseInt(it.quantidade, 10) || 1);
-          const unit = Number(it.preco_unitario || 0) || 0;
-          return {
-            product_id: it.product_id || null,
-            nome: String(it.nome || "Item Loja SJ 3D").trim(),
-            detalhes: String(it.detalhes || "").trim(),
-            quantidade: qtd,
-            preco_unitario: unit,
-            subtotal: Number((qtd * unit).toFixed(2))
-          };
-        });
-
-        const totalCalculado =
-          pedido.total != null && Number(pedido.total) > 0
-            ? Number(pedido.total)
-            : itensNormalizados.reduce((acc, it) => acc + it.subtotal, 0);
-
-        const payloadPedido = {
-          user_id: user.id,
-          quote_id: pedido.quote_id || null,
-          cliente_nome: String(pedido.cliente_nome || "").trim(),
-          cliente_email: String(pedido.cliente_email || user.email || "").trim().toLowerCase(),
-          cliente_telefone: String(pedido.cliente_telefone || "").trim(),
-          endereco_entrega: String(pedido.endereco_entrega || "").trim(),
-          forma_entrega: pedido.forma_entrega === "entrega" ? "entrega" : "retirada",
-          observacoes: String(pedido.observacoes || "").trim(),
-          total: Number(totalCalculado.toFixed(2))
-        };
-
-        const { data: orderRow, error: orderErr } = await client
-          .from("orders")
-          .insert(payloadPedido)
-          .select("*")
-          .maybeSingle();
-
-        if (orderErr || !orderRow) {
-          return { sucesso: false, mensagem: orderErr?.message || "Erro ao registrar pedido." };
-        }
-
-        if (itensNormalizados.length > 0) {
-          const rowsItens = itensNormalizados.map((it) => ({
-            ...it,
-            order_id: orderRow.id,
-            user_id: user.id
-          }));
-          const { error: itemsErr } = await client.from("order_items").insert(rowsItens);
-          if (itemsErr) {
-            return { sucesso: true, item: orderRow, avisoItens: itemsErr.message };
-          }
-        }
-
-        return { sucesso: true, item: orderRow };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    atualizarStatus: async function (id, novoStatus) {
-      const client = inicializarCliente();
-      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
-      try {
-        const { data, error } = await client
-          .from("orders")
-          .update({ status: novoStatus })
-          .eq("id", id)
-          .select("*")
-          .maybeSingle();
-
-        if (error) return { sucesso: false, mensagem: error.message };
-        return { sucesso: true, item: data };
-      } catch (err) {
-        return { sucesso: false, mensagem: err.message };
-      }
-    },
-
-    assinarRealtime: function (onChange) {
-      const client = inicializarCliente();
-      if (!client || typeof client.channel !== "function") return null;
-      try {
-        return client
-          .channel("sj-orders-realtime")
-          .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+          .on("postgres_changes", { event: "*", schema: "public", table: "quote_items" }, (payload) => {
             if (typeof onChange === "function") onChange(payload);
           })
           .subscribe();
       } catch (_) {
         return null;
       }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO WHATSAPP OFICIAL (NÚMERO CONFIGURÁVEL VIA VERCEL ENV VAR)
+  // =========================================================================
+  let cachedWhatsappNumber = null;
+
+  const whatsapp = {
+    obterNumeroLoja: async function () {
+      if (cachedWhatsappNumber) return cachedWhatsappNumber;
+      if (typeof window !== "undefined" && window.WHATSAPP_NUMBER) {
+        cachedWhatsappNumber = String(window.WHATSAPP_NUMBER).replace(/\D/g, "");
+        if (cachedWhatsappNumber) return cachedWhatsappNumber;
+      }
+      if (typeof window !== "undefined" && window.fetch) {
+        try {
+          const r = await fetch("/api/public-config", { cache: "no-store" });
+          if (r.ok) {
+            const j = await r.json();
+            if (j?.whatsappNumber) {
+              cachedWhatsappNumber = String(j.whatsappNumber).replace(/\D/g, "");
+              return cachedWhatsappNumber;
+            }
+          }
+        } catch (_) { }
+      }
+      const fallback =
+        (typeof window !== "undefined" && window.SITE_DATA?.loja?.whatsapp) ||
+        "5544991351318";
+      cachedWhatsappNumber = String(fallback).replace(/\D/g, "") || "5544991351318";
+      return cachedWhatsappNumber;
+    },
+
+    gerarUrlOrcamento: async function ({ quoteNumber, clienteNome, items = [], notes = "", ehAlteracao = false }) {
+      const numero = await whatsapp.obterNumeroLoja();
+      const linhasItens = (Array.isArray(items) ? items : []).map((it) => {
+        const qtd = it.quantity || it.quantidade || 1;
+        const nome = it.product_name || it.nome || "Produto";
+        const precoUnit = it.unit_price != null && Number(it.unit_price) > 0
+          ? ` (${Number(it.unit_price).toLocaleString("pt-BR", { style: "currency", currency: "BRL" })} un.)`
+          : "";
+        return `• ${qtd}x ${nome}${precoUnit}`;
+      });
+
+      const cabecalho = ehAlteracao
+        ? `Olá! *Orçamento nº ${quoteNumber} atualizado*`
+        : `Olá! Gostaria de solicitar o *Orçamento nº ${quoteNumber}* na Loja SJ 3D:`;
+
+      const blocos = [
+        cabecalho,
+        clienteNome ? `*Cliente:* ${clienteNome}` : "",
+        `*Orçamento:* #${quoteNumber}`,
+        "",
+        "*Itens solicitados:*",
+        ...(linhasItens.length > 0 ? linhasItens : ["• (Sem itens listados)"]),
+        notes ? `\n*Observações:* ${notes}` : ""
+      ].filter((l) => l !== "");
+
+      const textoCodificado = encodeURIComponent(blocos.join("\n"));
+      return `https://wa.me/${numero}?text=${textoCodificado}`;
     }
   };
 
@@ -1521,9 +1672,10 @@
     auth,
     profiles,
     products,
+    favorites,
+    cart,
     quotes,
-    savedItems,
-    orders,
+    whatsapp,
     clientes,
     consentimentos,
     retencao,

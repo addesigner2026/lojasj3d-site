@@ -207,11 +207,6 @@
             <span id="cms-portal-quotes-badge" class="badge-pill">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="pedidos-clientes" role="tab">
-            <span>🛒 Pedidos (Clientes)</span>
-            <span id="cms-portal-orders-badge" class="badge-pill">0</span>
-          </button>
-
           <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" role="tab">
             <span>🔍 Consulta de Preço &amp; QR Code</span>
           </button>
@@ -873,55 +868,30 @@
           </form>
         </div>
 
-        <!-- ABA NOVA: ORÇAMENTOS DOS CLIENTES (STAFF + ADMIN) -->
+        <!-- ABA: ORÇAMENTOS DOS CLIENTES (STAFF + ADMIN) -->
         <div class="admin-cms-pane" id="cms-pane-orcamentos-clientes" style="display: none;">
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
               <div>
-                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">📋 Orçamentos Recebidos dos Clientes (/conta)</h4>
-                <p style="margin:0; color:#64748b; font-size:0.84rem;">Informe o valor, prazo/observações e atualize o status. O cliente vê sua resposta automaticamente no painel dele.</p>
+                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">📋 Orçamentos Solicitados pelos Clientes (/conta)</h4>
+                <p style="margin:0; color:#64748b; font-size:0.84rem;">Veja itens, quantidades, contato com link direto para o WhatsApp e registre o status ou valor de resposta.</p>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <input type="text" id="cms-search-quotes-input" placeholder="Buscar por cliente ou nº (ex: 1001)..." style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; min-width:220px;" />
                 <select id="cms-filter-quotes-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
                   <option value="todos">Todos os status</option>
-                  <option value="enviado">📨 Enviados (Novos)</option>
+                  <option value="solicitado">📨 Solicitados (Novos)</option>
                   <option value="em_analise">🔍 Em análise</option>
                   <option value="respondido">💬 Respondidos</option>
-                  <option value="aprovado">✅ Aprovados pelo cliente</option>
+                  <option value="aprovado">✅ Aprovados</option>
                   <option value="recusado">✖️ Recusados</option>
+                  <option value="cancelado">🚫 Cancelados</option>
                 </select>
                 <button type="button" id="btn-cms-refresh-portal-quotes" class="btn-cms-secondary" style="padding:8px 14px; border-radius:9px; font-size:0.82rem; cursor:pointer;">🔄 Atualizar</button>
               </div>
             </div>
             <div id="cms-portal-quotes-list">
               <div style="padding:24px; text-align:center; color:#64748b;">Carregando orçamentos...</div>
-            </div>
-          </div>
-        </div>
-
-        <!-- ABA NOVA: PEDIDOS DOS CLIENTES (STAFF + ADMIN) -->
-        <div class="admin-cms-pane" id="cms-pane-pedidos-clientes" style="display: none;">
-          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-              <div>
-                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">🛒 Pedidos dos Clientes &amp; Fila de Produção</h4>
-                <p style="margin:0; color:#64748b; font-size:0.84rem;">Acompanhe todos os pedidos e atualize o andamento (Recebido → Em produção → Pronto → Enviado/Retirado → Concluído).</p>
-              </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <select id="cms-filter-orders-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="todos">Todos os status</option>
-                  <option value="recebido">📥 Recebidos</option>
-                  <option value="em_producao">⚙️ Em produção</option>
-                  <option value="pronto">✨ Prontos</option>
-                  <option value="enviado_retirado">🚚 Enviados / Retirados</option>
-                  <option value="concluido">🎉 Concluídos</option>
-                  <option value="cancelado">🚫 Cancelados</option>
-                </select>
-                <button type="button" id="btn-cms-refresh-portal-orders" class="btn-cms-secondary" style="padding:8px 14px; border-radius:9px; font-size:0.82rem; cursor:pointer;">🔄 Atualizar</button>
-              </div>
-            </div>
-            <div id="cms-portal-orders-list">
-              <div style="padding:24px; text-align:center; color:#64748b;">Carregando pedidos...</div>
             </div>
           </div>
         </div>
@@ -1464,10 +1434,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_06"></script>
-  <script src="js/dados.js?v=20261118_06"></script>
-  <script src="js/database.js?v=20261118_06"></script>
-  <script src="js/app.js?v=20261118_06"></script>
+  <script src="js/supabase-client.js?v=20261118_07"></script>
+  <script src="js/dados.js?v=20261118_07"></script>
+  <script src="js/database.js?v=20261118_07"></script>
+  <script src="js/app.js?v=20261118_07"></script>
 
 </body>
 
