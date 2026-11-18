@@ -11400,9 +11400,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
         if (statusInicial === "aprovado") {
           await window.SJ_DB.auth.alterarStatusUsuario(email, "aprovado");
-          mostrarToast(`✅ E-mail ${email} cadastrado e já LIBERADO como administrador!`, "success");
+          if (window.SJ_DB?.auth?.ultimoStatusNuvem?.nuvemOk) {
+            mostrarToast(`☁️ E-mail ${escaparHtml(email)} cadastrado e LIBERADO em todos os navegadores!`, "success");
+          } else {
+            mostrarToast(`⚠️ Salvo apenas neste navegador! Clique em "☁️ Conectar Google Admin" no topo para liberar ${escaparHtml(email)} em outros navegadores.`, "warning");
+          }
         } else {
-          mostrarToast(`📩 Solicitação para ${email} criada como Pendente!`, "success");
+          mostrarToast(`📩 Solicitação para ${escaparHtml(email)} criada como Pendente!`, "success");
         }
         formAdd.reset();
         renderizarPainelEquipeCms();
@@ -12467,12 +12471,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         btn.textContent = "⏳ Publicando...";
       }
       const res = await window.SJ_DB?.catalogo?.persistirEstadoAtual?.();
+      if (window.SJ_DB?.auth?.listarUsuarios && window.SJ_DB?.auth?.sincronizarEquipeNuvem) {
+        await window.SJ_DB.auth.sincronizarEquipeNuvem(window.SJ_DB.auth.listarUsuarios());
+      }
       if (btn) {
         btn.disabled = false;
-        btn.textContent = "🔄 Sincronizar Agora";
+        btn.textContent = "🔄 Sincronizar Tudo Agora";
       }
       if (res && res.nuvemOk) {
-        mostrarToast("☁️ Catálogo e estoque publicados na nuvem! Todos os navegadores foram atualizados.", "success");
+        mostrarToast("☁️ Catálogo, estoque e equipe publicados na nuvem! Todos os navegadores foram atualizados.", "success");
       } else {
         mostrarToast("⚠️ Não foi possível gravar na nuvem: " + ((res && res.erro) || "verifique sua conta Google Admin."), "warning");
       }
@@ -12485,12 +12492,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     window.addEventListener("sj-auth-state-changed", async (e) => {
       await atualizarBannerSincronizacaoNuvemAdmin();
-      // Ao voltar do login Google Admin na nuvem, publica imediatamente as alterações locais pendentes
-      if (e && e.detail && e.detail.session && window.SJ_DB?.catalogo?.obterCustomizacoes?.()) {
-        const resPub = await window.SJ_DB.catalogo.persistirEstadoAtual();
-        if (resPub && resPub.nuvemOk) {
-          mostrarToast("☁️ Conta Google Admin conectada! Alterações locais de estoque e preços publicadas para todos os navegadores.", "success");
+      // Ao voltar do login Google Admin na nuvem, publica imediatamente catálogo, estoque e equipe pendentes
+      if (e && e.detail && e.detail.session) {
+        let publicouAlgo = false;
+        if (window.SJ_DB?.catalogo?.obterCustomizacoes?.()) {
+          const resPub = await window.SJ_DB.catalogo.persistirEstadoAtual();
+          if (resPub && resPub.nuvemOk) publicouAlgo = true;
           atualizarBannerSincronizacaoNuvemAdmin(resPub);
+        }
+        if (window.SJ_DB?.auth?.listarUsuarios && window.SJ_DB?.auth?.sincronizarEquipeNuvem) {
+          await window.SJ_DB.auth.sincronizarEquipeNuvem(window.SJ_DB.auth.listarUsuarios());
+          if (window.SJ_DB.auth.ultimoStatusNuvem?.nuvemOk) publicouAlgo = true;
+        }
+        if (publicouAlgo) {
+          mostrarToast("☁️ Conta Google Admin conectada! Estoque, preços e equipe liberada publicados para todos os navegadores.", "success");
         }
       }
     });

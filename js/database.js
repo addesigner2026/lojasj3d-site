@@ -329,6 +329,12 @@
       return { sucesso: true, usuario: state.usuarioAtual };
     },
 
+    // Último status real de sincronização da equipe na nuvem
+    ultimoStatusNuvem: {
+      nuvemOk: false,
+      erro: null
+    },
+
     // Sincronização em nuvem da lista de administradores/solicitações via Supabase (quando conectado)
     sincronizarEquipeNuvem: async function (listaSalvar = null, emailRemovido = null) {
       try {
@@ -344,28 +350,87 @@
         if (Array.isArray(listaSalvar)) {
           const norm = normalizarListaUsuarios(listaSalvar);
           gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, norm);
-          if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
-            return norm;
+
+          let salvouNuvem = false;
+          let erroNuvem = null;
+
+          // 1) Tenta gravar diretamente no Supabase Cloud (quando há sessão Supabase Auth Admin)
+          try {
+            if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+              const supa = window.SJ_SUPABASE.getClient();
+              if (supa) {
+                const { error } = await supa.from("configuracoes_site").upsert(
+                  {
+                    chave: "equipe_admin_v1",
+                    valor: { usuarios: norm, removidos: removidosLocal },
+                    atualizado_em: new Date().toISOString()
+                  },
+                  { onConflict: "chave" }
+                );
+                if (!error) {
+                  salvouNuvem = true;
+                } else {
+                  erroNuvem = error.message || "Permissão negada no Supabase (RLS).";
+                }
+              }
+            }
+          } catch (e) {
+            erroNuvem = e && e.message ? e.message : "Erro ao conectar ao Supabase.";
           }
-          const supa = window.SJ_SUPABASE.getClient();
-          if (!supa) return norm;
-          await supa.from("configuracoes_site").upsert(
-            {
-              chave: "equipe_admin_v1",
-              valor: { usuarios: norm, removidos: removidosLocal },
-              atualizado_em: new Date().toISOString()
-            },
-            { onConflict: "chave" }
-          );
+
+          // 2) Fallback via /api/equipe (usa JWT do usuário ou Service Role na Vercel com validação do Admin Master)
+          if (!salvouNuvem && typeof window !== "undefined" && window.fetch) {
+            try {
+              const headers = { "Content-Type": "application/json" };
+              try {
+                if (window.SJ_SUPABASE && window.SJ_SUPABASE.auth) {
+                  const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+                  if (sessao && sessao.access_token) {
+                    headers.Authorization = `Bearer ${sessao.access_token}`;
+                  }
+                }
+              } catch (_) {}
+              try {
+                const adminAtivo =
+                  auth.getUsuarioAtual() ||
+                  JSON.parse(window.localStorage.getItem("loja_sj_sessao_admin_v1") || "null");
+                if (adminAtivo && adminAtivo.email) {
+                  const reg = norm.find(
+                    (u) => String(u.email || "").toLowerCase() === String(adminAtivo.email).toLowerCase()
+                  );
+                  if (reg && reg.senhaHash) {
+                    headers["X-SJ-Admin-Email"] = reg.email;
+                    headers["X-SJ-Admin-Hash"] = reg.senhaHash;
+                  }
+                }
+              } catch (_) {}
+
+              const resApi = await fetch("/api/equipe", {
+                method: "POST",
+                headers,
+                cache: "no-store",
+                body: JSON.stringify({ usuarios: norm, removidos: removidosLocal })
+              });
+              if (resApi && resApi.ok) {
+                salvouNuvem = true;
+                erroNuvem = null;
+              } else if (resApi) {
+                const errJson = await resApi.json().catch(() => null);
+                if (errJson && errJson.mensagem) erroNuvem = errJson.mensagem;
+              }
+            } catch (_) {}
+          }
+
+          auth.ultimoStatusNuvem = {
+            nuvemOk: salvouNuvem,
+            erro: salvouNuvem ? null : (erroNuvem || "Conecte sua conta Google Admin para sincronizar a equipe.")
+          };
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("sj-catalogo-sync-status", { detail: auth.ultimoStatusNuvem }));
+          }
           return norm;
         } else {
           const local = normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
-          if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
-            return local;
-          }
-          const supa = window.SJ_SUPABASE.getClient();
-          if (!supa) return local;
-
           let removidos = [...removidosLocal];
           const mapa = new Map();
           local.forEach((u) => {
@@ -373,62 +438,88 @@
             if (em) mapa.set(em, u);
           });
 
-          // 1) Lista oficial em configuracoes_site
-          const { data, error } = await supa
-            .from("configuracoes_site")
-            .select("valor")
-            .eq("chave", "equipe_admin_v1")
-            .maybeSingle();
+          let carregouDaNuvem = false;
 
-          if (!error && data && data.valor) {
-            if (Array.isArray(data.valor.removidos)) {
-              removidos = [...new Set([...removidos, ...data.valor.removidos.map((e) => String(e).toLowerCase().trim())])];
-              gravarLocal("sj_equipe_removidos_v1", removidos);
-            }
-            if (Array.isArray(data.valor.usuarios)) {
-              data.valor.usuarios.forEach((u) => {
-                const em = String(u.email || "").toLowerCase().trim();
-                if (em && !removidos.includes(em)) {
-                  mapa.set(em, { ...(mapa.get(em) || {}), ...u });
-                }
-              });
-            }
-          }
-
-          // 2) Solicitações enviadas de outros aparelhos via termos_consentimento (permitido para anon)
+          // 1) Lista oficial em configuracoes_site (Supabase direto)
           try {
-            const { data: reqRows } = await supa
-              .from("termos_consentimento")
-              .select("id, titular_identificador, motivo_revogacao, concedido_em")
-              .eq("finalidade", "solicitacao_acesso_admin")
-              .order("concedido_em", { ascending: false });
+            if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+              const supa = window.SJ_SUPABASE.getClient();
+              if (supa) {
+                const { data, error } = await supa
+                  .from("configuracoes_site")
+                  .select("valor")
+                  .eq("chave", "equipe_admin_v1")
+                  .maybeSingle();
 
-            if (Array.isArray(reqRows)) {
-              reqRows.forEach((r) => {
-                try {
-                  const parsed = r.motivo_revogacao ? JSON.parse(r.motivo_revogacao) : null;
-                  const em = String(parsed?.email || r.titular_identificador || "").toLowerCase().trim();
-                  if (em && !removidos.includes(em) && !mapa.has(em)) {
-                    mapa.set(em, {
-                      id: parsed?.id || "usr-req-" + r.id,
-                      nome: parsed?.nome || em.split("@")[0],
-                      email: em,
-                      senhaHash: parsed?.senhaHash || "",
-                      cargo: parsed?.cargo || "Vendedor Autorizado",
-                      motivo: parsed?.motivo || "Solicitação via /admin",
-                      tipo: "operador",
-                      status: "pendente",
-                      isMaster: false,
-                      foto: null,
-                      ativo: false,
-                      criadoEm: parsed?.criadoEm || r.concedido_em,
-                      ultimoLogin: null
+                if (!error && data && data.valor) {
+                  carregouDaNuvem = true;
+                  if (Array.isArray(data.valor.removidos)) {
+                    removidos = [...new Set([...removidos, ...data.valor.removidos.map((e) => String(e).toLowerCase().trim())])];
+                    gravarLocal("sj_equipe_removidos_v1", removidos);
+                  }
+                  if (Array.isArray(data.valor.usuarios)) {
+                    data.valor.usuarios.forEach((u) => {
+                      const em = String(u.email || "").toLowerCase().trim();
+                      if (em && !removidos.includes(em)) {
+                        mapa.set(em, { ...(mapa.get(em) || {}), ...u });
+                      }
                     });
                   }
-                } catch (_) {}
-              });
+                }
+
+                // 2) Solicitações enviadas de outros aparelhos via termos_consentimento (permitido para anon)
+                const { data: reqRows } = await supa
+                  .from("termos_consentimento")
+                  .select("id, titular_identificador, motivo_revogacao, concedido_em")
+                  .eq("finalidade", "solicitacao_acesso_admin")
+                  .order("concedido_em", { ascending: false });
+
+                if (Array.isArray(reqRows)) {
+                  reqRows.forEach((r) => {
+                    try {
+                      const parsed = r.motivo_revogacao ? JSON.parse(r.motivo_revogacao) : null;
+                      const em = String(parsed?.email || r.titular_identificador || "").toLowerCase().trim();
+                      if (em && !removidos.includes(em) && !mapa.has(em)) {
+                        mapa.set(em, {
+                          id: parsed?.id || "usr-req-" + r.id,
+                          nome: parsed?.nome || em.split("@")[0],
+                          email: em,
+                          senhaHash: parsed?.senhaHash || "",
+                          cargo: parsed?.cargo || "Vendedor Autorizado",
+                          motivo: parsed?.motivo || "Solicitação via /admin",
+                          tipo: "operador",
+                          status: "pendente",
+                          isMaster: false,
+                          foto: null,
+                          ativo: false,
+                          criadoEm: parsed?.criadoEm || r.concedido_em,
+                          ultimoLogin: null
+                        });
+                      }
+                    } catch (_) {}
+                  });
+                }
+              }
             }
           } catch (_) {}
+
+          // 3) Fallback GET /api/equipe se Supabase direto não respondeu
+          if (!carregouDaNuvem && typeof window !== "undefined" && window.fetch) {
+            try {
+              const r = await fetch(`/api/equipe?_t=${Date.now()}`, { cache: "no-store" });
+              if (r.ok) {
+                const json = await r.json();
+                if (json && Array.isArray(json.usuarios)) {
+                  json.usuarios.forEach((u) => {
+                    const em = String(u.email || "").toLowerCase().trim();
+                    if (em && !removidos.includes(em)) {
+                      mapa.set(em, { ...(mapa.get(em) || {}), ...u });
+                    }
+                  });
+                }
+              }
+            } catch (_) {}
+          }
 
           const mesclado = normalizarListaUsuarios(Array.from(mapa.values()));
           gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, mesclado);
