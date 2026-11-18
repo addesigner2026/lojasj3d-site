@@ -1150,9 +1150,33 @@
       return true;
     },
 
+    // Último status real de sincronização em nuvem (para exibir no painel /admin)
+    ultimoStatusNuvem: {
+      nuvemOk: false,
+      erro: null,
+      atualizadoEm: null
+    },
+
+    // Verifica se o navegador possui sessão Supabase Auth ativa (necessária para RLS em configuracoes_site)
+    verificarSessaoNuvem: async function () {
+      try {
+        if (typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.auth) {
+          const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+          if (sessao && sessao.access_token && sessao.user) {
+            return {
+              conectado: true,
+              email: sessao.user.email || "",
+              accessToken: sessao.access_token
+            };
+          }
+        }
+      } catch (_) {}
+      return { conectado: false, email: "", accessToken: "" };
+    },
+
     // Persiste o estado atual do window.SITE_DATA no localStorage, Supabase Cloud e /api/catalogo
     persistirEstadoAtual: async function (extraMeta = null) {
-      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+      if (typeof window === "undefined" || !window.SITE_DATA) return { ok: false, nuvemOk: false };
 
       const anterior = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, {}) || {};
       const produtosRemovidos = Array.isArray(extraMeta && extraMeta.produtosRemovidos)
@@ -1178,6 +1202,7 @@
       gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, payload);
 
       let salvouNuvem = false;
+      let erroNuvem = null;
 
       // 1) Gravação direta no Supabase Cloud (configuracoes_site -> catalogo_oficial_v1)
       try {
@@ -1192,27 +1217,68 @@
               },
               { onConflict: "chave" }
             );
-            if (!error) salvouNuvem = true;
+            if (!error) {
+              salvouNuvem = true;
+            } else {
+              erroNuvem = error.message || "Permissão negada no Supabase (RLS).";
+              console.warn("[SJ_DB] Supabase RLS bloqueou escrita direta de catálogo:", error);
+            }
           }
         }
       } catch (e) {
-        console.warn("[SJ_DB] Falha ao sincronizar catálogo direto no Supabase:", e);
+        erroNuvem = e && e.message ? e.message : "Erro ao conectar ao Supabase.";
       }
 
-      // 2) Gravação via API (/api/catalogo — funciona na Vercel e no servidor local)
-      try {
-        const resApi = await fetch("/api/catalogo", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          cache: "no-store",
-          body: JSON.stringify(payload)
-        });
-        if (resApi && resApi.ok) {
-          salvouNuvem = true;
-        }
-      } catch (_) {}
+      // 2) Gravação via API (/api/catalogo — envia JWT do usuário ou credenciais do admin para Vercel/Local)
+      if (!salvouNuvem) {
+        try {
+          const sessaoInfo = await catalogo.verificarSessaoNuvem();
+          const headers = { "Content-Type": "application/json" };
+          if (sessaoInfo.accessToken) {
+            headers.Authorization = `Bearer ${sessaoInfo.accessToken}`;
+          }
+          // Envia credenciais hash do admin logado para validação server-side quando Service Role estiver ativa
+          try {
+            const adminAtivo = auth.getUsuarioAtual() || JSON.parse(window.localStorage.getItem("loja_sj_sessao_admin_v1") || "null");
+            if (adminAtivo && adminAtivo.email) {
+              const listaUsr = lerLocal(STORAGE_KEYS.USUARIOS_TABELA, []);
+              const reg = listaUsr.find((u) => String(u.email || "").toLowerCase() === String(adminAtivo.email).toLowerCase());
+              if (reg && reg.senhaHash) {
+                headers["X-SJ-Admin-Email"] = reg.email;
+                headers["X-SJ-Admin-Hash"] = reg.senhaHash;
+              }
+            }
+          } catch (_) {}
 
-      return salvouNuvem || true;
+          const resApi = await fetch("/api/catalogo", {
+            method: "POST",
+            headers,
+            cache: "no-store",
+            body: JSON.stringify(payload)
+          });
+          if (resApi && resApi.ok) {
+            salvouNuvem = true;
+            erroNuvem = null;
+          } else if (resApi) {
+            const errJson = await resApi.json().catch(() => null);
+            if (errJson && errJson.mensagem) {
+              erroNuvem = errJson.mensagem;
+            }
+          }
+        } catch (_) {}
+      }
+
+      catalogo.ultimoStatusNuvem = {
+        nuvemOk: salvouNuvem,
+        erro: salvouNuvem ? null : (erroNuvem || "Conecte sua conta Google Admin para sincronizar em todos os navegadores."),
+        atualizadoEm: payload.atualizadoEm
+      };
+
+      window.dispatchEvent(
+        new CustomEvent("sj-catalogo-sync-status", { detail: catalogo.ultimoStatusNuvem })
+      );
+
+      return { ok: true, nuvemOk: salvouNuvem, erro: catalogo.ultimoStatusNuvem.erro };
     },
 
     // Busca catálogo mais recente do Supabase Cloud (ou /api/catalogo) e atualiza a tela automaticamente
@@ -1318,6 +1384,13 @@
               window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
             }
           } catch (_) {}
+        }
+      });
+
+      // 2.5) Quando o Admin conclui autenticação Supabase (Google/E-mail), publica edições locais pendentes automaticamente
+      window.addEventListener("sj-auth-state-changed", (e) => {
+        if (e && e.detail && e.detail.session) {
+          catalogo.sincronizarDaNuvem({ forcar: true });
         }
       });
 

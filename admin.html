@@ -287,6 +287,24 @@
           <!-- SUB-VIEW 1A: LISTA DE PRODUTOS DO CATÁLOGO -->
           <div id="cms-products-list-view">
             <!-- KPIs BENTO ULTRA CLEAN (MINIMALISTAS & SEM POLUIÇÃO VISUAL) -->
+            <!-- BARRA DE STATUS DE SINCRONIZAÇÃO GLOBAL EM NUVEM (SUPABASE RLS) -->
+            <div id="admin-cloud-sync-banner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:12px 18px; border-radius:14px; border:1.5px solid #fde68a; background:#fffbeb; color:#92400e; margin-bottom:18px; font-size:0.84rem;">
+              <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">
+                <span id="admin-cloud-sync-icon" style="font-size:1.15rem;">☁️</span>
+                <div id="admin-cloud-sync-text" style="line-height:1.45;">
+                  Verificando conexão com a nuvem Supabase...
+                </div>
+              </div>
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <button type="button" id="btn-admin-connect-cloud-google" style="display:none; background:#ea580c; color:#ffffff; border:none; border-radius:10px; padding:9px 16px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(234,88,12,0.25);">
+                  ☁️ Conectar Google Admin (Publicar para Todos)
+                </button>
+                <button type="button" id="btn-admin-force-publish-cloud" style="display:none; background:#ffffff; color:#15803d; border:1.5px solid #bbf7d0; border-radius:10px; padding:8px 14px; font-size:0.78rem; font-weight:700; cursor:pointer;">
+                  🔄 Sincronizar Agora
+                </button>
+              </div>
+            </div>
+
             <div class="sj-crm-kpi-row">
               <!-- KPI 1: TOTAL DE PRODUTOS -->
               <button type="button" class="cms-kpi-clean-card active-kpi" data-cms-stock-kpi="todos" title="Exibe todo o catálogo">
@@ -1330,9 +1348,9 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="js/supabase-client.js?v=20261114_01"></script>
-  <script src="js/dados.js?v=20261118_02"></script>
-  <script src="js/database.js?v=20261118_02"></script>
-  <script src="js/app.js?v=20261118_02"></script>
+  <script src="js/dados.js?v=20261118_03"></script>
+  <script src="js/database.js?v=20261118_03"></script>
+  <script src="js/app.js?v=20261118_03"></script>
 
 </body>
 

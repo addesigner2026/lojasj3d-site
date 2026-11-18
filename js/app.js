@@ -11891,7 +11891,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               poucas_unidades: "🟠 Poucas Unidades",
               esgotado: "🔴 Esgotado"
             };
-            mostrarToast(`📦 Estoque de <strong>"${window.SITE_DATA[chavePaleta][corIdx].nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
+            const nuvemOkCor = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
+            if (nuvemOkCor) {
+              mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(window.SITE_DATA[chavePaleta][corIdx].nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+            } else {
+              mostrarToast(`⚠️ Salvo apenas neste navegador! Clique em <strong>"☁️ Conectar Google Admin"</strong> no topo para publicar para todos.`, "warning");
+            }
           }
         } else {
           const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
@@ -11908,7 +11913,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             poucas_unidades: "🟠 Poucas Unidades",
             esgotado: "🔴 Esgotado"
           };
-          mostrarToast(`📦 Estoque de <strong>"${prod.nome}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong>!`, "success");
+          const nuvemOkProd = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
+          if (nuvemOkProd) {
+            mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(prod.nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+          } else {
+            mostrarToast(`⚠️ Salvo apenas neste navegador! Clique em <strong>"☁️ Conectar Google Admin"</strong> no topo para publicar para todos.`, "warning");
+          }
         }
       });
     });
@@ -12398,6 +12408,95 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
+    // Barra de Status de Sincronização Global em Nuvem (Supabase Auth + RLS)
+    async function atualizarBannerSincronizacaoNuvemAdmin(statusForcado = null) {
+      const banner = document.getElementById("admin-cloud-sync-banner");
+      const iconEl = document.getElementById("admin-cloud-sync-icon");
+      const textEl = document.getElementById("admin-cloud-sync-text");
+      const btnGoogle = document.getElementById("btn-admin-connect-cloud-google");
+      const btnSync = document.getElementById("btn-admin-force-publish-cloud");
+      if (!banner || !textEl) return;
+
+      const sessao = window.SJ_DB?.catalogo?.verificarSessaoNuvem
+        ? await window.SJ_DB.catalogo.verificarSessaoNuvem()
+        : { conectado: false, email: "" };
+      const st = statusForcado || window.SJ_DB?.catalogo?.ultimoStatusNuvem || {};
+
+      if (sessao.conectado || st.nuvemOk) {
+        banner.style.borderColor = "#bbf7d0";
+        banner.style.background = "#f0fdf4";
+        banner.style.color = "#166534";
+        if (iconEl) iconEl.textContent = "☁️";
+        const contaTxt = sessao.email ? ` (<strong>${escaparHtml(sessao.email)}</strong>)` : "";
+        textEl.innerHTML = `<strong>Sincronização Global Ativa${contaTxt}:</strong> alterações de estoque, preço e nome aparecem automaticamente em todos os navegadores e celulares.`;
+        if (btnGoogle) btnGoogle.style.display = "none";
+        if (btnSync) btnSync.style.display = "inline-flex";
+      } else {
+        banner.style.borderColor = "#fde68a";
+        banner.style.background = "#fffbeb";
+        banner.style.color = "#92400e";
+        if (iconEl) iconEl.textContent = "⚠️";
+        textEl.innerHTML = `<strong>Modo Local (apenas este navegador):</strong> para que <strong>Esgotado</strong>, preços e nomes apareçam em outros navegadores, conecte sua conta Google Admin na nuvem (1 clique).`;
+        if (btnGoogle) btnGoogle.style.display = "inline-flex";
+        if (btnSync) btnSync.style.display = "none";
+      }
+    }
+
+    document.getElementById("btn-admin-connect-cloud-google")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-admin-connect-cloud-google");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Conectando Google Admin...";
+      }
+      if (window.SJ_SUPABASE?.auth?.loginGoogle) {
+        const r = await window.SJ_SUPABASE.auth.loginGoogle();
+        if (!r || !r.sucesso) {
+          mostrarToast("⚠️ Não foi possível iniciar o login Google: " + ((r && r.mensagem) || "tente novamente."), "warning");
+          if (btn) {
+            btn.disabled = false;
+            btn.textContent = "☁️ Conectar Google Admin (Publicar para Todos)";
+          }
+        }
+      }
+    });
+
+    document.getElementById("btn-admin-force-publish-cloud")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-admin-force-publish-cloud");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "⏳ Publicando...";
+      }
+      const res = await window.SJ_DB?.catalogo?.persistirEstadoAtual?.();
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "🔄 Sincronizar Agora";
+      }
+      if (res && res.nuvemOk) {
+        mostrarToast("☁️ Catálogo e estoque publicados na nuvem! Todos os navegadores foram atualizados.", "success");
+      } else {
+        mostrarToast("⚠️ Não foi possível gravar na nuvem: " + ((res && res.erro) || "verifique sua conta Google Admin."), "warning");
+      }
+      atualizarBannerSincronizacaoNuvemAdmin(res);
+    });
+
+    window.addEventListener("sj-catalogo-sync-status", (e) => {
+      atualizarBannerSincronizacaoNuvemAdmin(e.detail);
+    });
+
+    window.addEventListener("sj-auth-state-changed", async (e) => {
+      await atualizarBannerSincronizacaoNuvemAdmin();
+      // Ao voltar do login Google Admin na nuvem, publica imediatamente as alterações locais pendentes
+      if (e && e.detail && e.detail.session && window.SJ_DB?.catalogo?.obterCustomizacoes?.()) {
+        const resPub = await window.SJ_DB.catalogo.persistirEstadoAtual();
+        if (resPub && resPub.nuvemOk) {
+          mostrarToast("☁️ Conta Google Admin conectada! Alterações locais de estoque e preços publicadas para todos os navegadores.", "success");
+          atualizarBannerSincronizacaoNuvemAdmin(resPub);
+        }
+      }
+    });
+
+    atualizarBannerSincronizacaoNuvemAdmin();
+
     // Configura abas do Gate (Login vs Solicitar Acesso)
     document.querySelectorAll("[data-gate-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -12471,6 +12570,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             mostrarFeedbackGate("error", "⏳ Seu usuário não possui autorização ativa para a Área Administrativa. Solicite liberação ao Administrador Master.");
             return;
           }
+
+          // Tenta autenticar silenciosamente no Supabase Auth para ativar escrita RLS em tempo real
+          try {
+            if (window.SJ_SUPABASE?.auth?.loginEmail) {
+              await window.SJ_SUPABASE.auth.loginEmail(email, senha);
+            }
+          } catch (_) {}
+          atualizarBannerSincronizacaoNuvemAdmin();
 
           // Salva sessão exclusiva de admin
           try {
