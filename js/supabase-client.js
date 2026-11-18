@@ -1750,7 +1750,7 @@
         const token = sessData?.session?.access_token;
         if (!token) return { sucesso: false, mensagem: "Sessão expirada. Entre novamente." };
 
-        const r = await fetch(`/api/lookup-cnpj?cnpj=${encodeURIComponent(digits)}`, {
+        const r = await fetch(`/api/public-config?tipo=cnpj&cnpj=${encodeURIComponent(digits)}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store"
         });
@@ -1776,7 +1776,7 @@
         const token = sessData?.session?.access_token;
         if (!token) return { sucesso: false, mensagem: "Sessão expirada. Entre novamente." };
 
-        const r = await fetch(`/api/lookup-cep?cep=${encodeURIComponent(digits)}`, {
+        const r = await fetch(`/api/public-config?tipo=cep&cep=${encodeURIComponent(digits)}`, {
           headers: { Authorization: `Bearer ${token}` },
           cache: "no-store"
         });
