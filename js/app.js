@@ -11386,6 +11386,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const nome = document.getElementById("cms-new-admin-nome")?.value.trim();
         const email = document.getElementById("cms-new-admin-email")?.value.trim().toLowerCase();
         const senha = document.getElementById("cms-new-admin-senha")?.value.trim();
+        const cargo = document.getElementById("cms-new-admin-cargo")?.value || "Funcionário / Vendedor";
         const statusInicial = document.getElementById("cms-new-admin-status")?.value || "aprovado";
 
         if (!nome || !email || !senha) return;
@@ -11393,7 +11394,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           nome,
           email,
           senha,
-          cargo: "Administrador Autorizado",
+          cargo,
           motivo: "Cadastrado no Painel Admin"
         });
 

@@ -815,17 +815,93 @@
 
         <!-- ABA 5: EQUIPE & FUNCIONÁRIOS -->
         <div class="admin-cms-pane" id="cms-pane-equipe" style="display: none;">
-          <div style="background:linear-gradient(135deg, #18181b 0%, #27272a 100%); color:#fff; border-radius:14px; padding:18px 20px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
+          <!-- Card Resumo do Administrador Oficial -->
+          <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:16px; padding:22px 24px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 4px 16px rgba(15,23,42,0.1);">
             <div>
-              <span style="display:inline-block; background:#E84520; color:#fff; font-size:0.7rem; font-weight:800; padding:2px 9px; border-radius:999px; letter-spacing:0.5px; margin-bottom:6px;">👑 ADMINISTRADOR MASTER</span>
-              <div style="font-size:1.05rem; font-weight:800;">jt.designer21@gmail.com</div>
-              <div style="font-size:0.8rem; color:#a1a1aa; margin-top:2px;">Controle de Funcionários, Vendedores e Administradores com acesso ao Painel.</div>
+              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:0.05em; margin-bottom:8px;">👑 ADMINISTRADOR MASTER</span>
+              <div style="font-size:1.15rem; font-weight:700; letter-spacing:-0.01em;">jt.designer21@gmail.com</div>
+              <div style="font-size:0.84rem; color:#94a3b8; margin-top:4px; line-height:1.45;">Controle de Funcionários, Vendedores e Administradores com acesso ao Painel, Consulta QR Code e Orçamentos.</div>
             </div>
-            <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.12); color:#fff; border-color:rgba(255,255,255,0.22);">
-              🔄 Atualizar Equipe
+            <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:10px 16px; font-weight:600; cursor:pointer;">
+              🔄 Atualizar Solicitações
             </button>
           </div>
-          <div id="cms-equipe-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+          <!-- 1) SOLICITAÇÕES PENDENTES DE APROVAÇÃO -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="margin-bottom:14px;">
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">📩 Solicitações Pendentes de Acesso</h4>
+              <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
+                Quando um colaborador ou vendedor pedir acesso na tela de login administrativo, o pedido aparecerá aqui para você <strong>Aprovar (Liberar)</strong>, <strong>Negar / Bloquear</strong> ou <strong>Excluir</strong>.
+              </p>
+            </div>
+            <div id="cms-pending-requests-list"></div>
+          </div>
+
+          <!-- 2) FUNCIONÁRIOS & ADMINISTRADORES CADASTRADOS -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="margin-bottom:14px;">
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">👥 Funcionários &amp; Administradores Cadastrados</h4>
+              <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
+                Gerencie quem pode entrar na Área Administrativa. Você pode liberar, colocar pendente, bloquear ou excluir qualquer registro a qualquer momento.
+              </p>
+            </div>
+            <div id="cms-all-admins-list"></div>
+          </div>
+
+          <!-- 3) CADASTRAR NOVO FUNCIONÁRIO / ADMINISTRADOR DIRETAMENTE -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">➕ Cadastrar Novo Funcionário / Vendedor ou Administrador</h4>
+            <p style="margin:0 0 16px; color:#64748b; font-size:0.84rem; line-height:1.5;">
+              Cadastre um membro da equipe manualmente para usar o Leitor de QR Code, Consulta de Preços, Banco de Clientes e Emissor de Orçamentos.
+            </p>
+            <form id="form-cms-add-admin" style="display:grid; grid-template-columns:repeat(auto-fit, minmax(180px, 1fr)); gap:12px; align-items:end;">
+              <div class="cms-field">
+                <label for="cms-new-admin-nome">Nome *</label>
+                <input type="text" id="cms-new-admin-nome" placeholder="Ex: João Vendedor" required />
+              </div>
+              <div class="cms-field">
+                <label for="cms-new-admin-email">E-mail de Login *</label>
+                <input type="email" id="cms-new-admin-email" placeholder="funcionario@lojasj.com" required />
+              </div>
+              <div class="cms-field">
+                <label for="cms-new-admin-senha">Senha de Acesso *</label>
+                <input type="text" id="cms-new-admin-senha" placeholder="Mín. 4 caracteres" minlength="4" required />
+              </div>
+              <div class="cms-field">
+                <label for="cms-new-admin-cargo">Função / Cargo</label>
+                <select id="cms-new-admin-cargo">
+                  <option value="Funcionário / Vendedor">🧑‍💼 Funcionário / Vendedor</option>
+                  <option value="Estoquista / Expedição">📦 Estoquista / Expedição</option>
+                  <option value="Gerente Comercial">📈 Gerente Comercial</option>
+                  <option value="Administrador Autorizado">🛡️ Administrador Autorizado</option>
+                </select>
+              </div>
+              <div class="cms-field">
+                <label for="cms-new-admin-status">Status Inicial</label>
+                <select id="cms-new-admin-status">
+                  <option value="aprovado">✅ Já Aprovado (Liberado)</option>
+                  <option value="pendente">⏳ Pendente (Para Aprovar)</option>
+                </select>
+              </div>
+              <button type="submit" class="btn-cms-save" style="height:40px; padding:0 18px; border-radius:10px;">
+                + Salvar Acesso
+              </button>
+            </form>
+          </div>
+
+          <!-- 4) ALTERAR SENHA ADMINISTRATIVA -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">🔑 Alterar Minha Senha Administrativa</h4>
+            <p style="margin:0 0 14px; color:#64748b; font-size:0.84rem;">Logado como <strong id="cms-admin-pwd-email" style="color:#F04E23;">jt.designer21@gmail.com</strong></p>
+            <form id="form-cms-change-admin-pwd" style="display:grid; gap:10px; max-width:420px;">
+              <input type="password" id="cms-admin-pwd-current" placeholder="Senha atual" autocomplete="current-password" required style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.86rem;" />
+              <input type="password" id="cms-admin-pwd-new" placeholder="Nova senha (mín. 4 caracteres)" minlength="4" autocomplete="new-password" required style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.86rem;" />
+              <input type="password" id="cms-admin-pwd-confirm" placeholder="Confirmar nova senha" minlength="4" autocomplete="new-password" required style="padding:10px 14px; border:1.5px solid #cbd5e1; border-radius:10px; font-size:0.86rem;" />
+              <button type="submit" class="btn-cms-save" style="justify-content:center; padding:11px 16px; border-radius:10px;">💾 Atualizar Minha Senha</button>
+              <div id="cms-admin-pwd-feedback" style="display:none; font-size:0.84rem; padding:10px 12px; border-radius:10px; font-weight:600;"></div>
+            </form>
+          </div>
         </div>
 
         <!-- ABA 6: SUPABASE & NUVEM -->
@@ -1255,8 +1331,8 @@
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="js/supabase-client.js?v=20261114_01"></script>
   <script src="js/dados.js?v=20261113_02"></script>
-  <script src="js/database.js?v=20261113_02"></script>
-  <script src="js/app.js?v=20261117_05"></script>
+  <script src="js/database.js?v=20261118_01"></script>
+  <script src="js/app.js?v=20261118_01"></script>
 
 </body>
 

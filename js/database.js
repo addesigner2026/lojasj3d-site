@@ -330,48 +330,109 @@
     },
 
     // Sincronização em nuvem da lista de administradores/solicitações via Supabase (quando conectado)
-    sincronizarEquipeNuvem: async function (listaSalvar = null) {
+    sincronizarEquipeNuvem: async function (listaSalvar = null, emailRemovido = null) {
       try {
-        if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
-          return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+        const removidosLocal = lerLocal("sj_equipe_removidos_v1", []);
+        if (emailRemovido) {
+          const emRem = String(emailRemovido).toLowerCase().trim();
+          if (emRem && !removidosLocal.includes(emRem)) {
+            removidosLocal.push(emRem);
+            gravarLocal("sj_equipe_removidos_v1", removidosLocal);
+          }
         }
-        const supa = window.SJ_SUPABASE.getClient();
-        if (!supa) return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
 
         if (Array.isArray(listaSalvar)) {
           const norm = normalizarListaUsuarios(listaSalvar);
           gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, norm);
+          if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
+            return norm;
+          }
+          const supa = window.SJ_SUPABASE.getClient();
+          if (!supa) return norm;
           await supa.from("configuracoes_site").upsert(
             {
               chave: "equipe_admin_v1",
-              valor: { usuarios: norm },
+              valor: { usuarios: norm, removidos: removidosLocal },
               atualizado_em: new Date().toISOString()
             },
             { onConflict: "chave" }
           );
           return norm;
         } else {
+          const local = normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
+          if (typeof window === "undefined" || !window.SJ_SUPABASE || !window.SJ_SUPABASE.isConfigured()) {
+            return local;
+          }
+          const supa = window.SJ_SUPABASE.getClient();
+          if (!supa) return local;
+
+          let removidos = [...removidosLocal];
+          const mapa = new Map();
+          local.forEach((u) => {
+            const em = String(u.email || "").toLowerCase().trim();
+            if (em) mapa.set(em, u);
+          });
+
+          // 1) Lista oficial em configuracoes_site
           const { data, error } = await supa
             .from("configuracoes_site")
             .select("valor")
             .eq("chave", "equipe_admin_v1")
             .maybeSingle();
 
-          const local = normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
-          if (!error && data && data.valor && Array.isArray(data.valor.usuarios)) {
-            const nuvem = data.valor.usuarios;
-            // Mescla usuários da nuvem com os locais preservando todos os registros
-            const mapa = new Map();
-            local.forEach((u) => mapa.set(String(u.email || "").toLowerCase(), u));
-            nuvem.forEach((u) => {
-              const em = String(u.email || "").toLowerCase();
-              if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...u });
-            });
-            const mesclado = normalizarListaUsuarios(Array.from(mapa.values()));
-            gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, mesclado);
-            return mesclado;
+          if (!error && data && data.valor) {
+            if (Array.isArray(data.valor.removidos)) {
+              removidos = [...new Set([...removidos, ...data.valor.removidos.map((e) => String(e).toLowerCase().trim())])];
+              gravarLocal("sj_equipe_removidos_v1", removidos);
+            }
+            if (Array.isArray(data.valor.usuarios)) {
+              data.valor.usuarios.forEach((u) => {
+                const em = String(u.email || "").toLowerCase().trim();
+                if (em && !removidos.includes(em)) {
+                  mapa.set(em, { ...(mapa.get(em) || {}), ...u });
+                }
+              });
+            }
           }
-          return local;
+
+          // 2) Solicitações enviadas de outros aparelhos via termos_consentimento (permitido para anon)
+          try {
+            const { data: reqRows } = await supa
+              .from("termos_consentimento")
+              .select("id, titular_identificador, motivo_revogacao, concedido_em")
+              .eq("finalidade", "solicitacao_acesso_admin")
+              .order("concedido_em", { ascending: false });
+
+            if (Array.isArray(reqRows)) {
+              reqRows.forEach((r) => {
+                try {
+                  const parsed = r.motivo_revogacao ? JSON.parse(r.motivo_revogacao) : null;
+                  const em = String(parsed?.email || r.titular_identificador || "").toLowerCase().trim();
+                  if (em && !removidos.includes(em) && !mapa.has(em)) {
+                    mapa.set(em, {
+                      id: parsed?.id || "usr-req-" + r.id,
+                      nome: parsed?.nome || em.split("@")[0],
+                      email: em,
+                      senhaHash: parsed?.senhaHash || "",
+                      cargo: parsed?.cargo || "Vendedor Autorizado",
+                      motivo: parsed?.motivo || "Solicitação via /admin",
+                      tipo: "operador",
+                      status: "pendente",
+                      isMaster: false,
+                      foto: null,
+                      ativo: false,
+                      criadoEm: parsed?.criadoEm || r.concedido_em,
+                      ultimoLogin: null
+                    });
+                  }
+                } catch (_) {}
+              });
+            }
+          } catch (_) {}
+
+          const mesclado = normalizarListaUsuarios(Array.from(mapa.values()));
+          gravarLocal(STORAGE_KEYS.USUARIOS_TABELA, mesclado);
+          return mesclado;
         }
       } catch (_) {
         return normalizarListaUsuarios(lerLocal(STORAGE_KEYS.USUARIOS_TABELA, [USUARIO_PADRAO]));
@@ -479,11 +540,12 @@
         };
       }
 
+      const senhaCriptografada = await hashSenha(senhaLimpa);
       const novaSolicitacao = {
         id: "usr-req-" + Date.now(),
         nome: nomeLimpo,
         email: emailLimpo,
-        senhaHash: senhaLimpa,
+        senhaHash: senhaCriptografada,
         cargo: cargo || "Administrador Autorizado",
         motivo: (motivo || "").trim(),
         tipo: "operador",
@@ -495,8 +557,29 @@
         ultimoLogin: null
       };
 
+      // Remove da lista de removidos caso o e-mail esteja solicitando novamente
+      const remAtual = lerLocal("sj_equipe_removidos_v1", []).filter((e) => String(e).toLowerCase() !== emailLimpo);
+      gravarLocal("sj_equipe_removidos_v1", remAtual);
+
       usuarios.push(novaSolicitacao);
       await auth.sincronizarEquipeNuvem(usuarios);
+
+      // Envia também via tabela termos_consentimento (aceita anon via RLS) para garantir entrega entre dispositivos
+      try {
+        const supa = typeof window !== "undefined" && window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()
+          ? window.SJ_SUPABASE.getClient()
+          : null;
+        if (supa) {
+          await supa.from("termos_consentimento").insert({
+            titular_identificador: emailLimpo,
+            titular_tipo: "operador",
+            canal: "admin",
+            finalidade: "solicitacao_acesso_admin",
+            consentimento_concedido: true,
+            motivo_revogacao: JSON.stringify(novaSolicitacao)
+          });
+        }
+      } catch (_) {}
 
       return {
         sucesso: true,
@@ -562,7 +645,7 @@
       const filtrados = usuarios.filter(
         (u) => String(u.id || "").toLowerCase() !== alvo && String(u.email || "").toLowerCase() !== alvo
       );
-      await auth.sincronizarEquipeNuvem(filtrados);
+      await auth.sincronizarEquipeNuvem(filtrados, user.email);
       return { sucesso: true, mensagem: `Registro de ${user.email} removido com sucesso.` };
     },
 
