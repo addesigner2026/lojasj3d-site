@@ -263,12 +263,15 @@
       return auth.loginGoogle();
     },
 
-    // Cadastro de Novo Vendedor
-    registrar: async function ({ nome, email, password, cargo = "Vendedor" }) {
+    // Cadastro de Novo Usuário (Cliente em /conta ou Funcionário em /admin)
+    // SEGURANÇA: accountType só aceita 'customer' ou 'staff' (e o trigger no banco valida novamente, nunca aceitando 'admin').
+    registrar: async function ({ nome, email, password, cargo = "", telefone = "", endereco = "", accountType = "customer" }) {
       const client = inicializarCliente();
       if (!client) {
         return { sucesso: false, fallback: true, mensagem: "Supabase não configurado." };
       }
+
+      const tipoSeguro = String(accountType || "customer").toLowerCase().trim() === "staff" ? "staff" : "customer";
 
       try {
         const { data, error } = await client.auth.signUp({
@@ -276,8 +279,12 @@
           password: password.trim(),
           options: {
             data: {
-              name: nome.trim(),
-              cargo: cargo.trim()
+              name: (nome || "").trim(),
+              nome: (nome || "").trim(),
+              cargo: (cargo || "").trim(),
+              telefone: (telefone || "").trim(),
+              endereco: (endereco || "").trim(),
+              account_type: tipoSeguro
             }
           }
         });
@@ -292,9 +299,10 @@
           usuario: data.user
             ? {
               id: data.user.id,
-              nome: nome.trim(),
+              nome: (nome || "").trim(),
               email: data.user.email,
-              cargo: cargo.trim()
+              cargo: (cargo || "").trim(),
+              accountType: tipoSeguro
             }
             : null
         };
@@ -826,7 +834,7 @@
 
         const { data, error } = await client
           .from("profiles")
-          .select("id, email, nome, role, status, created_at, updated_at, approved_at, approved_by")
+          .select("*")
           .eq("id", uid)
           .maybeSingle();
 
@@ -840,14 +848,45 @@
       }
     },
 
-    // Lista todos os perfis (pendentes, aprovados e bloqueados) — permitido apenas para admin via RLS
+    // Atualiza apenas dados cadastrais do próprio perfil (nome, telefone, endereco, cidade_uf)
+    // Role e status são bloqueados pelo banco (RLS + trigger) para não-admins.
+    atualizarMeuPerfil: async function ({ nome, telefone, endereco, cidade_uf }) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, mensagem: "Sessão expirada. Faça login novamente." };
+
+        const payload = {
+          nome: String(nome || "").trim(),
+          telefone: String(telefone || "").trim(),
+          endereco: String(endereco || "").trim(),
+          cidade_uf: String(cidade_uf || "").trim()
+        };
+
+        const { data, error } = await client
+          .from("profiles")
+          .update(payload)
+          .eq("id", uid)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, perfil: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Lista todos os perfis (pendentes, aprovados, bloqueados e clientes) — permitido apenas para admin via RLS
     listarTodos: async function () {
       const client = inicializarCliente();
       if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
       try {
         const { data, error } = await client
           .from("profiles")
-          .select("id, email, nome, role, status, created_at, updated_at, approved_at, approved_by")
+          .select("*")
           .order("created_at", { ascending: false });
 
         if (error) {
@@ -869,7 +908,7 @@
           .from("profiles")
           .update({ status: novoStatus })
           .eq("id", id)
-          .select("id, email, nome, role, status, approved_at")
+          .select("*")
           .maybeSingle();
 
         if (error) return { sucesso: false, mensagem: error.message };
@@ -879,16 +918,17 @@
       }
     },
 
-    // Atualiza papel ('admin' | 'user') de um perfil — protegido por RLS + trigger
+    // Atualiza papel ('admin' | 'staff' | 'customer') de um perfil — protegido por RLS + trigger
     atualizarRole: async function (id, novaRole) {
       const client = inicializarCliente();
       if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      const roleValida = ["admin", "staff", "customer"].includes(novaRole) ? novaRole : "customer";
       try {
         const { data, error } = await client
           .from("profiles")
-          .update({ role: novaRole })
+          .update({ role: roleValida })
           .eq("id", id)
-          .select("id, email, nome, role, status, approved_at")
+          .select("*")
           .maybeSingle();
 
         if (error) return { sucesso: false, mensagem: error.message };
@@ -898,16 +938,17 @@
       }
     },
 
-    // Aprova e define o papel em uma única operação
-    aprovarComRole: async function (id, role = "user") {
+    // Aprova e define o papel em uma única operação ('admin' | 'staff' | 'customer')
+    aprovarComRole: async function (id, role = "staff") {
       const client = inicializarCliente();
       if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      const roleValida = ["admin", "staff", "customer"].includes(role) ? role : "staff";
       try {
         const { data, error } = await client
           .from("profiles")
-          .update({ status: "approved", role: role === "admin" ? "admin" : "user" })
+          .update({ status: "approved", role: roleValida })
           .eq("id", id)
-          .select("id, email, nome, role, status, approved_at")
+          .select("*")
           .maybeSingle();
 
         if (error) return { sucesso: false, mensagem: error.message };
@@ -1079,6 +1120,384 @@
     }
   };
 
+  // =========================================================================
+  // MÓDULO DE ORÇAMENTOS DO CLIENTE (public.quotes + RLS + REALTIME)
+  // =========================================================================
+  const quotes = {
+    listarMeus: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, dados: [], mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("quotes")
+          .select("*")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    listarTodos: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client
+          .from("quotes")
+          .select("*")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    criar: async function (dados) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const user = sessData?.session?.user;
+        if (!user?.id) return { sucesso: false, mensagem: "Faça login para enviar seu orçamento." };
+
+        const payload = {
+          user_id: user.id,
+          cliente_nome: String(dados.cliente_nome || "").trim(),
+          cliente_email: String(dados.cliente_email || user.email || "").trim().toLowerCase(),
+          cliente_telefone: String(dados.cliente_telefone || "").trim(),
+          titulo: String(dados.titulo || "Solicitação de Orçamento 3D").trim(),
+          descricao: String(dados.descricao || "").trim(),
+          arquivo_medidas: String(dados.arquivo_medidas || "").trim(),
+          quantidade: Math.max(1, parseInt(dados.quantidade, 10) || 1),
+          material_cor: String(dados.material_cor || "").trim(),
+          observacoes: String(dados.observacoes || "").trim()
+        };
+
+        const { data, error } = await client
+          .from("quotes")
+          .insert(payload)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Equipe (staff/admin) responde orçamento com valor, texto e status
+    responderEquipe: async function (id, { status, valor_estimado, resposta_equipe }) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const payload = {
+          status: status || "respondido",
+          resposta_equipe: String(resposta_equipe || "").trim()
+        };
+        if (valor_estimado !== undefined && valor_estimado !== "" && valor_estimado !== null) {
+          const num = Number(String(valor_estimado).replace(",", "."));
+          if (!isNaN(num) && num >= 0) payload.valor_estimado = num;
+        }
+        const { data, error } = await client
+          .from("quotes")
+          .update(payload)
+          .eq("id", id)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Cliente aprova ou recusa um orçamento que já foi respondido pela equipe
+    responderCliente: async function (id, decisao) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      const statusSeguro = decisao === "aprovado" ? "aprovado" : "recusado";
+      try {
+        const { data, error } = await client
+          .from("quotes")
+          .update({ status: statusSeguro })
+          .eq("id", id)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    excluir: async function (id) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { error } = await client.from("quotes").delete().eq("id", id);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-quotes-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "quotes" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO DE SALVOS & RASCUNHOS DO CLIENTE (public.saved_items + RLS)
+  // =========================================================================
+  const savedItems = {
+    listarMeus: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, dados: [], mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("saved_items")
+          .select("*")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    criar: async function (dados) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, mensagem: "Faça login para salvar itens." };
+
+        const payload = {
+          user_id: uid,
+          item_kind: dados.item_kind === "rascunho" ? "rascunho" : "favorito",
+          product_id: dados.product_id || null,
+          titulo: String(dados.titulo || "Item salvo").trim(),
+          descricao: String(dados.descricao || "").trim(),
+          material_cor: String(dados.material_cor || "").trim(),
+          quantidade: Math.max(1, parseInt(dados.quantidade, 10) || 1),
+          preco_referencia: dados.preco_referencia != null && !isNaN(Number(dados.preco_referencia)) ? Number(dados.preco_referencia) : null,
+          imagem: String(dados.imagem || "").trim(),
+          dados: dados.dados && typeof dados.dados === "object" ? dados.dados : {}
+        };
+
+        const { data, error } = await client
+          .from("saved_items")
+          .insert(payload)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    excluir: async function (id) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { error } = await client.from("saved_items").delete().eq("id", id);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO DE PEDIDOS DO CLIENTE (public.orders + public.order_items + RLS)
+  // =========================================================================
+  const orders = {
+    listarMeus: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, dados: [], mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("orders")
+          .select("*, order_items(*)")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    listarTodos: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client
+          .from("orders")
+          .select("*, order_items(*)")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    criarComItens: async function (pedido, itens = []) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const user = sessData?.session?.user;
+        if (!user?.id) return { sucesso: false, mensagem: "Faça login para criar um pedido." };
+
+        const itensNormalizados = (Array.isArray(itens) ? itens : []).map((it) => {
+          const qtd = Math.max(1, parseInt(it.quantidade, 10) || 1);
+          const unit = Number(it.preco_unitario || 0) || 0;
+          return {
+            product_id: it.product_id || null,
+            nome: String(it.nome || "Item Loja SJ 3D").trim(),
+            detalhes: String(it.detalhes || "").trim(),
+            quantidade: qtd,
+            preco_unitario: unit,
+            subtotal: Number((qtd * unit).toFixed(2))
+          };
+        });
+
+        const totalCalculado =
+          pedido.total != null && Number(pedido.total) > 0
+            ? Number(pedido.total)
+            : itensNormalizados.reduce((acc, it) => acc + it.subtotal, 0);
+
+        const payloadPedido = {
+          user_id: user.id,
+          quote_id: pedido.quote_id || null,
+          cliente_nome: String(pedido.cliente_nome || "").trim(),
+          cliente_email: String(pedido.cliente_email || user.email || "").trim().toLowerCase(),
+          cliente_telefone: String(pedido.cliente_telefone || "").trim(),
+          endereco_entrega: String(pedido.endereco_entrega || "").trim(),
+          forma_entrega: pedido.forma_entrega === "entrega" ? "entrega" : "retirada",
+          observacoes: String(pedido.observacoes || "").trim(),
+          total: Number(totalCalculado.toFixed(2))
+        };
+
+        const { data: orderRow, error: orderErr } = await client
+          .from("orders")
+          .insert(payloadPedido)
+          .select("*")
+          .maybeSingle();
+
+        if (orderErr || !orderRow) {
+          return { sucesso: false, mensagem: orderErr?.message || "Erro ao registrar pedido." };
+        }
+
+        if (itensNormalizados.length > 0) {
+          const rowsItens = itensNormalizados.map((it) => ({
+            ...it,
+            order_id: orderRow.id,
+            user_id: user.id
+          }));
+          const { error: itemsErr } = await client.from("order_items").insert(rowsItens);
+          if (itemsErr) {
+            return { sucesso: true, item: orderRow, avisoItens: itemsErr.message };
+          }
+        }
+
+        return { sucesso: true, item: orderRow };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    atualizarStatus: async function (id, novoStatus) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data, error } = await client
+          .from("orders")
+          .update({ status: novoStatus })
+          .eq("id", id)
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-orders-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "orders" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -1102,6 +1521,9 @@
     auth,
     profiles,
     products,
+    quotes,
+    savedItems,
+    orders,
     clientes,
     consentimentos,
     retencao,

@@ -59,10 +59,10 @@
         <p style="margin: 0; font-size: 0.84rem; color: #64748b;">Área restrita exclusiva para a equipe e administração oficial.</p>
       </div>
 
-      <!-- ABAS DO GATE: ENTRAR | CRIAR CONTA / SOLICITAR ACESSO -->
+      <!-- ABAS DO GATE: ENTRAR | SOLICITAR ACESSO DE FUNCIONÁRIO -->
       <div class="admin-auth-gate-tabs" id="admin-auth-gate-tabs" role="tablist">
-        <button type="button" class="btn-admin-gate-tab active" data-gate-tab="login" role="tab">🔐 Entrar no Painel</button>
-        <button type="button" class="btn-admin-gate-tab" data-gate-tab="register" role="tab">📨 Criar Conta</button>
+        <button type="button" class="btn-admin-gate-tab active" data-gate-tab="login" role="tab">🔐 Entrar (Equipe)</button>
+        <button type="button" class="btn-admin-gate-tab" data-gate-tab="register" role="tab">📨 Solicitar Acesso</button>
       </div>
 
       <!-- TELA DEDICADA DE STATUS: AGUARDANDO APROVAÇÃO / BLOQUEADO / USUÁRIO COMUM -->
@@ -116,21 +116,22 @@
 
         <div id="admin-gate-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
 
-        <div style="margin-top: 18px; text-align: center; border-top: 1px solid #f1f5f9; padding-top: 14px;">
-          <a href="index.html" style="font-size: 0.82rem; color: #64748b; text-decoration: none; font-weight: 600;">← Voltar para a Loja Pública</a>
+        <div style="margin-top: 18px; display: flex; justify-content: space-between; align-items: center; border-top: 1px solid #f1f5f9; padding-top: 14px; font-size: 0.8rem;">
+          <a href="index.html" style="color: #64748b; text-decoration: none; font-weight: 600;">← Loja Pública</a>
+          <a href="/conta" style="color: #f04e23; text-decoration: none; font-weight: 700;">Sou Cliente (/conta) →</a>
         </div>
       </form>
 
-      <!-- PAINEL 2: CRIAR CONTA / SOLICITAR ACESSO (NASCE COMO PENDING NO SUPABASE) -->
+      <!-- PAINEL 2: SOLICITAR ACESSO DE FUNCIONÁRIO (NASCE COMO STAFF + PENDING NO SUPABASE) -->
       <form id="form-admin-gate-register" style="display: none;">
         <div class="admin-gate-input-group">
-          <label for="admin-gate-req-nome">Nome Completo</label>
+          <label for="admin-gate-req-nome">Nome Completo (Funcionário)</label>
           <input type="text" id="admin-gate-req-nome" class="admin-gate-input" placeholder="Ex: Carlos Eduardo" required />
         </div>
 
         <div class="admin-gate-input-group">
           <label for="admin-gate-req-email">E-mail</label>
-          <input type="email" id="admin-gate-req-email" class="admin-gate-input" placeholder="seu-email@dominio.com" autocomplete="email" required />
+          <input type="email" id="admin-gate-req-email" class="admin-gate-input" placeholder="funcionario@dominio.com" autocomplete="email" required />
         </div>
 
         <div class="admin-gate-input-group">
@@ -139,23 +140,24 @@
         </div>
 
         <div class="admin-gate-input-group">
-          <label for="admin-gate-req-cargo">Função / Cargo Desejado</label>
+          <label for="admin-gate-req-cargo">Função / Cargo na Equipe</label>
           <select id="admin-gate-req-cargo" class="admin-gate-input" style="height: 44px;">
             <option value="Vendedor Autorizado">Vendedor Autorizado</option>
             <option value="Estoquista">Estoquista / Expedição</option>
+            <option value="Operador de Impressão 3D">Operador de Impressão 3D</option>
             <option value="Gerente Comercial">Gerente Comercial</option>
             <option value="Suporte Técnico">Suporte Técnico / Manutenção</option>
           </select>
         </div>
 
         <button type="submit" id="btn-admin-gate-req-submit" class="btn-cms-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
-          📨 Criar Conta e Solicitar Aprovação
+          📨 Solicitar Acesso de Funcionário
         </button>
 
         <div id="admin-gate-req-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
 
-        <p style="margin: 12px 0 0; font-size: 0.74rem; color: #94a3b8; text-align: center;">
-          💡 Toda nova conta fica com status <strong>Pendente</strong> até o administrador aprovar no painel.
+        <p style="margin: 12px 0 0; font-size: 0.74rem; color: #64748b; text-align: center; line-height: 1.45;">
+          💡 Solicitações de equipe ficam <strong>Pendentes</strong> até o administrador aprovar. Se você é cliente, <a href="/conta" style="color: #f04e23; font-weight: 700;">crie sua conta em /conta</a>.
         </p>
       </form>
     </div>
@@ -200,6 +202,16 @@
             <span>📦 Catálogo, Filamentos &amp; Preços</span>
           </button>
 
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="orcamentos-clientes" role="tab">
+            <span>📋 Orçamentos (Clientes)</span>
+            <span id="cms-portal-quotes-badge" class="badge-pill">0</span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="pedidos-clientes" role="tab">
+            <span>🛒 Pedidos (Clientes)</span>
+            <span id="cms-portal-orders-badge" class="badge-pill">0</span>
+          </button>
+
           <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" role="tab">
             <span>🔍 Consulta de Preço &amp; QR Code</span>
           </button>
@@ -213,20 +225,20 @@
             <span>🎨 Banner &amp; Sorteio</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" role="tab">
-            <span>👥 Funcionários &amp; Acessos</span>
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" data-admin-only="true" role="tab">
+            <span>👥 Acessos (Admin)</span>
             <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" role="tab">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" data-admin-only="true" role="tab">
             <span>⚡ Supabase &amp; Nuvem</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="exportar" role="tab">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="exportar" data-admin-only="true" role="tab">
             <span>💾 Backup &amp; Dados</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="lgpd" role="tab">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="lgpd" data-admin-only="true" role="tab">
             <span>🛡️ Solicitações LGPD</span>
           </button>
         </nav>
@@ -287,9 +299,9 @@
             <span class="action-label">Clientes &amp; Leads</span>
           </button>
 
-          <button type="button" id="crm-top-btn-equipe-shortcut" class="admin-topbar-action-btn hide-on-tablet" title="Gerenciar Equipe e Permissões">
+          <button type="button" id="crm-top-btn-equipe-shortcut" class="admin-topbar-action-btn hide-on-tablet" data-admin-only="true" title="Gerenciar Acessos e Permissões (Somente Admin)">
             <span class="action-icon">👥</span>
-            <span class="action-label">Equipe</span>
+            <span class="action-label">Acessos</span>
             <span id="crm-top-pending-pill" class="badge-danger-pill" style="display:none;">0</span>
           </button>
 
@@ -861,48 +873,112 @@
           </form>
         </div>
 
-        <!-- ABA 5: ACESSOS, EQUIPE & PERMISSÕES (public.profiles + RLS) -->
+        <!-- ABA NOVA: ORÇAMENTOS DOS CLIENTES (STAFF + ADMIN) -->
+        <div class="admin-cms-pane" id="cms-pane-orcamentos-clientes" style="display: none;">
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">📋 Orçamentos Recebidos dos Clientes (/conta)</h4>
+                <p style="margin:0; color:#64748b; font-size:0.84rem;">Informe o valor, prazo/observações e atualize o status. O cliente vê sua resposta automaticamente no painel dele.</p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select id="cms-filter-quotes-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
+                  <option value="todos">Todos os status</option>
+                  <option value="enviado">📨 Enviados (Novos)</option>
+                  <option value="em_analise">🔍 Em análise</option>
+                  <option value="respondido">💬 Respondidos</option>
+                  <option value="aprovado">✅ Aprovados pelo cliente</option>
+                  <option value="recusado">✖️ Recusados</option>
+                </select>
+                <button type="button" id="btn-cms-refresh-portal-quotes" class="btn-cms-secondary" style="padding:8px 14px; border-radius:9px; font-size:0.82rem; cursor:pointer;">🔄 Atualizar</button>
+              </div>
+            </div>
+            <div id="cms-portal-quotes-list">
+              <div style="padding:24px; text-align:center; color:#64748b;">Carregando orçamentos...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA NOVA: PEDIDOS DOS CLIENTES (STAFF + ADMIN) -->
+        <div class="admin-cms-pane" id="cms-pane-pedidos-clientes" style="display: none;">
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
+              <div>
+                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">🛒 Pedidos dos Clientes &amp; Fila de Produção</h4>
+                <p style="margin:0; color:#64748b; font-size:0.84rem;">Acompanhe todos os pedidos e atualize o andamento (Recebido → Em produção → Pronto → Enviado/Retirado → Concluído).</p>
+              </div>
+              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                <select id="cms-filter-orders-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
+                  <option value="todos">Todos os status</option>
+                  <option value="recebido">📥 Recebidos</option>
+                  <option value="em_producao">⚙️ Em produção</option>
+                  <option value="pronto">✨ Prontos</option>
+                  <option value="enviado_retirado">🚚 Enviados / Retirados</option>
+                  <option value="concluido">🎉 Concluídos</option>
+                  <option value="cancelado">🚫 Cancelados</option>
+                </select>
+                <button type="button" id="btn-cms-refresh-portal-orders" class="btn-cms-secondary" style="padding:8px 14px; border-radius:9px; font-size:0.82rem; cursor:pointer;">🔄 Atualizar</button>
+              </div>
+            </div>
+            <div id="cms-portal-orders-list">
+              <div style="padding:24px; text-align:center; color:#64748b;">Carregando pedidos...</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- ABA 5: ACESSOS, EQUIPE & CLIENTES (EXCLUSIVO ADMIN — public.profiles + RLS) -->
         <div class="admin-cms-pane" id="cms-pane-equipe" style="display: none;">
           <!-- Card Resumo do Administrador Logado -->
           <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:16px; padding:22px 24px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 4px 16px rgba(15,23,42,0.1);">
             <div>
-              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:0.05em; margin-bottom:8px;">👑 CONTROLE DE ACESSOS • SUPABASE AUTH &amp; RLS</span>
+              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:0.05em; margin-bottom:8px;">👑 EXCLUSIVO ADMINISTRADOR • SUPABASE AUTH &amp; RLS</span>
               <div id="cms-equipe-logged-email" style="font-size:1.15rem; font-weight:700; letter-spacing:-0.01em;">jt.designer21@gmail.com</div>
-              <div style="font-size:0.84rem; color:#94a3b8; margin-top:4px; line-height:1.45;">Aprove pedidos pendentes, defina quem é Administrador ou Usuário Comum, bloqueie ou exclua contas em tempo real.</div>
+              <div style="font-size:0.84rem; color:#94a3b8; margin-top:4px; line-height:1.45;">Aprove ou bloqueie funcionários, altere papéis (Admin, Funcionário ou Cliente) e visualize os clientes cadastrados em /conta.</div>
             </div>
             <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:10px 16px; font-weight:600; cursor:pointer;">
               🔄 Atualizar Acessos
             </button>
           </div>
 
-          <!-- 1) SOLICITAÇÕES PENDENTES DE APROVAÇÃO -->
+          <!-- 1) SOLICITAÇÕES PENDENTES DE FUNCIONÁRIOS -->
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="margin-bottom:14px;">
-              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">⏳ Pedidos de Acesso Pendentes</h4>
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">⏳ Solicitações de Funcionários Pendentes</h4>
               <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
-                Toda conta criada fica pendente até você clicar em <strong>Aprovar</strong>. Você pode liberar como <strong>Administrador</strong> ou <strong>Usuário Comum</strong>, bloquear ou excluir.
+                Quem solicita acesso pelo <code>/admin</code> entra aqui como <strong>Funcionário Pendente</strong> e só acessa a gestão após você aprovar.
               </p>
             </div>
             <div id="cms-pending-requests-list"></div>
           </div>
 
-          <!-- 2) USUÁRIOS & ADMINISTRADORES APROVADOS -->
+          <!-- 2) EQUIPE ATIVA (ADMIN & FUNCIONÁRIOS APROVADOS) -->
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="margin-bottom:14px;">
-              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">✅ Usuários &amp; Administradores Aprovados</h4>
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">✅ Equipe Ativa (Administradores &amp; Funcionários)</h4>
               <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
-                Altere o papel (Admin ou Usuário Comum), bloqueie/revogue ou exclua contas. Sua própria conta e o último administrador ficam protegidos no banco.
+                Gerencie quem tem acesso ao painel <code>/admin</code>. Funcionários aprovados gerenciam catálogo, orçamentos e pedidos, mas não veem esta aba.
               </p>
             </div>
             <div id="cms-all-admins-list"></div>
           </div>
 
-          <!-- 3) CONTAS BLOQUEADAS / REVOGADAS -->
+          <!-- 3) CLIENTES CADASTRADOS (/conta) -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="margin-bottom:14px;">
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">👤 Clientes Cadastrados (/conta)</h4>
+              <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
+                Clientes possuem acesso automático somente ao próprio painel <code>/conta</code> e são barrados do <code>/admin</code>.
+              </p>
+            </div>
+            <div id="cms-customers-list"></div>
+          </div>
+
+          <!-- 4) CONTAS BLOQUEADAS / REVOGADAS -->
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="margin-bottom:14px;">
               <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">🚫 Contas Bloqueadas / Revogadas</h4>
               <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
-                Contas bloqueadas perdem acesso imediatamente. Você pode reativá-las ou excluí-las permanentemente.
+                Contas bloqueadas perdem acesso imediatamente no banco (RLS). Você pode reativá-las ou excluí-las.
               </p>
             </div>
             <div id="cms-blocked-admins-list"></div>
@@ -1388,10 +1464,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_05"></script>
-  <script src="js/dados.js?v=20261118_05"></script>
-  <script src="js/database.js?v=20261118_05"></script>
-  <script src="js/app.js?v=20261118_05"></script>
+  <script src="js/supabase-client.js?v=20261118_06"></script>
+  <script src="js/dados.js?v=20261118_06"></script>
+  <script src="js/database.js?v=20261118_06"></script>
+  <script src="js/app.js?v=20261118_06"></script>
 
 </body>
 

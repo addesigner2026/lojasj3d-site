@@ -1,0 +1,872 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+
+<head>
+  <!-- Google tag (gtag.js) GTM-NXSBR5H5 -->
+  <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NXSBR5H5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+  </script>
+
+  <meta charset="UTF-8" />
+  <base href="/" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+
+  <!-- Guardião Canônico Oficial -->
+  <script>
+    (function () {
+      try {
+        var h = window.location.hostname;
+        if (h && (h.indexOf("vercel.app") !== -1 || h === "lojasj3d.com.br")) {
+          window.location.replace("https://www.lojasj3d.com.br" + window.location.pathname + window.location.search + window.location.hash);
+        }
+      } catch (_) {}
+    })();
+  </script>
+
+  <title>Minha Conta • Loja SJ 3D</title>
+  <meta name="description" content="Área do Cliente Loja SJ 3D: acompanhe seus orçamentos, projetos salvos, pedidos em produção e dados cadastrais." />
+  <meta name="robots" content="noindex, nofollow" />
+  <meta name="theme-color" content="#F04E23" />
+  <link rel="icon" href="/favicon.ico" sizes="any" />
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="48x48" href="/favicon-48x48.png" />
+  <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/site.webmanifest" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+
+  <style>
+    *, *::before, *::after { box-sizing: border-box; }
+    :root {
+      --sj-orange: #f04e23;
+      --sj-orange-dark: #d8431b;
+      --sj-orange-soft: #fff4ef;
+      --sj-bg: #f8fafc;
+      --sj-surface: #ffffff;
+      --sj-border: #e2e8f0;
+      --sj-text: #0f172a;
+      --sj-muted: #64748b;
+      --sj-green: #15803d;
+      --sj-green-bg: #dcfce7;
+      --sj-amber: #b45309;
+      --sj-amber-bg: #fef3c7;
+      --sj-red: #b91c1c;
+      --sj-red-bg: #fee2e2;
+      --sj-blue: #1d4ed8;
+      --sj-blue-bg: #dbeafe;
+    }
+
+    body {
+      margin: 0;
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--sj-bg);
+      color: var(--sj-text);
+      min-height: 100vh;
+    }
+
+    /* ================= GATE DE LOGIN / CADASTRO DO CLIENTE ================= */
+    .conta-gate-wrap {
+      min-height: 100vh;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 24px 16px;
+      background: radial-gradient(circle at top left, #fff4ef 0%, #f8fafc 45%, #eef2f7 100%);
+    }
+
+    .conta-gate-card {
+      width: 100%;
+      max-width: 440px;
+      background: #ffffff;
+      border: 1px solid var(--sj-border);
+      border-radius: 20px;
+      padding: 28px 26px;
+      box-shadow: 0 20px 50px rgba(15, 23, 42, 0.08);
+    }
+
+    .conta-logo-badge {
+      width: 48px;
+      height: 48px;
+      border-radius: 14px;
+      background: linear-gradient(135deg, var(--sj-orange), var(--sj-orange-dark));
+      color: #fff;
+      font-weight: 900;
+      font-size: 1.2rem;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      margin-bottom: 12px;
+      box-shadow: 0 8px 20px rgba(240, 78, 35, 0.28);
+    }
+
+    .conta-gate-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 6px;
+      background: #f1f5f9;
+      padding: 5px;
+      border-radius: 12px;
+      margin: 18px 0;
+    }
+
+    .conta-gate-tab {
+      border: none;
+      background: transparent;
+      padding: 10px 12px;
+      border-radius: 9px;
+      font-family: inherit;
+      font-size: 0.84rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+
+    .conta-gate-tab.active {
+      background: #ffffff;
+      color: var(--sj-text);
+      box-shadow: 0 2px 8px rgba(15, 23, 42, 0.08);
+    }
+
+    .conta-field {
+      margin-bottom: 14px;
+    }
+
+    .conta-field label {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 700;
+      color: #334155;
+      margin-bottom: 6px;
+    }
+
+    .conta-input, .conta-select, .conta-textarea {
+      width: 100%;
+      padding: 11px 13px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--sj-text);
+      font-family: inherit;
+      font-size: 0.9rem;
+      transition: border-color 0.15s ease, box-shadow 0.15s ease;
+    }
+
+    .conta-input:focus, .conta-select:focus, .conta-textarea:focus {
+      outline: none;
+      border-color: var(--sj-orange);
+      box-shadow: 0 0 0 3px rgba(240, 78, 35, 0.14);
+    }
+
+    .conta-textarea {
+      min-height: 92px;
+      resize: vertical;
+    }
+
+    .btn-sj-primary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 11px 18px;
+      border-radius: 10px;
+      border: none;
+      background: var(--sj-orange);
+      color: #ffffff;
+      font-family: inherit;
+      font-size: 0.88rem;
+      font-weight: 800;
+      cursor: pointer;
+      transition: background 0.15s ease, transform 0.1s ease;
+      text-decoration: none;
+    }
+
+    .btn-sj-primary:hover:not(:disabled) { background: var(--sj-orange-dark); }
+    .btn-sj-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-sj-secondary {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 10px;
+      border: 1.5px solid #cbd5e1;
+      background: #ffffff;
+      color: var(--sj-text);
+      font-family: inherit;
+      font-size: 0.85rem;
+      font-weight: 700;
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-decoration: none;
+    }
+
+    .btn-sj-secondary:hover:not(:disabled) { border-color: #94a3b8; background: #f8fafc; }
+    .btn-sj-secondary:disabled { opacity: 0.6; cursor: not-allowed; }
+
+    .btn-sj-success {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 9px;
+      border: none;
+      background: #16a34a;
+      color: #fff;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 800;
+      cursor: pointer;
+    }
+    .btn-sj-success:hover:not(:disabled) { background: #15803d; }
+
+    .btn-sj-danger {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      padding: 9px 14px;
+      border-radius: 9px;
+      border: 1px solid #fecaca;
+      background: #fef2f2;
+      color: #b91c1c;
+      font-family: inherit;
+      font-size: 0.82rem;
+      font-weight: 700;
+      cursor: pointer;
+    }
+    .btn-sj-danger:hover:not(:disabled) { background: #fee2e2; }
+
+    .conta-feedback {
+      display: none;
+      margin-top: 12px;
+      padding: 10px 13px;
+      border-radius: 10px;
+      font-size: 0.82rem;
+      font-weight: 600;
+      line-height: 1.45;
+    }
+
+    /* ================= DASHBOARD DO CLIENTE (/conta) ================= */
+    .conta-shell {
+      display: none;
+      min-height: 100vh;
+    }
+
+    .conta-header {
+      background: #ffffff;
+      border-bottom: 1px solid var(--sj-border);
+      position: sticky;
+      top: 0;
+      z-index: 40;
+    }
+
+    .conta-header-inner {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 14px 20px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      flex-wrap: wrap;
+    }
+
+    .conta-brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--sj-text);
+    }
+
+    .conta-brand-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 11px;
+      background: var(--sj-orange);
+      color: #fff;
+      font-weight: 900;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1rem;
+    }
+
+    .conta-user-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    .conta-user-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 7px 13px;
+      border-radius: 999px;
+      background: #f1f5f9;
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #1e293b;
+    }
+
+    .conta-container {
+      max-width: 1180px;
+      margin: 0 auto;
+      padding: 24px 20px 60px;
+    }
+
+    .conta-nav-tabs {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      margin-bottom: 22px;
+      background: #ffffff;
+      border: 1px solid var(--sj-border);
+      padding: 8px;
+      border-radius: 14px;
+    }
+
+    .conta-tab-btn {
+      border: none;
+      background: transparent;
+      padding: 10px 16px;
+      border-radius: 10px;
+      font-family: inherit;
+      font-size: 0.86rem;
+      font-weight: 700;
+      color: #475569;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.15s ease;
+    }
+
+    .conta-tab-btn:hover { background: #f8fafc; color: var(--sj-text); }
+    .conta-tab-btn.active {
+      background: var(--sj-orange);
+      color: #ffffff;
+      box-shadow: 0 4px 12px rgba(240, 78, 35, 0.25);
+    }
+
+    .conta-tab-badge {
+      padding: 2px 7px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      background: rgba(15, 23, 42, 0.08);
+      color: inherit;
+    }
+
+    .conta-tab-btn.active .conta-tab-badge {
+      background: rgba(255, 255, 255, 0.24);
+      color: #fff;
+    }
+
+    .conta-pane { display: none; }
+    .conta-pane.active { display: block; }
+
+    .conta-grid-2 {
+      display: grid;
+      grid-template-columns: minmax(320px, 420px) 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .conta-card {
+      background: #ffffff;
+      border: 1px solid var(--sj-border);
+      border-radius: 16px;
+      padding: 22px;
+      box-shadow: 0 2px 10px rgba(15, 23, 42, 0.03);
+    }
+
+    .conta-card-title {
+      margin: 0 0 6px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--sj-text);
+    }
+
+    .conta-card-sub {
+      margin: 0 0 18px;
+      font-size: 0.82rem;
+      color: var(--sj-muted);
+      line-height: 1.5;
+    }
+
+    .conta-item-card {
+      border: 1px solid var(--sj-border);
+      border-radius: 14px;
+      padding: 16px;
+      background: #ffffff;
+      margin-bottom: 12px;
+      transition: border-color 0.15s ease;
+    }
+    .conta-item-card:hover { border-color: #cbd5e1; }
+
+    .conta-status-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      font-size: 0.72rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .status-enviado, .status-recebido { background: #e0f2fe; color: #0369a1; }
+    .status-em_analise, .status-em_producao { background: #fef3c7; color: #b45309; }
+    .status-respondido, .status-pronto { background: #ede9fe; color: #6d28d9; }
+    .status-aprovado, .status-enviado_retirado, .status-concluido { background: #dcfce7; color: #15803d; }
+    .status-recusado, .status-cancelado { background: #fee2e2; color: #b91c1c; }
+
+    .conta-progress-steps {
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      gap: 6px;
+      margin: 14px 0 10px;
+    }
+
+    .conta-step {
+      padding: 7px 6px;
+      border-radius: 8px;
+      background: #f1f5f9;
+      color: #94a3b8;
+      font-size: 0.68rem;
+      font-weight: 700;
+      text-align: center;
+      border: 1px solid transparent;
+    }
+    .conta-step.done {
+      background: #dcfce7;
+      color: #15803d;
+      border-color: #bbf7d0;
+    }
+    .conta-step.current {
+      background: #fff4ef;
+      color: var(--sj-orange-dark);
+      border-color: #fed7aa;
+    }
+
+    .conta-empty {
+      text-align: center;
+      padding: 36px 20px;
+      border: 1.5px dashed #cbd5e1;
+      border-radius: 14px;
+      color: var(--sj-muted);
+      font-size: 0.86rem;
+    }
+
+    /* Toast flutuante */
+    #conta-toast-container {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      max-width: 360px;
+    }
+
+    .conta-toast {
+      padding: 12px 16px;
+      border-radius: 12px;
+      color: #fff;
+      font-size: 0.84rem;
+      font-weight: 700;
+      box-shadow: 0 10px 28px rgba(15, 23, 42, 0.22);
+      animation: fadeInToast 0.2s ease;
+    }
+    .conta-toast.success { background: #15803d; }
+    .conta-toast.warning { background: #b45309; }
+    .conta-toast.error { background: #b91c1c; }
+    .conta-toast.info { background: #0f172a; }
+
+    @keyframes fadeInToast {
+      from { opacity: 0; transform: translateY(10px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    @media (max-width: 900px) {
+      .conta-grid-2 { grid-template-columns: 1fr; }
+      .conta-progress-steps { grid-template-columns: repeat(2, 1fr); }
+    }
+  </style>
+</head>
+
+<body>
+
+  <!-- ==============================================================
+       PORTA DE ENTRADA 1: LOGIN / CADASTRO DE CLIENTE (/conta)
+       Todo cadastro aqui cria automaticamente role='customer' e status='approved'.
+       ============================================================== -->
+  <div id="conta-auth-gate" class="conta-gate-wrap">
+    <div class="conta-gate-card">
+      <div style="text-align: center;">
+        <div class="conta-logo-badge">SJ</div>
+        <h1 style="margin: 0 0 4px; font-size: 1.35rem; font-weight: 900;">Área do Cliente • Loja SJ 3D</h1>
+        <p style="margin: 0; font-size: 0.84rem; color: #64748b;">
+          Acompanhe seus orçamentos, itens salvos e pedidos de impressão 3D.
+        </p>
+      </div>
+
+      <!-- Tela de status caso um funcionário pendente/bloqueado tente entrar por /conta -->
+      <div id="conta-gate-status-screen" style="display: none; text-align: center; padding: 18px 4px 4px;">
+        <div id="conta-status-icon" style="font-size: 2.2rem; margin-bottom: 10px;">⏳</div>
+        <h2 id="conta-status-title" style="margin: 0 0 8px; font-size: 1.1rem; font-weight: 800;">Conta em análise</h2>
+        <p id="conta-status-desc" style="margin: 0 0 14px; font-size: 0.84rem; color: #475569; line-height: 1.5;"></p>
+        <div id="conta-status-email" style="display: inline-block; padding: 5px 12px; border-radius: 999px; background: #f1f5f9; font-size: 0.78rem; font-weight: 700; margin-bottom: 16px;">—</div>
+        <div style="display: flex; flex-direction: column; gap: 8px;">
+          <a id="conta-status-admin-link" href="/admin" class="btn-sj-primary" style="display: none;">⚙️ Ir para o Painel de Gestão</a>
+          <button type="button" id="btn-conta-status-logout" class="btn-sj-secondary">🚪 Sair e trocar de conta</button>
+          <a href="index.html" style="font-size: 0.8rem; color: #64748b; text-decoration: none; font-weight: 600; margin-top: 4px;">← Voltar para a Loja</a>
+        </div>
+      </div>
+
+      <!-- Formulários de Login / Cadastro de Cliente -->
+      <div id="conta-gate-forms">
+        <div class="conta-gate-tabs" role="tablist">
+          <button type="button" class="conta-gate-tab active" data-conta-auth-tab="login" role="tab">🔐 Entrar</button>
+          <button type="button" class="conta-gate-tab" data-conta-auth-tab="register" role="tab">✨ Criar Conta</button>
+        </div>
+
+        <!-- Login -->
+        <form id="form-conta-login">
+          <div class="conta-field">
+            <label for="conta-login-email">Seu E-mail</label>
+            <input type="email" id="conta-login-email" class="conta-input" placeholder="voce@email.com" autocomplete="username" required />
+          </div>
+          <div class="conta-field">
+            <label for="conta-login-senha">Sua Senha</label>
+            <input type="password" id="conta-login-senha" class="conta-input" placeholder="Digite sua senha" autocomplete="current-password" required />
+          </div>
+          <button type="submit" id="btn-conta-login-submit" class="btn-sj-primary" style="width: 100%;">
+            Entrar na Minha Conta →
+          </button>
+
+          <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0;">
+            <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+            <span style="font-size: 0.74rem; color: #94a3b8; font-weight: 700;">OU</span>
+            <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+          </div>
+
+          <button type="button" id="btn-conta-google" class="btn-sj-secondary" style="width: 100%;">
+            <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+            <span>Entrar com Conta Google</span>
+          </button>
+
+          <div id="conta-login-feedback" class="conta-feedback"></div>
+        </form>
+
+        <!-- Cadastro de Cliente (liberação automática) -->
+        <form id="form-conta-register" style="display: none;">
+          <div class="conta-field">
+            <label for="conta-reg-nome">Nome Completo *</label>
+            <input type="text" id="conta-reg-nome" class="conta-input" placeholder="Ex: Maria Souza" required />
+          </div>
+          <div class="conta-field">
+            <label for="conta-reg-telefone">WhatsApp / Telefone</label>
+            <input type="tel" id="conta-reg-telefone" class="conta-input" placeholder="(44) 99999-9999" />
+          </div>
+          <div class="conta-field">
+            <label for="conta-reg-email">E-mail *</label>
+            <input type="email" id="conta-reg-email" class="conta-input" placeholder="voce@email.com" autocomplete="email" required />
+          </div>
+          <div class="conta-field">
+            <label for="conta-reg-senha">Criar Senha (mín. 6 caracteres) *</label>
+            <input type="password" id="conta-reg-senha" class="conta-input" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required />
+          </div>
+
+          <button type="submit" id="btn-conta-reg-submit" class="btn-sj-primary" style="width: 100%;">
+            🚀 Criar Conta e Entrar Agora
+          </button>
+          <p style="margin: 10px 0 0; font-size: 0.74rem; color: #64748b; text-align: center;">
+            ✅ Acesso imediato ao seu painel de orçamentos, salvos e pedidos.
+          </p>
+          <div id="conta-reg-feedback" class="conta-feedback"></div>
+        </form>
+
+        <div style="margin-top: 18px; padding-top: 14px; border-top: 1px solid #f1f5f9; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem;">
+          <a href="index.html" style="color: #64748b; text-decoration: none; font-weight: 600;">← Voltar para a Loja</a>
+          <a href="/admin" style="color: #94a3b8; text-decoration: none; font-weight: 600;">Acesso da Equipe →</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==============================================================
+       PAINEL DO CLIENTE AUTENTICADO (/conta)
+       Cada cliente vê EXCLUSIVAMENTE seus próprios dados (RLS por user_id).
+       ============================================================== -->
+  <div id="conta-dashboard-shell" class="conta-shell">
+    <header class="conta-header">
+      <div class="conta-header-inner">
+        <a href="index.html" class="conta-brand">
+          <div class="conta-brand-icon">SJ</div>
+          <div>
+            <div style="font-weight: 900; font-size: 0.98rem; line-height: 1.1;">LOJA SJ 3D</div>
+            <div style="font-size: 0.74rem; color: #64748b; font-weight: 600;">Painel do Cliente</div>
+          </div>
+        </a>
+
+        <div class="conta-user-actions">
+          <span class="conta-user-pill">
+            <span>👤</span>
+            <span id="conta-header-user-name">Cliente</span>
+          </span>
+          <a href="index.html" class="btn-sj-secondary" style="padding: 8px 13px; font-size: 0.8rem;">🛒 Ver Catálogo</a>
+          <button type="button" id="btn-conta-logout" class="btn-sj-danger" style="padding: 8px 13px; font-size: 0.8rem;">🚪 Sair</button>
+        </div>
+      </div>
+    </header>
+
+    <main class="conta-container">
+      <!-- Abas do Painel do Cliente -->
+      <nav class="conta-nav-tabs" role="tablist">
+        <button type="button" class="conta-tab-btn active" data-conta-tab="orcamentos" role="tab">
+          <span>📋 Orçamentos</span>
+          <span class="conta-tab-badge" id="badge-conta-quotes">0</span>
+        </button>
+        <button type="button" class="conta-tab-btn" data-conta-tab="salvos" role="tab">
+          <span>🔖 Salvos &amp; Rascunhos</span>
+          <span class="conta-tab-badge" id="badge-conta-saved">0</span>
+        </button>
+        <button type="button" class="conta-tab-btn" data-conta-tab="pedidos" role="tab">
+          <span>📦 Meus Pedidos</span>
+          <span class="conta-tab-badge" id="badge-conta-orders">0</span>
+        </button>
+        <button type="button" class="conta-tab-btn" data-conta-tab="dados" role="tab">
+          <span>👤 Meus Dados</span>
+        </button>
+      </nav>
+
+      <!-- ================= ABA 1: ORÇAMENTOS ================= -->
+      <section id="conta-pane-orcamentos" class="conta-pane active">
+        <div class="conta-grid-2">
+          <!-- Formulário: Novo Orçamento -->
+          <div class="conta-card">
+            <h2 class="conta-card-title">Solicitar Novo Orçamento 3D</h2>
+            <p class="conta-card-sub">
+              Descreva sua peça ou projeto. Nossa equipe analisa e envia o valor aqui no painel em tempo real.
+            </p>
+            <form id="form-conta-new-quote">
+              <div class="conta-field">
+                <label for="quote-titulo">Nome da Peça / Projeto *</label>
+                <input type="text" id="quote-titulo" class="conta-input" placeholder="Ex: Suporte de parede para roteador" required />
+              </div>
+              <div class="conta-field">
+                <label for="quote-descricao">Descrição do que você precisa *</label>
+                <textarea id="quote-descricao" class="conta-textarea" placeholder="Explique o uso da peça, resistência desejada, acabamento..." required></textarea>
+              </div>
+              <div class="conta-field">
+                <label for="quote-arquivo-medidas">Link do arquivo (STL/3MF) ou Medidas</label>
+                <input type="text" id="quote-arquivo-medidas" class="conta-input" placeholder="Ex: 120x80x40 mm ou link Google Drive / Printables" />
+              </div>
+              <div style="display: grid; grid-template-columns: 110px 1fr; gap: 10px;">
+                <div class="conta-field">
+                  <label for="quote-quantidade">Qtd *</label>
+                  <input type="number" id="quote-quantidade" class="conta-input" min="1" value="1" required />
+                </div>
+                <div class="conta-field">
+                  <label for="quote-material-cor">Material / Cor de Filamento</label>
+                  <select id="quote-material-cor" class="conta-select">
+                    <option value="A definir com a equipe">A definir com a equipe</option>
+                  </select>
+                </div>
+              </div>
+              <div class="conta-field">
+                <label for="quote-observacoes">Observações adicionais</label>
+                <textarea id="quote-observacoes" class="conta-textarea" style="min-height: 68px;" placeholder="Prazo desejado, cor alternativa, detalhes extras..."></textarea>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="submit" id="btn-quote-submit" class="btn-sj-primary" style="flex: 1;">
+                  📨 Enviar Orçamento
+                </button>
+                <button type="button" id="btn-quote-save-draft" class="btn-sj-secondary">
+                  💾 Salvar Rascunho
+                </button>
+              </div>
+            </form>
+          </div>
+
+          <!-- Lista: Meus Orçamentos -->
+          <div class="conta-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap;">
+              <div>
+                <h2 class="conta-card-title" style="margin-bottom: 2px;">Meus Orçamentos</h2>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;">Apenas os seus orçamentos aparecem aqui.</p>
+              </div>
+              <button type="button" id="btn-refresh-quotes" class="btn-sj-secondary" style="padding: 7px 12px; font-size: 0.78rem;">🔄 Atualizar</button>
+            </div>
+            <div id="conta-quotes-list">
+              <div class="conta-empty">Carregando seus orçamentos...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA 2: SALVOS & RASCUNHOS ================= -->
+      <section id="conta-pane-salvos" class="conta-pane">
+        <div class="conta-grid-2">
+          <!-- Salvar produto/filamento favorito -->
+          <div class="conta-card">
+            <h2 class="conta-card-title">Guardar Item ou Projeto</h2>
+            <p class="conta-card-sub">Salve filamentos, impressoras ou ideias de projeto para pedir depois.</p>
+            <form id="form-conta-save-favorite">
+              <div class="conta-field">
+                <label for="fav-product-select">Escolher do Catálogo (opcional)</label>
+                <select id="fav-product-select" class="conta-select">
+                  <option value="">-- Item personalizado / projeto livre --</option>
+                </select>
+              </div>
+              <div class="conta-field">
+                <label for="fav-titulo">Nome do Item / Projeto *</label>
+                <input type="text" id="fav-titulo" class="conta-input" placeholder="Ex: Filamento PLA Bambu Lab Laranja" required />
+              </div>
+              <div class="conta-field">
+                <label for="fav-descricao">Anotações</label>
+                <textarea id="fav-descricao" class="conta-textarea" style="min-height: 70px;" placeholder="Quantidade, cor preferida ou link de referência..."></textarea>
+              </div>
+              <button type="submit" id="btn-fav-submit" class="btn-sj-primary" style="width: 100%;">
+                🔖 Salvar na Minha Lista
+              </button>
+            </form>
+          </div>
+
+          <!-- Lista de Salvos (Favoritos + Rascunhos) -->
+          <div class="conta-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px;">
+              <div>
+                <h2 class="conta-card-title" style="margin-bottom: 2px;">Meus Itens Salvos &amp; Rascunhos</h2>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;">Retome rascunhos de orçamento ou faça pedidos rápidos.</p>
+              </div>
+              <button type="button" id="btn-refresh-saved" class="btn-sj-secondary" style="padding: 7px 12px; font-size: 0.78rem;">🔄 Atualizar</button>
+            </div>
+            <div id="conta-saved-list">
+              <div class="conta-empty">Carregando itens salvos...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA 3: PEDIDOS ================= -->
+      <section id="conta-pane-pedidos" class="conta-pane">
+        <div class="conta-grid-2">
+          <!-- Novo Pedido de Produto -->
+          <div class="conta-card">
+            <h2 class="conta-card-title">Fazer Novo Pedido de Produto</h2>
+            <p class="conta-card-sub">
+              Escolha um item disponível no catálogo ou aprove um orçamento na aba <strong>Orçamentos</strong> para converter em pedido.
+            </p>
+            <form id="form-conta-new-order">
+              <div class="conta-field">
+                <label for="order-product-select">Produto ou Cor de Filamento *</label>
+                <select id="order-product-select" class="conta-select" required>
+                  <option value="">Carregando catálogo...</option>
+                </select>
+              </div>
+              <div style="display: grid; grid-template-columns: 110px 1fr; gap: 10px;">
+                <div class="conta-field">
+                  <label for="order-quantidade">Quantidade *</label>
+                  <input type="number" id="order-quantidade" class="conta-input" min="1" value="1" required />
+                </div>
+                <div class="conta-field">
+                  <label for="order-forma-entrega">Entrega / Retirada *</label>
+                  <select id="order-forma-entrega" class="conta-select">
+                    <option value="retirada">Retirar na Loja (Umuarama/PR)</option>
+                    <option value="entrega">Solicitar Entrega / Envio</option>
+                  </select>
+                </div>
+              </div>
+              <div class="conta-field">
+                <label for="order-endereco">Endereço de entrega (se aplicável)</label>
+                <input type="text" id="order-endereco" class="conta-input" placeholder="Rua, número, bairro, cidade" />
+              </div>
+              <div class="conta-field">
+                <label for="order-observacoes">Observações do pedido</label>
+                <textarea id="order-observacoes" class="conta-textarea" style="min-height: 68px;" placeholder="Alguma observação sobre pagamento ou entrega?"></textarea>
+              </div>
+              <button type="submit" id="btn-order-submit" class="btn-sj-primary" style="width: 100%;">
+                🛒 Confirmar Pedido
+              </button>
+            </form>
+          </div>
+
+          <!-- Histórico e Acompanhamento de Pedidos -->
+          <div class="conta-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; margin-bottom: 14px;">
+              <div>
+                <h2 class="conta-card-title" style="margin-bottom: 2px;">Meus Pedidos &amp; Produção</h2>
+                <p style="margin: 0; font-size: 0.8rem; color: #64748b;">Acompanhe em tempo real cada etapa do seu pedido.</p>
+              </div>
+              <button type="button" id="btn-refresh-orders" class="btn-sj-secondary" style="padding: 7px 12px; font-size: 0.78rem;">🔄 Atualizar</button>
+            </div>
+            <div id="conta-orders-list">
+              <div class="conta-empty">Carregando seus pedidos...</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ================= ABA 4: MEUS DADOS ================= -->
+      <section id="conta-pane-dados" class="conta-pane">
+        <div class="conta-card" style="max-width: 640px;">
+          <h2 class="conta-card-title">Meus Dados Cadastrais</h2>
+          <p class="conta-card-sub">
+            Mantenha seu telefone e endereço atualizados para agilizar seus orçamentos e entregas.
+          </p>
+          <form id="form-conta-profile">
+            <div class="conta-field">
+              <label for="profile-email">E-mail de acesso (não editável)</label>
+              <input type="email" id="profile-email" class="conta-input" style="background: #f1f5f9; color: #64748b;" readonly />
+            </div>
+            <div class="conta-field">
+              <label for="profile-nome">Nome Completo *</label>
+              <input type="text" id="profile-nome" class="conta-input" placeholder="Seu nome completo" required />
+            </div>
+            <div class="conta-field">
+              <label for="profile-telefone">Telefone / WhatsApp</label>
+              <input type="tel" id="profile-telefone" class="conta-input" placeholder="(44) 99999-9999" />
+            </div>
+            <div class="conta-field">
+              <label for="profile-endereco">Endereço (Rua, número, complemento)</label>
+              <input type="text" id="profile-endereco" class="conta-input" placeholder="Ex: Av. Paraná, 1234 — Centro" />
+            </div>
+            <div class="conta-field">
+              <label for="profile-cidade">Cidade / UF</label>
+              <input type="text" id="profile-cidade" class="conta-input" placeholder="Ex: Umuarama / PR" />
+            </div>
+            <button type="submit" id="btn-profile-save" class="btn-sj-primary">
+              💾 Salvar Meus Dados
+            </button>
+          </form>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <div id="conta-toast-container" aria-live="polite"></div>
+
+  <!-- Supabase JS SDK + Cliente Oficial Loja SJ 3D -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-client.js?v=20261118_06"></script>
+  <script src="js/conta.js?v=20261118_06"></script>
+</body>
+
+</html>

@@ -3649,25 +3649,19 @@
       return;
     }
 
-    // Clique no botão Minha Conta / Entrar do Header
+    // Clique no botão Minha Conta / Entrar do Header -> abre porta dedicada /conta
     const btnHeaderAcc = e.target.closest("#header-account-btn");
     if (btnHeaderAcc) {
       e.preventDefault();
-      if (state.clienteLogado) {
-        state.abaClienteAtiva = "dados";
-        navegarParaCategoria("minha-conta");
-        renderizarAreaCliente("dados");
-      } else {
-        abrirModalAuthCliente("login");
-      }
+      window.location.href = "/conta";
       return;
     }
 
-    // Botões no carrinho ou banner que convidam ao cadastro
+    // Botões no carrinho ou banner que convidam ao cadastro -> abre /conta
     const btnOpenCad = e.target.closest("[data-open-cadastro]");
     if (btnOpenCad) {
       e.preventDefault();
-      abrirModalAuthCliente("signup");
+      window.location.href = "/conta";
       return;
     }
   });
@@ -10952,12 +10946,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   function selecionarAbaCms(aba) {
+    // Trava de interface: apenas ADMIN pode abrir a aba de Acessos / Configurações críticas
+    const abasSomenteAdmin = ["equipe", "supabase", "exportar", "lgpd"];
+    const papelAtual = String(state.usuarioGoogle?.role || "").toLowerCase();
+    if (abasSomenteAdmin.includes(aba) && papelAtual && papelAtual !== "admin") {
+      mostrarToast("🔒 Apenas o Administrador pode acessar esta área.", "warning");
+      aba = "produtos";
+    }
+
     cmsState.abaAtiva = aba;
     document.querySelectorAll("[data-cms-tab]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.cmsTab === aba);
     });
     const mapPanes = {
       produtos: "cms-pane-produtos",
+      "orcamentos-clientes": "cms-pane-orcamentos-clientes",
+      "pedidos-clientes": "cms-pane-pedidos-clientes",
       "consulta-qr": "cms-pane-consulta-qr",
       clientes: "cms-pane-clientes",
       banner: "cms-pane-banner",
@@ -10968,9 +10972,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
     const mapTitles = {
       produtos: "Catálogo, Preços & Controle de Estoque",
+      "orcamentos-clientes": "Orçamentos Recebidos dos Clientes (/conta)",
+      "pedidos-clientes": "Pedidos dos Clientes & Fila de Produção",
       "consulta-qr": "Consulta Rápida de Preço & Leitor QR Code",
       clientes: "Banco de Dados de Clientes Cadastrados & Leads",
-      equipe: "Funcionários, Administradores & Acessos",
+      equipe: "Acessos: Funcionários, Administradores & Clientes",
       banner: "Banner de Promoções & Sorteio",
       supabase: "Conexão Supabase & Nuvem",
       exportar: "Backup & Exportação de Dados",
@@ -10988,6 +10994,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         el.style.display = ativo ? "block" : "none";
       }
     });
+    if (aba === "orcamentos-clientes") {
+      renderizarOrcamentosPortalCms();
+    }
+    if (aba === "pedidos-clientes") {
+      renderizarPedidosPortalCms();
+    }
     if (aba === "consulta-qr") {
       renderizarGradeConsultaQr();
     }
@@ -11003,6 +11015,253 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (aba === "lgpd") {
       renderizarPainelLgpdCms();
     }
+  }
+
+  // =====================================================================
+  // GESTÃO DE ORÇAMENTOS DOS CLIENTES (/conta -> public.quotes) — STAFF & ADMIN
+  // =====================================================================
+  async function renderizarOrcamentosPortalCms() {
+    const listEl = document.getElementById("cms-portal-quotes-list");
+    const badgeEl = document.getElementById("cms-portal-quotes-badge");
+    const filterEl = document.getElementById("cms-filter-quotes-status");
+    if (!window.SJ_SUPABASE?.quotes) return;
+
+    if (listEl) {
+      listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b;">⏳ Carregando orçamentos do Supabase...</div>`;
+    }
+
+    const res = await window.SJ_SUPABASE.quotes.listarTodos();
+    if (!res.sucesso) {
+      if (listEl) {
+        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Orçamentos dos Clientes." : (res.mensagem || "Erro ao carregar orçamentos."))}</div>`;
+      }
+      return;
+    }
+
+    const todos = res.dados || [];
+    const novosCount = todos.filter((q) => q.status === "enviado" || q.status === "em_analise").length;
+    if (badgeEl) badgeEl.textContent = String(novosCount || todos.length);
+
+    const filtro = filterEl ? filterEl.value : "todos";
+    const filtrados = filtro === "todos" ? todos : todos.filter((q) => q.status === filtro);
+
+    if (!listEl) return;
+    if (filtrados.length === 0) {
+      listEl.innerHTML = `<div style="padding:28px; text-align:center; border:1.5px dashed #cbd5e1; border-radius:12px; color:#64748b; font-size:0.86rem;">📋 Nenhum orçamento encontrado neste filtro.</div>`;
+      return;
+    }
+
+    const statusLabels = {
+      enviado: "📨 Enviado",
+      em_analise: "🔍 Em análise",
+      respondido: "💬 Respondido",
+      aprovado: "✅ Aprovado",
+      recusado: "✖️ Recusado"
+    };
+
+    listEl.innerHTML = filtrados
+      .map((q) => {
+        const valorFmt = q.valor_estimado != null ? String(q.valor_estimado) : "";
+        const dataFmt = q.created_at ? new Date(q.created_at).toLocaleString("pt-BR") : "—";
+        return `
+          <div style="border:1.5px solid #e2e8f0; border-radius:14px; padding:18px; margin-bottom:14px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+              <div>
+                <div style="font-size:0.74rem; font-weight:800; color:#64748b;">${escaparHtml(q.codigo || "")} • ${escaparHtml(dataFmt)}</div>
+                <div style="font-size:1.02rem; font-weight:800; color:#0f172a; margin-top:2px;">${escaparHtml(q.titulo || "Orçamento 3D")}</div>
+                <div style="font-size:0.82rem; color:#334155; margin-top:3px;">
+                  👤 <strong>${escaparHtml(q.cliente_nome || "Cliente")}</strong> • 📧 ${escaparHtml(q.cliente_email || "—")}
+                  ${q.cliente_telefone ? ` • 📱 ${escaparHtml(q.cliente_telefone)}` : ""}
+                </div>
+              </div>
+              <span style="padding:4px 11px; border-radius:999px; font-size:0.75rem; font-weight:800; background:#f1f5f9; color:#0f172a;">
+                ${escaparHtml(statusLabels[q.status] || q.status)}
+              </span>
+            </div>
+
+            <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:12px; margin-bottom:12px; font-size:0.84rem; color:#334155; line-height:1.5;">
+              <div><strong>Descrição:</strong> ${escaparHtml(q.descricao)}</div>
+              <div style="display:flex; gap:14px; flex-wrap:wrap; margin-top:6px; font-size:0.79rem; color:#475569;">
+                <span>🔢 Qtd: <strong>${escaparHtml(q.quantidade)}</strong></span>
+                ${q.material_cor ? `<span>🎨 Material/Cor: <strong>${escaparHtml(q.material_cor)}</strong></span>` : ""}
+                ${q.arquivo_medidas ? `<span>📐 Arquivo/Medidas: <strong>${escaparHtml(q.arquivo_medidas)}</strong></span>` : ""}
+              </div>
+              ${q.observacoes ? `<div style="margin-top:6px; font-size:0.79rem; color:#475569;">📝 Obs.: ${escaparHtml(q.observacoes)}</div>` : ""}
+            </div>
+
+            <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap:10px; align-items:end;">
+              <div>
+                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Status do Orçamento</label>
+                <select data-quote-status-input="${escaparHtml(q.id)}" style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
+                  <option value="enviado" ${q.status === "enviado" ? "selected" : ""}>📨 Enviado</option>
+                  <option value="em_analise" ${q.status === "em_analise" ? "selected" : ""}>🔍 Em análise</option>
+                  <option value="respondido" ${q.status === "respondido" ? "selected" : ""}>💬 Respondido</option>
+                  <option value="aprovado" ${q.status === "aprovado" ? "selected" : ""}>✅ Aprovado</option>
+                  <option value="recusado" ${q.status === "recusado" ? "selected" : ""}>✖️ Recusado</option>
+                </select>
+              </div>
+              <div>
+                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Valor Orçado (R$)</label>
+                <input type="number" step="0.01" min="0" data-quote-valor-input="${escaparHtml(q.id)}" value="${escaparHtml(valorFmt)}" placeholder="Ex: 149.90" style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.84rem;" />
+              </div>
+              <div style="grid-column: 1 / -1;">
+                <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Resposta / Prazo para o Cliente</label>
+                <textarea data-quote-resp-input="${escaparHtml(q.id)}" rows="2" placeholder="Ex: Prazo de produção 2 dias úteis. Valor já inclui acabamento." style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.83rem; font-family:inherit;">${escaparHtml(q.resposta_equipe || "")}</textarea>
+              </div>
+            </div>
+            <div style="margin-top:10px; display:flex; justify-content:flex-end;">
+              <button type="button" class="btn-cms-save" data-quote-save-btn="${escaparHtml(q.id)}" style="padding:9px 16px; border-radius:9px; font-size:0.82rem; cursor:pointer;">
+                💾 Salvar Resposta &amp; Notificar Cliente
+              </button>
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    listEl.querySelectorAll("[data-quote-save-btn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.quoteSaveBtn;
+        const statusEl = listEl.querySelector(`[data-quote-status-input="${id}"]`);
+        const valorEl = listEl.querySelector(`[data-quote-valor-input="${id}"]`);
+        const respEl = listEl.querySelector(`[data-quote-resp-input="${id}"]`);
+        const origTxt = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "⏳ Salvando...";
+
+        let statusEscolhido = statusEl ? statusEl.value : "respondido";
+        const valorVal = valorEl ? valorEl.value.trim() : "";
+        const respVal = respEl ? respEl.value.trim() : "";
+        // Se informou valor e ainda estava em "enviado", muda automaticamente para "respondido"
+        if (valorVal && statusEscolhido === "enviado") {
+          statusEscolhido = "respondido";
+        }
+
+        const r = await window.SJ_SUPABASE.quotes.responderEquipe(id, {
+          status: statusEscolhido,
+          valor_estimado: valorVal,
+          resposta_equipe: respVal
+        });
+
+        btn.disabled = false;
+        btn.textContent = origTxt;
+        if (r && r.sucesso) {
+          mostrarToast("✅ Orçamento respondido! O cliente já vê o valor e o status no painel /conta.", "success");
+          await renderizarOrcamentosPortalCms();
+        } else {
+          mostrarToast(`❌ Erro ao salvar orçamento: ${escaparHtml(r?.mensagem || "verifique suas permissões")}`, "warning");
+        }
+      });
+    });
+  }
+
+  // =====================================================================
+  // GESTÃO DE PEDIDOS DOS CLIENTES (/conta -> public.orders) — STAFF & ADMIN
+  // =====================================================================
+  async function renderizarPedidosPortalCms() {
+    const listEl = document.getElementById("cms-portal-orders-list");
+    const badgeEl = document.getElementById("cms-portal-orders-badge");
+    const filterEl = document.getElementById("cms-filter-orders-status");
+    if (!window.SJ_SUPABASE?.orders) return;
+
+    if (listEl) {
+      listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b;">⏳ Carregando pedidos do Supabase...</div>`;
+    }
+
+    const res = await window.SJ_SUPABASE.orders.listarTodos();
+    if (!res.sucesso) {
+      if (listEl) {
+        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Pedidos dos Clientes." : (res.mensagem || "Erro ao carregar pedidos."))}</div>`;
+      }
+      return;
+    }
+
+    const todos = res.dados || [];
+    const ativosCount = todos.filter((o) => !["concluido", "cancelado"].includes(o.status)).length;
+    if (badgeEl) badgeEl.textContent = String(ativosCount || todos.length);
+
+    const filtro = filterEl ? filterEl.value : "todos";
+    const filtrados = filtro === "todos" ? todos : todos.filter((o) => o.status === filtro);
+
+    if (!listEl) return;
+    if (filtrados.length === 0) {
+      listEl.innerHTML = `<div style="padding:28px; text-align:center; border:1.5px dashed #cbd5e1; border-radius:12px; color:#64748b; font-size:0.86rem;">🛒 Nenhum pedido encontrado neste filtro.</div>`;
+      return;
+    }
+
+    const formatarBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+
+    listEl.innerHTML = filtrados
+      .map((ord) => {
+        const dataFmt = ord.created_at ? new Date(ord.created_at).toLocaleString("pt-BR") : "—";
+        const itens = Array.isArray(ord.order_items) ? ord.order_items : [];
+        const itensHtml = itens
+          .map(
+            (it) => `<li style="display:flex; justify-content:space-between; gap:8px; padding:4px 0; border-bottom:1px dashed #e2e8f0; font-size:0.82rem;">
+              <span><strong>${escaparHtml(it.quantidade)}x</strong> ${escaparHtml(it.nome)}${it.detalhes ? ` (${escaparHtml(it.detalhes)})` : ""}</span>
+              <strong>${escaparHtml(formatarBRL(it.subtotal))}</strong>
+            </li>`
+          )
+          .join("");
+
+        return `
+          <div style="border:1.5px solid #e2e8f0; border-radius:14px; padding:18px; margin-bottom:14px; background:#fff;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
+              <div>
+                <div style="font-size:0.74rem; font-weight:800; color:#64748b;">${escaparHtml(ord.codigo || "")} • ${escaparHtml(dataFmt)}</div>
+                <div style="font-size:1.05rem; font-weight:900; color:#0f172a; margin-top:2px;">Total: ${escaparHtml(formatarBRL(ord.total))}</div>
+                <div style="font-size:0.82rem; color:#334155; margin-top:3px;">
+                  👤 <strong>${escaparHtml(ord.cliente_nome || "Cliente")}</strong> • 📧 ${escaparHtml(ord.cliente_email || "—")}
+                  ${ord.cliente_telefone ? ` • 📱 ${escaparHtml(ord.cliente_telefone)}` : ""}
+                </div>
+              </div>
+              <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+                <select data-order-status-select="${escaparHtml(ord.id)}" style="padding:8px 11px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
+                  <option value="recebido" ${ord.status === "recebido" ? "selected" : ""}>📥 Recebido</option>
+                  <option value="em_producao" ${ord.status === "em_producao" ? "selected" : ""}>⚙️ Em produção</option>
+                  <option value="pronto" ${ord.status === "pronto" ? "selected" : ""}>✨ Pronto</option>
+                  <option value="enviado_retirado" ${ord.status === "enviado_retirado" ? "selected" : ""}>🚚 Enviado / Retirado</option>
+                  <option value="concluido" ${ord.status === "concluido" ? "selected" : ""}>🎉 Concluído</option>
+                  <option value="cancelado" ${ord.status === "cancelado" ? "selected" : ""}>🚫 Cancelado</option>
+                </select>
+                <button type="button" class="btn-cms-save" data-order-save-btn="${escaparHtml(ord.id)}" style="padding:8px 14px; border-radius:9px; font-size:0.8rem; cursor:pointer;">
+                  💾 Atualizar
+                </button>
+              </div>
+            </div>
+
+            ${itensHtml ? `<ul style="list-style:none; margin:8px 0; padding:10px 12px; background:#f8fafc; border-radius:10px;">${itensHtml}</ul>` : ""}
+
+            <div style="font-size:0.78rem; color:#64748b; display:flex; gap:12px; flex-wrap:wrap; margin-top:8px;">
+              <span>🚚 <strong>${ord.forma_entrega === "entrega" ? "Entrega" : "Retirada na loja"}</strong></span>
+              ${ord.endereco_entrega ? `<span>📍 ${escaparHtml(ord.endereco_entrega)}</span>` : ""}
+              ${ord.observacoes ? `<span>📝 ${escaparHtml(ord.observacoes)}</span>` : ""}
+            </div>
+          </div>
+        `;
+      })
+      .join("");
+
+    listEl.querySelectorAll("[data-order-save-btn]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const id = btn.dataset.orderSaveBtn;
+        const sel = listEl.querySelector(`[data-order-status-select="${id}"]`);
+        const novoStatus = sel ? sel.value : "recebido";
+        const origTxt = btn.textContent;
+        btn.disabled = true;
+        btn.textContent = "⏳...";
+
+        const r = await window.SJ_SUPABASE.orders.atualizarStatus(id, novoStatus);
+        btn.disabled = false;
+        btn.textContent = origTxt;
+        if (r && r.sucesso) {
+          mostrarToast("✅ Status do pedido atualizado em tempo real para o cliente!", "success");
+          await renderizarPedidosPortalCms();
+        } else {
+          mostrarToast(`❌ Erro ao atualizar pedido: ${escaparHtml(r?.mensagem || "erro desconhecido")}`, "warning");
+        }
+      });
+    });
   }
 
   // =====================================================================
@@ -11237,15 +11496,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   async function renderizarPainelEquipeCms(pularSyncNuvem = false) {
     const pendentesEl = document.getElementById("cms-pending-requests-list");
     const todosEl = document.getElementById("cms-all-admins-list");
+    const clientesEl = document.getElementById("cms-customers-list");
     const bloqueadosEl = document.getElementById("cms-blocked-admins-list");
+
+    // Se o usuário logado for funcionário (staff), não consulta a aba exclusiva de admin
+    if (state.usuarioGoogle?.role && state.usuarioGoogle.role !== "admin") {
+      return;
+    }
 
     const btnStyle = (bg, fg = "#fff") =>
       `style="background:${bg}; color:${fg}; border:none; border-radius:8px; padding:7px 12px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity 0.15s;"`;
 
-    // Tenta carregar da tabela oficial public.profiles (Supabase Auth + RLS)
+    // Carrega da tabela oficial public.profiles (Supabase Auth + RLS — somente Admin vê todos)
     if (window.SJ_SUPABASE && window.SJ_SUPABASE.profiles) {
       if (!pularSyncNuvem && pendentesEl) {
-        pendentesEl.innerHTML = `<div style="padding:14px; color:#64748b; font-size:0.84rem;">⏳ Carregando pedidos de acesso do Supabase...</div>`;
+        pendentesEl.innerHTML = `<div style="padding:14px; color:#64748b; font-size:0.84rem;">⏳ Carregando contas e pedidos do Supabase...</div>`;
       }
 
       const sessao = await window.SJ_SUPABASE.auth.obterSessao();
@@ -11262,7 +11527,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (resPerfis && resPerfis.sucesso) {
         const perfis = resPerfis.dados || [];
         const pendentes = perfis.filter((p) => p.status === "pending");
-        const aprovados = perfis.filter((p) => p.status === "approved");
+        const equipeAprovada = perfis.filter((p) => p.status === "approved" && (p.role === "admin" || p.role === "staff"));
+        const clientesAprovados = perfis.filter((p) => p.status === "approved" && (p.role === "customer" || p.role === "user"));
         const bloqueados = perfis.filter((p) => p.status === "blocked");
 
         // Atualiza contadores de pendentes no menu e topbar
@@ -11273,17 +11539,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           el.style.display = pendentes.length > 0 ? "inline-block" : "none";
         });
 
-        const roleBadge = (role) =>
-          role === "admin"
-            ? `<span style="background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; font-size:0.72rem; font-weight:800; padding:2px 9px; border-radius:999px;">👑 Administrador</span>`
-            : `<span style="background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; font-size:0.72rem; font-weight:700; padding:2px 9px; border-radius:999px;">👤 Usuário Comum</span>`;
+        const roleBadge = (role) => {
+          if (role === "admin") {
+            return `<span style="background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; font-size:0.72rem; font-weight:800; padding:2px 9px; border-radius:999px;">👑 Administrador</span>`;
+          }
+          if (role === "staff") {
+            return `<span style="background:#EFF6FF; color:#1D4ED8; border:1px solid #BFDBFE; font-size:0.72rem; font-weight:800; padding:2px 9px; border-radius:999px;">🛠️ Funcionário (Staff)</span>`;
+          }
+          return `<span style="background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; font-size:0.72rem; font-weight:700; padding:2px 9px; border-radius:999px;">👤 Cliente</span>`;
+        };
 
-        // 1) PENDENTES
+        // 1) SOLICITAÇÕES PENDENTES DE FUNCIONÁRIOS
         if (pendentesEl) {
           if (pendentes.length === 0) {
             pendentesEl.innerHTML = `
               <div style="padding:14px 16px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; color:#475569; font-size:0.84rem;">
-                ✅ Nenhum pedido pendente no momento. Quando alguém criar uma conta na aba <strong>"Criar Conta"</strong> de <code>/admin</code>, o pedido aparecerá aqui automaticamente.
+                ✅ Nenhuma solicitação pendente. Quando um funcionário pedir acesso em <code>/admin</code>, ele aparecerá aqui para sua aprovação.
               </div>`;
           } else {
             pendentesEl.innerHTML = pendentes
@@ -11292,21 +11563,23 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                   <div style="min-width:240px; flex:1;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
                       <span style="background:#F59E0B; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:999px;">PENDENTE</span>
-                      <strong style="font-size:0.95rem; color:#0F172A;">${escaparHtmlEquipe(p.nome || "Novo Usuário")}</strong>
+                      ${roleBadge(p.role)}
+                      <strong style="font-size:0.95rem; color:#0F172A;">${escaparHtmlEquipe(p.nome || "Novo Solicitante")}</strong>
                     </div>
                     <div style="font-size:0.88rem; color:#1E293B; margin-bottom:3px;">
                       📧 <strong style="color:#EA580C;">${escaparHtmlEquipe(p.email)}</strong>
+                      ${p.cargo ? ` • <span style="color:#475569; font-size:0.8rem;">${escaparHtmlEquipe(p.cargo)}</span>` : ""}
                     </div>
                     <div style="font-size:0.76rem; color:#64748B;">
-                      Cadastrado em: ${p.created_at ? new Date(p.created_at).toLocaleString("pt-BR") : "Recente"}
+                      Solicitado em: ${p.created_at ? new Date(p.created_at).toLocaleString("pt-BR") : "Recente"}
                     </div>
                   </div>
                   <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" data-profile-action="approve-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>
-                      👑 Aprovar como Admin
+                    <button type="button" data-profile-action="approve-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>
+                      🛠️ Aprovar Funcionário
                     </button>
-                    <button type="button" data-profile-action="approve-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>
-                      ✅ Aprovar como Usuário
+                    <button type="button" data-profile-action="approve-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>
+                      👑 Aprovar como Admin
                     </button>
                     <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>
                       🚫 Bloquear
@@ -11320,22 +11593,23 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           }
         }
 
-        // 2) APROVADOS
+        // 2) EQUIPE ATIVA (ADMIN & FUNCIONÁRIOS APROVADOS)
         if (todosEl) {
-          if (aprovados.length === 0) {
-            todosEl.innerHTML = `<div style="padding:14px; color:#64748B; font-size:0.84rem;">Nenhum usuário aprovado encontrado.</div>`;
+          if (equipeAprovada.length === 0) {
+            todosEl.innerHTML = `<div style="padding:14px; color:#64748B; font-size:0.84rem;">Nenhum membro da equipe encontrado.</div>`;
           } else {
-            todosEl.innerHTML = aprovados
+            todosEl.innerHTML = equipeAprovada
               .map((p) => {
                 const ehProprio = currentUid && p.id === currentUid;
                 const acoes = ehProprio
                   ? `<span style="font-size:0.76rem; background:#ECFDF5; color:#166534; border:1px solid #BBF7D0; padding:6px 12px; border-radius:8px; font-weight:700;">🛡️ Sua Conta (Protegida)</span>`
                   : `
                     ${p.role === "admin"
-                      ? `<button type="button" data-profile-action="role-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>👤 Mudar para Usuário</button>`
+                      ? `<button type="button" data-profile-action="role-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>🛠️ Tornar Funcionário</button>`
                       : `<button type="button" data-profile-action="role-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Promover a Admin</button>`
                     }
-                    <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear / Revogar</button>
+                    <button type="button" data-profile-action="role-customer" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>👤 Mudar para Cliente</button>
+                    <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>
                     <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>🗑️ Excluir</button>
                   `;
                 return `
@@ -11348,6 +11622,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                       </div>
                       <div style="font-size:0.84rem; color:#334155; margin-top:4px;">
                         📧 <strong>${escaparHtmlEquipe(p.email)}</strong>
+                        ${p.cargo ? ` • <span style="color:#475569;">${escaparHtmlEquipe(p.cargo)}</span>` : ""}
                         ${p.approved_at ? ` • <span style="color:#64748B; font-size:0.76rem;">Aprovado em ${new Date(p.approved_at).toLocaleDateString("pt-BR")}</span>` : ""}
                       </div>
                     </div>
@@ -11358,7 +11633,36 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           }
         }
 
-        // 3) BLOQUEADOS
+        // 3) CLIENTES CADASTRADOS (/conta)
+        if (clientesEl) {
+          if (clientesAprovados.length === 0) {
+            clientesEl.innerHTML = `<div style="padding:12px 14px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; color:#64748B; font-size:0.82rem;">Nenhum cliente cadastrado ainda em <code>/conta</code>.</div>`;
+          } else {
+            clientesEl.innerHTML = clientesAprovados
+              .map((p) => `
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border:1px solid #E2E8F0; background:#FFFFFF; border-radius:12px; margin-bottom:10px;">
+                  <div style="min-width:240px; flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <strong style="font-size:0.92rem; color:#0F172A;">${escaparHtmlEquipe(p.nome || p.email)}</strong>
+                      ${roleBadge("customer")}
+                    </div>
+                    <div style="font-size:0.83rem; color:#334155; margin-top:4px;">
+                      📧 <strong>${escaparHtmlEquipe(p.email)}</strong>
+                      ${p.telefone ? ` • 📱 ${escaparHtmlEquipe(p.telefone)}` : ""}
+                      ${p.created_at ? ` • <span style="color:#64748B; font-size:0.76rem;">Desde ${new Date(p.created_at).toLocaleDateString("pt-BR")}</span>` : ""}
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:7px; flex-wrap:wrap;">
+                    <button type="button" data-profile-action="approve-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>🛠️ Tornar Funcionário</button>
+                    <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>
+                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>🗑️ Excluir</button>
+                  </div>
+                </div>`)
+              .join("");
+          }
+        }
+
+        // 4) CONTAS BLOQUEADAS
         if (bloqueadosEl) {
           if (bloqueados.length === 0) {
             bloqueadosEl.innerHTML = `<div style="padding:12px 14px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; color:#64748B; font-size:0.82rem;">Nenhuma conta bloqueada.</div>`;
@@ -11369,14 +11673,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                   <div style="min-width:240px; flex:1;">
                     <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                       <strong style="font-size:0.92rem; color:#991B1B;">${escaparHtmlEquipe(p.nome || p.email)}</strong>
+                      ${roleBadge(p.role)}
                       <span style="background:#FEE2E2; color:#991B1B; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">🚫 Bloqueado</span>
                     </div>
                     <div style="font-size:0.84rem; color:#7F1D1D; margin-top:3px;">📧 <strong>${escaparHtmlEquipe(p.email)}</strong></div>
                   </div>
                   <div style="display:flex; gap:7px; flex-wrap:wrap;">
-                    <button type="button" data-profile-action="approve-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>✅ Reativar (Usuário)</button>
+                    <button type="button" data-profile-action="approve-customer" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>👤 Reativar (Cliente)</button>
+                    <button type="button" data-profile-action="approve-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>🛠️ Reativar (Funcionário)</button>
                     <button type="button" data-profile-action="approve-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Reativar (Admin)</button>
-                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>🗑️ Excluir</button>
+                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>🗑️ Excluir</button>
                   </div>
                 </div>`)
               .join("");
@@ -11405,12 +11711,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             try {
               if (action === "approve-admin") {
                 r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "admin");
-              } else if (action === "approve-user") {
-                r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "user");
+              } else if (action === "approve-staff") {
+                r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "staff");
+              } else if (action === "approve-customer") {
+                r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "customer");
               } else if (action === "role-admin") {
                 r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "admin");
-              } else if (action === "role-user") {
-                r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "user");
+              } else if (action === "role-staff") {
+                r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "staff");
+              } else if (action === "role-customer") {
+                r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "customer");
               } else if (action === "block") {
                 r = await window.SJ_SUPABASE.profiles.atualizarStatus(id, "blocked");
               } else if (action === "delete") {
@@ -11435,14 +11745,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         return;
       }
 
-      // Se a tabela public.profiles ainda não foi criada no Supabase, mostra aviso orientativo claro
       if (resPerfis && resPerfis.tabelaAusente && pendentesEl) {
         pendentesEl.innerHTML = `
           <div style="padding:16px; background:#FFFBEB; border:1.5px solid #FDE68A; border-radius:12px; color:#92400E; font-size:0.84rem; line-height:1.55;">
             ⚠️ <strong>Tabela <code>public.profiles</code> ainda não foi criada no Supabase.</strong><br/>
-            Rode os arquivos SQL em <code>supabase/migrations/</code> (001, 002, 003 e 004) no SQL Editor do Supabase para ativar o controle de acessos com aprovação e o catálogo em tempo real.
+            Rode os arquivos SQL em <code>supabase/migrations/</code> no SQL Editor do Supabase.
           </div>`;
         if (todosEl) todosEl.innerHTML = "";
+        if (clientesEl) clientesEl.innerHTML = "";
         if (bloqueadosEl) bloqueadosEl.innerHTML = "";
         return;
       }
@@ -12579,9 +12889,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       atualizarBannerSincronizacaoNuvemAdmin(e.detail);
     });
 
-    // Helpers visuais do Gate de Autenticação (Login / Criar Conta / Telas de Status)
+    // Helpers visuais do Gate de Autenticação (Login / Solicitar Acesso Staff / Telas de Status)
     let dashboardAdminInicializado = false;
     let profilesRealtimeSub = null;
+    let quotesRealtimeSub = null;
+    let ordersRealtimeSub = null;
 
     function exibirFormularioLoginGate() {
       const statusScreen = document.getElementById("admin-gate-status-screen");
@@ -12617,48 +12929,54 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (modo === "blocked") {
         if (iconEl) { iconEl.textContent = "🚫"; iconEl.style.background = "#fef2f2"; iconEl.style.borderColor = "#fecaca"; }
         if (titleEl) titleEl.textContent = "Acesso bloqueado pelo administrador";
-        if (descEl) descEl.innerHTML = "Esta conta foi <strong>bloqueada ou revogada</strong> e não tem permissão para acessar o sistema. Entre em contato com o administrador.";
+        if (descEl) descEl.innerHTML = "Esta conta foi <strong>bloqueada ou revogada</strong> e não tem permissão para acessar o painel de gestão.";
         if (btnRecheck) btnRecheck.style.display = "none";
-      } else if (modo === "not_admin") {
-        if (iconEl) { iconEl.textContent = "🔒"; iconEl.style.background = "#f1f5f9"; iconEl.style.borderColor = "#cbd5e1"; }
-        if (titleEl) titleEl.textContent = "Acesso restrito a administradores";
-        if (descEl) descEl.innerHTML = "Sua conta está aprovada como <strong>Usuário Comum</strong>, mas a área <code>/admin</code> é exclusiva para administradores aprovados.";
-        if (btnRecheck) btnRecheck.style.display = "inline-flex";
+      } else if (modo === "customer_redirect") {
+        if (iconEl) { iconEl.textContent = "🔒"; iconEl.style.background = "#fff4ef"; iconEl.style.borderColor = "#fed7aa"; }
+        if (titleEl) titleEl.textContent = "Área restrita à equipe";
+        if (descEl) descEl.innerHTML = "Sua conta é de <strong>Cliente</strong>. Redirecionando você para o seu painel em <a href=\"/conta\" style=\"color:#f04e23; font-weight:800;\">/conta</a>...";
+        if (btnRecheck) btnRecheck.style.display = "none";
       } else if (modo === "needs_migration") {
         if (iconEl) { iconEl.textContent = "⚙️"; iconEl.style.background = "#eff6ff"; iconEl.style.borderColor = "#bfdbfe"; }
         if (titleEl) titleEl.textContent = "Tabela profiles ainda não criada";
-        if (descEl) descEl.innerHTML = "Execute os arquivos SQL em <code>supabase/migrations/</code> (001 a 004) no SQL Editor do Supabase para ativar o controle de aprovação e o catálogo global.";
+        if (descEl) descEl.innerHTML = "Execute os arquivos SQL em <code>supabase/migrations/</code> no SQL Editor do Supabase.";
         if (btnRecheck) btnRecheck.style.display = "inline-flex";
       } else {
-        // pending (padrão)
+        // pending (funcionário aguardando aprovação)
         if (iconEl) { iconEl.textContent = "⏳"; iconEl.style.background = "#fffbeb"; iconEl.style.borderColor = "#fde68a"; }
         if (titleEl) titleEl.textContent = "Aguardando aprovação do administrador";
-        if (descEl) descEl.innerHTML = "Sua conta foi registrada com status <strong>Pendente</strong>. Assim que o administrador aprovar seu acesso no painel, clique abaixo ou atualize a página para entrar.";
+        if (descEl) descEl.innerHTML = "Sua solicitação como <strong>Funcionário</strong> está com status <strong>Pendente</strong>. Assim que o administrador aprovar, clique abaixo ou atualize a página para entrar.";
         if (btnRecheck) btnRecheck.style.display = "inline-flex";
       }
     }
 
     async function abrirDashboardAdminConfirmado(perfil) {
-      const usuarioAdmin = {
+      const ehAdmin = perfil.role === "admin";
+      const usuarioEquipe = {
         id: perfil.id,
         nome: perfil.nome || perfil.email.split("@")[0],
         email: perfil.email,
-        cargo: "Administrador",
+        cargo: ehAdmin ? "Administrador" : (perfil.cargo || "Funcionário (Staff)"),
         role: perfil.role,
         status: perfil.status,
-        tipo: "admin",
-        isMaster: true
+        tipo: ehAdmin ? "admin" : "operador",
+        isMaster: ehAdmin
       };
 
-      state.usuarioGoogle = usuarioAdmin;
+      state.usuarioGoogle = usuarioEquipe;
       document.body.classList.add("is-admin-logged-in");
 
+      // Mostra ou oculta abas exclusivas de Administrador (ex: Acessos)
+      document.querySelectorAll("[data-admin-only='true']").forEach((el) => {
+        el.style.display = ehAdmin ? "" : "none";
+      });
+
       const emailEl = document.getElementById("crm-sidebar-admin-email");
-      if (emailEl) emailEl.textContent = usuarioAdmin.email;
+      if (emailEl) emailEl.textContent = usuarioEquipe.email;
       const roleBadge = document.getElementById("crm-sidebar-role-badge");
-      if (roleBadge) roleBadge.textContent = "👑 Administrador";
+      if (roleBadge) roleBadge.textContent = ehAdmin ? "👑 Administrador" : "🛠️ Funcionário (Staff)";
       const headerEmailEl = document.getElementById("cms-equipe-logged-email");
-      if (headerEmailEl) headerEmailEl.textContent = usuarioAdmin.email;
+      if (headerEmailEl) headerEmailEl.textContent = usuarioEquipe.email;
 
       if (gateEl) gateEl.style.display = "none";
       if (appEl) appEl.style.display = "grid";
@@ -12672,30 +12990,54 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const aba = urlParams.get("aba") || "produtos";
         const editId = urlParams.get("edit");
 
+        // Bind filtros e botões de atualizar das novas abas Orçamentos e Pedidos dos Clientes
+        document.getElementById("cms-filter-quotes-status")?.addEventListener("change", () => renderizarOrcamentosPortalCms());
+        document.getElementById("btn-cms-refresh-portal-quotes")?.addEventListener("click", () => renderizarOrcamentosPortalCms());
+        document.getElementById("cms-filter-orders-status")?.addEventListener("change", () => renderizarPedidosPortalCms());
+        document.getElementById("btn-cms-refresh-portal-orders")?.addEventListener("click", () => renderizarPedidosPortalCms());
+
         selecionarAbaCms(aba);
         configurarFormularioSenhaAdmin();
         renderizarListaProdutosCms();
         preencherFormularioBannerCms();
         atualizarStatusSupabaseNoCms();
         atualizarContadoresEstoqueKpiCms();
-        renderizarPainelEquipeCms(true);
+        renderizarOrcamentosPortalCms();
+        renderizarPedidosPortalCms();
+        if (ehAdmin) renderizarPainelEquipeCms(true);
 
         if (editId) abrirEditorProdutoCms(editId);
 
-        // Assina Supabase Realtime em public.profiles para novos pedidos pendentes aparecerem na hora
+        // Realtime em public.profiles: atualiza pedidos pendentes para admin e revoga acesso na hora se funcionário for bloqueado
         if (!profilesRealtimeSub && window.SJ_SUPABASE?.profiles?.assinarRealtime) {
-          profilesRealtimeSub = window.SJ_SUPABASE.profiles.assinarRealtime(() => {
-            renderizarPainelEquipeCms(true);
+          profilesRealtimeSub = window.SJ_SUPABASE.profiles.assinarRealtime(async () => {
+            const aindaAutorizado = await verificarSessaoAdminSupabase(false);
+            if (aindaAutorizado && state.usuarioGoogle?.role === "admin") {
+              renderizarPainelEquipeCms(true);
+            }
           });
+        }
+        // Realtime em quotes & orders para equipe ver novos orçamentos/pedidos ao vivo
+        if (!quotesRealtimeSub && window.SJ_SUPABASE?.quotes?.assinarRealtime) {
+          quotesRealtimeSub = window.SJ_SUPABASE.quotes.assinarRealtime(() => renderizarOrcamentosPortalCms());
+        }
+        if (!ordersRealtimeSub && window.SJ_SUPABASE?.orders?.assinarRealtime) {
+          ordersRealtimeSub = window.SJ_SUPABASE.orders.assinarRealtime(() => renderizarPedidosPortalCms());
         }
       } else {
         renderizarListaProdutosCms();
         atualizarContadoresEstoqueKpiCms();
-        renderizarPainelEquipeCms(true);
+        renderizarOrcamentosPortalCms();
+        renderizarPedidosPortalCms();
+        if (ehAdmin) renderizarPainelEquipeCms(true);
       }
     }
 
-    // GUARDIÃO OFICIAL DA ROTA /admin: valida sessão Supabase Auth + role='admin' e status='approved' em public.profiles
+    // GUARDIÃO OFICIAL DA ROTA /admin:
+    //   - Permite SOMENTE role in ('admin', 'staff') E status = 'approved'.
+    //   - Cliente ('customer') é barrado e redirecionado para /conta.
+    //   - Funcionário 'pending' vê tela "Aguardando aprovação".
+    //   - Conta 'blocked' perde acesso imediatamente.
     async function verificarSessaoAdminSupabase(mostrarAviso = false) {
       if (!window.SJ_SUPABASE || !window.SJ_SUPABASE.auth || !window.SJ_SUPABASE.profiles) {
         if (gateEl) gateEl.style.display = "flex";
@@ -12721,9 +13063,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
 
       const perfil = resPerfil && resPerfil.perfil ? resPerfil.perfil : null;
-      if (!perfil || perfil.status === "pending") {
+      if (!perfil) {
         exibirTelaStatusGate("pending", emailAtual);
-        if (mostrarAviso) mostrarToast("⏳ Seu cadastro ainda aguarda aprovação do administrador.", "info");
         return false;
       }
 
@@ -12733,13 +13074,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         return false;
       }
 
-      if (perfil.status === "approved" && perfil.role !== "admin") {
-        exibirTelaStatusGate("not_admin", emailAtual);
-        if (mostrarAviso) mostrarToast("🔒 Sua conta é de Usuário Comum. Apenas administradores acessam /admin.", "warning");
+      const role = String(perfil.role || "customer").toLowerCase();
+
+      // Cliente tentando acessar /admin -> barrado e redirecionado para /conta
+      if (role === "customer" || role === "user") {
+        exibirTelaStatusGate("customer_redirect", emailAtual);
+        setTimeout(() => {
+          window.location.replace("/conta");
+        }, 1200);
         return false;
       }
 
-      if (perfil.status === "approved" && perfil.role === "admin") {
+      // Funcionário (staff) ainda pendente -> tela "Aguardando aprovação"
+      if (perfil.status === "pending") {
+        exibirTelaStatusGate("pending", emailAtual);
+        if (mostrarAviso) mostrarToast("⏳ Sua solicitação de funcionário ainda aguarda aprovação do administrador.", "info");
+        return false;
+      }
+
+      // Admin ou Staff aprovado -> entra no painel de gestão
+      if (perfil.status === "approved" && (role === "admin" || role === "staff")) {
         await abrirDashboardAdminConfirmado(perfil);
         return true;
       }
@@ -12870,11 +13224,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         }
 
         try {
-          const res = await window.SJ_SUPABASE.auth.registrar({ nome, email, password: senha, cargo });
+          // Porta /admin sempre envia accountType = 'staff' (nasce como role='staff' e status='pending' no trigger do banco)
+          const res = await window.SJ_SUPABASE.auth.registrar({ nome, email, password: senha, cargo, accountType: "staff" });
           if (res && res.sucesso) {
             formReq.reset();
             exibirTelaStatusGate("pending", email);
-            mostrarToast("📨 Conta criada com status Pendente! Aguarde aprovação do administrador.", "success");
+            mostrarToast("📨 Solicitação de funcionário enviada! Aguarde aprovação do administrador.", "success");
           } else {
             mostrarFeedbackGateReq("error", (res && res.mensagem) || "Não foi possível criar a conta. Verifique os dados informados.");
           }
