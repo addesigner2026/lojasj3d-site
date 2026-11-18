@@ -13231,6 +13231,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // =====================================================================
     window.addEventListener("sj-catalogo-sincronizado", () => {
       atualizarSiteAposEdicaoCms();
+      if (document.getElementById("cms-products-grid")) {
+        renderizarListaProdutosCms();
+        atualizarContadoresEstoqueKpiCms();
+        preencherFormularioBannerCms();
+      }
+      if (document.getElementById("cms-qr-lookup-grid") && cmsState.abaAtiva === "consulta-qr") {
+        renderizarGradeConsultaQr();
+      }
     });
 
     document.getElementById("close-admin-cms-btn")?.addEventListener("click", () => {

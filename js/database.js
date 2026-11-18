@@ -1024,75 +1024,148 @@
     "coresAbsEspeciais"
   ];
 
+  const CHAVE_NUVEM_CATALOGO = "catalogo_oficial_v1";
+  let ultimoCatalogoSyncTs = "";
+  let ultimoFetchNuvemMs = 0;
+  let realtimeCatalogoIniciado = false;
+
+  function obterListaRemovidosProdutos() {
+    const custom = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, null);
+    return Array.isArray(custom && custom.produtosRemovidos) ? [...custom.produtosRemovidos] : [];
+  }
+
+  function normalizarChaveCor(cor) {
+    if (!cor) return "";
+    if (cor.cod !== undefined && cor.cod !== null && String(cor.cod).trim() !== "") {
+      return "cod:" + String(cor.cod).trim().toLowerCase();
+    }
+    return "nome:" + String(cor.nome || "").trim().toLowerCase();
+  }
+
   const catalogo = {
     // Obtém customizações salvas localmente
     obterCustomizacoes: function () {
       return lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, null);
     },
 
-    // Aplica customizações salvas sobre window.SITE_DATA
+    // Aplica customizações salvas (da nuvem ou locais) sobre uma base limpa de SITE_DATA_FACTORY
     aplicarCustomizacoes: function (customObj) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
       const custom = customObj || catalogo.obterCustomizacoes();
       if (!custom || typeof custom !== "object") return false;
 
+      // Parte sempre da cópia limpa de fábrica para evitar propriedades antigas presas
+      const baseFabrica = SITE_DATA_FACTORY ? JSON.parse(JSON.stringify(SITE_DATA_FACTORY)) : window.SITE_DATA;
+
       if (custom.bannerPromocao && typeof custom.bannerPromocao === "object") {
         window.SITE_DATA.bannerPromocao = {
-          ...(window.SITE_DATA.bannerPromocao || {}),
+          ...(baseFabrica.bannerPromocao || {}),
           ...JSON.parse(JSON.stringify(custom.bannerPromocao))
         };
+      } else if (baseFabrica.bannerPromocao) {
+        window.SITE_DATA.bannerPromocao = JSON.parse(JSON.stringify(baseFabrica.bannerPromocao));
       }
 
+      const removidosSet = new Set(Array.isArray(custom.produtosRemovidos) ? custom.produtosRemovidos : []);
+
       if (Array.isArray(custom.catalogo) && custom.catalogo.length > 0) {
-        // Smart merge: preserva todos os novos itens de dados.js (ex: 22 peças de reposição)
+        // Smart merge: preserva novos itens de dados.js e aplica todas as edições de preço/nome/estoque
         const customMap = new Map();
         custom.catalogo.forEach((c) => {
-          if (c && c.id) customMap.set(c.id, c);
+          if (c && c.id && !removidosSet.has(c.id)) customMap.set(c.id, c);
         });
 
         const legadosRemovidos = ["peca-hotend-a1", "peca-placa-pei", "peca-extrusora-ams"];
         legadosRemovidos.forEach((legId) => customMap.delete(legId));
 
-        window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).map((prod) => {
-          if (prod && prod.imagem === "assets/produtos/filamentos/cod_41.jpg") {
-            prod.imagem = "assets/produtos/filamentos/cod_69.jpg";
-          }
-          if (customMap.has(prod.id)) {
-            const editado = customMap.get(prod.id);
-            customMap.delete(prod.id);
-            if (editado && editado.imagem === "assets/produtos/filamentos/cod_41.jpg") {
-              editado.imagem = "assets/produtos/filamentos/cod_69.jpg";
+        window.SITE_DATA.catalogo = (baseFabrica.catalogo || [])
+          .filter((prod) => prod && !removidosSet.has(prod.id))
+          .map((prod) => {
+            if (prod && prod.imagem === "assets/produtos/filamentos/cod_41.jpg") {
+              prod.imagem = "assets/produtos/filamentos/cod_69.jpg";
             }
-            return { ...prod, ...editado };
-          }
-          return prod;
-        });
+            if (customMap.has(prod.id)) {
+              const editado = customMap.get(prod.id);
+              customMap.delete(prod.id);
+              if (editado && editado.imagem === "assets/produtos/filamentos/cod_41.jpg") {
+                editado.imagem = "assets/produtos/filamentos/cod_69.jpg";
+              }
+              return { ...prod, ...editado };
+            }
+            return prod;
+          });
 
         // Adiciona itens novos criados pelo usuário no painel admin
         customMap.forEach((itemCustom) => {
-          if (itemCustom && itemCustom.id) {
+          if (itemCustom && itemCustom.id && !removidosSet.has(itemCustom.id)) {
             window.SITE_DATA.catalogo.push(itemCustom);
           }
         });
       }
 
+      // Smart merge de cada paleta de cores (preserva novas cores de dados.js + aplica estoque/preço/nome editados)
       CHAVES_PALETAS.forEach((chave) => {
-        if (Array.isArray(custom[chave]) && custom[chave].length > 0) {
-          window.SITE_DATA[chave] = JSON.parse(JSON.stringify(custom[chave]));
+        const listaCustom = custom[chave];
+        const listaFabrica = Array.isArray(baseFabrica[chave]) ? baseFabrica[chave] : [];
+        if (Array.isArray(listaCustom) && listaCustom.length > 0) {
+          const mapaCustom = new Map();
+          listaCustom.forEach((c) => {
+            const k = normalizarChaveCor(c);
+            if (k) mapaCustom.set(k, c);
+          });
+
+          const removidasPaleta = new Set(
+            custom.coresRemovidas && Array.isArray(custom.coresRemovidas[chave])
+              ? custom.coresRemovidas[chave]
+              : []
+          );
+
+          const mesclada = [];
+          listaFabrica.forEach((corFab) => {
+            const k = normalizarChaveCor(corFab);
+            if (k && removidasPaleta.has(k)) return;
+            if (k && mapaCustom.has(k)) {
+              mesclada.push({ ...corFab, ...JSON.parse(JSON.stringify(mapaCustom.get(k))) });
+              mapaCustom.delete(k);
+            } else {
+              mesclada.push(JSON.parse(JSON.stringify(corFab)));
+            }
+          });
+
+          // Adiciona cores novas cadastradas manualmente no painel admin
+          mapaCustom.forEach((corNova, k) => {
+            if (!removidasPaleta.has(k)) {
+              mesclada.push(JSON.parse(JSON.stringify(corNova)));
+            }
+          });
+
+          window.SITE_DATA[chave] = mesclada;
         }
       });
+
+      if (custom.atualizadoEm) {
+        ultimoCatalogoSyncTs = String(custom.atualizadoEm);
+      }
 
       return true;
     },
 
-    // Persiste o estado atual do window.SITE_DATA no localStorage e no servidor local
-    persistirEstadoAtual: async function () {
+    // Persiste o estado atual do window.SITE_DATA no localStorage, Supabase Cloud e /api/catalogo
+    persistirEstadoAtual: async function (extraMeta = null) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
+
+      const anterior = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, {}) || {};
+      const produtosRemovidos = Array.isArray(extraMeta && extraMeta.produtosRemovidos)
+        ? extraMeta.produtosRemovidos
+        : (Array.isArray(anterior.produtosRemovidos) ? anterior.produtosRemovidos : []);
+      const coresRemovidas = (extraMeta && extraMeta.coresRemovidas) || anterior.coresRemovidas || {};
 
       const payload = {
         atualizadoEm: new Date().toISOString(),
         bannerPromocao: window.SITE_DATA.bannerPromocao || {},
-        catalogo: window.SITE_DATA.catalogo || []
+        catalogo: window.SITE_DATA.catalogo || [],
+        produtosRemovidos,
+        coresRemovidas
       };
 
       CHAVES_PALETAS.forEach((chave) => {
@@ -1101,18 +1174,190 @@
         }
       });
 
+      ultimoCatalogoSyncTs = payload.atualizadoEm;
       gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, payload);
 
-      await chamarApiOuLocal(
-        "/api/catalogo",
-        {
-          method: "POST",
-          body: JSON.stringify(payload)
-        },
-        () => payload
-      );
+      let salvouNuvem = false;
 
-      return true;
+      // 1) Gravação direta no Supabase Cloud (configuracoes_site -> catalogo_oficial_v1)
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+          const supa = window.SJ_SUPABASE.getClient();
+          if (supa) {
+            const { error } = await supa.from("configuracoes_site").upsert(
+              {
+                chave: CHAVE_NUVEM_CATALOGO,
+                valor: payload,
+                atualizado_em: payload.atualizadoEm
+              },
+              { onConflict: "chave" }
+            );
+            if (!error) salvouNuvem = true;
+          }
+        }
+      } catch (e) {
+        console.warn("[SJ_DB] Falha ao sincronizar catálogo direto no Supabase:", e);
+      }
+
+      // 2) Gravação via API (/api/catalogo — funciona na Vercel e no servidor local)
+      try {
+        const resApi = await fetch("/api/catalogo", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          cache: "no-store",
+          body: JSON.stringify(payload)
+        });
+        if (resApi && resApi.ok) {
+          salvouNuvem = true;
+        }
+      } catch (_) {}
+
+      return salvouNuvem || true;
+    },
+
+    // Busca catálogo mais recente do Supabase Cloud (ou /api/catalogo) e atualiza a tela automaticamente
+    sincronizarDaNuvem: async function (opcoes = {}) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return false;
+      const forcar = Boolean(opcoes && opcoes.forcar);
+      const agora = Date.now();
+      if (!forcar && agora - ultimoFetchNuvemMs < 4000) return false;
+      ultimoFetchNuvemMs = agora;
+
+      let remoto = null;
+
+      // 1) Leitura direta do Supabase Cloud (mais rápida e sempre atualizada)
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+          const supa = window.SJ_SUPABASE.getClient();
+          if (supa) {
+            const { data, error } = await supa
+              .from("configuracoes_site")
+              .select("valor, atualizado_em")
+              .eq("chave", CHAVE_NUVEM_CATALOGO)
+              .maybeSingle();
+
+            if (!error && data && data.valor && typeof data.valor === "object") {
+              remoto = data.valor;
+              if (!remoto.atualizadoEm && data.atualizado_em) {
+                remoto.atualizadoEm = data.atualizado_em;
+              }
+            }
+          }
+        }
+      } catch (_) {}
+
+      // 2) Fallback via /api/catalogo (Vercel Serverless ou servidor local)
+      if (!remoto && window.fetch) {
+        try {
+          const r = await fetch(`/api/catalogo?_t=${Date.now()}`, { cache: "no-store" });
+          if (r.ok) {
+            const json = await r.json();
+            if (json && typeof json === "object" && (Array.isArray(json.catalogo) || json.bannerPromocao)) {
+              remoto = json;
+            }
+          }
+        } catch (_) {}
+      }
+
+      const localAtual = catalogo.obterCustomizacoes();
+      const ehPaginaAdmin =
+        window.location &&
+        (window.location.pathname.includes("admin") || Boolean(document.getElementById("admin-standalone-app")));
+
+      // Se a nuvem ainda não tem catálogo publicado mas o Admin já tinha edições locais salvas, publica na nuvem automaticamente!
+      if (!remoto) {
+        if (ehPaginaAdmin && localAtual && (Array.isArray(localAtual.catalogo) || localAtual.coresMaxPrint)) {
+          await catalogo.persistirEstadoAtual();
+        }
+        return false;
+      }
+
+      const tsRemoto = String(remoto.atualizadoEm || "");
+      const tsLocal = String((localAtual && localAtual.atualizadoEm) || "");
+
+      // Se estivermos no Admin e o local for estritamente mais recente (ex: edição offline), respeita e envia para a nuvem
+      if (ehPaginaAdmin && tsLocal && tsRemoto && new Date(tsLocal).getTime() > new Date(tsRemoto).getTime() + 1000) {
+        await catalogo.persistirEstadoAtual();
+        return false;
+      }
+
+      // Se a nuvem tem versão diferente da que está aplicada na tela, aplica e re-renderiza imediatamente!
+      if (forcar || !tsRemoto || tsRemoto !== ultimoCatalogoSyncTs || !localAtual) {
+        gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, remoto);
+        catalogo.aplicarCustomizacoes(remoto);
+        ultimoCatalogoSyncTs = tsRemoto || new Date().toISOString();
+        window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado", { detail: { atualizadoEm: ultimoCatalogoSyncTs } }));
+        return true;
+      }
+
+      return false;
+    },
+
+    // Assina mudanças em tempo real (Supabase Realtime) + foco de aba para refletir em todos os navegadores
+    iniciarSincronizacaoTempoReal: function () {
+      if (typeof window === "undefined" || realtimeCatalogoIniciado) return;
+      realtimeCatalogoIniciado = true;
+
+      // 1) Atualiza automaticamente ao voltar para a aba ou focar a janela
+      document.addEventListener("visibilitychange", () => {
+        if (!document.hidden) {
+          catalogo.sincronizarDaNuvem();
+        }
+      });
+      window.addEventListener("focus", () => {
+        catalogo.sincronizarDaNuvem();
+      });
+
+      // 2) Sincronização instantânea entre abas abertas no mesmo navegador
+      window.addEventListener("storage", (e) => {
+        if (e.key === STORAGE_KEYS.CATALOGO_CUSTOM && e.newValue) {
+          try {
+            const parsed = JSON.parse(e.newValue);
+            if (parsed && typeof parsed === "object") {
+              catalogo.aplicarCustomizacoes(parsed);
+              window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
+            }
+          } catch (_) {}
+        }
+      });
+
+      // 3) Supabase Realtime (push instantâneo quando o Admin altera preço/nome/esgotado em outro navegador)
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+          const supa = window.SJ_SUPABASE.getClient();
+          if (supa && typeof supa.channel === "function") {
+            supa
+              .channel("sj-catalogo-live-sync")
+              .on(
+                "postgres_changes",
+                {
+                  event: "*",
+                  schema: "public",
+                  table: "configuracoes_site",
+                  filter: `chave=eq.${CHAVE_NUVEM_CATALOGO}`
+                },
+                (payload) => {
+                  const novoValor = payload && payload.new && payload.new.valor;
+                  if (novoValor && typeof novoValor === "object") {
+                    gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, novoValor);
+                    catalogo.aplicarCustomizacoes(novoValor);
+                    window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
+                  } else {
+                    catalogo.sincronizarDaNuvem({ forcar: true });
+                  }
+                }
+              )
+              .subscribe();
+          }
+        }
+      } catch (_) {}
+
+      // 4) Polling leve a cada 25s quando a aba está visível (fallback caso Realtime seja bloqueado por rede)
+      window.setInterval(() => {
+        if (!document.hidden) {
+          catalogo.sincronizarDaNuvem();
+        }
+      }, 25000);
     },
 
     // Salva alterações no Banner Principal de Promoção
@@ -1141,7 +1386,8 @@
       }
 
       window.SITE_DATA.catalogo = lista;
-      await catalogo.persistirEstadoAtual();
+      const removidos = obterListaRemovidosProdutos().filter((rid) => rid !== id);
+      await catalogo.persistirEstadoAtual({ produtosRemovidos: removidos });
       return dadosProduto;
     },
 
@@ -1152,7 +1398,8 @@
       window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).filter((p) => p.id !== idProduto);
       const excluiu = window.SITE_DATA.catalogo.length < antes;
       if (excluiu) {
-        await catalogo.persistirEstadoAtual();
+        const removidos = [...new Set([...obterListaRemovidosProdutos(), idProduto])];
+        await catalogo.persistirEstadoAtual({ produtosRemovidos: removidos });
       }
       return excluiu;
     },
@@ -1161,8 +1408,19 @@
     salvarPaletaCores: async function (chavePaleta, novaListaCores) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
       if (!CHAVES_PALETAS.includes(chavePaleta) || !Array.isArray(novaListaCores)) return false;
+
+      // Calcula eventuais cores removidas em relação à paleta de fábrica para sincronizar exclusões entre navegadores
+      const anterior = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, {}) || {};
+      const coresRemovidas = { ...(anterior.coresRemovidas || {}) };
+      const chavesAtuais = new Set(novaListaCores.map((c) => normalizarChaveCor(c)).filter(Boolean));
+      const baseFabricaPaleta =
+        SITE_DATA_FACTORY && Array.isArray(SITE_DATA_FACTORY[chavePaleta]) ? SITE_DATA_FACTORY[chavePaleta] : [];
+      coresRemovidas[chavePaleta] = baseFabricaPaleta
+        .map((c) => normalizarChaveCor(c))
+        .filter((k) => k && !chavesAtuais.has(k));
+
       window.SITE_DATA[chavePaleta] = novaListaCores;
-      await catalogo.persistirEstadoAtual();
+      await catalogo.persistirEstadoAtual({ coresRemovidas });
       return true;
     },
 
@@ -1174,13 +1432,21 @@
       if (SITE_DATA_FACTORY && typeof window !== "undefined") {
         window.SITE_DATA = JSON.parse(JSON.stringify(SITE_DATA_FACTORY));
       }
-      await chamarApiOuLocal(
-        "/api/catalogo",
-        {
-          method: "DELETE"
-        },
-        () => true
-      );
+      ultimoCatalogoSyncTs = "";
+
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
+          const supa = window.SJ_SUPABASE.getClient();
+          if (supa) {
+            await supa.from("configuracoes_site").delete().eq("chave", CHAVE_NUVEM_CATALOGO);
+          }
+        }
+      } catch (_) {}
+
+      try {
+        await fetch("/api/catalogo", { method: "DELETE", cache: "no-store" });
+      } catch (_) {}
+
       return true;
     },
 
@@ -1323,23 +1589,14 @@
     }
   };
 
-  // Auto-inicialização
+  // Auto-inicialização + Sincronização em Tempo Real com Supabase Cloud
   inicializarTabelas();
   catalogo.aplicarCustomizacoes();
-  testarConexaoServidor().then((conectado) => {
-    if (conectado && typeof window !== "undefined" && window.fetch) {
-      fetch("/api/catalogo")
-        .then((r) => (r.ok ? r.json() : null))
-        .then((remoto) => {
-          if (remoto && remoto.catalogo && Array.isArray(remoto.catalogo)) {
-            gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, remoto);
-            catalogo.aplicarCustomizacoes(remoto);
-            window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
-          }
-        })
-        .catch(() => {});
-    }
-  });
+  testarConexaoServidor();
+  if (typeof window !== "undefined") {
+    catalogo.sincronizarDaNuvem({ forcar: true });
+    catalogo.iniciarSincronizacaoTempoReal();
+  }
 
   return {
     auth,
