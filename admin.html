@@ -42,7 +42,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261117_05" />
+  <link rel="stylesheet" href="css/styles.css?v=20261118_09" />
 </head>
 
 <body class="admin-standalone-body">
@@ -168,352 +168,414 @@
     <!-- BACKDROP MOBILE PARA FECHAR O MENU COM 1 TOQUE -->
     <div id="admin-mobile-backdrop" class="admin-mobile-backdrop"></div>
 
-    <!-- COLUNA ESQUERDA: MENU LATERAL PERMANENTE (CLEAN NEUTRAL LIGHT SAAS SIDEBAR) -->
-    <aside class="admin-standalone-sidebar">
-      <div>
+    <!-- COLUNA ESQUERDA: MENU LATERAL ENXUTO -->
+    <aside class="admin-standalone-sidebar" aria-label="Menu administrativo">
+      <div class="sj-crm-sidebar-top">
         <!-- Logo e Identidade da Loja SJ -->
         <div class="sj-crm-brand">
           <div class="sj-crm-brand-icon">SJ</div>
           <div class="sj-crm-brand-info">
             <div class="sj-crm-brand-title">LOJA SJ 3D</div>
-            <div class="sj-crm-brand-sub">Plataforma de Gestão Oficial</div>
+            <div class="sj-crm-brand-sub">Painel de Gestão</div>
           </div>
           <button type="button" id="btn-admin-sidebar-close" class="btn-admin-sidebar-close" aria-label="Fechar menu lateral">✕</button>
         </div>
 
-        <!-- Box do Operador Autenticado -->
-        <div class="sj-crm-admin-box">
-          <div style="display:flex; align-items:center; gap:6px; margin-bottom:5px;">
-            <span style="width:8px; height:8px; border-radius:50%; background:#22c55e; display:inline-block;"></span>
-            <span id="crm-sidebar-role-badge" style="font-size:0.68rem; font-weight:800; color:#b45309; background:#fef3c7; border:1px solid #fde68a; padding:2px 8px; border-radius:999px; text-transform:uppercase; letter-spacing:0.4px;">👑 Admin / Equipe</span>
-          </div>
-          <div id="crm-sidebar-admin-email" style="font-size:0.8rem; font-weight:700; color:#0f172a; word-break:break-all;">jt.designer21@gmail.com</div>
-          <div style="font-size:0.7rem; color:#64748b; margin-top:2px;">Sessão Autenticada • Umuarama / PR</div>
-          <button type="button" id="btn-admin-logout-sidebar" style="margin-top:10px; width:100%; padding:6px 10px; font-size:0.74rem; font-weight:800; border-radius:7px; border:1px solid #fecaca; background:#fef2f2; color:#b91c1c; cursor:pointer; display:flex; align-items:center; justify-content:center; gap:6px; transition:all 0.15s ease;" title="Encerrar sessão administrativa">
-            <span>🚪 Encerrar Sessão</span>
-          </button>
-        </div>
-
-        <div class="sj-crm-section-label">Módulos de Gestão</div>
-
-        <!-- Navegação por Abas -->
-        <nav class="sj-crm-nav" role="tablist">
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="produtos" role="tab">
-            <span>📦 Catálogo, Filamentos &amp; Preços</span>
+        <!-- Navegação Principal (6 itens) -->
+        <nav class="sj-crm-nav" aria-label="Navegação principal">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="inicio">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+              <span>Início</span>
+            </span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="orcamentos-clientes" role="tab">
-            <span>📋 Orçamentos (Clientes)</span>
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="produtos">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+              <span>Catálogo</span>
+            </span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="orcamentos-clientes">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+              <span>Orçamentos</span>
+            </span>
             <span id="cms-portal-quotes-badge" class="badge-pill">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" role="tab">
-            <span>🔍 Consulta de Preço &amp; QR Code</span>
-          </button>
-
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes" role="tab">
-            <span>📇 Clientes &amp; Leads (Banco)</span>
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+              <span>Clientes</span>
+            </span>
             <span id="cms-clients-count-badge" class="badge-pill">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="banner" role="tab">
-            <span>🎨 Banner &amp; Sorteio</span>
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" data-admin-only="true">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+              <span>Acessos</span>
+            </span>
+            <span id="cms-pending-badge" class="badge-pill danger" style="display:none;">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" data-admin-only="true" role="tab">
-            <span>👥 Acessos (Admin)</span>
-            <span id="cms-pending-badge" style="display:none; background:#EF4444; color:#fff; font-size:0.7rem; padding:2px 8px; border-radius:999px; font-weight:800;">0</span>
-          </button>
+          <!-- Item 6: Mais (agrupa ferramentas secundárias sem apagar nada) -->
+          <div class="sj-crm-nav-more-wrap">
+            <button type="button" id="btn-crm-nav-mais" class="sj-crm-nav-btn sj-crm-nav-more-toggle" aria-expanded="false" aria-controls="crm-nav-mais-panel">
+              <span class="nav-btn-inner">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="1"></circle><circle cx="19" cy="12" r="1"></circle><circle cx="5" cy="12" r="1"></circle></svg>
+                <span>Mais</span>
+              </span>
+              <svg class="nav-more-chevron" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="supabase" data-admin-only="true" role="tab">
-            <span>⚡ Supabase &amp; Nuvem</span>
-          </button>
-
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="exportar" data-admin-only="true" role="tab">
-            <span>💾 Backup &amp; Dados</span>
-          </button>
-
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="lgpd" data-admin-only="true" role="tab">
-            <span>🛡️ Solicitações LGPD</span>
-          </button>
+            <div id="crm-nav-mais-panel" class="sj-crm-nav-sublist" hidden>
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h3"></path></svg>
+                <span>Consulta de Preço &amp; QR</span>
+              </button>
+              <button type="button" id="crm-btn-open-scanner-quick" class="sj-crm-subnav-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                <span>Ler QR Code (Câmera)</span>
+              </button>
+              <button type="button" id="crm-btn-open-quote" class="sj-crm-subnav-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+                <span>Emitir Orçamento Timbrado</span>
+              </button>
+              <button type="button" id="crm-btn-open-history" class="sj-crm-subnav-btn">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+                <span>Histórico de Orçamentos</span>
+              </button>
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="banner">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
+                <span>Banner &amp; Sorteio</span>
+              </button>
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="supabase" data-admin-only="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+                <span>Supabase &amp; Nuvem</span>
+              </button>
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="exportar" data-admin-only="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <span>Backup &amp; Dados</span>
+              </button>
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="lgpd" data-admin-only="true">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                <span>Solicitações LGPD</span>
+              </button>
+            </div>
+          </div>
         </nav>
       </div>
 
-      <!-- Rodapé da Barra Lateral: Ações de Balcão e Link da Loja Pública -->
-      <div class="sj-crm-sidebar-footer">
-        <button type="button" id="crm-btn-open-scanner-quick" class="sj-crm-footer-btn highlight-qr">
-          <span>📷 Ler QR Code (Câmera)</span>
-        </button>
-        <button type="button" id="crm-btn-open-quote" class="sj-crm-footer-btn">
-          <span>📄 Emitir Orçamento Timbrado</span>
-        </button>
-        <button type="button" id="crm-btn-open-history" class="sj-crm-footer-btn">
-          <span>🕒 Histórico de Orçamentos</span>
-        </button>
-        <a href="index.html" target="_blank" class="sj-crm-footer-link-store">
-          <span>🌐 Ver Loja Pública (Abrir Site) ↗</span>
-        </a>
+      <div class="sj-crm-sidebar-footer-min">
+        <span>Umuarama · PR</span>
       </div>
     </aside>
 
-    <!-- COLUNA DIREITA: TOPBAR SAAS + ÁREA ROLÁVEL DE TRABALHO -->
+    <!-- COLUNA DIREITA: TOPO LIMPO + ÁREA DE TRABALHO -->
     <main class="admin-standalone-main">
       <header class="admin-standalone-topbar">
-        <!-- Lado Esquerdo: Menu Mobile + Breadcrumb e Título da Página com respiro -->
+        <!-- Lado Esquerdo: Menu Mobile + Título + Indicador Discreto de Sync -->
         <div class="admin-topbar-left">
           <button type="button" id="btn-admin-mobile-toggle" class="btn-admin-mobile-toggle" aria-label="Abrir menu de navegação">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <line x1="3" y1="12" x2="21" y2="12"></line>
               <line x1="3" y1="6" x2="21" y2="6"></line>
               <line x1="3" y1="18" x2="21" y2="18"></line>
             </svg>
           </button>
-          <div class="admin-topbar-titles">
-            <div class="admin-topbar-badge-row">
-              <span class="admin-topbar-brand-badge">LOJA SJ 3D</span>
-              <span class="admin-topbar-badge-sep">•</span>
-              <span class="admin-topbar-status-badge">
-                <span class="status-dot-pulse"></span>
-                Painel Oficial de Operações
-              </span>
-            </div>
-            <h1 id="admin-cms-title" class="admin-topbar-h1">Catálogo, Preços &amp; Controle de Estoque</h1>
+          <div class="admin-topbar-title-group">
+            <h1 id="admin-cms-title" class="admin-topbar-h1">Início</h1>
+            <span id="admin-cloud-sync-pill" class="admin-sync-pill is-checking" title="Status da sincronização com o Supabase">
+              <span class="sync-dot" aria-hidden="true"></span>
+              <span id="admin-cloud-sync-pill-text">Verificando...</span>
+            </span>
           </div>
         </div>
 
-        <!-- Lado Direito: Ações Rápidas sem quebras -->
+        <!-- Lado Direito: Ver Loja, Menu Ações e Menu do Usuário -->
         <div class="admin-topbar-right">
-          <!-- Atalhos rápidos compactos -->
-          <button type="button" id="crm-top-btn-qr-shortcut" class="admin-topbar-action-btn highlight" title="Abrir Leitor e Consulta de QR Code">
-            <span class="action-icon">📷</span>
-            <span class="action-label">Ler QR</span>
-          </button>
-
-          <button type="button" id="crm-top-btn-clients-shortcut" class="admin-topbar-action-btn hide-on-mobile-sm" title="Acessar Clientes e Leads">
-            <span class="action-icon">📇</span>
-            <span class="action-label">Clientes &amp; Leads</span>
-          </button>
-
-          <button type="button" id="crm-top-btn-equipe-shortcut" class="admin-topbar-action-btn hide-on-tablet" data-admin-only="true" title="Gerenciar Acessos e Permissões (Somente Admin)">
-            <span class="action-icon">👥</span>
-            <span class="action-label">Acessos</span>
-            <span id="crm-top-pending-pill" class="badge-danger-pill" style="display:none;">0</span>
-          </button>
-
-          <a href="index.html" target="_blank" class="admin-topbar-action-btn ghost" title="Visualizar a loja como cliente público">
-            <span class="action-icon">🌐</span>
-            <span class="action-label">Loja Pública ↗</span>
+          <a href="index.html" target="_blank" rel="noopener" class="admin-topbar-action-btn ghost" title="Visualizar a loja como cliente">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line></svg>
+            <span class="action-label">Ver loja</span>
           </a>
 
-          <!-- Botão Sair Clean & Sofisticado -->
-          <button type="button" id="btn-admin-logout" class="admin-topbar-logout-btn" title="Encerrar sessão administrativa">
-            <span class="action-icon">🚪</span>
-            <span class="action-label">Sair</span>
-          </button>
+          <!-- Menu Ações -->
+          <div class="admin-popover-anchor">
+            <button type="button" id="btn-admin-actions-menu" class="admin-topbar-action-btn" popovertarget="admin-actions-popover" aria-haspopup="menu" aria-expanded="false">
+              <span>Ações</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="admin-actions-popover" class="admin-top-popover" popover="auto">
+              <div focusgroup="menu nomemory" aria-labelledby="btn-admin-actions-menu">
+                <button type="button" id="btn-admin-force-publish-cloud" class="admin-popover-item">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="23 4 23 10 17 10"></polyline><polyline points="1 20 1 14 7 14"></polyline><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg>
+                  <span>Sincronizar tudo agora</span>
+                </button>
+                <button type="button" id="btn-admin-connect-cloud-google" class="admin-popover-item is-accent" style="display:none;">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
+                  <span>Conectar conta Google Admin</span>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Menu Compacto do Usuário (Avatar pequeno + menu ao clicar) -->
+          <div class="admin-popover-anchor">
+            <button type="button" id="btn-admin-user-menu" class="admin-user-chip-btn" popovertarget="admin-user-popover" aria-haspopup="menu" aria-expanded="false" title="Conta e sessão">
+              <span class="admin-user-avatar" id="crm-topbar-avatar-initials">SJ</span>
+              <span class="admin-user-short-label hide-on-mobile-sm" id="crm-topbar-user-short">Equipe</span>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="admin-user-popover" class="admin-top-popover admin-user-popover-card" popover="auto">
+              <div class="admin-user-popover-header">
+                <span id="crm-sidebar-role-badge" class="admin-role-pill">Admin</span>
+                <div id="crm-sidebar-admin-email" class="admin-user-popover-email">admin@lojasj3d.com.br</div>
+              </div>
+              <hr class="admin-popover-sep" />
+              <div focusgroup="menu nomemory" aria-labelledby="btn-admin-user-menu">
+                <button type="button" id="btn-admin-user-goto-access" class="admin-popover-item" data-admin-only="true">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+                  <span>Acessos &amp; Senha</span>
+                </button>
+                <button type="button" id="btn-admin-logout" class="admin-popover-item is-danger">
+                  <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+                  <span>Encerrar sessão</span>
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
       </header>
 
       <!-- CORPO DE TRABALHO ROLÁVEL -->
       <div class="admin-standalone-workspace admin-cms-body">
 
-        <!-- BARRA GLOBAL DE STATUS DE SINCRONIZAÇÃO EM NUVEM (VISÍVEL EM TODAS AS ABAS) -->
-        <div id="admin-cloud-sync-banner" style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px; padding:12px 18px; border-radius:14px; border:1.5px solid #fde68a; background:#fffbeb; color:#92400e; margin-bottom:18px; font-size:0.84rem;">
-          <div style="display:flex; align-items:center; gap:10px; flex:1; min-width:240px;">
-            <span id="admin-cloud-sync-icon" style="font-size:1.15rem;">☁️</span>
-            <div id="admin-cloud-sync-text" style="line-height:1.45;">
-              Verificando conexão com a nuvem Supabase...
+        <!-- ==============================================================
+             ABA 0: INÍCIO (RESUMO DO DIA + PRECISA DE ATENÇÃO)
+             ============================================================== -->
+        <div class="admin-cms-pane active" id="cms-pane-inicio" style="display: block;">
+          <div class="cms-home-kpi-grid">
+            <button type="button" class="cms-home-kpi-card" id="btn-inicio-kpi-quotes">
+              <div class="cms-home-kpi-head">
+                <span class="cms-home-kpi-label">Orçamentos novos</span>
+                <span class="cms-home-kpi-dot is-orange" aria-hidden="true"></span>
+              </div>
+              <div class="cms-home-kpi-num" id="inicio-kpi-quotes">0</div>
+              <div class="cms-home-kpi-sub">Aguardando retorno</div>
+            </button>
+
+            <button type="button" class="cms-home-kpi-card" id="btn-inicio-kpi-out">
+              <div class="cms-home-kpi-head">
+                <span class="cms-home-kpi-label">Produtos esgotados</span>
+                <span class="cms-home-kpi-dot is-red" aria-hidden="true"></span>
+              </div>
+              <div class="cms-home-kpi-num is-red" id="inicio-kpi-out">0</div>
+              <div class="cms-home-kpi-sub">Itens indisponíveis no site</div>
+            </button>
+
+            <button type="button" class="cms-home-kpi-card" id="btn-inicio-kpi-low">
+              <div class="cms-home-kpi-head">
+                <span class="cms-home-kpi-label">Poucas unidades</span>
+                <span class="cms-home-kpi-dot is-yellow" aria-hidden="true"></span>
+              </div>
+              <div class="cms-home-kpi-num is-yellow" id="inicio-kpi-low">0</div>
+              <div class="cms-home-kpi-sub">Com aviso de estoque baixo</div>
+            </button>
+
+            <button type="button" class="cms-home-kpi-card" id="btn-inicio-kpi-clients">
+              <div class="cms-home-kpi-head">
+                <span class="cms-home-kpi-label">Clientes novos (7 dias)</span>
+                <span class="cms-home-kpi-dot is-green" aria-hidden="true"></span>
+              </div>
+              <div class="cms-home-kpi-num" id="inicio-kpi-clients">0</div>
+              <div class="cms-home-kpi-sub">Cadastros e leads recentes</div>
+            </button>
+          </div>
+
+          <section class="cms-section-card" aria-labelledby="inicio-attention-title">
+            <div class="cms-section-head">
+              <div>
+                <h2 id="inicio-attention-title" class="cms-section-title">Precisa de atenção</h2>
+                <p class="cms-section-sub">Orçamentos aguardando resposta e itens esgotados ou com estoque baixo.</p>
+              </div>
+              <button type="button" class="btn-cms-secondary" id="btn-inicio-refresh">Atualizar</button>
             </div>
-          </div>
-          <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-            <button type="button" id="btn-admin-connect-cloud-google" style="display:none; background:#ea580c; color:#ffffff; border:none; border-radius:10px; padding:9px 16px; font-size:0.8rem; font-weight:700; cursor:pointer; box-shadow:0 3px 10px rgba(234,88,12,0.25);">
-              ☁️ Conectar Google Admin (Publicar para Todos)
-            </button>
-            <button type="button" id="btn-admin-force-publish-cloud" style="display:none; background:#ffffff; color:#15803d; border:1.5px solid #bbf7d0; border-radius:10px; padding:8px 14px; font-size:0.78rem; font-weight:700; cursor:pointer;">
-              🔄 Sincronizar Tudo Agora
-            </button>
-          </div>
+            <div id="cms-inicio-attention-list" class="cms-attention-list">
+              <div class="cms-skeleton-row"></div>
+              <div class="cms-skeleton-row"></div>
+            </div>
+          </section>
         </div>
 
         <!-- ==============================================================
-             ABA 1: PRODUTOS, PREÇOS, FOTOS, ESTOQUE E CORES DE FILAMENTO
+             ABA 1: CATÁLOGO, PREÇOS & ESTOQUE (COMPACTO + LOTE + GAVETA)
              ============================================================== -->
-        <div class="admin-cms-pane active" id="cms-pane-produtos" style="display: block;">
-
-          <!-- SUB-VIEW 1A: LISTA DE PRODUTOS DO CATÁLOGO -->
+        <div class="admin-cms-pane" id="cms-pane-produtos" style="display: none;">
           <div id="cms-products-list-view">
-            <!-- KPIs BENTO ULTRA CLEAN (MINIMALISTAS & SEM POLUIÇÃO VISUAL) -->
-            <div class="sj-crm-kpi-row">
-              <!-- KPI 1: TOTAL DE PRODUTOS -->
-              <button type="button" class="cms-kpi-clean-card active-kpi" data-cms-stock-kpi="todos" title="Exibe todo o catálogo">
-                <div class="cms-kpi-top">
-                  <span class="cms-kpi-title">
-                    <span class="cms-kpi-icon-pill" style="background:#f1f5f9; color:#475569;">📦</span>
-                    Total de Produtos
-                  </span>
-                </div>
-                <div class="cms-kpi-main-number">
-                  <span id="cms-kpi-total">132</span>
-                </div>
-                <div class="cms-kpi-footer-text" id="cms-kpi-sub-total">
-                  Itens ativos no catálogo
-                </div>
-              </button>
-
-              <!-- KPI 2: EM ESTOQUE -->
-              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="disponivel" title="Filtrar pronta entrega">
-                <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#166534;">
-                    <span class="cms-kpi-icon-pill" style="background:#ecfdf5; color:#16a34a;">🟢</span>
-                    Em Estoque
-                  </span>
-                </div>
-                <div class="cms-kpi-main-number">
-                  <span id="cms-kpi-ok" style="color:#15803d;">119</span>
-                </div>
-                <div class="cms-kpi-footer-text" style="color:#15803d;">
-                  Pronta entrega ativa
-                </div>
-              </button>
-
-              <!-- KPI 3: POUCAS UNIDADES -->
-              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="poucas_unidades" title="Filtrar estoque baixo">
-                <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#b45309;">
-                    <span class="cms-kpi-icon-pill" style="background:#fffbeb; color:#d97706;">🟠</span>
-                    Poucas Unidades
-                  </span>
-                </div>
-                <div class="cms-kpi-main-number">
-                  <span id="cms-kpi-low" style="color:#d97706;">13</span>
-                </div>
-                <div class="cms-kpi-footer-text" style="color:#b45309;">
-                  Aviso no site
-                </div>
-              </button>
-
-              <!-- KPI 4: ESGOTADOS -->
-              <button type="button" class="cms-kpi-clean-card" data-cms-stock-kpi="esgotado" title="Filtrar esgotados">
-                <div class="cms-kpi-top">
-                  <span class="cms-kpi-title" style="color:#b91c1c;">
-                    <span class="cms-kpi-icon-pill" style="background:#fef2f2; color:#dc2626;">🔴</span>
-                    Esgotados
-                  </span>
-                </div>
-                <div class="cms-kpi-main-number">
-                  <span id="cms-kpi-out" style="color:#dc2626;">0</span>
-                </div>
-                <div class="cms-kpi-footer-text" style="color:#dc2626;">
-                  Pausados no site
-                </div>
-              </button>
-            </div>
-
-            <!-- BARRA DE FERRAMENTAS UNIFICADA & CLEAN (DESIGN LINEAR / APPLE) -->
-            <div class="cms-toolbar-row">
-              <!-- Linha Superior: Filtros de Categoria + Botão de Novo Produto -->
-              <div class="cms-toolbar-top-row">
-                <div class="cms-cat-pills" id="cms-cat-filter-pills">
-                  <button type="button" class="cms-cat-pill active" data-cms-cat="todos">Todos</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="filamentos">🎨 Filamentos</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="impressoras">🖨️ Impressoras 3D</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="pecas">⚙️ Peças &amp; Acessórios</button>
-                  <button type="button" class="cms-cat-pill" data-cms-cat="manutencao">🔧 Serviços &amp; Manutenção</button>
+            <!-- Barra de filtros enxuta -->
+            <div class="cms-lean-toolbar">
+              <div class="cms-lean-toolbar-main">
+                <div class="cms-search-box-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="text" id="cms-product-search" class="cms-search-input-lean" placeholder="Buscar produto, cor ou código..." aria-label="Buscar produto, cor ou código" />
+                  <kbd class="cms-kbd-hint" title="Atalho: pressione / para buscar">/</kbd>
                 </div>
 
-                <div>
-                  <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-product">
-                    <span>+ Novo Produto</span>
-                  </button>
-                </div>
+                <select id="cms-cat-filter-select" class="cms-select-clean" aria-label="Filtrar por categoria">
+                  <option value="todos">Todas as categorias</option>
+                  <option value="filamentos">Filamentos</option>
+                  <option value="impressoras">Impressoras 3D</option>
+                  <option value="pecas">Peças &amp; Acessórios</option>
+                  <option value="manutencao">Serviços &amp; Manutenção</option>
+                </select>
+
+                <select id="cms-stock-filter-select" class="cms-select-clean" aria-label="Filtrar por status">
+                  <option value="todos">Todos os status</option>
+                  <option value="disponivel">Disponível</option>
+                  <option value="poucas_unidades">Poucas unidades</option>
+                  <option value="esgotado">Esgotado</option>
+                </select>
               </div>
 
-              <!-- Linha Inferior: Alternador de Visão (Modelos / SKUs) + Filtro de Status + Busca Rápida -->
-              <div class="cms-toolbar-bottom-row">
-                <div class="cms-view-mode-toggle" id="cms-view-mode-toggle">
-                  <button type="button" class="cms-view-btn active" data-cms-view-mode="modelos" title="Agrupado por modelo principal e bobinas">
-                    <span>🗂️ Modelos &amp; Famílias</span>
-                    <span class="cms-badge-count" id="cms-badge-count-modelos">34</span>
+              <div class="cms-lean-toolbar-actions">
+                <div class="cms-view-mode-toggle" id="cms-view-mode-toggle" role="group" aria-label="Modo de visualização do catálogo">
+                  <button type="button" class="cms-view-btn active" data-cms-view-mode="modelos">
+                    <span>Por produto</span>
+                    <span class="cms-badge-count" id="cms-badge-count-modelos">0</span>
                   </button>
-                  <button type="button" class="cms-view-btn" data-cms-view-mode="skus" title="Ver cada cor e peça individualmente">
-                    <span>🎨 Todas as Cores &amp; SKUs</span>
-                    <span class="cms-badge-count" id="cms-badge-count-skus">132</span>
+                  <button type="button" class="cms-view-btn" data-cms-view-mode="skus">
+                    <span>Todas as cores</span>
+                    <span class="cms-badge-count" id="cms-badge-count-skus">0</span>
                   </button>
                 </div>
 
-                <div class="cms-toolbar-right">
-                  <select id="cms-stock-filter-select" class="cms-select-clean">
-                    <option value="todos">📦 Todos os Status</option>
-                    <option value="disponivel">🟢 Em Estoque</option>
-                    <option value="poucas_unidades">🟠 Poucas Unidades</option>
-                    <option value="esgotado">🔴 Esgotados</option>
-                  </select>
-                  <input type="text" id="cms-product-search" class="cms-search-input-clean" placeholder="🔍 Buscar cor, código, impressora, peça..." />
-                </div>
+                <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-product">
+                  + Novo produto
+                </button>
               </div>
             </div>
 
-            <!-- Grade Dinâmica de Produtos ou SKUs -->
-            <div class="cms-products-grid" id="cms-products-grid"></div>
+            <!-- Lista / Tabela Dinâmica -->
+            <div class="cms-catalog-container" id="cms-products-grid"></div>
+            <div id="cms-catalog-pagination" class="cms-pagination-bar" style="display:none;"></div>
+          </div>
+        </div>
+
+        <!-- Barra Flutuante de Ações em Lote (Catálogo) -->
+        <div id="cms-bulk-action-bar" class="cms-bulk-action-bar" style="display: none;" role="region" aria-label="Ações em lote do catálogo">
+          <div class="cms-bulk-left">
+            <strong id="cms-bulk-count-label">0 selecionados</strong>
+            <button type="button" id="btn-cms-bulk-select-model-colors" class="cms-bulk-link-btn" style="display:none;">Selecionar todas as cores deste modelo</button>
+            <button type="button" id="btn-cms-bulk-clear" class="cms-bulk-link-btn is-muted">Limpar</button>
           </div>
 
-          <!-- SUB-VIEW 1B: EDITOR COMPLETO DE UM PRODUTO -->
-          <div id="cms-product-editor-view" style="display: none;">
-            <div class="cms-editor-top-bar">
-              <button type="button" class="btn-cms-back" id="btn-cms-back-to-list">
-                ← Voltar para o Catálogo
-              </button>
-              <span class="cms-editor-badge" id="cms-editor-mode-badge">Editando Produto</span>
+          <div class="cms-bulk-right">
+            <div class="cms-bulk-status-group" role="group" aria-label="Alterar status em lote">
+              <button type="button" class="cms-bulk-status-btn is-green" data-bulk-stock="disponivel">Disponível</button>
+              <button type="button" class="cms-bulk-status-btn is-yellow" data-bulk-stock="poucas_unidades">Poucas unidades</button>
+              <button type="button" class="cms-bulk-status-btn is-red" data-bulk-stock="esgotado">Esgotado</button>
             </div>
 
-            <form id="form-cms-product" class="cms-editor-form">
-              <input type="hidden" id="cms-prod-id" />
+            <button type="button" id="btn-cms-bulk-price" class="btn-cms-secondary">Alterar preço</button>
+            <button type="button" id="btn-cms-bulk-save" class="btn-cms-save" disabled>Salvar alterações</button>
+          </div>
+        </div>
 
-              <div class="cms-editor-2col-top">
-                <div class="cms-photo-upload-box">
-                  <label class="cms-section-label">📷 Foto Principal do Produto</label>
-                  <div class="cms-photo-preview-frame">
+        <!-- GAVETA LATERAL: EDITAR / NOVO PRODUTO -->
+        <dialog id="cms-product-drawer" class="cms-side-drawer" closedby="closerequest" aria-labelledby="cms-editor-mode-badge">
+          <div class="cms-drawer-header">
+            <div>
+              <h2 id="cms-editor-mode-badge" class="cms-drawer-title">Editar produto</h2>
+              <p class="cms-drawer-sub">Campos principais visíveis; detalhes extras ficam em Mais opções.</p>
+            </div>
+            <button type="button" class="cms-drawer-close" id="btn-cms-back-to-list" aria-label="Fechar editor">✕</button>
+          </div>
+
+          <form id="form-cms-product" class="cms-drawer-form">
+            <input type="hidden" id="cms-prod-id" />
+
+            <div class="cms-drawer-body">
+              <!-- Bloco Essencial Visível -->
+              <div class="cms-drawer-section">
+                <div class="cms-drawer-photo-row">
+                  <div class="cms-drawer-photo-thumb">
                     <img id="cms-prod-img-preview" src="assets/produtos/impressora-a1_mini.jpg" alt="Prévia do Produto" />
                   </div>
-                  <label class="btn-cms-upload-photo">
-                    📤 Enviar Foto do Computador / Celular
-                    <input type="file" id="input-cms-prod-file" accept="image/*" style="display: none;" />
-                  </label>
-                  <div class="cms-field" style="margin-top:8px;">
-                    <label for="cms-prod-imagem">Ou Caminho / URL da Imagem:</label>
-                    <input type="text" id="cms-prod-imagem" placeholder="Ex: assets/produtos/impressora-a1.jpg" required />
+                  <div class="cms-drawer-photo-controls">
+                    <label class="btn-cms-upload-photo">
+                      Enviar foto
+                      <input type="file" id="input-cms-prod-file" accept="image/*" style="display: none;" />
+                    </label>
+                    <input type="text" id="cms-prod-imagem" placeholder="Caminho ou URL da imagem (ex: assets/produtos/pla.jpg)" required />
                   </div>
                 </div>
 
-                <div class="cms-main-fields-col">
+                <div class="cms-field">
+                  <label for="cms-prod-nome">Nome do produto *</label>
+                  <input type="text" id="cms-prod-nome" placeholder="Ex: Bambu Lab A1 MINI" required />
+                </div>
+
+                <div class="cms-field-row-2">
+                  <div class="cms-field">
+                    <label for="cms-prod-categoria">Categoria *</label>
+                    <select id="cms-prod-categoria">
+                      <option value="filamentos">Filamentos</option>
+                      <option value="impressoras">Impressoras 3D</option>
+                      <option value="pecas">Peças &amp; Acessórios</option>
+                      <option value="manutencao">Serviços &amp; Manutenção</option>
+                    </select>
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-prod-estoque">Status de estoque *</label>
+                    <select id="cms-prod-estoque">
+                      <option value="disponivel">Disponível</option>
+                      <option value="poucas_unidades">Poucas unidades</option>
+                      <option value="esgotado">Esgotado</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="cms-field-row-2">
+                  <div class="cms-field">
+                    <label for="cms-prod-preco-vista">Preço exibido *</label>
+                    <input type="text" id="cms-prod-preco-vista" placeholder="Ex: R$ 79,90" required />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-prod-preco-valor">Valor numérico (R$)</label>
+                    <input type="number" step="0.01" id="cms-prod-preco-valor" placeholder="Ex: 79.90" />
+                  </div>
+                </div>
+              </div>
+
+              <!-- Cores (visível apenas quando o produto tem paleta de cores) -->
+              <details id="cms-filament-colors-block" class="cms-drawer-details" style="display: none;">
+                <summary class="cms-drawer-summary">
+                  <span>Cores desta linha de filamento</span>
+                  <span id="cms-drawer-colors-count" class="cms-summary-pill">0 cores</span>
+                </summary>
+                <div class="cms-drawer-details-body">
+                  <div class="cms-bulk-price-bar" style="margin-bottom:10px;">
+                    <input type="text" id="cms-bulk-color-price" placeholder="Ex: R$ 84,90" class="cms-bulk-input" />
+                    <button type="button" class="btn-cms-secondary" id="btn-cms-apply-bulk-price">Aplicar em todas as cores</button>
+                    <button type="button" class="btn-cms-primary" id="btn-cms-add-color">+ Nova cor</button>
+                  </div>
+                  <div id="cms-filament-colors-list" class="cms-filament-colors-list"></div>
+                </div>
+              </details>
+
+              <!-- Seção Recolhida: Mais opções -->
+              <details id="cms-prod-more-options" class="cms-drawer-details">
+                <summary class="cms-drawer-summary">
+                  <span>Mais opções (código, marca, descrição, ficha técnica, QR)</span>
+                </summary>
+                <div class="cms-drawer-details-body">
                   <div class="cms-field-row-2">
                     <div class="cms-field">
-                      <label for="cms-prod-nome">Título / Nome do Produto *</label>
-                      <input type="text" id="cms-prod-nome" placeholder="Ex: Bambu Lab A1 MINI" required />
-                    </div>
-                    <div class="cms-field">
-                      <label for="cms-prod-categoria">Categoria no Site *</label>
-                      <select id="cms-prod-categoria">
-                        <option value="filamentos">Filamentos</option>
-                        <option value="impressoras">Impressoras 3D</option>
-                        <option value="pecas">Peças &amp; Acessórios</option>
-                        <option value="manutencao">Serviços &amp; Manutenção</option>
-                      </select>
-                    </div>
-                  </div>
-
-                  <div class="cms-field">
-                    <label for="cms-prod-subtitulo">Subtítulo / Descrição Resumida *</label>
-                    <input type="text" id="cms-prod-subtitulo" placeholder="Ex: CUSTO-BENEFÍCIO • COMPACTA • Calibração 100% Automática" required />
-                  </div>
-
-                  <div class="cms-field-row-3">
-                    <div class="cms-field">
-                      <label for="cms-prod-preco-vista">Preço Principal Exibido *</label>
-                      <input type="text" id="cms-prod-preco-vista" placeholder="Ex: R$ 1.961,00 ou R$ 79,90" required />
-                    </div>
-                    <div class="cms-field">
-                      <label for="cms-prod-preco-valor">Valor Numérico (R$ p/ Cálculo)</label>
-                      <input type="number" step="0.01" id="cms-prod-preco-valor" placeholder="Ex: 1961.00" />
+                      <label for="cms-prod-codigo-display">Código / SKU</label>
+                      <input type="text" id="cms-prod-codigo-display" readonly style="background:#f8fafc; color:#64748b;" />
                     </div>
                     <div class="cms-field">
                       <label for="cms-prod-marca">Marca / Fabricante</label>
@@ -521,104 +583,125 @@
                     </div>
                   </div>
 
-                  <div class="cms-field-row-3">
+                  <div class="cms-field">
+                    <label for="cms-prod-subtitulo">Descrição resumida / Subtítulo</label>
+                    <input type="text" id="cms-prod-subtitulo" placeholder="Ex: Calibração automática • Pronta entrega" />
+                  </div>
+
+                  <div class="cms-field-row-2">
                     <div class="cms-field">
-                      <label for="cms-prod-preco-parcelado">Texto de Parcelamento</label>
+                      <label for="cms-prod-preco-parcelado">Texto de parcelamento</label>
                       <input type="text" id="cms-prod-preco-parcelado" placeholder="Ex: ou 10x de R$ 217,90" />
                     </div>
                     <div class="cms-field">
-                      <label for="cms-prod-tag">Selo de Destaque (Opcional)</label>
-                      <input type="text" id="cms-prod-tag" placeholder="Ex: ESCOLHA INTELIGENTE" />
-                    </div>
-                    <div class="cms-field">
-                      <label for="cms-prod-estoque">📦 Estoque</label>
-                      <select id="cms-prod-estoque" style="font-weight:700;">
-                        <option value="disponivel">🟢 Em Estoque (Pronta Entrega)</option>
-                        <option value="poucas_unidades">🟠 Poucas Unidades (Últimas Peças)</option>
-                        <option value="esgotado">🔴 Esgotado (Indisponível)</option>
-                      </select>
+                      <label for="cms-prod-tag">Selo de destaque</label>
+                      <input type="text" id="cms-prod-tag" placeholder="Ex: DESTAQUE" />
                     </div>
                   </div>
 
                   <div class="cms-field-row-2">
                     <div class="cms-field">
-                      <label for="cms-prod-select1">Opções do 1º Seletor (separadas por vírgula)</label>
-                      <input type="text" id="cms-prod-select1" placeholder="Ex: À Vista (R$ 1.961,00), 10x de R$ 217,90" />
+                      <label for="cms-prod-select1">Opções do 1º seletor (vírgula)</label>
+                      <input type="text" id="cms-prod-select1" placeholder="À Vista, Parcelado" />
                     </div>
                     <div class="cms-field" id="cms-prod-select2-wrap">
-                      <label for="cms-prod-select2">Opções do 2º Seletor (separadas por vírgula)</label>
-                      <input type="text" id="cms-prod-select2" placeholder="Ex: Somente Impressora, Incluir Filamento" />
+                      <label for="cms-prod-select2">Opções do 2º seletor (vírgula)</label>
+                      <input type="text" id="cms-prod-select2" placeholder="Padrão" />
+                    </div>
+                  </div>
+
+                  <!-- Ficha Técnica -->
+                  <div class="cms-drawer-subblock">
+                    <div class="cms-drawer-subblock-head">
+                      <strong>Ficha técnica</strong>
+                      <button type="button" class="btn-cms-secondary" id="btn-cms-add-spec">+ Linha</button>
+                    </div>
+                    <div id="cms-specs-list" class="cms-specs-list"></div>
+                  </div>
+
+                  <!-- QR Code -->
+                  <div class="cms-drawer-subblock" id="cms-product-qrcode-block">
+                    <div style="display:flex; align-items:center; gap:12px; flex-wrap:wrap;">
+                      <div id="cms-editor-qr-preview" style="width:68px; height:68px; background:#fff; border:1px solid #e2e8f0; border-radius:8px; display:flex; align-items:center; justify-content:center; padding:4px; flex-shrink:0;"></div>
+                      <div style="flex:1; min-width:160px;">
+                        <strong style="font-size:0.84rem; display:block;">Etiqueta QR Code</strong>
+                        <div id="cms-editor-qr-code-text" style="font-family:monospace; font-size:0.74rem; color:#64748b; margin:2px 0 8px;">SJ3D:PROD:...</div>
+                        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                          <button type="button" class="btn-cms-secondary" id="btn-cms-print-single-qr">Imprimir QR</button>
+                          <button type="button" class="btn-cms-secondary" id="btn-cms-print-filament-colors-qr" style="display:none;">Imprimir QR das cores</button>
+                        </div>
+                      </div>
                     </div>
                   </div>
                 </div>
-              </div>
+              </details>
+            </div>
 
-              <!-- ETIQUETA QR CODE -->
-              <div class="cms-block-card" id="cms-product-qrcode-block" style="background:linear-gradient(135deg, #fff7ed 0%, #ffffff 100%); border:1.5px solid #fed7aa;">
-                <div class="cms-block-header" style="align-items:center;">
-                  <div style="display:flex; align-items:center; gap:14px; flex-wrap:wrap;">
-                    <div id="cms-editor-qr-preview" style="width:88px; height:88px; background:#fff; border:1.5px solid #e4e4e7; border-radius:10px; display:flex; align-items:center; justify-content:center; padding:6px; flex-shrink:0;"></div>
-                    <div>
-                      <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.66rem; font-weight:800; padding:2px 8px; border-radius:999px; margin-bottom:4px;">🏷️ QR CODE EXCLUSIVO DESTE PRODUTO</span>
-                      <h4 style="margin:0;">Etiqueta QR Code para Balcão</h4>
-                      <p style="margin:3px 0 0; font-size:0.8rem; color:#52525b;">Imprima esta etiqueta para prateleiras, mostruários e leitura rápida pelo vendedor.</p>
-                      <div id="cms-editor-qr-code-text" style="font-family:monospace; font-size:0.75rem; font-weight:700; color:#c2410c; margin-top:4px;">SJ3D:PROD:...</div>
-                    </div>
-                  </div>
-                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
-                    <button type="button" class="btn-cms-primary" id="btn-cms-print-single-qr">
-                      🖨️ Imprimir Etiqueta QR
-                    </button>
-                    <button type="button" class="btn-cms-secondary" id="btn-cms-print-filament-colors-qr" style="display:none;">
-                      🏷️ Imprimir QR Codes de Todas as Cores
-                    </button>
-                  </div>
+            <div class="cms-drawer-footer">
+              <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-product">Cancelar</button>
+              <button type="submit" class="btn-cms-save">Salvar produto</button>
+            </div>
+          </form>
+        </dialog>
+
+        <!-- MODAL: ALTERAR PREÇO EM LOTE COM PRÉVIA -->
+        <dialog id="cms-bulk-price-dialog" class="cms-modal-dialog" closedby="any" aria-labelledby="cms-bulk-price-title">
+          <div class="cms-modal-dialog-inner">
+            <div class="cms-drawer-header">
+              <div>
+                <h2 id="cms-bulk-price-title" class="cms-drawer-title">Alterar preço em lote</h2>
+                <p id="cms-bulk-price-sub" class="cms-drawer-sub">Escolha valor fixo ou percentual e confira a prévia antes de confirmar.</p>
+              </div>
+              <button type="button" class="cms-drawer-close" id="btn-cms-bulk-price-close" aria-label="Fechar">✕</button>
+            </div>
+            <div class="cms-modal-dialog-body">
+              <div class="cms-field-row-2">
+                <div class="cms-field">
+                  <label for="cms-bulk-price-mode">Tipo de ajuste</label>
+                  <select id="cms-bulk-price-mode">
+                    <option value="set">Definir novo preço fixo (R$)</option>
+                    <option value="add_fixed">Somar valor fixo (+ R$)</option>
+                    <option value="sub_fixed">Subtrair valor fixo (- R$)</option>
+                    <option value="add_pct">Aumentar porcentagem (+ %)</option>
+                    <option value="sub_pct">Reduzir porcentagem (- %)</option>
+                  </select>
+                </div>
+                <div class="cms-field">
+                  <label for="cms-bulk-price-amount">Valor (R$ ou %)</label>
+                  <input type="number" step="0.01" min="0" id="cms-bulk-price-amount" placeholder="Ex: 89.90 ou 10" />
                 </div>
               </div>
 
-              <!-- FICHA TÉCNICA -->
-              <div class="cms-block-card">
-                <div class="cms-block-header">
-                  <div>
-                    <h4>📋 Ficha Técnica &amp; Descrições Detalhadas</h4>
-                    <p>Especificações exibidas na página pública do produto.</p>
-                  </div>
-                  <button type="button" class="btn-cms-secondary" id="btn-cms-add-spec">
-                    + Adicionar Linha
-                  </button>
-                </div>
-                <div id="cms-specs-list" class="cms-specs-list"></div>
+              <div class="cms-bulk-preview-box">
+                <div class="cms-bulk-preview-head">Prévia dos itens selecionados</div>
+                <div id="cms-bulk-price-preview-list" class="cms-bulk-preview-list"></div>
               </div>
-
-              <!-- TABELA DE CORES PARA FILAMENTOS -->
-              <div class="cms-block-card" id="cms-filament-colors-block" style="display: none;">
-                <div class="cms-block-header">
-                  <div>
-                    <h4>🎨 Cores, Preços e Fotos desta Linha de Filamento</h4>
-                    <p>Altere o preço, código ou foto de qualquer cor individualmente ou aplique em lote.</p>
-                  </div>
-                  <div class="cms-bulk-price-bar">
-                    <input type="text" id="cms-bulk-color-price" placeholder="Ex: R$ 84,90" class="cms-bulk-input" />
-                    <button type="button" class="btn-cms-secondary" id="btn-cms-apply-bulk-price">
-                      ⚡ Aplicar Preço em Lote
-                    </button>
-                    <button type="button" class="btn-cms-primary" id="btn-cms-add-color">
-                      + Nova Cor
-                    </button>
-                  </div>
-                </div>
-                <div id="cms-filament-colors-list" class="cms-filament-colors-list"></div>
-              </div>
-
-              <div class="cms-editor-footer-actions">
-                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-product">Cancelar</button>
-                <button type="submit" class="btn-cms-save">
-                  💾 Salvar Alterações do Produto
-                </button>
-              </div>
-            </form>
+            </div>
+            <div class="cms-drawer-footer">
+              <button type="button" class="btn-cms-cancel" id="btn-cms-bulk-price-cancel">Cancelar</button>
+              <button type="button" class="btn-cms-save" id="btn-cms-bulk-price-confirm">Aplicar na lista</button>
+            </div>
           </div>
-        </div>
+        </dialog>
+
+        <!-- MODAL: CONFIRMAÇÃO RÁPIDA DE ALTERAÇÃO EM LOTE -->
+        <dialog id="cms-bulk-confirm-dialog" class="cms-modal-dialog is-compact" closedby="any" aria-labelledby="cms-bulk-confirm-title">
+          <div class="cms-modal-dialog-inner">
+            <div class="cms-drawer-header">
+              <h2 id="cms-bulk-confirm-title" class="cms-drawer-title">Confirmar alteração em lote?</h2>
+              <button type="button" class="cms-drawer-close" id="btn-cms-bulk-confirm-close" aria-label="Fechar">✕</button>
+            </div>
+            <div class="cms-modal-dialog-body">
+              <p id="cms-bulk-confirm-text" style="margin:0; font-size:0.9rem; color:#334155; line-height:1.5;">
+                Você está prestes a atualizar vários itens do catálogo no Supabase. Você ainda poderá usar "Desfazer" logo após salvar.
+              </p>
+            </div>
+            <div class="cms-drawer-footer">
+              <button type="button" class="btn-cms-cancel" id="btn-cms-bulk-confirm-cancel" autofocus>Cancelar</button>
+              <button type="button" class="btn-cms-save" id="btn-cms-bulk-confirm-proceed">Confirmar e salvar</button>
+            </div>
+          </div>
+        </dialog>
 
         <!-- ABA 2: CONSULTA DE PREÇO & QR CODE -->
         <div class="admin-cms-pane" id="cms-pane-consulta-qr" style="display: none;">
@@ -799,21 +882,96 @@
 
         <!-- ABA 3: CLIENTES & LEADS (CRM) -->
         <div class="admin-cms-pane" id="cms-pane-clientes" style="display: none;">
-          <div style="background:#fff; border:1.5px solid #e4e4e7; border-radius:14px; padding:16px 18px; margin-bottom:16px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:12px;">
-            <div>
-              <span style="font-size:0.7rem; font-weight:800; color:#F04E23; text-transform:uppercase; letter-spacing:0.5px;">BANCO DE CLIENTES &amp; LEADS</span>
-              <h4 style="margin:2px 0 0; font-size:1.05rem; font-weight:900;">Clientes Cadastrados pelo WhatsApp e Balcão</h4>
-              <p style="margin:2px 0 0; font-size:0.78rem; color:#6b7280;">Dados sincronizados em tempo real no banco local e nuvem Supabase.</p>
+          <div class="cms-lean-toolbar">
+            <div class="cms-lean-toolbar-main">
+              <div class="cms-search-box-wrap">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="cms-clients-search-input" class="cms-search-input-lean" placeholder="Buscar cliente por nome, telefone, CPF/CNPJ ou e-mail..." aria-label="Buscar cliente" />
+              </div>
+
+              <select id="cms-clients-filter-select" class="cms-select-clean" aria-label="Filtrar clientes">
+                <option value="todos">Todos os clientes</option>
+                <option value="whatsapp">Com WhatsApp</option>
+                <option value="cpf">Com CPF / CNPJ</option>
+                <option value="site">Cadastro no site</option>
+              </select>
             </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" class="btn-cms-primary" id="btn-cms-new-quote" style="background:#E84520; border-color:#E84520; display:inline-flex; align-items:center; gap:6px;">
-                <span>📄 Novo Orçamento Timbrado</span>
-              </button>
-              <button type="button" class="btn-cms-secondary" id="btn-cms-new-client">+ Novo Cliente</button>
-              <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients">📥 Exportar Planilha (CSV)</button>
+
+            <div class="cms-lean-toolbar-actions">
+              <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients-csv">Exportar CSV</button>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-new-quote">Orçamento timbrado</button>
+              <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-client">+ Novo cliente</button>
             </div>
           </div>
-          <div id="cms-clients-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+
+          <!-- Formulário Rápido para Cadastrar ou Editar Cliente / Lead -->
+          <div id="cms-client-form-box" class="cms-block-card" style="display: none; border:1.5px solid #F04E23; background:#fffaf8; margin-bottom:16px;">
+            <div class="cms-block-header">
+              <div>
+                <h4 id="cms-client-form-title">Novo Cliente / Lead</h4>
+                <p>Registre ou atualize os dados para contato e orçamentos.</p>
+              </div>
+              <button type="button" class="btn-cms-cancel" id="btn-cms-close-client-form">Fechar</button>
+            </div>
+
+            <form id="form-cms-client-lead" class="cms-editor-form">
+              <input type="hidden" id="cms-cli-id" />
+              <div class="cms-field-row-3">
+                <div class="cms-field">
+                  <label for="cms-cli-nome">Nome completo / Razão social *</label>
+                  <input type="text" id="cms-cli-nome" placeholder="Ex: Carlos Eduardo Silva" required />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-whatsapp">Telefone / WhatsApp *</label>
+                  <input type="text" id="cms-cli-whatsapp" placeholder="(44) 99999-9999" required />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-cpf">CPF ou CNPJ</label>
+                  <input type="text" id="cms-cli-cpf" placeholder="000.000.000-00" />
+                </div>
+              </div>
+
+              <div class="cms-field-row-3">
+                <div class="cms-field">
+                  <label for="cms-cli-email">E-mail</label>
+                  <input type="email" id="cms-cli-email" placeholder="cliente@email.com" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-cidade">Cidade / UF</label>
+                  <input type="text" id="cms-cli-cidade" placeholder="Umuarama / PR" value="Umuarama / PR" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-origem">Origem</label>
+                  <select id="cms-cli-origem">
+                    <option value="Cadastro no Site">Cadastro no Site</option>
+                    <option value="Lead WhatsApp / Balcão">Lead WhatsApp / Balcão</option>
+                    <option value="Orçamento Comercial">Orçamento Comercial</option>
+                    <option value="Clube SJ / Sorteio">Clube SJ / Sorteio</option>
+                  </select>
+                </div>
+              </div>
+
+              <div class="cms-field-row-2">
+                <div class="cms-field">
+                  <label for="cms-cli-endereco">Endereço</label>
+                  <input type="text" id="cms-cli-endereco" placeholder="Rua, número, bairro, CEP" />
+                </div>
+                <div class="cms-field">
+                  <label for="cms-cli-obs">Observação</label>
+                  <input type="text" id="cms-cli-obs" placeholder="Anotações sobre atendimento" />
+                </div>
+              </div>
+
+              <div class="cms-editor-footer-actions" style="margin-top:10px;">
+                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-client-lead">Cancelar</button>
+                <button type="submit" class="btn-cms-save">Salvar cliente</button>
+              </div>
+            </form>
+          </div>
+
+          <div class="cms-section-card is-flush">
+            <div id="cms-clients-list" class="cms-clean-list"></div>
+          </div>
         </div>
 
         <!-- ABA 4: BANNER & PROMOÇÕES -->
@@ -870,36 +1028,52 @@
 
         <!-- ABA: ORÇAMENTOS DOS CLIENTES (STAFF + ADMIN) -->
         <div class="admin-cms-pane" id="cms-pane-orcamentos-clientes" style="display: none;">
-          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
-            <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px; margin-bottom:16px;">
-              <div>
-                <h4 style="margin:0 0 4px; font-size:1.08rem; font-weight:800; color:#0f172a;">📋 Orçamentos Solicitados pelos Clientes (/conta)</h4>
-                <p style="margin:0; color:#64748b; font-size:0.84rem;">Veja itens, quantidades, contato com link direto para o WhatsApp e registre o status ou valor de resposta.</p>
+          <div class="cms-lean-toolbar">
+            <div class="cms-lean-toolbar-main">
+              <div class="cms-quick-tabs" id="cms-quotes-quick-tabs" role="tablist" aria-label="Filtrar orçamentos por status">
+                <button type="button" class="cms-quick-tab" data-quote-status-tab="solicitado">Novos</button>
+                <button type="button" class="cms-quick-tab" data-quote-status-tab="em_analise">Em análise</button>
+                <button type="button" class="cms-quick-tab" data-quote-status-tab="respondido">Respondidos</button>
+                <button type="button" class="cms-quick-tab active" data-quote-status-tab="todos">Todos</button>
               </div>
-              <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <input type="text" id="cms-search-quotes-input" placeholder="Buscar por nome, CPF/CNPJ ou nº..." style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; min-width:220px;" />
-                <select id="cms-filter-quotes-nf" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="todos">🧾 Todas as notas</option>
-                  <option value="com_nf">✅ Com Nota Fiscal</option>
-                  <option value="sem_nf">📄 Sem Nota Fiscal</option>
-                </select>
-                <select id="cms-filter-quotes-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="todos">Todos os status</option>
-                  <option value="solicitado">📨 Solicitados (Novos)</option>
-                  <option value="em_analise">🔍 Em análise</option>
-                  <option value="respondido">💬 Respondidos</option>
-                  <option value="aprovado">✅ Aprovados</option>
-                  <option value="recusado">✖️ Recusados</option>
-                  <option value="cancelado">🚫 Cancelados</option>
-                </select>
-                <button type="button" id="btn-cms-refresh-portal-quotes" class="btn-cms-secondary" style="padding:8px 14px; border-radius:9px; font-size:0.82rem; cursor:pointer;">🔄 Atualizar</button>
-              </div>
+              <input type="hidden" id="cms-filter-quotes-status" value="todos" />
             </div>
-            <div id="cms-portal-quotes-list">
-              <div style="padding:24px; text-align:center; color:#64748b;">Carregando orçamentos...</div>
+
+            <div class="cms-lean-toolbar-actions">
+              <div class="cms-search-box-wrap is-compact">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                <input type="text" id="cms-search-quotes-input" class="cms-search-input-lean" placeholder="Buscar por nome, CPF/CNPJ ou nº..." aria-label="Buscar orçamento" />
+              </div>
+
+              <select id="cms-filter-quotes-nf" class="cms-select-clean" aria-label="Filtrar por nota fiscal">
+                <option value="todos">Todas as notas</option>
+                <option value="com_nf">Com Nota Fiscal</option>
+                <option value="sem_nf">Sem Nota Fiscal</option>
+              </select>
+
+              <button type="button" id="btn-cms-refresh-portal-quotes" class="btn-cms-secondary">Atualizar</button>
+            </div>
+          </div>
+
+          <div class="cms-section-card is-flush">
+            <div id="cms-portal-quotes-list" class="cms-clean-list">
+              <div class="cms-skeleton-row"></div>
+              <div class="cms-skeleton-row"></div>
             </div>
           </div>
         </div>
+
+        <!-- GAVETA LATERAL: DETALHES E RESPOSTA DO ORÇAMENTO -->
+        <dialog id="cms-quote-drawer" class="cms-side-drawer" closedby="any" aria-labelledby="cms-quote-drawer-title">
+          <div class="cms-drawer-header">
+            <div>
+              <h2 id="cms-quote-drawer-title" class="cms-drawer-title">Orçamento</h2>
+              <p id="cms-quote-drawer-sub" class="cms-drawer-sub"></p>
+            </div>
+            <button type="button" class="cms-drawer-close" id="btn-cms-close-quote-drawer" aria-label="Fechar detalhes">✕</button>
+          </div>
+          <div id="cms-quote-drawer-body" class="cms-drawer-body"></div>
+        </dialog>
 
         <!-- ABA 5: ACESSOS, EQUIPE & CLIENTES (EXCLUSIVO ADMIN — public.profiles + RLS) -->
         <div class="admin-cms-pane" id="cms-pane-equipe" style="display: none;">
@@ -1439,10 +1613,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_08"></script>
-  <script src="js/dados.js?v=20261118_08"></script>
-  <script src="js/database.js?v=20261118_08"></script>
-  <script src="js/app.js?v=20261118_08"></script>
+  <script src="js/supabase-client.js?v=20261118_09"></script>
+  <script src="js/dados.js?v=20261118_09"></script>
+  <script src="js/database.js?v=20261118_09"></script>
+  <script src="js/app.js?v=20261118_09"></script>
 
 </body>
 

@@ -9725,11 +9725,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   // =========================================================================
 
   const cmsState = {
-    abaAtiva: "produtos",
-    modoVisao: "modelos", // "modelos" (famílias/linhas) ou "skus" (todas as cores e itens individuais)
+    abaAtiva: "inicio",
+    modoVisao: "modelos", // "modelos" (Por produto) ou "skus" (Todas as cores)
     categoriaFiltro: "todos",
     estoqueFiltro: "todos",
     busca: "",
+    paginaSkus: 1,
+    porPaginaSkus: 25,
+    sortCol: "produto",
+    sortDir: "ascending",
+    expandedModels: new Set(),
+    selectedKeys: new Set(),
+    pendingEdits: new Map(),
+    ultimoUndoSnapshot: null,
+    quotesCache: [],
+    profilesCache: [],
     produtoEditandoId: null,
     coresTempEditando: [],
     chavePaletaEditando: null
@@ -10740,57 +10750,104 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       return;
     }
 
-    listEl.innerHTML = filtrados.map((c) => {
-      const telLimpo = String(c.whatsapp || c.cepTelefone || "").replace(/\D/g, "");
-      const linkWhats = telLimpo ? `https://wa.me/55${telLimpo}?text=Ol%C3%A1%20${encodeURIComponent(c.nome || "")}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Loja%20SJ%203D!` : null;
-      const dataCadastro = c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "Recente";
+    const isStandaloneAdmin = Boolean(document.getElementById("admin-standalone-app"));
 
-      return `
-        <div class="sj-lead-card" data-lead-id="${c.id}">
-          <div style="flex:1; min-width:240px;">
-            <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
-              <strong style="font-size:1rem; color:#111827;">${c.nome || "Cliente Sem Nome"}</strong>
-              <span style="font-size:0.7rem; font-weight:800; background:#f4f4f5; color:#52525b; padding:2px 8px; border-radius:999px;">
-                ${c.origem || "Cadastro Site"}
-              </span>
-              <span style="font-size:0.7rem; color:#a1a1aa;">Cadastrado em: ${dataCadastro}</span>
+    if (isStandaloneAdmin) {
+      listEl.innerHTML = filtrados.map((c) => {
+        const telBruto = c.whatsapp || c.cepTelefone || "";
+        const telLimpo = String(telBruto).replace(/\D/g, "");
+        const telWa = telLimpo ? (telLimpo.startsWith("55") ? telLimpo : `55${telLimpo}`) : "";
+        const linkWhats = telWa ? `https://wa.me/${telWa}?text=Ol%C3%A1%20${encodeURIComponent(c.nome || "")}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Loja%20SJ%203D!` : null;
+        const dataCadastro = c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "Recente";
+        const docRaw = String(c.cnpjCpf || c.cpf || "");
+        const docDigitos = docRaw.replace(/\D/g, "");
+        const tipoPessoaLabel = docDigitos.length === 14 ? "PJ" : (docDigitos.length === 11 ? "PF" : "");
+        const origemLabel = c.origem || "Cadastro no site";
+
+        return `
+          <div class="cms-client-row" data-lead-id="${escaparHtml(c.id)}">
+            <div class="cms-client-row-main">
+              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                <strong style="font-size:0.94rem; color:#0f172a;">${escaparHtml(c.nome || "Cliente sem nome")}</strong>
+                ${tipoPessoaLabel ? `<span class="cms-status-pill is-neutral">${tipoPessoaLabel}</span>` : ""}
+                <span style="font-size:0.74rem; color:#64748b; background:#f8fafc; border:1px solid #e2e8f0; padding:2px 8px; border-radius:999px;">${escaparHtml(origemLabel)}</span>
+                <span style="font-size:0.74rem; color:#94a3b8;">Cadastro: ${escaparHtml(dataCadastro)}</span>
+              </div>
+              <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.8rem; color:#475569; margin-top:4px;">
+                ${telBruto ? `<span>Tel: <strong>${escaparHtml(telBruto)}</strong></span>` : "<span>Sem telefone</span>"}
+                ${docRaw ? `
+                  <span style="display:inline-flex; align-items:center; gap:4px;">
+                    Doc: <strong class="crm-doc-display" data-doc-raw="${escaparHtml(docRaw)}" data-client-id="${escaparHtml(c.id)}">${escaparHtml(mascararCpfCnpj(docRaw))}</strong>
+                    <button type="button" class="btn-reveal-doc" data-reveal-client="${escaparHtml(c.id)}" title="Revelar documento completo (registrado em log LGPD)" style="background:none; border:none; cursor:pointer; font-size:0.76rem; color:#F04E23; padding:0 3px;">Ver</button>
+                  </span>
+                ` : ""}
+                ${c.email ? `<span>${escaparHtml(c.email)}</span>` : ""}
+                ${c.bairroCidadeUf || c.cidade ? `<span>${escaparHtml(c.bairroCidadeUf || c.cidade)}</span>` : ""}
+              </div>
             </div>
 
-            <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.8rem; color:#4b5563; margin-top:4px;">
-              ${c.whatsapp || c.cepTelefone ? `<div>📱 <strong>${c.whatsapp || c.cepTelefone}</strong></div>` : ""}
-              ${c.cnpjCpf || c.cpf ? `
-                <div style="display:inline-flex; align-items:center; gap:5px;">
-                  🪪 CPF/CNPJ: <strong class="crm-doc-display" data-doc-raw="${escaparHtml(c.cnpjCpf || c.cpf)}" data-client-id="${c.id}">${mascararCpfCnpj(c.cnpjCpf || c.cpf)}</strong>
-                  <button type="button" class="btn-reveal-doc" data-reveal-client="${c.id}" title="Revelar documento completo (registrado em log de auditoria LGPD)" style="background:none; border:none; cursor:pointer; font-size:0.8rem; color:#F04E23; padding:0 3px;">👁️</button>
-                </div>
+            <div class="cms-client-row-actions">
+              ${linkWhats ? `<a href="${escaparHtml(linkWhats)}" target="_blank" rel="noopener" class="btn-cms-secondary" style="text-decoration:none; color:#15803d; border-color:#bbf7d0; background:#f0fdf4;">WhatsApp</a>` : ""}
+              <button type="button" class="btn-cms-secondary" data-lead-quote="${escaparHtml(c.id)}">Orçamento</button>
+              <button type="button" class="btn-cms-secondary" data-lead-edit="${escaparHtml(c.id)}">Editar</button>
+              <button type="button" class="btn-cms-danger" data-lead-del="${escaparHtml(c.id)}">Excluir</button>
+            </div>
+          </div>
+        `;
+      }).join("");
+    } else {
+      listEl.innerHTML = filtrados.map((c) => {
+        const telLimpo = String(c.whatsapp || c.cepTelefone || "").replace(/\D/g, "");
+        const linkWhats = telLimpo ? `https://wa.me/55${telLimpo}?text=Ol%C3%A1%20${encodeURIComponent(c.nome || "")}%2C%20tudo%20bem%3F%20Aqui%20%C3%A9%20da%20Loja%20SJ%203D!` : null;
+        const dataCadastro = c.criadoEm ? new Date(c.criadoEm).toLocaleDateString("pt-BR") : "Recente";
+
+        return `
+          <div class="sj-lead-card" data-lead-id="${c.id}">
+            <div style="flex:1; min-width:240px;">
+              <div style="display:flex; align-items:center; gap:8px; margin-bottom:4px; flex-wrap:wrap;">
+                <strong style="font-size:1rem; color:#111827;">${c.nome || "Cliente Sem Nome"}</strong>
+                <span style="font-size:0.7rem; font-weight:800; background:#f4f4f5; color:#52525b; padding:2px 8px; border-radius:999px;">
+                  ${c.origem || "Cadastro Site"}
+                </span>
+                <span style="font-size:0.7rem; color:#a1a1aa;">Cadastrado em: ${dataCadastro}</span>
+              </div>
+
+              <div style="display:flex; gap:14px; flex-wrap:wrap; font-size:0.8rem; color:#4b5563; margin-top:4px;">
+                ${c.whatsapp || c.cepTelefone ? `<div>📱 <strong>${c.whatsapp || c.cepTelefone}</strong></div>` : ""}
+                ${c.cnpjCpf || c.cpf ? `
+                  <div style="display:inline-flex; align-items:center; gap:5px;">
+                    🪪 CPF/CNPJ: <strong class="crm-doc-display" data-doc-raw="${escaparHtml(c.cnpjCpf || c.cpf)}" data-client-id="${c.id}">${mascararCpfCnpj(c.cnpjCpf || c.cpf)}</strong>
+                    <button type="button" class="btn-reveal-doc" data-reveal-client="${c.id}" title="Revelar documento completo (registrado em log de auditoria LGPD)" style="background:none; border:none; cursor:pointer; font-size:0.8rem; color:#F04E23; padding:0 3px;">👁️</button>
+                  </div>
+                ` : ""}
+                ${c.email ? `<div>✉️ ${c.email}</div>` : ""}
+                ${c.bairroCidadeUf || c.cidade ? `<div>📍 ${c.bairroCidadeUf || c.cidade}</div>` : ""}
+              </div>
+
+              ${c.endereco ? `<div style="font-size:0.76rem; color:#6b7280; margin-top:4px;">🏠 ${c.endereco}</div>` : ""}
+              ${c.observacoes ? `<div style="font-size:0.76rem; color:#c2410c; margin-top:3px; font-weight:600;">💡 ${c.observacoes}</div>` : ""}
+            </div>
+
+            <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
+              ${linkWhats ? `
+                <a href="${linkWhats}" target="_blank" rel="noopener" class="btn-cms-save" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#16a34a; font-size:0.78rem; padding:8px 12px;">
+                  💬 Chamar no WhatsApp
+                </a>
               ` : ""}
-              ${c.email ? `<div>✉️ ${c.email}</div>` : ""}
-              ${c.bairroCidadeUf || c.cidade ? `<div>📍 ${c.bairroCidadeUf || c.cidade}</div>` : ""}
+              <button type="button" class="btn-cms-secondary" data-lead-quote="${c.id}" style="font-size:0.78rem; padding:8px 12px;" title="Iniciar orçamento timbrado com este cliente">
+                📄 Orçamento
+              </button>
+              <button type="button" class="btn-cms-secondary" data-lead-edit="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Editar dados">
+                ✏️
+              </button>
+              <button type="button" class="btn-cms-danger" data-lead-del="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Excluir cliente">
+                🗑️
+              </button>
             </div>
-
-            ${c.endereco ? `<div style="font-size:0.76rem; color:#6b7280; margin-top:4px;">🏠 ${c.endereco}</div>` : ""}
-            ${c.observacoes ? `<div style="font-size:0.76rem; color:#c2410c; margin-top:3px; font-weight:600;">💡 ${c.observacoes}</div>` : ""}
           </div>
-
-          <div style="display:flex; gap:8px; align-items:center; flex-wrap:wrap;">
-            ${linkWhats ? `
-              <a href="${linkWhats}" target="_blank" rel="noopener" class="btn-cms-save" style="text-decoration:none; display:inline-flex; align-items:center; gap:6px; background:#16a34a; font-size:0.78rem; padding:8px 12px;">
-                💬 Chamar no WhatsApp
-              </a>
-            ` : ""}
-            <button type="button" class="btn-cms-secondary" data-lead-quote="${c.id}" style="font-size:0.78rem; padding:8px 12px;" title="Iniciar orçamento timbrado com este cliente">
-              📄 Orçamento
-            </button>
-            <button type="button" class="btn-cms-secondary" data-lead-edit="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Editar dados">
-              ✏️
-            </button>
-            <button type="button" class="btn-cms-danger" data-lead-del="${c.id}" style="font-size:0.78rem; padding:8px 10px;" title="Excluir cliente">
-              🗑️
-            </button>
-          </div>
-        </div>
-      `;
-    }).join("");
+        `;
+      }).join("");
+    }
 
     listEl.querySelectorAll("[data-lead-edit]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -11147,6 +11204,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("btn-cms-export-clients-csv")?.addEventListener("click", () => {
       exportarClientesCsv();
     });
+    document.getElementById("btn-cms-export-clients")?.addEventListener("click", () => {
+      exportarClientesCsv();
+    });
 
     document.getElementById("btn-cms-new-quote")?.addEventListener("click", () => {
       abrirEmissorOrcamento();
@@ -11216,15 +11276,30 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const abasSomenteAdmin = ["equipe", "supabase", "exportar", "lgpd"];
     const papelAtual = String(state.usuarioGoogle?.role || "").toLowerCase();
     if (abasSomenteAdmin.includes(aba) && papelAtual && papelAtual !== "admin") {
-      mostrarToast("🔒 Apenas o Administrador pode acessar esta área.", "warning");
-      aba = "produtos";
+      mostrarToast("Apenas o Administrador pode acessar esta área.", "warning");
+      aba = document.getElementById("cms-pane-inicio") ? "inicio" : "produtos";
     }
 
     cmsState.abaAtiva = aba;
     document.querySelectorAll("[data-cms-tab]").forEach((btn) => {
       btn.classList.toggle("active", btn.dataset.cmsTab === aba);
     });
+
+    // Se a aba selecionada está dentro do submenu "Mais", expande-o e destaca o botão "Mais"
+    const abasNoMais = ["consulta-qr", "banner", "supabase", "exportar", "lgpd"];
+    const maisToggleBtn = document.getElementById("btn-crm-nav-mais");
+    const maisPanel = document.getElementById("crm-nav-mais-panel");
+    if (maisToggleBtn) {
+      const emMais = abasNoMais.includes(aba);
+      maisToggleBtn.classList.toggle("active", emMais);
+      if (emMais && maisPanel) {
+        maisPanel.hidden = false;
+        maisToggleBtn.setAttribute("aria-expanded", "true");
+      }
+    }
+
     const mapPanes = {
+      inicio: "cms-pane-inicio",
       produtos: "cms-pane-produtos",
       "orcamentos-clientes": "cms-pane-orcamentos-clientes",
       "consulta-qr": "cms-pane-consulta-qr",
@@ -11236,15 +11311,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       lgpd: "cms-pane-lgpd"
     };
     const mapTitles = {
-      produtos: "Catálogo, Preços & Controle de Estoque",
-      "orcamentos-clientes": "Orçamentos Solicitados pelos Clientes (/conta)",
-      "consulta-qr": "Consulta Rápida de Preço & Leitor QR Code",
-      clientes: "Banco de Dados de Clientes Cadastrados & Leads",
-      equipe: "Acessos: Funcionários, Administradores & Clientes",
-      banner: "Banner de Promoções & Sorteio",
-      supabase: "Conexão Supabase & Nuvem",
-      exportar: "Backup & Exportação de Dados",
-      lgpd: "Painel de Atendimento a Solicitações de Titulares (LGPD Art. 18)"
+      inicio: "Início",
+      produtos: "Catálogo",
+      "orcamentos-clientes": "Orçamentos",
+      "consulta-qr": "Consulta de Preço & QR Code",
+      clientes: "Clientes & Leads",
+      equipe: "Acessos",
+      banner: "Banner & Sorteio",
+      supabase: "Supabase & Nuvem",
+      exportar: "Backup & Dados",
+      lgpd: "Solicitações LGPD"
     };
     const titleEl = document.getElementById("admin-cms-title");
     if (titleEl && mapTitles[aba]) {
@@ -11258,6 +11334,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         el.style.display = ativo ? "block" : "none";
       }
     });
+    if (aba === "inicio") {
+      renderizarPainelInicioCms();
+    }
+    if (aba === "produtos") {
+      renderizarListaProdutosCms();
+    }
     if (aba === "orcamentos-clientes") {
       renderizarOrcamentosPortalCms();
     }
@@ -11278,6 +11360,375 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
   }
 
+  async function renderizarPainelInicioCms() {
+    const kpiQuotesEl = document.getElementById("inicio-kpi-quotes");
+    const kpiOutEl = document.getElementById("inicio-kpi-out");
+    const kpiLowEl = document.getElementById("inicio-kpi-low");
+    const kpiClientsEl = document.getElementById("inicio-kpi-clients");
+    const listEl = document.getElementById("cms-inicio-attention-list");
+    if (!kpiOutEl || !listEl) return;
+
+    const skus = gerarListaSkusCms();
+    const outItems = skus.filter((s) => (s.estoqueStatus || "disponivel") === "esgotado");
+    const lowItems = skus.filter((s) => (s.estoqueStatus || "disponivel") === "poucas_unidades");
+    kpiOutEl.textContent = String(outItems.length);
+    if (kpiLowEl) kpiLowEl.textContent = String(lowItems.length);
+
+    // Clientes novos últimos 7 dias
+    const seteDiasAtras = Date.now() - 7 * 24 * 60 * 60 * 1000;
+    const clientesLocais = window.SJ_DB?.clientes?.listar ? (window.SJ_DB.clientes.listar() || []) : [];
+    const emailsContados = new Set();
+    let clientesNovos7d = 0;
+    clientesLocais.forEach((c) => {
+      const ts = c.criadoEm ? new Date(c.criadoEm).getTime() : 0;
+      if (ts >= seteDiasAtras) {
+        clientesNovos7d++;
+        if (c.email) emailsContados.add(String(c.email).toLowerCase());
+      }
+    });
+    (cmsState.profilesCache || []).forEach((p) => {
+      if ((p.role === "customer" || p.role === "user") && p.created_at) {
+        const ts = new Date(p.created_at).getTime();
+        const em = String(p.email || "").toLowerCase();
+        if (ts >= seteDiasAtras && (!em || !emailsContados.has(em))) {
+          clientesNovos7d++;
+        }
+      }
+    });
+    if (kpiClientsEl) kpiClientsEl.textContent = String(clientesNovos7d);
+
+    let quotes = cmsState.quotesCache || [];
+    if (window.SJ_SUPABASE?.quotes?.listarTodos && quotes.length === 0) {
+      const resQ = await window.SJ_SUPABASE.quotes.listarTodos();
+      if (resQ?.sucesso) {
+        quotes = resQ.dados || [];
+        cmsState.quotesCache = quotes;
+      }
+    }
+
+    const novosOrcamentos = quotes.filter((q) => q.status === "solicitado" || q.changed_by_customer);
+    if (kpiQuotesEl) kpiQuotesEl.textContent = String(novosOrcamentos.length);
+    const badgeSidebar = document.getElementById("cms-portal-quotes-badge");
+    if (badgeSidebar) badgeSidebar.textContent = String(novosOrcamentos.length || quotes.length);
+
+    const blocks = [];
+
+    // 1. Acessos pendentes (só admin)
+    const ehAdmin = String(state.usuarioGoogle?.role || "").toLowerCase() === "admin";
+    const staffPendentes = ehAdmin ? (cmsState.profilesCache || []).filter((p) => p.status === "pending") : [];
+    staffPendentes.slice(0, 3).forEach((p) => {
+      blocks.push(`
+        <div class="cms-attention-row">
+          <div class="cms-attention-row-info">
+            <div class="cms-attention-row-title">
+              <span class="cms-status-pill is-yellow">Acesso pendente</span>
+              <span>${escaparHtml(p.nome || p.email)}</span>
+            </div>
+            <div class="cms-attention-row-meta">Solicitação de funcionário aguardando aprovação (${escaparHtml(p.email)})</div>
+          </div>
+          <button type="button" class="btn-cms-secondary" data-inicio-action="acessos">Revisar acesso</button>
+        </div>
+      `);
+    });
+
+    // 2. Orçamentos aguardando resposta
+    novosOrcamentos.slice(0, 5).forEach((q) => {
+      const snap = q.customer_snapshot && typeof q.customer_snapshot === "object" ? q.customer_snapshot : {};
+      const nomeCli = snap.display_name || q.cliente_nome || "Cliente";
+      const qtdItens = Array.isArray(q.quote_items) ? q.quote_items.length : 0;
+      const dataStr = q.created_at ? new Date(q.created_at).toLocaleDateString("pt-BR") : "Recente";
+      blocks.push(`
+        <div class="cms-attention-row">
+          <div class="cms-attention-row-info">
+            <div class="cms-attention-row-title">
+              <span class="cms-status-pill is-orange">${q.changed_by_customer ? "Alterado pelo cliente" : "Orçamento novo"}</span>
+              <span>#${escaparHtml(q.quote_number)} — ${escaparHtml(nomeCli)}</span>
+            </div>
+            <div class="cms-attention-row-meta">${qtdItens} ${qtdItens === 1 ? "item" : "itens"} · Recebido em ${escaparHtml(dataStr)}${q.precisa_nota_fiscal ? " · Com Nota Fiscal" : ""}</div>
+          </div>
+          <button type="button" class="btn-cms-secondary" data-inicio-open-quote="${escaparHtml(q.id)}">Responder</button>
+        </div>
+      `);
+    });
+
+    // 3. Produtos esgotados
+    outItems.slice(0, 6).forEach((item) => {
+      blocks.push(`
+        <div class="cms-attention-row">
+          <div class="cms-attention-row-info">
+            <div class="cms-attention-row-title">
+              <span class="cms-status-pill is-red">Esgotado</span>
+              <span>${escaparHtml(item.nome)}</span>
+            </div>
+            <div class="cms-attention-row-meta">${escaparHtml(item.codigo || "Catálogo")} · ${escaparHtml(item.preco || "Sob consulta")}</div>
+          </div>
+          <button type="button" class="btn-cms-secondary" data-inicio-open-prod="${escaparHtml(item.produtoId)}" data-inicio-cor-idx="${item.corIndex !== null && item.corIndex !== undefined ? item.corIndex : ""}">Atualizar estoque</button>
+        </div>
+      `);
+    });
+
+    if (blocks.length === 0) {
+      listEl.innerHTML = `<div style="padding:28px; text-align:center; color:#64748b; font-size:0.88rem; border:1px dashed #cbd5e1; border-radius:12px;">Tudo em dia por aqui. Nenhum orçamento pendente ou produto esgotado no momento.</div>`;
+      return;
+    }
+
+    listEl.innerHTML = blocks.join("");
+
+    listEl.querySelectorAll("[data-inicio-action='acessos']").forEach((btn) => {
+      btn.addEventListener("click", () => selecionarAbaCms("equipe"));
+    });
+
+    listEl.querySelectorAll("[data-inicio-open-quote]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const qId = btn.dataset.inicioOpenQuote;
+        selecionarAbaCms("orcamentos-clientes");
+        const q = (cmsState.quotesCache || []).find((item) => String(item.id) === String(qId));
+        if (q) abrirGavetaOrcamentoPortalCms(q);
+      });
+    });
+
+    listEl.querySelectorAll("[data-inicio-open-prod]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const prodId = btn.dataset.inicioOpenProd;
+        const corIdxRaw = btn.dataset.inicioCorIdx;
+        const corIdx = corIdxRaw !== "" ? parseInt(corIdxRaw, 10) : null;
+        selecionarAbaCms("produtos");
+        abrirEditorProdutoCms(prodId, isNaN(corIdx) ? null : corIdx);
+      });
+    });
+  }
+
+  function montarDadosFiscaisOrcamentoCms(q) {
+    const statusLabels = {
+      solicitado: "Solicitado",
+      em_analise: "Em análise",
+      respondido: "Respondido",
+      aprovado: "Aprovado",
+      recusado: "Recusado",
+      cancelado: "Cancelado"
+    };
+    const statusClasses = {
+      solicitado: "is-orange",
+      em_analise: "is-yellow",
+      respondido: "is-green",
+      aprovado: "is-green",
+      recusado: "is-red",
+      cancelado: "is-neutral"
+    };
+    const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const fmtCpf = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : v;
+    };
+    const fmtCnpj = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
+    };
+    const fmtCep = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+    };
+
+    const snap = q.customer_snapshot && typeof q.customer_snapshot === "object" ? q.customer_snapshot : {};
+    const comNota = Boolean(q.precisa_nota_fiscal);
+    const tipo = snap.person_type === "pj" ? "pj" : "pf";
+    const nomeExib = snap.display_name || q.cliente_nome || "Cliente";
+    const docLimpo = snap.documento || (tipo === "pj" ? snap.cnpj : snap.cpf) || "";
+    const docFmt = tipo === "pj" ? (docLimpo ? fmtCnpj(docLimpo) : "—") : (docLimpo ? fmtCpf(docLimpo) : "—");
+    const docTitulo = tipo === "pj" ? "CNPJ" : "CPF";
+    const telStr = snap.telefone || q.cliente_telefone || "";
+    const emailStr = snap.email || q.cliente_email || "";
+
+    const endLinha = [
+      [snap.logradouro, snap.numero].filter(Boolean).join(", "),
+      snap.complemento || "",
+      snap.bairro || "",
+      [snap.cidade, snap.uf].filter(Boolean).join(" / "),
+      snap.cep ? `CEP ${fmtCep(snap.cep)}` : ""
+    ].filter(Boolean).join(" • ");
+
+    const textoFiscal = [
+      `ORÇAMENTO #${q.quote_number} (${comNota ? "COM NOTA FISCAL" : "SEM NOTA FISCAL"})`,
+      `Tipo: ${tipo === "pj" ? "Pessoa Jurídica" : "Pessoa Física"}`,
+      tipo === "pj" ? `Razão Social: ${snap.razao_social || nomeExib}` : `Nome: ${snap.nome || nomeExib}`,
+      tipo === "pj" && snap.nome_fantasia ? `Nome Fantasia: ${snap.nome_fantasia}` : "",
+      `${docTitulo}: ${docFmt}`,
+      tipo === "pj" && snap.inscricao_estadual ? `Inscrição Estadual: ${snap.inscricao_estadual}` : "",
+      tipo === "pj" && snap.contato_nome ? `Contato: ${snap.contato_nome}` : "",
+      `Telefone: ${telStr || "—"}`,
+      `E-mail: ${emailStr || "—"}`,
+      endLinha ? `Endereço: ${endLinha}` : ""
+    ].filter(Boolean).join("\n");
+
+    const telDigitos = String(telStr).replace(/\D/g, "");
+    const telWa = telDigitos ? (telDigitos.startsWith("55") ? telDigitos : `55${telDigitos}`) : "";
+    const waMsgCliente = telWa
+      ? encodeURIComponent(`Olá ${nomeExib}! Aqui é da Loja SJ 3D sobre o seu Orçamento nº ${q.quote_number}.`)
+      : "";
+
+    const itens = Array.isArray(q.quote_items) ? q.quote_items : [];
+    const totalRef = itens.reduce((acc, it) => acc + Number(it.unit_price || 0) * Number(it.quantity || 1), 0);
+
+    return {
+      statusLabels,
+      statusClasses,
+      fmtBRL,
+      snap,
+      comNota,
+      tipo,
+      nomeExib,
+      docFmt,
+      docTitulo,
+      telStr,
+      emailStr,
+      endLinha,
+      textoFiscal,
+      telWa,
+      waMsgCliente,
+      itens,
+      totalRef
+    };
+  }
+
+  function abrirGavetaOrcamentoPortalCms(q) {
+    const drawer = document.getElementById("cms-quote-drawer");
+    const titleEl = document.getElementById("cms-quote-drawer-title");
+    const subEl = document.getElementById("cms-quote-drawer-sub");
+    const bodyEl = document.getElementById("cms-quote-drawer-body");
+    if (!drawer || !bodyEl || !q) return;
+
+    const d = montarDadosFiscaisOrcamentoCms(q);
+    const dataFmt = q.created_at ? new Date(q.created_at).toLocaleString("pt-BR") : "—";
+    const valorFmt = q.admin_total != null ? String(q.admin_total) : "";
+
+    if (titleEl) titleEl.textContent = `Orçamento #${q.quote_number}`;
+    if (subEl) subEl.textContent = `${d.nomeExib} · Recebido em ${dataFmt}`;
+
+    const itensHtml = d.itens
+      .map(
+        (it) => `<li style="display:flex; justify-content:space-between; gap:8px; padding:7px 0; border-bottom:1px dashed #e2e8f0; font-size:0.84rem;">
+          <span><strong>${escaparHtml(it.quantity)}x</strong> ${escaparHtml(it.product_name)}</span>
+          <strong>${escaparHtml(d.fmtBRL(Number(it.unit_price || 0) * Number(it.quantity || 1)))}</strong>
+        </li>`
+      )
+      .join("");
+
+    bodyEl.innerHTML = `
+      <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:8px;">
+        <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+          <span class="cms-status-pill ${d.statusClasses[q.status] || "is-neutral"}">${escaparHtml(d.statusLabels[q.status] || q.status)}</span>
+          <span class="cms-status-pill ${d.comNota ? "is-green" : "is-neutral"}">${d.comNota ? "Com Nota Fiscal" : "Sem Nota Fiscal"}</span>
+          <span class="cms-status-pill is-neutral">${d.tipo === "pj" ? "Pessoa Jurídica" : "Pessoa Física"}</span>
+          ${q.changed_by_customer ? `<span class="cms-status-pill is-yellow">Alterado pelo cliente</span>` : ""}
+        </div>
+        <button type="button" class="btn-cms-secondary" id="btn-drawer-copy-fiscal">Copiar dados para nota</button>
+      </div>
+
+      <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:14px; font-size:0.83rem; color:#1e293b; display:grid; gap:6px;">
+        <div><strong>${d.tipo === "pj" ? "Razão Social:" : "Nome:"}</strong> ${escaparHtml(d.nomeExib)}</div>
+        ${d.tipo === "pj" && d.snap.nome_fantasia && d.snap.nome_fantasia !== d.nomeExib ? `<div><strong>Nome Fantasia:</strong> ${escaparHtml(d.snap.nome_fantasia)}</div>` : ""}
+        <div><strong>${d.docTitulo}:</strong> ${escaparHtml(d.docFmt)}</div>
+        ${d.tipo === "pj" && d.snap.inscricao_estadual ? `<div><strong>IE:</strong> ${escaparHtml(d.snap.inscricao_estadual)}</div>` : ""}
+        ${d.tipo === "pj" && d.snap.contato_nome ? `<div><strong>Contato:</strong> ${escaparHtml(d.snap.contato_nome)}</div>` : ""}
+        <div><strong>Telefone:</strong> ${escaparHtml(d.telStr || "—")} ${d.telWa ? `<a href="https://wa.me/${escaparHtml(d.telWa)}?text=${d.waMsgCliente}" target="_blank" rel="noopener" style="margin-left:8px; color:#15803d; font-weight:700; text-decoration:none;">Abrir WhatsApp ↗</a>` : ""}</div>
+        ${d.emailStr ? `<div><strong>E-mail:</strong> ${escaparHtml(d.emailStr)}</div>` : ""}
+        ${d.endLinha ? `<div><strong>Endereço:</strong> ${escaparHtml(d.endLinha)}</div>` : ""}
+      </div>
+
+      <div style="background:#ffffff; border:1px solid #e2e8f0; border-radius:12px; padding:12px 14px;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px; font-size:0.8rem; color:#64748b;">
+          <strong>Itens solicitados</strong>
+          <span>Referência: <strong>${escaparHtml(d.fmtBRL(d.totalRef))}</strong></span>
+        </div>
+        ${itensHtml ? `<ul style="list-style:none; margin:0; padding:0;">${itensHtml}</ul>` : `<div style="font-size:0.82rem; color:#64748b;">Sem itens listados.</div>`}
+        ${q.notes ? `<div style="margin-top:10px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:0.82rem; color:#334155;"><strong>Observação do cliente:</strong> ${escaparHtml(q.notes)}</div>` : ""}
+      </div>
+
+      <div class="cms-drawer-section" style="padding-top:4px;">
+        <div class="cms-field-row-2">
+          <div class="cms-field">
+            <label for="drawer-quote-status">Status do orçamento</label>
+            <select id="drawer-quote-status">
+              <option value="solicitado" ${q.status === "solicitado" ? "selected" : ""}>Solicitado</option>
+              <option value="em_analise" ${q.status === "em_analise" ? "selected" : ""}>Em análise</option>
+              <option value="respondido" ${q.status === "respondido" ? "selected" : ""}>Respondido</option>
+              <option value="aprovado" ${q.status === "aprovado" ? "selected" : ""}>Aprovado</option>
+              <option value="recusado" ${q.status === "recusado" ? "selected" : ""}>Recusado</option>
+              <option value="cancelado" ${q.status === "cancelado" ? "selected" : ""}>Cancelado</option>
+            </select>
+          </div>
+          <div class="cms-field">
+            <label for="drawer-quote-valor">Valor final da resposta (R$)</label>
+            <input type="number" step="0.01" min="0" id="drawer-quote-valor" value="${escaparHtml(valorFmt)}" placeholder="Ex: 149.90" />
+          </div>
+        </div>
+        <div class="cms-field">
+          <label for="drawer-quote-resp">Retorno / Observação para o cliente</label>
+          <textarea id="drawer-quote-resp" rows="3" placeholder="Ex: Valor confirmado para retirada hoje ou prazo de envio..." style="width:100%; padding:10px 12px; border:1.5px solid #cbd5e1; border-radius:9px; font-family:inherit; font-size:0.85rem;">${escaparHtml(q.admin_response || "")}</textarea>
+        </div>
+        <div style="display:flex; justify-content:flex-end; gap:10px; padding-top:6px;">
+          <button type="button" class="btn-cms-cancel" id="btn-drawer-quote-cancel">Fechar</button>
+          <button type="button" class="btn-cms-save" id="btn-drawer-quote-save">Salvar resposta</button>
+        </div>
+      </div>
+    `;
+
+    document.getElementById("btn-drawer-copy-fiscal")?.addEventListener("click", async () => {
+      try {
+        await navigator.clipboard.writeText(d.textoFiscal);
+        mostrarToast("Dados fiscais copiados!", "success");
+      } catch (_) {
+        mostrarToast("Não foi possível copiar automaticamente.", "warning");
+      }
+    });
+
+    document.getElementById("btn-drawer-quote-cancel")?.addEventListener("click", () => {
+      if (typeof drawer.close === "function") drawer.close();
+    });
+
+    document.getElementById("btn-drawer-quote-save")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-drawer-quote-save");
+      const statusEl = document.getElementById("drawer-quote-status");
+      const valorEl = document.getElementById("drawer-quote-valor");
+      const respEl = document.getElementById("drawer-quote-resp");
+      if (btn) {
+        btn.disabled = true;
+        btn.textContent = "Salvando...";
+      }
+      let statusEscolhido = statusEl ? statusEl.value : "em_analise";
+      const valorVal = valorEl ? valorEl.value.trim() : "";
+      const respVal = respEl ? respEl.value.trim() : "";
+      if ((valorVal || respVal) && statusEscolhido === "solicitado") {
+        statusEscolhido = "respondido";
+      }
+
+      const r = await window.SJ_SUPABASE.quotes.responderEquipe(q.id, {
+        status: statusEscolhido,
+        admin_total: valorVal,
+        admin_response: respVal,
+        limparAlterado: true
+      });
+      if (btn) {
+        btn.disabled = false;
+        btn.textContent = "Salvar resposta";
+      }
+      if (r && r.sucesso) {
+        if (typeof drawer.close === "function") drawer.close();
+        mostrarToast("Orçamento atualizado!", "success");
+        await renderizarOrcamentosPortalCms();
+        if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+      } else {
+        mostrarToast(`Erro ao salvar orçamento: ${escaparHtml(r?.mensagem || "verifique suas permissões")}`, "warning");
+      }
+    });
+
+    if (typeof drawer.showModal === "function") {
+      drawer.showModal();
+    } else {
+      drawer.setAttribute("open", "");
+    }
+  }
+
   // =====================================================================
   // GESTÃO DE ORÇAMENTOS DOS CLIENTES (/conta -> public.quotes + quote_items) — STAFF & ADMIN
   // =====================================================================
@@ -11290,20 +11741,23 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (!window.SJ_SUPABASE?.quotes) return;
 
     if (listEl) {
-      listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#64748b;">⏳ Carregando orçamentos do Supabase...</div>`;
+      listEl.innerHTML = `<div style="padding:18px;"><div class="cms-skeleton-row"></div></div>`;
     }
 
     const res = await window.SJ_SUPABASE.quotes.listarTodos();
     if (!res.sucesso) {
       if (listEl) {
-        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute as Migrations 006 e 007 no SQL Editor do Supabase para ativar Orçamentos dos Clientes." : (res.mensagem || "Erro ao carregar orçamentos."))}</div>`;
+        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">${escaparHtml(res.tabelaAusente ? "Execute as Migrations 006 e 007 no SQL Editor do Supabase para ativar Orçamentos dos Clientes." : (res.mensagem || "Erro ao carregar orçamentos."))}</div>`;
       }
       return;
     }
 
     const todos = res.dados || [];
+    cmsState.quotesCache = todos;
     const novosCount = todos.filter((q) => q.status === "solicitado" || q.changed_by_customer).length;
     if (badgeEl) badgeEl.textContent = String(novosCount || todos.length);
+    const kpiInicioEl = document.getElementById("inicio-kpi-quotes");
+    if (kpiInicioEl) kpiInicioEl.textContent = String(novosCount);
 
     const filtro = filterEl ? filterEl.value : "todos";
     const filtroNf = filterNfEl ? filterNfEl.value : "todos";
@@ -11328,17 +11782,59 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     if (!listEl) return;
     if (filtrados.length === 0) {
-      listEl.innerHTML = `<div style="padding:28px; text-align:center; border:1.5px dashed #cbd5e1; border-radius:12px; color:#64748b; font-size:0.86rem;">📋 Nenhum orçamento encontrado neste filtro.</div>`;
+      listEl.innerHTML = `<div style="padding:32px; text-align:center; color:#64748b; font-size:0.86rem;">Nenhum orçamento encontrado neste filtro.</div>`;
+      return;
+    }
+
+    const hasDrawer = Boolean(document.getElementById("cms-quote-drawer"));
+    if (hasDrawer) {
+      listEl.innerHTML = filtrados.map((q) => {
+        const d = montarDadosFiscaisOrcamentoCms(q);
+        const dataCurta = q.created_at ? new Date(q.created_at).toLocaleDateString("pt-BR") : "—";
+        const valorMostrado = q.admin_total != null ? d.fmtBRL(q.admin_total) : d.fmtBRL(d.totalRef);
+        const qtdItens = d.itens.length;
+
+        return `
+          <button type="button" class="cms-quote-row-btn" data-open-quote-drawer="${escaparHtml(q.id)}">
+            <div>
+              <strong style="font-size:0.9rem; color:#0f172a;">#${escaparHtml(q.quote_number)}</strong>
+              ${q.changed_by_customer ? `<div style="font-size:0.68rem; font-weight:700; color:#b45309;">Alterado</div>` : ""}
+            </div>
+            <div style="min-width:0;">
+              <div style="font-weight:700; font-size:0.88rem; color:#0f172a; white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${escaparHtml(d.nomeExib)}</div>
+              <div style="font-size:0.76rem; color:#64748b;">${d.tipo === "pj" ? "PJ" : "PF"} · ${qtdItens} ${qtdItens === 1 ? "item" : "itens"}</div>
+            </div>
+            <div style="font-size:0.8rem; color:#475569;">${escaparHtml(dataCurta)}</div>
+            <div>
+              <span class="cms-status-pill ${d.comNota ? "is-green" : "is-neutral"}">${d.comNota ? "Com NF" : "Sem NF"}</span>
+            </div>
+            <div>
+              <span class="cms-status-pill ${d.statusClasses[q.status] || "is-neutral"}">${escaparHtml(d.statusLabels[q.status] || q.status)}</span>
+            </div>
+            <div style="text-align:right; font-weight:700; font-size:0.88rem; color:#0f172a; font-variant-numeric:tabular-nums;">
+              ${escaparHtml(valorMostrado)}
+            </div>
+          </button>
+        `;
+      }).join("");
+
+      listEl.querySelectorAll("[data-open-quote-drawer]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const id = btn.dataset.openQuoteDrawer;
+          const q = filtrados.find((item) => String(item.id) === String(id));
+          if (q) abrirGavetaOrcamentoPortalCms(q);
+        });
+      });
       return;
     }
 
     const statusLabels = {
-      solicitado: "📨 Solicitado",
-      em_analise: "🔍 Em análise",
-      respondido: "💬 Respondido",
-      aprovado: "✅ Aprovado",
-      recusado: "✖️ Recusado",
-      cancelado: "🚫 Cancelado"
+      solicitado: "Solicitado",
+      em_analise: "Em análise",
+      respondido: "Respondido",
+      aprovado: "Aprovado",
+      recusado: "Recusado",
+      cancelado: "Cancelado"
     };
     const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const fmtCpf = (v) => {
@@ -11381,7 +11877,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           snap.cep ? `CEP ${fmtCep(snap.cep)}` : ""
         ].filter(Boolean).join(" • ");
 
-        // Texto pronto para o botão "Copiar dados para emissão da nota"
         fiscalCopyMap[q.id] = [
           `ORÇAMENTO #${q.quote_number} (${comNota ? "COM NOTA FISCAL" : "SEM NOTA FISCAL"})`,
           `Tipo: ${tipo === "pj" ? "Pessoa Jurídica" : "Pessoa Física"}`,
@@ -11420,12 +11915,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                     ${escaparHtml(statusLabels[q.status] || q.status)}
                   </span>
                   <span style="padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:800; background:${comNota ? "#dcfce7" : "#f1f5f9"}; color:${comNota ? "#15803d" : "#475569"}; border:1px solid ${comNota ? "#bbf7d0" : "#e2e8f0"};">
-                    ${comNota ? "🧾 COM NOTA FISCAL" : "📄 SEM NOTA"}
+                    ${comNota ? "COM NOTA FISCAL" : "SEM NOTA"}
                   </span>
                   <span style="padding:3px 9px; border-radius:999px; font-size:0.72rem; font-weight:800; background:#eff6ff; color:#1d4ed8;">
-                    ${tipo === "pj" ? "🏢 PJ" : "👤 PF"}
+                    ${tipo === "pj" ? "PJ" : "PF"}
                   </span>
-                  ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px;">⚠️ Alterado pelo cliente</span>` : ""}
+                  ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px;">Alterado pelo cliente</span>` : ""}
                 </div>
                 <div style="font-size:0.76rem; color:#64748b; margin-top:4px;">
                   Recebido em ${escaparHtml(dataFmt)} • Referência catálogo: <strong>${escaparHtml(fmtBRL(totalRef))}</strong>
@@ -11433,44 +11928,43 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               </div>
 
               <button type="button" class="btn-cms-secondary" data-quote-copy-fiscal="${escaparHtml(q.id)}" style="padding:7px 12px; border-radius:9px; font-size:0.78rem; font-weight:800; cursor:pointer;">
-                📋 Copiar dados para emissão da nota
+                Copiar dados para emissão da nota
               </button>
             </div>
 
-            <!-- Dados Fiscais do Snapshot (Imutável) -->
             <div style="background:${comNota ? "#f0fdf4" : "#f8fafc"}; border:1px solid ${comNota ? "#bbf7d0" : "#e2e8f0"}; border-radius:11px; padding:12px 14px; margin-bottom:12px; font-size:0.82rem; color:#1e293b;">
               <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
                 <span><strong>${tipo === "pj" ? "Razão Social:" : "Nome:"}</strong> ${escaparHtml(nomeExib)}</span>
                 ${tipo === "pj" && snap.nome_fantasia && snap.nome_fantasia !== nomeExib ? `<span><strong>Fantasia:</strong> ${escaparHtml(snap.nome_fantasia)}</span>` : ""}
                 <span><strong>${docTitulo}:</strong> ${escaparHtml(docFmt)}</span>
-                ${telStr ? `<span>📱 <strong>${escaparHtml(telStr)}</strong></span>` : ""}
-                ${telWa ? `<a href="https://wa.me/${escaparHtml(telWa)}?text=${waMsgCliente}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:#16a34a; color:#fff; font-size:0.74rem; font-weight:800; text-decoration:none;">💬 Chamar no WhatsApp</a>` : ""}
+                ${telStr ? `<span><strong>${escaparHtml(telStr)}</strong></span>` : ""}
+                ${telWa ? `<a href="https://wa.me/${escaparHtml(telWa)}?text=${waMsgCliente}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:#16a34a; color:#fff; font-size:0.74rem; font-weight:800; text-decoration:none;">WhatsApp</a>` : ""}
               </div>
               ${comNota ? `
                 <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #bbf7d0; display:flex; flex-wrap:wrap; gap:12px; font-size:0.8rem; color:#14532d;">
-                  ${emailStr ? `<span>📧 <strong>E-mail:</strong> ${escaparHtml(emailStr)}</span>` : ""}
-                  ${tipo === "pj" && snap.inscricao_estadual ? `<span>🏷️ <strong>IE:</strong> ${escaparHtml(snap.inscricao_estadual)}</span>` : ""}
-                  ${tipo === "pj" && snap.contato_nome ? `<span>🤝 <strong>Contato:</strong> ${escaparHtml(snap.contato_nome)}</span>` : ""}
-                  ${endLinha ? `<span style="flex-basis:100%;">📍 <strong>Endereço fiscal:</strong> ${escaparHtml(endLinha)}</span>` : ""}
+                  ${emailStr ? `<span><strong>E-mail:</strong> ${escaparHtml(emailStr)}</span>` : ""}
+                  ${tipo === "pj" && snap.inscricao_estadual ? `<span><strong>IE:</strong> ${escaparHtml(snap.inscricao_estadual)}</span>` : ""}
+                  ${tipo === "pj" && snap.contato_nome ? `<span><strong>Contato:</strong> ${escaparHtml(snap.contato_nome)}</span>` : ""}
+                  ${endLinha ? `<span style="flex-basis:100%;"><strong>Endereço fiscal:</strong> ${escaparHtml(endLinha)}</span>` : ""}
                 </div>
               ` : ""}
             </div>
 
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
               ${itensHtml ? `<ul style="list-style:none; margin:0; padding:0;">${itensHtml}</ul>` : `<div style="font-size:0.82rem; color:#64748b;">Sem itens listados.</div>`}
-              ${q.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:0.8rem; color:#475569;">📝 <strong>Obs. do cliente:</strong> ${escaparHtml(q.notes)}</div>` : ""}
+              ${q.notes ? `<div style="margin-top:8px; padding-top:8px; border-top:1px solid #e2e8f0; font-size:0.8rem; color:#475569;"><strong>Obs. do cliente:</strong> ${escaparHtml(q.notes)}</div>` : ""}
             </div>
 
             <div style="display:grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap:10px; align-items:end;">
               <div>
                 <label style="display:block; font-size:0.74rem; font-weight:700; color:#334155; margin-bottom:4px;">Status do Orçamento</label>
                 <select data-quote-status-input="${escaparHtml(q.id)}" style="width:100%; padding:9px 10px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
-                  <option value="solicitado" ${q.status === "solicitado" ? "selected" : ""}>📨 Solicitado</option>
-                  <option value="em_analise" ${q.status === "em_analise" ? "selected" : ""}>🔍 Em análise</option>
-                  <option value="respondido" ${q.status === "respondido" ? "selected" : ""}>💬 Respondido</option>
-                  <option value="aprovado" ${q.status === "aprovado" ? "selected" : ""}>✅ Aprovado</option>
-                  <option value="recusado" ${q.status === "recusado" ? "selected" : ""}>✖️ Recusado</option>
-                  <option value="cancelado" ${q.status === "cancelado" ? "selected" : ""}>🚫 Cancelado</option>
+                  <option value="solicitado" ${q.status === "solicitado" ? "selected" : ""}>Solicitado</option>
+                  <option value="em_analise" ${q.status === "em_analise" ? "selected" : ""}>Em análise</option>
+                  <option value="respondido" ${q.status === "respondido" ? "selected" : ""}>Respondido</option>
+                  <option value="aprovado" ${q.status === "aprovado" ? "selected" : ""}>Aprovado</option>
+                  <option value="recusado" ${q.status === "recusado" ? "selected" : ""}>Recusado</option>
+                  <option value="cancelado" ${q.status === "cancelado" ? "selected" : ""}>Cancelado</option>
                 </select>
               </div>
               <div>
@@ -11484,7 +11978,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             </div>
             <div style="margin-top:10px; display:flex; justify-content:flex-end;">
               <button type="button" class="btn-cms-save" data-quote-save-btn="${escaparHtml(q.id)}" style="padding:9px 16px; border-radius:9px; font-size:0.82rem; cursor:pointer;">
-                💾 Salvar Status &amp; Resposta
+                Salvar Status &amp; Resposta
               </button>
             </div>
           </div>
@@ -11498,7 +11992,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         if (!texto) return;
         try {
           await navigator.clipboard.writeText(texto);
-          mostrarToast("📋 Dados fiscais copiados para a área de transferência!", "success");
+          mostrarToast("Dados fiscais copiados!", "success");
         } catch (_) {
           mostrarToast("Não foi possível copiar automaticamente.", "warning");
         }
@@ -11513,7 +12007,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const respEl = listEl.querySelector(`[data-quote-resp-input="${id}"]`);
         const origTxt = btn.textContent;
         btn.disabled = true;
-        btn.textContent = "⏳ Salvando...";
+        btn.textContent = "Salvando...";
 
         let statusEscolhido = statusEl ? statusEl.value : "em_analise";
         const valorVal = valorEl ? valorEl.value.trim() : "";
@@ -11532,10 +12026,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         btn.disabled = false;
         btn.textContent = origTxt;
         if (r && r.sucesso) {
-          mostrarToast("✅ Orçamento atualizado! O cliente já visualiza no painel /conta.", "success");
+          mostrarToast("Orçamento atualizado!", "success");
           await renderizarOrcamentosPortalCms();
         } else {
-          mostrarToast(`❌ Erro ao salvar orçamento: ${escaparHtml(r?.mensagem || "verifique suas permissões")}`, "warning");
+          mostrarToast(`Erro ao salvar orçamento: ${escaparHtml(r?.mensagem || "verifique suas permissões")}`, "warning");
         }
       });
     });
@@ -11803,6 +12297,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       if (resPerfis && resPerfis.sucesso) {
         const perfis = resPerfis.dados || [];
+        cmsState.profilesCache = perfis;
         const pendentes = perfis.filter((p) => p.status === "pending");
         const equipeAprovada = perfis.filter((p) => p.status === "approved" && (p.role === "admin" || p.role === "staff"));
         const clientesAprovados = perfis.filter((p) => p.status === "approved" && (p.role === "customer" || p.role === "user"));
@@ -12178,6 +12673,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   function voltarParaListaProdutosCms() {
+    const drawer = document.getElementById("cms-product-drawer");
+    if (drawer) {
+      if (drawer.open && typeof drawer.close === "function") {
+        drawer.close();
+      } else {
+        drawer.removeAttribute("open");
+      }
+    }
     const listView = document.getElementById("cms-products-list-view");
     const editorView = document.getElementById("cms-product-editor-view");
     if (listView) listView.style.display = "block";
@@ -12320,11 +12823,275 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     return lista;
   }
 
+  function obterChaveItemCatalogoCms(skuOrProd) {
+    if (skuOrProd && skuOrProd.tipo === "cor" && skuOrProd.chavePaleta) {
+      return `cor:${skuOrProd.chavePaleta}:${skuOrProd.corIndex}`;
+    }
+    const id = skuOrProd?.produtoId || skuOrProd?.id || "";
+    return `prod:${id}`;
+  }
+
+  function obterItemCatalogoPorKeyCms(key) {
+    if (!key || !window.SITE_DATA) return null;
+    if (key.startsWith("cor:")) {
+      const [, chavePaleta, idxStr] = key.split(":");
+      const corIdx = parseInt(idxStr, 10);
+      const paleta = window.SITE_DATA[chavePaleta];
+      const cor = Array.isArray(paleta) ? paleta[corIdx] : null;
+      if (!cor) return null;
+      const prod = (window.SITE_DATA.catalogo || []).find(
+        (p) => p.tipoFilamento && mapearChavePaletaSiteData(p.usaCoresDinamicas) === chavePaleta
+      );
+      const pending = cmsState.pendingEdits.get(key) || {};
+      const precoAtual = pending.preco !== undefined ? pending.preco : (cor.preco || prod?.precoVista || "R$ 0,00");
+      const valorAtual = pending.valor !== undefined ? pending.valor : (cor.valor || extrairNumeroDePrecoBR(precoAtual));
+      return {
+        key,
+        tipo: "cor",
+        produto: prod,
+        produtoId: prod?.id || "",
+        chavePaleta,
+        corIdx,
+        cor,
+        nome: prod ? `${prod.nome} — ${cor.nome}` : cor.nome,
+        corNome: cor.nome || "",
+        codigo: cor.cod ? `Cód. ${cor.cod}` : `Cor ${corIdx + 1}`,
+        precoTexto: precoAtual,
+        precoNum: valorAtual,
+        estoqueStatus: pending.estoqueStatus || cor.estoqueStatus || prod?.estoqueStatus || "disponivel"
+      };
+    }
+    if (key.startsWith("prod:")) {
+      const prodId = key.slice(5);
+      const prod = (window.SITE_DATA.catalogo || []).find((p) => p.id === prodId);
+      if (!prod) return null;
+      const pending = cmsState.pendingEdits.get(key) || {};
+      const precoAtual = pending.preco !== undefined ? pending.preco : (prod.precoVista || "R$ 0,00");
+      const valorAtual = pending.valor !== undefined ? pending.valor : (prod.precoVistaValor || extrairNumeroDePrecoBR(precoAtual));
+      return {
+        key,
+        tipo: "produto",
+        produto: prod,
+        produtoId: prod.id,
+        chavePaleta: null,
+        corIdx: null,
+        cor: null,
+        nome: prod.nome,
+        corNome: "",
+        codigo: prod.id,
+        precoTexto: precoAtual,
+        precoNum: valorAtual,
+        estoqueStatus: pending.estoqueStatus || prod.estoqueStatus || "disponivel"
+      };
+    }
+    return null;
+  }
+
+  function calcularNovoPrecoLoteCms(valorAtual, mode, amount) {
+    const base = Number(valorAtual) || 0;
+    const val = Number(amount) || 0;
+    let novo = base;
+    if (mode === "set") novo = val;
+    else if (mode === "add_fixed") novo = base + val;
+    else if (mode === "sub_fixed") novo = Math.max(0, base - val);
+    else if (mode === "add_pct") novo = base * (1 + val / 100);
+    else if (mode === "sub_pct") novo = Math.max(0, base * (1 - val / 100));
+    return Math.round(novo * 100) / 100;
+  }
+
+  function formatarMoedaBR(num) {
+    return Number(num || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  }
+
+  function atualizarBarraLoteCatalogoCms() {
+    const bar = document.getElementById("cms-bulk-action-bar");
+    const countLabel = document.getElementById("cms-bulk-count-label");
+    const btnSelectModelColors = document.getElementById("btn-cms-bulk-select-model-colors");
+    const btnSave = document.getElementById("btn-cms-bulk-save");
+    if (!bar) return;
+
+    const selCount = cmsState.selectedKeys.size;
+    const pendCount = cmsState.pendingEdits.size;
+    if (selCount === 0 && pendCount === 0) {
+      bar.style.display = "none";
+      return;
+    }
+
+    bar.style.display = "flex";
+    if (countLabel) {
+      if (selCount > 0 && pendCount > 0) {
+        countLabel.textContent = `${selCount} selecionados · ${pendCount} alterações pendentes`;
+      } else if (selCount > 0) {
+        countLabel.textContent = selCount === 1 ? "1 item selecionado" : `${selCount} itens selecionados`;
+      } else {
+        countLabel.textContent = pendCount === 1 ? "1 alteração pendente" : `${pendCount} alterações pendentes`;
+      }
+    }
+
+    if (btnSelectModelColors) {
+      let temModeloComCoresSelecionado = false;
+      for (const key of cmsState.selectedKeys) {
+        if (key.startsWith("cor:")) {
+          temModeloComCoresSelecionado = true;
+          break;
+        }
+      }
+      btnSelectModelColors.style.display = temModeloComCoresSelecionado ? "inline-flex" : "none";
+    }
+
+    if (btnSave) {
+      btnSave.disabled = pendCount === 0;
+      btnSave.textContent = pendCount > 0 ? `Salvar alterações (${pendCount})` : "Salvar alterações";
+    }
+  }
+
+  async function desfazerUltimaAlteracaoCatalogoCms() {
+    const snap = cmsState.ultimoUndoSnapshot;
+    if (!snap || !Array.isArray(snap.entries) || snap.entries.length === 0) return;
+
+    const paletasTouched = new Set();
+    const produtosTouched = new Set();
+
+    snap.entries.forEach((entry) => {
+      if (entry.tipo === "cor" && entry.chavePaleta && Array.isArray(window.SITE_DATA[entry.chavePaleta])) {
+        const cor = window.SITE_DATA[entry.chavePaleta][entry.corIdx];
+        if (cor) {
+          cor.estoqueStatus = entry.estoqueStatus;
+          if (entry.preco !== undefined) cor.preco = entry.preco;
+          if (entry.valor !== undefined) cor.valor = entry.valor;
+          paletasTouched.add(entry.chavePaleta);
+        }
+      } else if (entry.tipo === "produto") {
+        const prod = (window.SITE_DATA.catalogo || []).find((p) => p.id === entry.produtoId);
+        if (prod) {
+          prod.estoqueStatus = entry.estoqueStatus;
+          if (entry.precoVista !== undefined) prod.precoVista = entry.precoVista;
+          if (entry.precoVistaValor !== undefined) prod.precoVistaValor = entry.precoVistaValor;
+          produtosTouched.add(prod);
+        }
+      }
+    });
+
+    for (const chave of paletasTouched) {
+      if (window.SJ_DB?.catalogo?.salvarPaletaCores) {
+        await window.SJ_DB.catalogo.salvarPaletaCores(chave, window.SITE_DATA[chave]);
+      }
+    }
+    for (const prod of produtosTouched) {
+      if (window.SJ_DB?.catalogo?.salvarProduto) {
+        await window.SJ_DB.catalogo.salvarProduto(prod);
+      }
+    }
+
+    cmsState.ultimoUndoSnapshot = null;
+    atualizarContadoresEstoqueKpiCms();
+    renderizarListaProdutosCms();
+    atualizarSiteAposEdicaoCms();
+    if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+    mostrarToast("Alteração desfeita e restaurada no catálogo.", "info");
+  }
+
+  async function executarPersistenciaLoteCatalogoCms() {
+    if (cmsState.pendingEdits.size === 0) return;
+    const btnSave = document.getElementById("btn-cms-bulk-save");
+    if (btnSave) {
+      btnSave.disabled = true;
+      btnSave.textContent = "Salvando...";
+    }
+
+    const snapshotEntries = [];
+    const paletasTouched = new Set();
+    const produtosTouched = new Set();
+
+    for (const [key, patch] of cmsState.pendingEdits.entries()) {
+      const info = obterItemCatalogoPorKeyCms(key);
+      if (!info) continue;
+
+      if (info.tipo === "cor" && info.cor) {
+        snapshotEntries.push({
+          tipo: "cor",
+          chavePaleta: info.chavePaleta,
+          corIdx: info.corIdx,
+          estoqueStatus: info.cor.estoqueStatus || "disponivel",
+          preco: info.cor.preco,
+          valor: info.cor.valor
+        });
+        if (patch.estoqueStatus !== undefined) info.cor.estoqueStatus = patch.estoqueStatus;
+        if (patch.preco !== undefined) info.cor.preco = patch.preco;
+        if (patch.valor !== undefined) info.cor.valor = patch.valor;
+        paletasTouched.add(info.chavePaleta);
+      } else if (info.tipo === "produto" && info.produto) {
+        snapshotEntries.push({
+          tipo: "produto",
+          produtoId: info.produto.id,
+          estoqueStatus: info.produto.estoqueStatus || "disponivel",
+          precoVista: info.produto.precoVista,
+          precoVistaValor: info.produto.precoVistaValor
+        });
+        if (patch.estoqueStatus !== undefined) info.produto.estoqueStatus = patch.estoqueStatus;
+        if (patch.preco !== undefined) info.produto.precoVista = patch.preco;
+        if (patch.valor !== undefined) info.produto.precoVistaValor = patch.valor;
+        produtosTouched.add(info.produto);
+      }
+    }
+
+    let erroNuvem = null;
+    try {
+      for (const chave of paletasTouched) {
+        if (window.SJ_DB?.catalogo?.salvarPaletaCores) {
+          const ok = await window.SJ_DB.catalogo.salvarPaletaCores(chave, window.SITE_DATA[chave]);
+          if (ok === false && window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro) {
+            erroNuvem = window.SJ_DB.catalogo.ultimoStatusNuvem.erro;
+          }
+        }
+      }
+      for (const prod of produtosTouched) {
+        if (window.SJ_DB?.catalogo?.salvarProduto) {
+          await window.SJ_DB.catalogo.salvarProduto(prod);
+        }
+      }
+    } finally {
+      if (btnSave) {
+        btnSave.disabled = false;
+      }
+    }
+
+    cmsState.ultimoUndoSnapshot = { entries: snapshotEntries };
+    const totalSalvo = snapshotEntries.length;
+    cmsState.pendingEdits.clear();
+    cmsState.selectedKeys.clear();
+    atualizarContadoresEstoqueKpiCms();
+    renderizarListaProdutosCms();
+    atualizarSiteAposEdicaoCms();
+    if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+
+    if (!erroNuvem && window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk !== false) {
+      mostrarToast(`${totalSalvo} ${totalSalvo === 1 ? "item atualizado" : "itens atualizados"} no catálogo.`, "success", {
+        acaoTexto: "Desfazer",
+        duracao: 10000,
+        onClick: desfazerUltimaAlteracaoCatalogoCms
+      });
+    } else {
+      mostrarToast(`Salvo localmente com aviso na nuvem: ${escaparHtml(erroNuvem || "verifique sua sessão")}`, "warning", {
+        acaoTexto: "Desfazer",
+        duracao: 10000,
+        onClick: desfazerUltimaAlteracaoCatalogoCms
+      });
+    }
+  }
+
   function renderizarListaProdutosCms() {
     const grid = document.getElementById("cms-products-grid");
     if (!grid || !window.SITE_DATA) return;
 
     atualizarContadoresEstoqueKpiCms();
+    const isStandaloneAdmin = Boolean(document.getElementById("admin-standalone-app"));
+    const pagBar = document.getElementById("cms-catalog-pagination");
+    if (pagBar && !isSkusModeCheck()) pagBar.style.display = "none";
+
+    function isSkusModeCheck() {
+      return cmsState.modoVisao === "skus";
+    }
 
     const catalogo = window.SITE_DATA.catalogo || [];
     const termo = (cmsState.busca || "").toLowerCase().trim();
@@ -12336,10 +13103,441 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       pecas: "Peças & Acessórios",
       manutencao: "Serviços & Manutenção"
     };
+    const statusTextMap = {
+      disponivel: "Disponível",
+      poucas_unidades: "Poucas unidades",
+      esgotado: "Esgotado"
+    };
+    const statusPillClass = {
+      disponivel: "is-green",
+      poucas_unidades: "is-yellow",
+      esgotado: "is-red"
+    };
 
-    if (isSkusMode) {
+    if (isStandaloneAdmin) {
+      if (isSkusMode) {
+        // ============================================================
+        // VISÃO "TODAS AS CORES": TABELA ORDENÁVEL E PAGINADA
+        // ============================================================
+        const todosSkus = gerarListaSkusCms();
+        const filtrados = todosSkus.filter((item) => {
+          if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+            return false;
+          }
+          const key = obterChaveItemCatalogoCms(item);
+          const pending = cmsState.pendingEdits.get(key) || {};
+          const st = pending.estoqueStatus || item.estoqueStatus || "disponivel";
+          if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
+            return false;
+          }
+          if (termo) {
+            const texto = normalizarTextoBusca(`${item.nome || ""} ${item.modeloNome || ""} ${item.corNome || ""} ${item.codigo || ""} ${item.marca || ""} ${item.id || ""}`);
+            const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
+            if (!termos.every((t) => texto.includes(t))) return false;
+          }
+          return true;
+        });
+
+        const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+        const dirFactor = cmsState.sortDir === "descending" ? -1 : 1;
+        const ordenados = [...filtrados].sort((a, b) => {
+          const ka = obterChaveItemCatalogoCms(a);
+          const kb = obterChaveItemCatalogoCms(b);
+          const pa = cmsState.pendingEdits.get(ka) || {};
+          const pb = cmsState.pendingEdits.get(kb) || {};
+          if (cmsState.sortCol === "preco") {
+            const va = extrairNumeroDePrecoBR(pa.preco !== undefined ? pa.preco : a.preco);
+            const vb = extrairNumeroDePrecoBR(pb.preco !== undefined ? pb.preco : b.preco);
+            return dirFactor * (va - vb);
+          }
+          if (cmsState.sortCol === "cor") {
+            return dirFactor * collator.compare(a.corNome || "—", b.corNome || "—");
+          }
+          if (cmsState.sortCol === "codigo") {
+            return dirFactor * collator.compare(a.codNumero || a.codigo || "", b.codNumero || b.codigo || "");
+          }
+          if (cmsState.sortCol === "status") {
+            const sa = statusTextMap[pa.estoqueStatus || a.estoqueStatus || "disponivel"] || "";
+            const sb = statusTextMap[pb.estoqueStatus || b.estoqueStatus || "disponivel"] || "";
+            return dirFactor * collator.compare(sa, sb);
+          }
+          return dirFactor * collator.compare(a.modeloNome || a.nome || "", b.modeloNome || b.nome || "");
+        });
+
+        const totalItens = ordenados.length;
+        const porPagina = cmsState.porPaginaSkus || 25;
+        const totalPaginas = Math.max(1, Math.ceil(totalItens / porPagina));
+        if (cmsState.paginaSkus > totalPaginas) cmsState.paginaSkus = totalPaginas;
+        if (cmsState.paginaSkus < 1) cmsState.paginaSkus = 1;
+
+        if (totalItens === 0) {
+          grid.innerHTML = `<div class="cms-section-card" style="text-align:center; padding:40px 20px; color:#64748b;">Nenhum item encontrado para este filtro.</div>`;
+          if (pagBar) pagBar.style.display = "none";
+          atualizarBarraLoteCatalogoCms();
+          return;
+        }
+
+        const inicioIdx = (cmsState.paginaSkus - 1) * porPagina;
+        const paginaItens = ordenados.slice(inicioIdx, inicioIdx + porPagina);
+        const todosPaginaSelecionados = paginaItens.every((s) => cmsState.selectedKeys.has(obterChaveItemCatalogoCms(s)));
+
+        const sortAttr = (col) => (cmsState.sortCol === col ? `aria-sort="${cmsState.sortDir}"` : "");
+
+        grid.innerHTML = `
+          <div id="cms-table-sort-status" role="status" class="sr-only-live"></div>
+          <div tabindex="0" role="region" aria-label="Tabela de cores e produtos" class="cms-table-wrapper">
+            <table class="cms-catalog-table" id="cms-skus-table">
+              <caption>Catálogo completo por cor e produto</caption>
+              <thead>
+                <tr>
+                  <th scope="col" style="width:38px;"><input type="checkbox" id="cms-skus-select-page" class="cms-row-checkbox" ${todosPaginaSelecionados ? "checked" : ""} aria-label="Selecionar todos desta página" /></th>
+                  <th scope="col" ${sortAttr("produto")}><button type="button" class="cms-sort-btn" data-sort-col="produto">Produto</button></th>
+                  <th scope="col" ${sortAttr("cor")}><button type="button" class="cms-sort-btn" data-sort-col="cor">Cor</button></th>
+                  <th scope="col" ${sortAttr("codigo")}><button type="button" class="cms-sort-btn" data-sort-col="codigo">Código</button></th>
+                  <th scope="col" data-type="number" ${sortAttr("preco")}><button type="button" class="cms-sort-btn" data-sort-col="preco">Preço</button></th>
+                  <th scope="col" ${sortAttr("status")}><button type="button" class="cms-sort-btn" data-sort-col="status">Status</button></th>
+                  <th scope="col" style="text-align:right;">Ações</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${paginaItens.map((sku) => {
+                  const key = obterChaveItemCatalogoCms(sku);
+                  const pending = cmsState.pendingEdits.get(key) || {};
+                  const statusEst = pending.estoqueStatus || sku.estoqueStatus || "disponivel";
+                  const precoExib = pending.preco !== undefined ? pending.preco : (sku.preco || "Sob consulta");
+                  const checked = cmsState.selectedKeys.has(key);
+                  const isDirty = cmsState.pendingEdits.has(key);
+
+                  return `
+                    <tr class="${isDirty ? "is-pending-edit" : ""}">
+                      <td>
+                        <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${checked ? "checked" : ""} aria-label="Selecionar ${escaparHtml(sku.nome)}" />
+                      </td>
+                      <td data-label="Produto">
+                        <div style="display:flex; align-items:center; gap:10px;">
+                          <img src="${escaparHtml(sku.imagem || "assets/produtos/pla-maxprint.jpg")}" alt="" class="cms-model-thumb" style="width:34px; height:34px;" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
+                          <div>
+                            <div style="font-weight:700; color:#0f172a;">${escaparHtml(sku.modeloNome || sku.nome)}</div>
+                            <div style="font-size:0.74rem; color:#64748b;">${escaparHtml(nomesCat[sku.categoria] || sku.categoria)}</div>
+                          </div>
+                        </div>
+                      </td>
+                      <td data-label="Cor">
+                        ${sku.corNome ? `
+                          <span style="display:inline-flex; align-items:center; gap:7px;">
+                            <span class="cms-color-dot" style="background:${escaparHtml(sku.corHex || "#cbd5e1")};"></span>
+                            <span>${escaparHtml(sku.corNome)}</span>
+                          </span>
+                        ` : `<span style="color:#94a3b8;">Único</span>`}
+                      </td>
+                      <td data-label="Código" style="font-family:ui-monospace, monospace; font-size:0.78rem; color:#475569;">${escaparHtml(sku.codigo || "—")}</td>
+                      <td data-label="Preço" style="font-weight:700; font-variant-numeric:tabular-nums;">
+                        ${escaparHtml(precoExib)}
+                        ${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}
+                      </td>
+                      <td data-label="Status">
+                        <select class="cms-quick-stock-select stock-${escaparHtml(statusEst)}"
+                          data-cms-quick-stock="${escaparHtml(sku.id)}"
+                          data-cms-stock-tipo="${escaparHtml(sku.tipo)}"
+                          data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || "")}"
+                          data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}"
+                          aria-label="Status de ${escaparHtml(sku.nome)}">
+                          <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
+                          <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                          <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
+                        </select>
+                      </td>
+                      <td data-label="Ações" style="text-align:right; white-space:nowrap;">
+                        <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(sku.produtoId)}" data-cms-focus-cor="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}">Editar</button>
+                      </td>
+                    </tr>
+                  `;
+                }).join("")}
+              </tbody>
+            </table>
+          </div>
+        `;
+
+        if (pagBar) {
+          pagBar.style.display = totalItens > porPagina ? "flex" : "none";
+          const fimIdx = Math.min(totalItens, inicioIdx + paginaItens.length);
+          pagBar.innerHTML = `
+            <span>Mostrando <strong>${inicioIdx + 1}–${fimIdx}</strong> de <strong>${totalItens}</strong> itens</span>
+            <div class="cms-pagination-btns">
+              <button type="button" class="btn-cms-secondary" id="btn-cms-page-prev" ${cmsState.paginaSkus <= 1 ? "disabled" : ""}>Anterior</button>
+              <span>Página ${cmsState.paginaSkus} de ${totalPaginas}</span>
+              <button type="button" class="btn-cms-secondary" id="btn-cms-page-next" ${cmsState.paginaSkus >= totalPaginas ? "disabled" : ""}>Próxima</button>
+            </div>
+          `;
+          document.getElementById("btn-cms-page-prev")?.addEventListener("click", () => {
+            if (cmsState.paginaSkus > 1) {
+              cmsState.paginaSkus--;
+              renderizarListaProdutosCms();
+            }
+          });
+          document.getElementById("btn-cms-page-next")?.addEventListener("click", () => {
+            if (cmsState.paginaSkus < totalPaginas) {
+              cmsState.paginaSkus++;
+              renderizarListaProdutosCms();
+            }
+          });
+        }
+
+        grid.querySelector("#cms-skus-select-page")?.addEventListener("change", (e) => {
+          const marcar = e.target.checked;
+          paginaItens.forEach((s) => {
+            const k = obterChaveItemCatalogoCms(s);
+            if (marcar) cmsState.selectedKeys.add(k);
+            else cmsState.selectedKeys.delete(k);
+          });
+          renderizarListaProdutosCms();
+        });
+
+        grid.querySelectorAll("[data-sort-col]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const col = btn.dataset.sortCol;
+            if (cmsState.sortCol === col) {
+              cmsState.sortDir = cmsState.sortDir === "ascending" ? "descending" : "ascending";
+            } else {
+              cmsState.sortCol = col;
+              cmsState.sortDir = "ascending";
+            }
+            cmsState.paginaSkus = 1;
+            renderizarListaProdutosCms();
+          });
+        });
+
+      } else {
+        // ============================================================
+        // VISÃO PADRÃO "POR PRODUTO": 1 LINHA COMPACTA POR MODELO + EXPANSÃO
+        // ============================================================
+        if (pagBar) pagBar.style.display = "none";
+        const filtrados = catalogo.filter((item) => {
+          if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
+            return false;
+          }
+          const chavePaleta = item.tipoFilamento ? mapearChavePaletaSiteData(item.usaCoresDinamicas) : null;
+          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+          if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos") {
+            if (paletaCores && paletaCores.length > 0) {
+              const temCorNoStatus = paletaCores.some((c, idx) => {
+                const k = `cor:${chavePaleta}:${idx}`;
+                const st = cmsState.pendingEdits.get(k)?.estoqueStatus || c.estoqueStatus || item.estoqueStatus || "disponivel";
+                return st === cmsState.estoqueFiltro;
+              });
+              if (!temCorNoStatus) return false;
+            } else {
+              const k = `prod:${item.id}`;
+              const st = cmsState.pendingEdits.get(k)?.estoqueStatus || item.estoqueStatus || "disponivel";
+              if (st !== cmsState.estoqueFiltro) return false;
+            }
+          }
+          if (termo) {
+            const coresTexto = paletaCores ? paletaCores.map((c) => `${c.nome || ""} ${c.cod || ""}`).join(" ") : "";
+            const texto = normalizarTextoBusca(`${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""} ${coresTexto}`);
+            const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
+            if (!termos.every((t) => texto.includes(t))) return false;
+          }
+          return true;
+        });
+
+        if (filtrados.length === 0) {
+          grid.innerHTML = `<div class="cms-section-card" style="text-align:center; padding:40px 20px; color:#64748b;">Nenhum produto encontrado para este filtro.</div>`;
+          atualizarBarraLoteCatalogoCms();
+          return;
+        }
+
+        grid.innerHTML = filtrados.map((p) => {
+          const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
+          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
+          const qtdCores = paletaCores ? paletaCores.length : 0;
+          const expanded = Boolean(cmsState.expandedModels.has(p.id) || (termo && qtdCores > 0));
+
+          let faixaPreco = p.precoVista || "Sob consulta";
+          let resumoEstoqueHtml = "";
+          let checkedModelo = false;
+          let indeterminateModelo = false;
+          let temPendenciaModelo = false;
+
+          if (qtdCores > 0 && paletaCores) {
+            let disp = 0;
+            let poucas = 0;
+            let esg = 0;
+            let minP = Infinity;
+            let maxP = 0;
+            let selectedCount = 0;
+
+            paletaCores.forEach((c, idx) => {
+              const k = `cor:${chavePaleta}:${idx}`;
+              const pend = cmsState.pendingEdits.get(k);
+              if (pend) temPendenciaModelo = true;
+              if (cmsState.selectedKeys.has(k)) selectedCount++;
+              const st = pend?.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
+              if (st === "esgotado") esg++;
+              else if (st === "poucas_unidades") poucas++;
+              else disp++;
+
+              const numP = extrairNumeroDePrecoBR(pend?.preco !== undefined ? pend.preco : (c.preco || p.precoVista));
+              if (numP > 0) {
+                if (numP < minP) minP = numP;
+                if (numP > maxP) maxP = numP;
+              }
+            });
+
+            checkedModelo = selectedCount === qtdCores;
+            indeterminateModelo = selectedCount > 0 && selectedCount < qtdCores;
+            if (minP !== Infinity && maxP > minP) {
+              faixaPreco = `${formatarMoedaBR(minP)} – ${formatarMoedaBR(maxP)}`;
+            } else if (minP !== Infinity) {
+              faixaPreco = formatarMoedaBR(minP);
+            }
+
+            const partes = [];
+            if (disp > 0) partes.push(`${disp} ${disp === 1 ? "disponível" : "disponíveis"}`);
+            if (poucas > 0) partes.push(`${poucas} ${poucas === 1 ? "baixa" : "baixas"}`);
+            if (esg > 0) partes.push(`${esg} ${esg === 1 ? "esgotada" : "esgotadas"}`);
+            resumoEstoqueHtml = `<span>${partes.join(" · ")}</span>`;
+          } else {
+            const k = `prod:${p.id}`;
+            const pend = cmsState.pendingEdits.get(k);
+            if (pend) temPendenciaModelo = true;
+            checkedModelo = cmsState.selectedKeys.has(k);
+            const statusEst = pend?.estoqueStatus || p.estoqueStatus || "disponivel";
+            if (pend?.preco !== undefined) faixaPreco = pend.preco;
+            resumoEstoqueHtml = `
+              <select class="cms-quick-stock-select stock-${escaparHtml(statusEst)}"
+                data-cms-quick-stock="${escaparHtml(p.id)}"
+                data-cms-stock-tipo="produto"
+                aria-label="Status de ${escaparHtml(p.nome)}">
+                <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
+                <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
+              </select>
+            `;
+          }
+
+          const thumbUrl = p.imagem || (paletaCores && paletaCores[0] && paletaCores[0].imgCatalogo) || "assets/produtos/pla-maxprint.jpg";
+          let subRowsHtml = "";
+          if (qtdCores > 0 && expanded && paletaCores) {
+            const subItems = paletaCores
+              .map((c, idx) => ({ c, idx }))
+              .filter(({ c, idx }) => {
+                const k = `cor:${chavePaleta}:${idx}`;
+                const st = cmsState.pendingEdits.get(k)?.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
+                if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) return false;
+                if (termo) {
+                  const tFull = normalizarTextoBusca(`${p.nome} ${c.nome || ""} ${c.cod || ""}`);
+                  return normalizarTextoBusca(termo).split(/\s+/).filter(Boolean).every((t) => tFull.includes(t));
+                }
+                return true;
+              });
+
+            subRowsHtml = `
+              <div class="cms-model-colors-drawer">
+                ${subItems.map(({ c, idx }) => {
+                  const key = `cor:${chavePaleta}:${idx}`;
+                  const pend = cmsState.pendingEdits.get(key) || {};
+                  const stCor = pend.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
+                  const precoCor = pend.preco !== undefined ? pend.preco : (c.preco || p.precoVista || "Sob consulta");
+                  const isDirty = cmsState.pendingEdits.has(key);
+                  return `
+                    <div class="cms-color-subrow ${isDirty ? "is-pending-edit" : ""}">
+                      <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${cmsState.selectedKeys.has(key) ? "checked" : ""} aria-label="Selecionar cor ${escaparHtml(c.nome)}" />
+                      <div class="cms-color-name-wrap">
+                        <span class="cms-color-dot" style="background:${escaparHtml(c.hex || "#cbd5e1")};"></span>
+                        <span style="font-size:0.84rem; font-weight:600; color:#0f172a;">${escaparHtml(c.nome || "Cor")}</span>
+                        ${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}
+                      </div>
+                      <span style="font-family:ui-monospace, monospace; font-size:0.76rem; color:#64748b;">${escaparHtml(c.cod ? "Cód. " + c.cod : "—")}</span>
+                      <span style="font-size:0.83rem; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">${escaparHtml(precoCor)}</span>
+                      <select class="cms-quick-stock-select stock-${escaparHtml(stCor)}"
+                        data-cms-quick-stock="${escaparHtml(p.id)}-${escaparHtml(c.cod || idx)}"
+                        data-cms-stock-tipo="cor"
+                        data-cms-chave-paleta="${escaparHtml(chavePaleta)}"
+                        data-cms-cor-idx="${idx}"
+                        aria-label="Status da cor ${escaparHtml(c.nome)}">
+                        <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>Disponível</option>
+                        <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                        <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>Esgotado</option>
+                      </select>
+                      <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}" data-cms-focus-cor="${idx}">Editar</button>
+                    </div>
+                  `;
+                }).join("")}
+              </div>
+            `;
+          }
+
+          return `
+            <div class="cms-model-group ${temPendenciaModelo ? "is-pending-edit" : ""}">
+              <div class="cms-model-row">
+                <input type="checkbox" class="cms-row-checkbox" data-cms-select-model="${escaparHtml(p.id)}" data-cms-select-paleta="${escaparHtml(chavePaleta || "")}" ${checkedModelo ? "checked" : ""} data-indeterminate="${indeterminateModelo ? "1" : "0"}" aria-label="Selecionar ${escaparHtml(p.nome)}" />
+                <img src="${escaparHtml(thumbUrl)}" alt="" class="cms-model-thumb" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
+                <div class="cms-model-title-col">
+                  <div class="cms-model-name">${escaparHtml(p.nome)}</div>
+                  <div class="cms-model-meta">${escaparHtml(nomesCat[p.categoria] || p.categoria)}${p.marca ? ` · ${escaparHtml(p.marca)}` : ""}</div>
+                </div>
+                <div class="cms-model-count">${qtdCores > 0 ? `${qtdCores} cores` : "Produto único"}</div>
+                <div class="cms-model-price">${escaparHtml(faixaPreco)}</div>
+                <div class="cms-model-stock-summary">${resumoEstoqueHtml}</div>
+                <div class="cms-row-actions">
+                  ${qtdCores > 0 ? `<button type="button" class="cms-btn-expand-colors" data-cms-toggle-expand="${escaparHtml(p.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Ocultar cores" : "Ver cores"}</button>` : ""}
+                  <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}">Editar</button>
+                </div>
+              </div>
+              ${subRowsHtml}
+            </div>
+          `;
+        }).join("");
+
+        grid.querySelectorAll("[data-indeterminate='1']").forEach((cb) => {
+          cb.indeterminate = true;
+        });
+
+        grid.querySelectorAll("[data-cms-toggle-expand]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const pId = btn.dataset.cmsToggleExpand;
+            if (cmsState.expandedModels.has(pId)) cmsState.expandedModels.delete(pId);
+            else cmsState.expandedModels.add(pId);
+            renderizarListaProdutosCms();
+          });
+        });
+
+        grid.querySelectorAll("[data-cms-select-model]").forEach((cb) => {
+          cb.addEventListener("change", () => {
+            const pId = cb.dataset.cmsSelectModel;
+            const chavePaleta = cb.dataset.cmsSelectPaleta;
+            const marcar = cb.checked;
+            if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
+              window.SITE_DATA[chavePaleta].forEach((_, idx) => {
+                const k = `cor:${chavePaleta}:${idx}`;
+                if (marcar) cmsState.selectedKeys.add(k);
+                else cmsState.selectedKeys.delete(k);
+              });
+            } else {
+              const k = `prod:${pId}`;
+              if (marcar) cmsState.selectedKeys.add(k);
+              else cmsState.selectedKeys.delete(k);
+            }
+            renderizarListaProdutosCms();
+          });
+        });
+      }
+
+      grid.querySelectorAll("[data-cms-select-key]").forEach((cb) => {
+        cb.addEventListener("change", () => {
+          const k = cb.dataset.cmsSelectKey;
+          if (cb.checked) cmsState.selectedKeys.add(k);
+          else cmsState.selectedKeys.delete(k);
+          atualizarBarraLoteCatalogoCms();
+        });
+      });
+
+      atualizarBarraLoteCatalogoCms();
+
+    } else if (isSkusMode) {
       // -------------------------------------------------------------
-      // VISÃO 1: TODAS AS CORES & SKUs INDIVIDUAIS (100+ CORES REAIS)
+      // FALLBACK LEGADO (MODAL CMS EM index.html)
       // -------------------------------------------------------------
       const todosSkus = gerarListaSkusCms();
       const filtrados = todosSkus.filter((item) => {
@@ -12361,7 +13559,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       if (filtrados.length === 0) {
         grid.innerHTML = `<div style="padding:48px 24px; text-align:center; color:#64748b; grid-column:1/-1; background:#ffffff; border-radius:14px; border:1.5px dashed #cbd5e1;">
-          <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
           <strong style="color:#0f172a; font-size:1rem;">Nenhum SKU encontrado para este filtro.</strong>
           <p style="font-size:0.82rem; margin:6px 0 0;">Tente buscar por código (ex: 137), nome da cor ou altere a categoria selecionada.</p>
         </div>`;
@@ -12398,24 +13595,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               </div>
 
               <div style="margin-top:2px;">
-                <select class="cms-quick-stock-select stock-${statusEst}" 
-                  data-cms-quick-stock="${escaparHtml(sku.id)}" 
-                  data-cms-stock-tipo="${escaparHtml(sku.tipo)}" 
-                  data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || '')}" 
-                  data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ''}" 
+                <select class="cms-quick-stock-select stock-${statusEst}"
+                  data-cms-quick-stock="${escaparHtml(sku.id)}"
+                  data-cms-stock-tipo="${escaparHtml(sku.tipo)}"
+                  data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || '')}"
+                  data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ''}"
                   title="Alterar estoque desta cor/SKU individual">
-                  <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>🟢 Em Estoque</option>
-                  <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>🟠 Poucas Unidades</option>
-                  <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+                  <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
+                  <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                  <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
                 </select>
               </div>
 
               <div class="cms-prod-card-actions">
                 <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${escaparHtml(sku.produtoId)}" title="Editar modelo e todas as cores">
-                  ✏️ Editar Produto
+                  Editar Produto
                 </button>
                 <button type="button" class="btn-cms-qr-item" data-cms-qr-payload="${escaparHtml(sku.qrPayload)}" data-cms-qr-title="${escaparHtml(sku.nome)}" title="Imprimir etiqueta com QR Code deste SKU">
-                  🏷️
+                  QR
                 </button>
               </div>
             </div>
@@ -12424,9 +13621,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         .join("");
 
     } else {
-      // -------------------------------------------------------------
-      // VISÃO 2: MODELOS & FAMÍLIAS DE PRODUTOS (34 FAMÍLIAS)
-      // -------------------------------------------------------------
       const filtrados = catalogo.filter((item) => {
         if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
           return false;
@@ -12449,7 +13643,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       if (filtrados.length === 0) {
         grid.innerHTML = `<div style="padding:48px 24px; text-align:center; color:#64748b; grid-column:1/-1; background:#ffffff; border-radius:14px; border:1.5px dashed #cbd5e1;">
-          <div style="font-size:2rem; margin-bottom:8px;">🔍</div>
           <strong style="color:#0f172a; font-size:1rem;">Nenhum produto encontrado para este filtro.</strong>
           <p style="font-size:0.82rem; margin:6px 0 0;">Tente outro termo de busca ou altere a categoria acima.</p>
         </div>`;
@@ -12469,7 +13662,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             ? "brand-maxprint"
             : "brand-sj";
 
-          // Renderização dos primeiros swatches de cor para visualização instantânea
           let swatchesHtml = "";
           if (qtdCores > 0 && paletaCores) {
             const amostra = paletaCores.slice(0, 6);
@@ -12479,8 +13671,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 ${amostra
                   .map(
                     (c) => `
-                      <span class="cms-color-mini-dot" 
-                        style="background:${escaparHtml(c.hex || '#ccc')};" 
+                      <span class="cms-color-mini-dot"
+                        style="background:${escaparHtml(c.hex || '#ccc')};"
                         title="${escaparHtml(c.nome)} (${escaparHtml(c.cod ? 'CÓD. ' + c.cod : '')})"
                         data-cms-open-color="${escaparHtml(p.id)}"></span>
                     `
@@ -12493,50 +13685,42 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
           return `
             <div class="cms-product-item-card">
-              <!-- Topo do Card: Categoria & Marca Oficial -->
               <div class="cms-prod-card-top-bar">
                 <span class="cms-prod-brand-tag ${brandClass}">${escaparHtml(p.marca || "Loja SJ 3D")}</span>
                 <span style="font-size:0.7rem; font-weight:700; color:#64748b;">${escaparHtml(nomesCat[p.categoria] || p.categoria)}</span>
               </div>
 
-              <!-- Foto do Produto Limpa & Em Alta Definição -->
               <div class="cms-prod-card-thumb">
-                <img src="${escaparHtml(p.imagem || (paletaCores && paletaCores[0] && paletaCores[0].imgCatalogo) || "assets/produtos/pla-maxprint.jpg")}" 
-                     alt="${escaparHtml(p.nome)}" 
-                     loading="lazy" 
+                <img src="${escaparHtml(p.imagem || (paletaCores && paletaCores[0] && paletaCores[0].imgCatalogo) || "assets/produtos/pla-maxprint.jpg")}"
+                     alt="${escaparHtml(p.nome)}"
+                     loading="lazy"
                      onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
-                ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">🎨 ${qtdCores} Cores</span>` : ""}
+                ${qtdCores > 0 ? `<span class="cms-prod-card-floating-badge">${qtdCores} Cores</span>` : ""}
               </div>
 
-              <!-- Corpo com Título, Subtítulo, Swatches e Preço -->
               <div class="cms-prod-card-body">
                 <strong>${escaparHtml(p.nome)}</strong>
                 <p>${escaparHtml(p.subtitulo || "")}</p>
                 ${swatchesHtml}
                 <div class="cms-prod-card-meta">
                   <span class="cms-prod-price-badge">${escaparHtml(p.precoVista || "Sob consulta")}</span>
-                  ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">🎨 ${qtdCores} cores</span>` : `<span style="font-size:0.72rem; color:#64748b;">${escaparHtml(p.precoParcelado || "Pronta entrega")}</span>`}
+                  ${qtdCores > 0 ? `<span class="cms-prod-colors-badge">${qtdCores} cores</span>` : `<span style="font-size:0.72rem; color:#64748b;">${escaparHtml(p.precoParcelado || "Pronta entrega")}</span>`}
                 </div>
                 <div style="margin-top:8px;">
                   <select class="cms-quick-stock-select stock-${statusEst}" data-cms-quick-stock="${escaparHtml(p.id)}" data-cms-stock-tipo="produto" title="Alterar status de estoque deste produto">
-                    <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>🟢 Em Estoque</option>
-                    <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>🟠 Poucas Unidades</option>
-                    <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+                    <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
+                    <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                    <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
                   </select>
                 </div>
               </div>
 
-              <!-- Ações Modernas: Editar, Imprimir QR e Excluir -->
               <div class="cms-prod-card-actions">
                 <button type="button" class="btn-cms-edit-item" data-cms-edit-id="${escaparHtml(p.id)}">
-                  ${qtdCores > 0 ? "✏️ Editar Preço & Cores" : "✏️ Editar Produto & Detalhes"}
+                  ${qtdCores > 0 ? "Editar Preço & Cores" : "Editar Produto"}
                 </button>
-                <button type="button" class="btn-cms-qr-item" data-cms-qr-prod-id="${escaparHtml(p.id)}" title="Imprimir etiquetas de QR Code deste produto">
-                  🏷️
-                </button>
-                <button type="button" class="btn-cms-del-item" data-cms-del-id="${escaparHtml(p.id)}" title="Excluir produto do catálogo">
-                  🗑️
-                </button>
+                <button type="button" class="btn-cms-qr-item" data-cms-qr-prod-id="${escaparHtml(p.id)}" title="Imprimir etiquetas de QR Code deste produto">QR</button>
+                <button type="button" class="btn-cms-del-item" data-cms-del-id="${escaparHtml(p.id)}" title="Excluir produto do catálogo">Excluir</button>
               </div>
             </div>
           `;
@@ -12544,17 +13728,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         .join("");
     }
 
-    // Eventos da grade dinâmica (troca rápida de estoque gravando direto em public.products)
+    // Eventos da grade/lista dinâmica (troca rápida individual gravando direto em public.products com opção Desfazer)
     grid.querySelectorAll("[data-cms-quick-stock]").forEach((sel) => {
       sel.addEventListener("change", async (e) => {
         const id = sel.dataset.cmsQuickStock;
         const tipo = sel.dataset.cmsStockTipo || "produto";
         const novoStatus = e.target.value;
-        const labelMap = {
-          disponivel: "🟢 Disponível",
-          poucas_unidades: "🟠 Poucas Unidades",
-          esgotado: "🔴 Esgotado"
-        };
 
         sel.disabled = true;
         try {
@@ -12562,7 +13741,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             const chavePaleta = sel.dataset.cmsChavePaleta;
             const corIdx = parseInt(sel.dataset.cmsCorIdx, 10);
             if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) && window.SITE_DATA[chavePaleta][corIdx]) {
-              window.SITE_DATA[chavePaleta][corIdx].estoqueStatus = novoStatus;
+              const cor = window.SITE_DATA[chavePaleta][corIdx];
+              const anterior = cor.estoqueStatus || "disponivel";
+              cmsState.ultimoUndoSnapshot = {
+                entries: [{ tipo: "cor", chavePaleta, corIdx, estoqueStatus: anterior, preco: cor.preco, valor: cor.valor }]
+              };
+              cor.estoqueStatus = novoStatus;
               sel.className = `cms-quick-stock-select stock-${novoStatus}`;
               if (window.SJ_DB && window.SJ_DB.catalogo) {
                 if (typeof window.SJ_DB.catalogo.atualizarEstoqueCor === "function") {
@@ -12573,16 +13757,25 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               }
               atualizarContadoresEstoqueKpiCms();
               atualizarSiteAposEdicaoCms();
+              if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
               const nuvemOkCor = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
               if (nuvemOkCor) {
-                mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(window.SITE_DATA[chavePaleta][corIdx].nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+                mostrarToast(`Estoque de <strong>"${escaparHtml(cor.nome)}"</strong> alterado para <strong>${statusTextMap[novoStatus] || novoStatus}</strong>.`, "success", {
+                  acaoTexto: "Desfazer",
+                  duracao: 8000,
+                  onClick: desfazerUltimaAlteracaoCatalogoCms
+                });
               } else {
-                mostrarToast(`⚠️ Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão de administrador.")}`, "warning");
+                mostrarToast(`Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão.")}`, "warning");
               }
             }
           } else {
             const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
             if (!prod) return;
+            const anterior = prod.estoqueStatus || "disponivel";
+            cmsState.ultimoUndoSnapshot = {
+              entries: [{ tipo: "produto", produtoId: prod.id, estoqueStatus: anterior, precoVista: prod.precoVista, precoVistaValor: prod.precoVistaValor }]
+            };
             prod.estoqueStatus = novoStatus;
             sel.className = `cms-quick-stock-select stock-${novoStatus}`;
             if (window.SJ_DB && window.SJ_DB.catalogo) {
@@ -12590,11 +13783,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             }
             atualizarContadoresEstoqueKpiCms();
             atualizarSiteAposEdicaoCms();
+            if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
             const nuvemOkProd = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
             if (nuvemOkProd) {
-              mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(prod.nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+              mostrarToast(`Estoque de <strong>"${escaparHtml(prod.nome)}"</strong> alterado para <strong>${statusTextMap[novoStatus] || novoStatus}</strong>.`, "success", {
+                acaoTexto: "Desfazer",
+                duracao: 8000,
+                onClick: desfazerUltimaAlteracaoCatalogoCms
+              });
             } else {
-              mostrarToast(`⚠️ Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão de administrador.")}`, "warning");
+              mostrarToast(`Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão.")}`, "warning");
             }
           }
         } finally {
@@ -12605,7 +13803,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     grid.querySelectorAll("[data-cms-edit-id]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        abrirEditorProdutoCms(btn.dataset.cmsEditId);
+        const corRaw = btn.dataset.cmsFocusCor;
+        const corIdx = corRaw !== undefined && corRaw !== "" ? parseInt(corRaw, 10) : null;
+        abrirEditorProdutoCms(btn.dataset.cmsEditId, isNaN(corIdx) ? null : corIdx);
       });
     });
 
@@ -12680,9 +13880,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           renderizarListaProdutosCms();
           atualizarSiteAposEdicaoCms();
           if (res && res.nuvem) {
-            mostrarToast(`🗑️ Produto <strong>${escaparHtml(prod.nome)}</strong> excluído do catálogo global!`, "success");
+            mostrarToast(`Produto <strong>${escaparHtml(prod.nome)}</strong> excluído do catálogo.`, "success");
           } else {
-            mostrarToast(`⚠️ Produto removido localmente, mas houve aviso na nuvem: ${escaparHtml(res?.erro || "verifique o SQL no Supabase")}`, "warning");
+            mostrarToast(`Produto removido localmente, aviso na nuvem: ${escaparHtml(res?.erro || "verifique o Supabase")}`, "warning");
           }
         }
       });
@@ -12716,9 +13916,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
   }
 
-  function renderizarListaCoresFilamentoCms() {
+  function renderizarListaCoresFilamentoCms(focoCorIdx = null) {
     const container = document.getElementById("cms-filament-colors-list");
     if (!container) return;
+
+    const countEl = document.getElementById("cms-drawer-colors-count");
+    if (countEl) {
+      const n = (cmsState.coresTempEditando || []).length;
+      countEl.textContent = n === 1 ? "1 cor" : `${n} cores`;
+    }
 
     if (!cmsState.coresTempEditando || cmsState.coresTempEditando.length === 0) {
       container.innerHTML = `<div style="padding:14px; color:var(--text-muted); font-size:0.82rem;">Nenhuma cor cadastrada nesta paleta.</div>`;
@@ -12729,23 +13935,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       .map(
         (c, idx) => {
           const stCor = c.estoqueStatus || "disponivel";
+          const isFoco = focoCorIdx !== null && Number(focoCorIdx) === idx;
           return `
-          <div class="cms-color-edit-row" data-color-row-idx="${idx}">
+          <div class="cms-color-edit-row" data-color-row-idx="${idx}" ${isFoco ? `style="border:1.5px solid #F04E23; background:#fff7ed;"` : ""}>
             <input type="color" class="cms-color-hex-picker" data-c-field="hex" data-c-idx="${idx}" value="${(c.hex && c.hex.startsWith("#") && c.hex.length === 7) ? c.hex : "#F04E23"}" title="Escolher tom da cor" />
             <div class="cms-color-thumb-mini">
-              <img src="${c.imgCatalogo || "assets/produtos/pla-maxprint.jpg"}" alt="${c.nome}" id="cms-c-thumb-${idx}" />
+              <img src="${c.imgCatalogo || "assets/produtos/pla-maxprint.jpg"}" alt="${escaparHtml(c.nome)}" id="cms-c-thumb-${idx}" />
             </div>
             <input type="text" class="cms-c-input-name" data-c-field="nome" data-c-idx="${idx}" value="${String(c.nome || "").replace(/"/g, "&quot;")}" placeholder="Nome da Cor (ex: Preto 1kg)" />
             <input type="text" class="cms-c-input-cod" data-c-field="cod" data-c-idx="${idx}" value="${String(c.cod || "").replace(/"/g, "&quot;")}" placeholder="CÓD." title="Código no Catálogo" />
             <input type="text" class="cms-c-input-price" data-c-field="preco" data-c-idx="${idx}" value="${String(c.preco || "R$ 79,90").replace(/"/g, "&quot;")}" placeholder="Preço (R$)" />
             <select class="cms-c-input-stock stock-${stCor}" data-c-field="estoqueStatus" data-c-idx="${idx}" title="Disponibilidade desta cor">
-              <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>🟢 Em estoque</option>
-              <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>🟠 Poucas unid.</option>
-              <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>🔴 Esgotado</option>
+              <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>Disponível</option>
+              <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>Poucas unid.</option>
+              <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>Esgotado</option>
             </select>
             <input type="text" class="cms-c-input-img" data-c-field="imgCatalogo" data-c-idx="${idx}" value="${String(c.imgCatalogo || "").replace(/"/g, "&quot;")}" placeholder="URL/Caminho da Foto" />
             <label class="btn-cms-color-upload" title="Enviar nova foto para esta cor">
-              📷 Foto
+              Foto
               <input type="file" accept="image/*" data-c-upload-idx="${idx}" style="display:none;" />
             </label>
             <button type="button" class="btn-cms-remove-row" data-c-del-idx="${idx}" title="Remover esta cor">&times;</button>
@@ -12801,13 +14008,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         renderizarListaCoresFilamentoCms();
       });
     });
+
+    if (focoCorIdx !== null) {
+      const targetRow = container.querySelector(`[data-color-row-idx="${Number(focoCorIdx)}"]`);
+      targetRow?.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
   }
 
-  function abrirEditorProdutoCms(produtoId = null) {
+  function abrirEditorProdutoCms(produtoId = null, focoCorIdx = null) {
+    const drawer = document.getElementById("cms-product-drawer");
     const listView = document.getElementById("cms-products-list-view");
     const editorView = document.getElementById("cms-product-editor-view");
-    if (listView) listView.style.display = "none";
-    if (editorView) editorView.style.display = "block";
+
+    if (!drawer) {
+      if (listView) listView.style.display = "none";
+      if (editorView) editorView.style.display = "block";
+    }
 
     const existente = produtoId
       ? (window.SITE_DATA.catalogo || []).find((p) => p.id === produtoId)
@@ -12817,8 +14033,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     const badgeEl = document.getElementById("cms-editor-mode-badge");
     if (badgeEl) {
-      badgeEl.textContent = existente ? `Editando: ${existente.nome}` : "Cadastrando Novo Produto";
+      badgeEl.textContent = existente ? `Editar: ${existente.nome}` : "Novo produto";
     }
+
+    const moreDetails = document.getElementById("cms-prod-more-options");
+    if (moreDetails) moreDetails.open = false;
 
     const item = existente || {
       id: "prod-" + Date.now(),
@@ -12841,6 +14060,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
 
     document.getElementById("cms-prod-id").value = item.id;
+    const codDisplayEl = document.getElementById("cms-prod-codigo-display");
+    if (codDisplayEl) codDisplayEl.value = item.id;
     document.getElementById("cms-prod-nome").value = item.nome || "";
     document.getElementById("cms-prod-categoria").value = item.categoria || "impressoras";
     document.getElementById("cms-prod-subtitulo").value = item.subtitulo || "";
@@ -12876,7 +14097,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const qrText = document.getElementById("cms-editor-qr-code-text");
     const qrPayload = `SJ3D:PROD:${item.id}`;
     if (qrWrap) {
-      renderizarQrCodeHtml(qrWrap, qrPayload, 76);
+      renderizarQrCodeHtml(qrWrap, qrPayload, 64);
     }
     if (qrText) {
       qrText.textContent = qrPayload;
@@ -12905,7 +14126,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
       cmsState.chavePaletaEditando = chavePaleta;
       cmsState.coresTempEditando = JSON.parse(JSON.stringify(window.SITE_DATA[chavePaleta]));
-      if (colorsBlock) colorsBlock.style.display = "block";
+      if (colorsBlock) {
+        colorsBlock.style.display = "block";
+        if (colorsBlock.tagName === "DETAILS") {
+          colorsBlock.open = focoCorIdx !== null;
+        }
+      }
       if (select2Wrap) select2Wrap.style.display = "none";
       if (btnPrintColorsQr) {
         btnPrintColorsQr.style.display = "inline-flex";
@@ -12919,13 +14145,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           })));
         };
       }
-      renderizarListaCoresFilamentoCms();
+      renderizarListaCoresFilamentoCms(focoCorIdx);
     } else {
       cmsState.chavePaletaEditando = null;
       cmsState.coresTempEditando = [];
       if (colorsBlock) colorsBlock.style.display = "none";
       if (select2Wrap) select2Wrap.style.display = "flex";
       if (btnPrintColorsQr) btnPrintColorsQr.style.display = "none";
+    }
+
+    if (drawer) {
+      if (typeof drawer.showModal === "function") {
+        if (!drawer.open) drawer.showModal();
+      } else {
+        drawer.setAttribute("open", "");
+      }
     }
   }
 
@@ -13103,42 +14337,64 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Barra de Status de Sincronização Global em Nuvem (Supabase Auth + public.products)
+    // Barra/Indicador Discreto de Status de Sincronização Global em Nuvem
     async function atualizarBannerSincronizacaoNuvemAdmin(statusForcado = null) {
+      const pill = document.getElementById("admin-cloud-sync-pill");
+      const pillText = document.getElementById("admin-cloud-sync-pill-text");
       const banner = document.getElementById("admin-cloud-sync-banner");
       const iconEl = document.getElementById("admin-cloud-sync-icon");
       const textEl = document.getElementById("admin-cloud-sync-text");
       const btnGoogle = document.getElementById("btn-admin-connect-cloud-google");
       const btnSync = document.getElementById("btn-admin-force-publish-cloud");
-      if (!banner || !textEl) return;
 
       const sessao = window.SJ_DB?.catalogo?.verificarSessaoNuvem
         ? await window.SJ_DB.catalogo.verificarSessaoNuvem()
         : { conectado: false, email: "" };
       const st = statusForcado || window.SJ_DB?.catalogo?.ultimoStatusNuvem || {};
+      const temErro = Boolean(st && st.erro);
+      const conectado = Boolean((sessao.conectado || st.nuvemOk) && !temErro);
 
-      if (sessao.conectado || st.nuvemOk) {
-        banner.style.borderColor = "#bbf7d0";
-        banner.style.background = "#f0fdf4";
-        banner.style.color = "#166534";
-        if (iconEl) iconEl.textContent = "☁️";
-        const contaTxt = sessao.email ? ` (<strong>${escaparHtml(sessao.email)}</strong>)` : "";
-        const fonteTxt = window.SJ_DB?.catalogo?.usandoTabelaProducts ? "tabela <code>public.products</code>" : "Supabase Cloud";
-        textEl.innerHTML = `<strong>Sincronização Global Ativa${contaTxt}:</strong> alterações de estoque, preço, nome e acessos gravam direto na ${fonteTxt} e aparecem em tempo real em todos os navegadores.`;
+      if (pill && pillText) {
+        pill.classList.remove("is-checking", "is-synced", "is-error");
+        if (conectado) {
+          pill.classList.add("is-synced");
+          pillText.textContent = "Sincronizado";
+          pill.title = sessao.email ? `Sincronizado com Supabase (${sessao.email})` : "Sincronizado com Supabase";
+        } else {
+          pill.classList.add("is-error");
+          pillText.textContent = temErro ? "Erro ao sincronizar" : "Desconectado";
+          pill.title = st?.erro || "Sessão desconectada do Supabase";
+        }
+      }
+
+      if (conectado) {
         if (btnGoogle) btnGoogle.style.display = "none";
-        if (btnSync) btnSync.style.display = "inline-flex";
+        if (btnSync) btnSync.style.display = "flex";
       } else {
-        banner.style.borderColor = "#fde68a";
-        banner.style.background = "#fffbeb";
-        banner.style.color = "#92400e";
-        if (iconEl) iconEl.textContent = "⚠️";
-        textEl.innerHTML = `<strong>Sessão Supabase desconectada:</strong> faça login com sua conta de Administrador para publicar alterações globalmente.`;
-        if (btnGoogle) btnGoogle.style.display = "inline-flex";
-        if (btnSync) btnSync.style.display = "none";
+        if (btnGoogle) btnGoogle.style.display = "flex";
+        if (btnSync) btnSync.style.display = "flex";
+      }
+
+      if (banner && textEl) {
+        if (conectado) {
+          banner.style.borderColor = "#bbf7d0";
+          banner.style.background = "#f0fdf4";
+          banner.style.color = "#166534";
+          if (iconEl) iconEl.textContent = "☁️";
+          const contaTxt = sessao.email ? ` (<strong>${escaparHtml(sessao.email)}</strong>)` : "";
+          textEl.innerHTML = `<strong>Sincronização Global Ativa${contaTxt}</strong>`;
+        } else {
+          banner.style.borderColor = "#fde68a";
+          banner.style.background = "#fffbeb";
+          banner.style.color = "#92400e";
+          if (iconEl) iconEl.textContent = "⚠️";
+          textEl.innerHTML = `<strong>Sessão Supabase desconectada:</strong> faça login para publicar alterações.`;
+        }
       }
     }
 
     document.getElementById("btn-admin-connect-cloud-google")?.addEventListener("click", async () => {
+      document.getElementById("admin-actions-popover")?.hidePopover?.();
       if (window.SJ_SUPABASE?.auth?.loginGoogle) {
         await window.SJ_SUPABASE.auth.loginGoogle();
       }
@@ -13146,20 +14402,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     document.getElementById("btn-admin-force-publish-cloud")?.addEventListener("click", async () => {
       const btn = document.getElementById("btn-admin-force-publish-cloud");
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "⏳ Sincronizando...";
+      const labelSpan = btn?.querySelector("span");
+      if (btn) btn.disabled = true;
+      if (labelSpan) labelSpan.textContent = "Sincronizando...";
+      try {
+        await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
+        await renderizarPainelEquipeCms(true);
+        renderizarListaProdutosCms();
+        atualizarContadoresEstoqueKpiCms();
+        if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+        mostrarToast("Catálogo e acessos sincronizados!", "success");
+      } finally {
+        if (btn) btn.disabled = false;
+        if (labelSpan) labelSpan.textContent = "Sincronizar tudo agora";
+        document.getElementById("admin-actions-popover")?.hidePopover?.();
+        atualizarBannerSincronizacaoNuvemAdmin();
       }
-      await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
-      await renderizarPainelEquipeCms(true);
-      renderizarListaProdutosCms();
-      atualizarContadoresEstoqueKpiCms();
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "🔄 Sincronizar Tudo Agora";
-      }
-      mostrarToast("☁️ Catálogo e acessos sincronizados com o Supabase!", "success");
-      atualizarBannerSincronizacaoNuvemAdmin();
     });
 
     window.addEventListener("sj-catalogo-sync-status", (e) => {
@@ -13250,9 +14508,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const emailEl = document.getElementById("crm-sidebar-admin-email");
       if (emailEl) emailEl.textContent = usuarioEquipe.email;
       const roleBadge = document.getElementById("crm-sidebar-role-badge");
-      if (roleBadge) roleBadge.textContent = ehAdmin ? "👑 Administrador" : "🛠️ Funcionário (Staff)";
+      if (roleBadge) roleBadge.textContent = ehAdmin ? "Administrador" : "Funcionário";
       const headerEmailEl = document.getElementById("cms-equipe-logged-email");
       if (headerEmailEl) headerEmailEl.textContent = usuarioEquipe.email;
+
+      const avatarEl = document.getElementById("crm-topbar-avatar-initials");
+      if (avatarEl) {
+        const parts = String(usuarioEquipe.nome || usuarioEquipe.email || "SJ").trim().split(/\s+/);
+        const ini = parts.length >= 2 ? `${parts[0][0]}${parts[1][0]}` : String(parts[0] || "SJ").slice(0, 2);
+        avatarEl.textContent = ini.toUpperCase();
+      }
+      const shortUserEl = document.getElementById("crm-topbar-user-short");
+      if (shortUserEl) {
+        shortUserEl.textContent = ehAdmin ? "Admin" : "Equipe";
+      }
 
       if (gateEl) gateEl.style.display = "none";
       if (appEl) appEl.style.display = "grid";
@@ -13263,8 +14532,259 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (!dashboardAdminInicializado) {
         dashboardAdminInicializado = true;
         const urlParams = new URLSearchParams(window.location.search);
-        const aba = urlParams.get("aba") || "produtos";
+        const aba = urlParams.get("aba") || (document.getElementById("cms-pane-inicio") ? "inicio" : "produtos");
         const editId = urlParams.get("edit");
+
+        // Submenu "Mais" no menu lateral
+        const btnMais = document.getElementById("btn-crm-nav-mais");
+        const panelMais = document.getElementById("crm-nav-mais-panel");
+        btnMais?.addEventListener("click", () => {
+          if (!panelMais) return;
+          const abrir = panelMais.hidden;
+          panelMais.hidden = !abrir;
+          btnMais.setAttribute("aria-expanded", abrir ? "true" : "false");
+        });
+
+        // Posicionamento & fallback de popovers da barra superior (Ações / Usuário)
+        const configurarPopoverTopo = (triggerId, popId) => {
+          const trigger = document.getElementById(triggerId);
+          const pop = document.getElementById(popId);
+          if (!trigger || !pop) return;
+
+          const posicionar = () => {
+            const rect = trigger.getBoundingClientRect();
+            const widthPop = Math.max(pop.offsetWidth || 230, 220);
+            const left = Math.max(12, Math.min(rect.right - widthPop, window.innerWidth - widthPop - 12));
+            pop.style.top = `${Math.round(rect.bottom + 8)}px`;
+            pop.style.left = `${Math.round(left)}px`;
+          };
+
+          const supportsPopover = Object.hasOwn(HTMLElement.prototype, "popover");
+          if (supportsPopover) {
+            pop.addEventListener("toggle", (e) => {
+              const aberto = e.newState === "open";
+              trigger.setAttribute("aria-expanded", aberto ? "true" : "false");
+              if (aberto) requestAnimationFrame(posicionar);
+            });
+          } else {
+            trigger.addEventListener("click", (e) => {
+              e.stopPropagation();
+              const aberto = !pop.classList.contains("is-open");
+              document.querySelectorAll(".admin-top-popover.is-open").forEach((p) => p.classList.remove("is-open"));
+              if (aberto) {
+                pop.classList.add("is-open");
+                trigger.setAttribute("aria-expanded", "true");
+                posicionar();
+              } else {
+                trigger.setAttribute("aria-expanded", "false");
+              }
+            });
+            document.addEventListener("click", (e) => {
+              if (!pop.contains(e.target) && e.target !== trigger) {
+                pop.classList.remove("is-open");
+                trigger.setAttribute("aria-expanded", "false");
+              }
+            });
+          }
+        };
+        configurarPopoverTopo("btn-admin-actions-menu", "admin-actions-popover");
+        configurarPopoverTopo("btn-admin-user-menu", "admin-user-popover");
+
+        document.getElementById("btn-admin-user-goto-access")?.addEventListener("click", () => {
+          document.getElementById("admin-user-popover")?.hidePopover?.();
+          document.getElementById("admin-user-popover")?.classList.remove("is-open");
+          selecionarAbaCms("equipe");
+        });
+
+        // Fallback leve para <dialog closedby="any"> em navegadores sem closedBy nativo
+        if (!("closedBy" in HTMLDialogElement.prototype)) {
+          const isOutside = (e, dlg) => {
+            const r = dlg.getBoundingClientRect();
+            return e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom;
+          };
+          document.querySelectorAll('dialog[closedby="any"]').forEach((dlg) => {
+            let pressedOut = false;
+            dlg.addEventListener("pointerdown", (e) => { pressedOut = isOutside(e, dlg); });
+            dlg.addEventListener("pointerup", (e) => {
+              if (pressedOut && isOutside(e, dlg) && typeof dlg.close === "function") dlg.close();
+            });
+          });
+        }
+
+        // Bind cartões da tela Início
+        document.getElementById("btn-inicio-kpi-quotes")?.addEventListener("click", () => {
+          const inp = document.getElementById("cms-filter-quotes-status");
+          if (inp) inp.value = "solicitado";
+          document.querySelectorAll("[data-quote-status-tab]").forEach((t) => t.classList.toggle("active", t.dataset.quoteStatusTab === "solicitado"));
+          selecionarAbaCms("orcamentos-clientes");
+        });
+        document.getElementById("btn-inicio-kpi-out")?.addEventListener("click", () => {
+          cmsState.estoqueFiltro = "esgotado";
+          cmsState.paginaSkus = 1;
+          const sel = document.getElementById("cms-stock-filter-select");
+          if (sel) sel.value = "esgotado";
+          selecionarAbaCms("produtos");
+        });
+        document.getElementById("btn-inicio-kpi-low")?.addEventListener("click", () => {
+          cmsState.estoqueFiltro = "poucas_unidades";
+          cmsState.paginaSkus = 1;
+          const sel = document.getElementById("cms-stock-filter-select");
+          if (sel) sel.value = "poucas_unidades";
+          selecionarAbaCms("produtos");
+        });
+        document.getElementById("btn-inicio-kpi-clients")?.addEventListener("click", () => {
+          selecionarAbaCms("clientes");
+        });
+        document.getElementById("btn-inicio-refresh")?.addEventListener("click", async () => {
+          cmsState.quotesCache = [];
+          await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
+          if (ehAdmin) await renderizarPainelEquipeCms(true);
+          renderizarPainelInicioCms();
+        });
+
+        // Bind abas rápidas e gaveta de Orçamentos
+        document.querySelectorAll("[data-quote-status-tab]").forEach((tab) => {
+          tab.addEventListener("click", () => {
+            const st = tab.dataset.quoteStatusTab || "todos";
+            const hiddenInp = document.getElementById("cms-filter-quotes-status");
+            if (hiddenInp) hiddenInp.value = st;
+            document.querySelectorAll("[data-quote-status-tab]").forEach((t) => t.classList.toggle("active", t === tab));
+            renderizarOrcamentosPortalCms();
+          });
+        });
+        document.getElementById("btn-cms-close-quote-drawer")?.addEventListener("click", () => {
+          const d = document.getElementById("cms-quote-drawer");
+          if (d?.close) d.close();
+        });
+
+        // Bind barra de ações em lote e modais do Catálogo
+        document.getElementById("btn-cms-bulk-clear")?.addEventListener("click", () => {
+          cmsState.selectedKeys.clear();
+          cmsState.pendingEdits.clear();
+          renderizarListaProdutosCms();
+        });
+        document.getElementById("btn-cms-bulk-select-model-colors")?.addEventListener("click", () => {
+          const paletas = new Set();
+          for (const key of cmsState.selectedKeys) {
+            if (key.startsWith("cor:")) {
+              const chavePaleta = key.split(":")[1];
+              if (chavePaleta) paletas.add(chavePaleta);
+            }
+          }
+          paletas.forEach((chavePaleta) => {
+            const lista = window.SITE_DATA?.[chavePaleta];
+            if (Array.isArray(lista)) {
+              lista.forEach((_, idx) => cmsState.selectedKeys.add(`cor:${chavePaleta}:${idx}`));
+            }
+          });
+          renderizarListaProdutosCms();
+        });
+        document.querySelectorAll("[data-bulk-stock]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            const st = btn.dataset.bulkStock;
+            if (!st || cmsState.selectedKeys.size === 0) return;
+            for (const key of cmsState.selectedKeys) {
+              const prev = cmsState.pendingEdits.get(key) || {};
+              cmsState.pendingEdits.set(key, { ...prev, estoqueStatus: st });
+            }
+            renderizarListaProdutosCms();
+          });
+        });
+
+        const priceDlg = document.getElementById("cms-bulk-price-dialog");
+        const atualizarPreviewPrecoLote = () => {
+          const mode = document.getElementById("cms-bulk-price-mode")?.value || "set";
+          const amount = Number(document.getElementById("cms-bulk-price-amount")?.value) || 0;
+          const listEl = document.getElementById("cms-bulk-price-preview-list");
+          if (!listEl) return;
+          const keys = Array.from(cmsState.selectedKeys);
+          listEl.innerHTML = keys.slice(0, 40).map((key) => {
+            const info = obterItemCatalogoPorKeyCms(key);
+            if (!info) return "";
+            const novoNum = calcularNovoPrecoLoteCms(info.precoNum, mode, amount);
+            return `
+              <div class="cms-bulk-preview-row">
+                <span style="font-weight:600; color:#0f172a; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${escaparHtml(info.nome)}</span>
+                <span style="white-space:nowrap; font-variant-numeric:tabular-nums;">
+                  <span style="color:#64748b; text-decoration:line-through; margin-right:6px;">${escaparHtml(formatarMoedaBR(info.precoNum))}</span>
+                  <strong style="color:#15803d;">${escaparHtml(formatarMoedaBR(novoNum))}</strong>
+                </span>
+              </div>
+            `;
+          }).join("") + (keys.length > 40 ? `<div class="cms-bulk-preview-row" style="color:#64748b;">+ ${keys.length - 40} itens adicionais...</div>` : "");
+        };
+        document.getElementById("btn-cms-bulk-price")?.addEventListener("click", () => {
+          if (cmsState.selectedKeys.size === 0 || !priceDlg) return;
+          const inp = document.getElementById("cms-bulk-price-amount");
+          if (inp) inp.value = "";
+          atualizarPreviewPrecoLote();
+          if (typeof priceDlg.showModal === "function") priceDlg.showModal();
+        });
+        document.getElementById("cms-bulk-price-mode")?.addEventListener("change", atualizarPreviewPrecoLote);
+        document.getElementById("cms-bulk-price-amount")?.addEventListener("input", atualizarPreviewPrecoLote);
+        document.getElementById("btn-cms-bulk-price-close")?.addEventListener("click", () => priceDlg?.close?.());
+        document.getElementById("btn-cms-bulk-price-cancel")?.addEventListener("click", () => priceDlg?.close?.());
+        document.getElementById("btn-cms-bulk-price-confirm")?.addEventListener("click", () => {
+          const mode = document.getElementById("cms-bulk-price-mode")?.value || "set";
+          const rawVal = document.getElementById("cms-bulk-price-amount")?.value;
+          const amount = Number(rawVal);
+          if (rawVal === "" || isNaN(amount) || amount < 0) {
+            mostrarToast("Informe um valor numérico válido.", "warning");
+            return;
+          }
+          for (const key of cmsState.selectedKeys) {
+            const info = obterItemCatalogoPorKeyCms(key);
+            if (!info) continue;
+            const novoNum = calcularNovoPrecoLoteCms(info.precoNum, mode, amount);
+            const prev = cmsState.pendingEdits.get(key) || {};
+            cmsState.pendingEdits.set(key, {
+              ...prev,
+              preco: formatarMoedaBR(novoNum),
+              valor: novoNum
+            });
+          }
+          priceDlg?.close?.();
+          renderizarListaProdutosCms();
+          mostrarToast("Novos preços preparados. Clique em Salvar alterações para confirmar.", "info");
+        });
+
+        const confirmDlg = document.getElementById("cms-bulk-confirm-dialog");
+        document.getElementById("btn-cms-bulk-save")?.addEventListener("click", async () => {
+          const qtd = cmsState.pendingEdits.size;
+          if (qtd === 0) return;
+          if (qtd >= 5 && confirmDlg && typeof confirmDlg.showModal === "function") {
+            const txt = document.getElementById("cms-bulk-confirm-text");
+            if (txt) {
+              txt.textContent = `Você está prestes a salvar alterações em ${qtd} itens do catálogo. Você ainda poderá clicar em "Desfazer" logo após salvar.`;
+            }
+            confirmDlg.showModal();
+          } else {
+            await executarPersistenciaLoteCatalogoCms();
+          }
+        });
+        document.getElementById("btn-cms-bulk-confirm-close")?.addEventListener("click", () => confirmDlg?.close?.());
+        document.getElementById("btn-cms-bulk-confirm-cancel")?.addEventListener("click", () => confirmDlg?.close?.());
+        document.getElementById("btn-cms-bulk-confirm-proceed")?.addEventListener("click", async () => {
+          confirmDlg?.close?.();
+          await executarPersistenciaLoteCatalogoCms();
+        });
+
+        // Atalho "/" para focar a busca do catálogo
+        document.addEventListener("keydown", (e) => {
+          if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+          const tag = (e.target?.tagName || "").toUpperCase();
+          if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT" || e.target?.isContentEditable) return;
+          if (document.querySelector("dialog[open]")) return;
+          const searchInp = cmsState.abaAtiva === "clientes"
+            ? document.getElementById("cms-clients-search-input")
+            : cmsState.abaAtiva === "orcamentos-clientes"
+            ? document.getElementById("cms-search-quotes-input")
+            : document.getElementById("cms-product-search");
+          if (searchInp && searchInp.offsetParent !== null) {
+            e.preventDefault();
+            searchInp.focus();
+          }
+        });
 
         // Bind filtros, busca e botão de atualizar da aba Orçamentos dos Clientes
         document.getElementById("cms-filter-quotes-status")?.addEventListener("change", () => renderizarOrcamentosPortalCms());
@@ -13278,8 +14798,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         preencherFormularioBannerCms();
         atualizarStatusSupabaseNoCms();
         atualizarContadoresEstoqueKpiCms();
-        renderizarOrcamentosPortalCms();
-        if (ehAdmin) renderizarPainelEquipeCms(true);
+        await renderizarOrcamentosPortalCms();
+        if (ehAdmin) await renderizarPainelEquipeCms(true);
+        if (aba === "inicio") renderizarPainelInicioCms();
 
         if (editId) abrirEditorProdutoCms(editId);
 
@@ -13288,19 +14809,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           profilesRealtimeSub = window.SJ_SUPABASE.profiles.assinarRealtime(async () => {
             const aindaAutorizado = await verificarSessaoAdminSupabase(false);
             if (aindaAutorizado && state.usuarioGoogle?.role === "admin") {
-              renderizarPainelEquipeCms(true);
+              await renderizarPainelEquipeCms(true);
+              if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
             }
           });
         }
         // Realtime em quotes para equipe ver novos orçamentos e alterações ao vivo
         if (!quotesRealtimeSub && window.SJ_SUPABASE?.quotes?.assinarRealtime) {
-          quotesRealtimeSub = window.SJ_SUPABASE.quotes.assinarRealtime(() => renderizarOrcamentosPortalCms());
+          quotesRealtimeSub = window.SJ_SUPABASE.quotes.assinarRealtime(async () => {
+            await renderizarOrcamentosPortalCms();
+            if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+          });
         }
       } else {
         renderizarListaProdutosCms();
         atualizarContadoresEstoqueKpiCms();
-        renderizarOrcamentosPortalCms();
-        if (ehAdmin) renderizarPainelEquipeCms(true);
+        await renderizarOrcamentosPortalCms();
+        if (ehAdmin) await renderizarPainelEquipeCms(true);
+        if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
       }
     }
 
@@ -14217,6 +15743,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.getElementById("cms-stock-filter-select")?.addEventListener("change", (e) => {
       const val = e.target.value || "todos";
       cmsState.estoqueFiltro = val;
+      cmsState.paginaSkus = 1;
       document.querySelectorAll("[data-cms-stock-kpi]").forEach((c) => {
         c.classList.toggle("active", c.dataset.cmsStockKpi === val);
       });
@@ -14228,6 +15755,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       btn.addEventListener("click", () => {
         const modo = btn.dataset.cmsViewMode || "modelos";
         cmsState.modoVisao = modo;
+        cmsState.paginaSkus = 1;
         document.querySelectorAll("[data-cms-view-mode]").forEach((b) => {
           b.classList.toggle("active", b === btn);
         });
@@ -14240,15 +15768,25 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.querySelectorAll("[data-cms-cat]").forEach((pill) => {
       pill.addEventListener("click", () => {
         cmsState.categoriaFiltro = pill.dataset.cmsCat;
+        cmsState.paginaSkus = 1;
         document.querySelectorAll("[data-cms-cat]").forEach((b) => {
           b.classList.toggle("active", b === pill);
         });
+        const catSel = document.getElementById("cms-cat-filter-select");
+        if (catSel) catSel.value = cmsState.categoriaFiltro;
         renderizarListaProdutosCms();
       });
     });
 
+    document.getElementById("cms-cat-filter-select")?.addEventListener("change", (e) => {
+      cmsState.categoriaFiltro = e.target.value || "todos";
+      cmsState.paginaSkus = 1;
+      renderizarListaProdutosCms();
+    });
+
     document.getElementById("cms-product-search")?.addEventListener("input", (e) => {
       cmsState.busca = e.target.value || "";
+      cmsState.paginaSkus = 1;
       renderizarListaProdutosCms();
     });
 
