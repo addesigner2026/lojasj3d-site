@@ -19,6 +19,9 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Backups locais gerados antes de migrations
+backups/
+
 # Variáveis de ambiente & Chaves
 .env
 .env.local

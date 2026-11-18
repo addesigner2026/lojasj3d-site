@@ -11235,132 +11235,217 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
   }
 
   async function renderizarPainelEquipeCms(pularSyncNuvem = false) {
-    if (!window.SJ_DB || !window.SJ_DB.auth) return;
-    const auth = window.SJ_DB.auth;
-    const lista = auth.listarUsuarios() || [];
-    atualizarBadgesSolicitacoesPendentes(lista);
-
-    const uAtual = state.usuarioGoogle || auth.getUsuarioAtual();
-    const emailLogado = uAtual ? uAtual.email : "jt.designer21@gmail.com";
-    const emailEl = document.getElementById("cms-admin-pwd-email");
-    if (emailEl) emailEl.textContent = emailLogado || "jt.designer21@gmail.com";
+    const pendentesEl = document.getElementById("cms-pending-requests-list");
+    const todosEl = document.getElementById("cms-all-admins-list");
+    const bloqueadosEl = document.getElementById("cms-blocked-admins-list");
 
     const btnStyle = (bg, fg = "#fff") =>
-      `style="background:${bg}; color:${fg}; border:none; border-radius:8px; padding:7px 13px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity 0.15s;"`;
-    const badge = (status) => {
-      const map = {
-        aprovado: ["#DCFCE7", "#166534", "✅ Aprovado (Liberado)"],
-        pendente: ["#FEF3C7", "#92400E", "⏳ Aguardando Aprovação"],
-        bloqueado: ["#FEE2E2", "#991B1B", "🚫 Bloqueado / Negado"]
-      };
-      const [bg, fg, label] = map[status] || map.pendente;
-      return `<span style="background:${bg}; color:${fg}; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px; display:inline-block;">${label}</span>`;
-    };
+      `style="background:${bg}; color:${fg}; border:none; border-radius:8px; padding:7px 12px; font-size:0.78rem; font-weight:700; cursor:pointer; display:inline-flex; align-items:center; gap:5px; transition:opacity 0.15s;"`;
 
-    // 1) Solicitações pendentes
-    const pendentesEl = document.getElementById("cms-pending-requests-list");
-    if (pendentesEl) {
-      const pendentes = lista.filter((u) => u.status === "pendente");
-      if (pendentes.length === 0) {
-        pendentesEl.innerHTML = `
-          <div style="padding:14px 16px; background:#F9FAFB; border:1px dashed #D1D5DB; border-radius:10px; color:#4B5563; font-size:0.84rem;">
-            ✅ Nenhuma solicitação pendente de aprovação neste momento. Quando uma pessoa pedir acesso na aba <strong>"Solicitar Autorização"</strong> da Área Restrita, o e-mail dela aparecerá aqui com os botões para você <strong>Aprovar</strong>, <strong>Negar</strong> ou <strong>Bloquear</strong>.
-          </div>
-        `;
-      } else {
-        pendentesEl.innerHTML = pendentes.map((u) => {
-          const identificador = u.email || u.id || "";
-          const emailExibicao = u.email || `Registro sem e-mail (${u.id || "ID"})`;
-          return `
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1.5px solid #F59E0B; background:#FFFBEB; border-radius:12px; margin-bottom:10px; box-shadow:0 2px 8px rgba(245,158,11,0.08);">
-            <div style="min-width:240px; flex:1;">
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
-                <span style="background:#F59E0B; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:999px;">NOVO PEDIDO DE ACESSO</span>
-                <strong style="font-size:0.95rem; color:#111827;">${escaparHtmlEquipe(u.nome || "Solicitante")}</strong>
-              </div>
-              <div style="font-size:0.9rem; color:#1F2937; margin-bottom:3px;">
-                📧 E-mail solicitante: <strong style="color:#E84520; text-decoration:underline;">${escaparHtmlEquipe(emailExibicao)}</strong>
-              </div>
-              <div style="font-size:0.78rem; color:#6B7280;">
-                ${u.motivo ? `💬 Motivo/Função: <strong>${escaparHtmlEquipe(u.motivo)}</strong> • ` : ""}Solicitado em: ${u.criadoEm ? new Date(u.criadoEm).toLocaleString("pt-BR") : "Recente"}
-              </div>
-            </div>
-            <div style="display:flex; gap:8px; flex-wrap:wrap;">
-              <button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#16A34A")}>
-                ✅ Aprovar & Liberar
-              </button>
-              <button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#DC2626")}>
-                🚫 Negar / Bloquear
-              </button>
-              <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#6B7280")}>
-                🗑️ Excluir Pedido
-              </button>
-            </div>
-          </div>
-        `;
-        }).join("");
+    // Tenta carregar da tabela oficial public.profiles (Supabase Auth + RLS)
+    if (window.SJ_SUPABASE && window.SJ_SUPABASE.profiles) {
+      if (!pularSyncNuvem && pendentesEl) {
+        pendentesEl.innerHTML = `<div style="padding:14px; color:#64748b; font-size:0.84rem;">⏳ Carregando pedidos de acesso do Supabase...</div>`;
       }
-    }
 
-    // 2) Todos os administradores e solicitações registradas
-    const todosEl = document.getElementById("cms-all-admins-list");
-    if (todosEl) {
-      todosEl.innerHTML = lista.map((u) => {
-        const master = u.isMaster || String(u.email || "").toLowerCase() === "jt.designer21@gmail.com";
-        const identificador = u.email || u.id || "";
-        const emailExibicao = u.email || u.id || "—";
-        let acoes = "";
-        if (master) {
-          acoes = `<span style="font-size:0.76rem; background:#FEF3C7; color:#92400E; padding:5px 10px; border-radius:8px; font-weight:800;">👑 Administrador Oficial (Vitalício)</span>`;
-        } else {
-          acoes = `
-            ${u.status !== "aprovado" ? `<button type="button" data-equipe-acao="aprovado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#16A34A")}>✅ Aprovar / Liberar</button>` : ""}
-            ${u.status !== "pendente" ? `<button type="button" data-equipe-acao="pendente" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#D97706")}>⏳ Colocar Pendente</button>` : ""}
-            ${u.status !== "bloqueado" ? `<button type="button" data-equipe-acao="bloqueado" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>` : ""}
-            <button type="button" data-equipe-acao="remover" data-equipe-email="${escaparHtmlEquipe(identificador)}" ${btnStyle("#4B5563")}>🗑️ Excluir</button>
-          `;
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      const currentUid = sessao?.user?.id || null;
+      const currentEmail = sessao?.user?.email || (state.usuarioGoogle && state.usuarioGoogle.email) || "";
+
+      const headerEmailEl = document.getElementById("cms-equipe-logged-email");
+      if (headerEmailEl && currentEmail) headerEmailEl.textContent = currentEmail;
+      const pwdEmailEl = document.getElementById("cms-admin-pwd-email");
+      if (pwdEmailEl && currentEmail) pwdEmailEl.textContent = currentEmail;
+
+      const resPerfis = await window.SJ_SUPABASE.profiles.listarTodos();
+
+      if (resPerfis && resPerfis.sucesso) {
+        const perfis = resPerfis.dados || [];
+        const pendentes = perfis.filter((p) => p.status === "pending");
+        const aprovados = perfis.filter((p) => p.status === "approved");
+        const bloqueados = perfis.filter((p) => p.status === "blocked");
+
+        // Atualiza contadores de pendentes no menu e topbar
+        ["cms-pending-badge", "topbar-pending-badge", "crm-top-pending-pill"].forEach((id) => {
+          const el = document.getElementById(id);
+          if (!el) return;
+          el.textContent = String(pendentes.length);
+          el.style.display = pendentes.length > 0 ? "inline-block" : "none";
+        });
+
+        const roleBadge = (role) =>
+          role === "admin"
+            ? `<span style="background:#FFF7ED; color:#C2410C; border:1px solid #FED7AA; font-size:0.72rem; font-weight:800; padding:2px 9px; border-radius:999px;">👑 Administrador</span>`
+            : `<span style="background:#F1F5F9; color:#334155; border:1px solid #CBD5E1; font-size:0.72rem; font-weight:700; padding:2px 9px; border-radius:999px;">👤 Usuário Comum</span>`;
+
+        // 1) PENDENTES
+        if (pendentesEl) {
+          if (pendentes.length === 0) {
+            pendentesEl.innerHTML = `
+              <div style="padding:14px 16px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; color:#475569; font-size:0.84rem;">
+                ✅ Nenhum pedido pendente no momento. Quando alguém criar uma conta na aba <strong>"Criar Conta"</strong> de <code>/admin</code>, o pedido aparecerá aqui automaticamente.
+              </div>`;
+          } else {
+            pendentesEl.innerHTML = pendentes
+              .map((p) => `
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:14px 16px; border:1.5px solid #F59E0B; background:#FFFBEB; border-radius:12px; margin-bottom:10px;">
+                  <div style="min-width:240px; flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap; margin-bottom:4px;">
+                      <span style="background:#F59E0B; color:#fff; font-size:0.68rem; font-weight:800; padding:2px 8px; border-radius:999px;">PENDENTE</span>
+                      <strong style="font-size:0.95rem; color:#0F172A;">${escaparHtmlEquipe(p.nome || "Novo Usuário")}</strong>
+                    </div>
+                    <div style="font-size:0.88rem; color:#1E293B; margin-bottom:3px;">
+                      📧 <strong style="color:#EA580C;">${escaparHtmlEquipe(p.email)}</strong>
+                    </div>
+                    <div style="font-size:0.76rem; color:#64748B;">
+                      Cadastrado em: ${p.created_at ? new Date(p.created_at).toLocaleString("pt-BR") : "Recente"}
+                    </div>
+                  </div>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" data-profile-action="approve-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>
+                      👑 Aprovar como Admin
+                    </button>
+                    <button type="button" data-profile-action="approve-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>
+                      ✅ Aprovar como Usuário
+                    </button>
+                    <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>
+                      🚫 Bloquear
+                    </button>
+                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>
+                      🗑️ Excluir
+                    </button>
+                  </div>
+                </div>`)
+              .join("");
+          }
         }
-        return `
-          <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid #E5E7EB; background:${master ? "#FAFAFA" : "#FFFFFF"}; border-radius:10px; margin-bottom:8px;">
-            <div style="min-width:240px; flex:1;">
-              <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                <strong style="font-size:0.92rem; color:#111827;">${escaparHtmlEquipe(u.nome || "Administrador")}</strong>
-                ${badge(u.status)}
-              </div>
-              <div style="font-size:0.84rem; color:#374151; margin-top:3px;">
-                📧 <strong>${escaparHtmlEquipe(emailExibicao)}</strong> • <span style="color:#6B7280;">${escaparHtmlEquipe(u.cargo || "Administrador")}</span>
-                ${u.motivo ? ` • <span style="color:#6B7280;">Motivo: ${escaparHtmlEquipe(u.motivo)}</span>` : ""}
-              </div>
-            </div>
-            <div style="display:flex; gap:6px; flex-wrap:wrap;">${acoes}</div>
+
+        // 2) APROVADOS
+        if (todosEl) {
+          if (aprovados.length === 0) {
+            todosEl.innerHTML = `<div style="padding:14px; color:#64748B; font-size:0.84rem;">Nenhum usuário aprovado encontrado.</div>`;
+          } else {
+            todosEl.innerHTML = aprovados
+              .map((p) => {
+                const ehProprio = currentUid && p.id === currentUid;
+                const acoes = ehProprio
+                  ? `<span style="font-size:0.76rem; background:#ECFDF5; color:#166534; border:1px solid #BBF7D0; padding:6px 12px; border-radius:8px; font-weight:700;">🛡️ Sua Conta (Protegida)</span>`
+                  : `
+                    ${p.role === "admin"
+                      ? `<button type="button" data-profile-action="role-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>👤 Mudar para Usuário</button>`
+                      : `<button type="button" data-profile-action="role-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Promover a Admin</button>`
+                    }
+                    <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear / Revogar</button>
+                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>🗑️ Excluir</button>
+                  `;
+                return `
+                  <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:13px 16px; border:1px solid #E2E8F0; background:${ehProprio ? "#F8FAFC" : "#FFFFFF"}; border-radius:12px; margin-bottom:10px;">
+                    <div style="min-width:240px; flex:1;">
+                      <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                        <strong style="font-size:0.93rem; color:#0F172A;">${escaparHtmlEquipe(p.nome || p.email)}</strong>
+                        ${roleBadge(p.role)}
+                        <span style="background:#DCFCE7; color:#166534; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">✅ Aprovado</span>
+                      </div>
+                      <div style="font-size:0.84rem; color:#334155; margin-top:4px;">
+                        📧 <strong>${escaparHtmlEquipe(p.email)}</strong>
+                        ${p.approved_at ? ` • <span style="color:#64748B; font-size:0.76rem;">Aprovado em ${new Date(p.approved_at).toLocaleDateString("pt-BR")}</span>` : ""}
+                      </div>
+                    </div>
+                    <div style="display:flex; gap:7px; flex-wrap:wrap;">${acoes}</div>
+                  </div>`;
+              })
+              .join("");
+          }
+        }
+
+        // 3) BLOQUEADOS
+        if (bloqueadosEl) {
+          if (bloqueados.length === 0) {
+            bloqueadosEl.innerHTML = `<div style="padding:12px 14px; background:#F8FAFC; border:1px dashed #CBD5E1; border-radius:10px; color:#64748B; font-size:0.82rem;">Nenhuma conta bloqueada.</div>`;
+          } else {
+            bloqueadosEl.innerHTML = bloqueados
+              .map((p) => `
+                <div style="display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:12px; padding:12px 16px; border:1px solid #FECACA; background:#FEF2F2; border-radius:12px; margin-bottom:10px;">
+                  <div style="min-width:240px; flex:1;">
+                    <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                      <strong style="font-size:0.92rem; color:#991B1B;">${escaparHtmlEquipe(p.nome || p.email)}</strong>
+                      <span style="background:#FEE2E2; color:#991B1B; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">🚫 Bloqueado</span>
+                    </div>
+                    <div style="font-size:0.84rem; color:#7F1D1D; margin-top:3px;">📧 <strong>${escaparHtmlEquipe(p.email)}</strong></div>
+                  </div>
+                  <div style="display:flex; gap:7px; flex-wrap:wrap;">
+                    <button type="button" data-profile-action="approve-user" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#16A34A")}>✅ Reativar (Usuário)</button>
+                    <button type="button" data-profile-action="approve-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Reativar (Admin)</button>
+                    <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>🗑️ Excluir</button>
+                  </div>
+                </div>`)
+              .join("");
+          }
+        }
+
+        // Eventos dos botões de ação com estado de carregamento + toast claro
+        document.querySelectorAll("#cms-pane-equipe [data-profile-action]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const action = btn.dataset.profileAction;
+            const id = btn.dataset.profileId;
+            const email = btn.dataset.profileEmail;
+            const textoOriginal = btn.innerHTML;
+
+            if (action === "delete" && !confirm(`Tem certeza que deseja excluir permanentemente o acesso de ${email}?`)) {
+              return;
+            }
+            if (action === "block" && !confirm(`Deseja bloquear/revogar o acesso de ${email}?`)) {
+              return;
+            }
+
+            btn.disabled = true;
+            btn.textContent = "⏳ Salvando...";
+
+            let r;
+            try {
+              if (action === "approve-admin") {
+                r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "admin");
+              } else if (action === "approve-user") {
+                r = await window.SJ_SUPABASE.profiles.aprovarComRole(id, "user");
+              } else if (action === "role-admin") {
+                r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "admin");
+              } else if (action === "role-user") {
+                r = await window.SJ_SUPABASE.profiles.atualizarRole(id, "user");
+              } else if (action === "block") {
+                r = await window.SJ_SUPABASE.profiles.atualizarStatus(id, "blocked");
+              } else if (action === "delete") {
+                r = await window.SJ_SUPABASE.profiles.excluir(id);
+              }
+
+              if (r && r.sucesso) {
+                mostrarToast(`✅ Acesso de <strong>${escaparHtml(email)}</strong> atualizado no Supabase!`, "success");
+              } else {
+                mostrarToast(`❌ Erro: ${escaparHtml((r && r.mensagem) || "Não foi possível atualizar o perfil.")}`, "warning");
+                btn.disabled = false;
+                btn.innerHTML = textoOriginal;
+                return;
+              }
+            } catch (err) {
+              mostrarToast(`❌ Erro ao atualizar: ${escaparHtml(err.message || err)}`, "warning");
+            }
+            await renderizarPainelEquipeCms(true);
+          });
+        });
+
+        return;
+      }
+
+      // Se a tabela public.profiles ainda não foi criada no Supabase, mostra aviso orientativo claro
+      if (resPerfis && resPerfis.tabelaAusente && pendentesEl) {
+        pendentesEl.innerHTML = `
+          <div style="padding:16px; background:#FFFBEB; border:1.5px solid #FDE68A; border-radius:12px; color:#92400E; font-size:0.84rem; line-height:1.55;">
+            ⚠️ <strong>Tabela <code>public.profiles</code> ainda não foi criada no Supabase.</strong><br/>
+            Rode os arquivos SQL em <code>supabase/migrations/</code> (001, 002, 003 e 004) no SQL Editor do Supabase para ativar o controle de acessos com aprovação e o catálogo em tempo real.
           </div>`;
-      }).join("");
-    }
-
-    // Ações nos botões (Aprovar, Bloquear, Pendente, Excluir)
-    document.querySelectorAll("#cms-pane-equipe [data-equipe-acao]").forEach((btn) => {
-      btn.addEventListener("click", async () => {
-        const acao = btn.dataset.equipeAcao;
-        const email = btn.dataset.equipeEmail;
-        let res;
-        if (acao === "remover") {
-          if (!confirm(`Deseja excluir o registro de ${email}?`)) return;
-          res = await auth.removerUsuario(email);
-        } else {
-          res = await auth.alterarStatusUsuario(email, acao);
-        }
-        if (res && res.mensagem) {
-          mostrarToast(res.mensagem, res.sucesso ? "success" : "warning");
-        }
-        renderizarPainelEquipeCms(true);
-      });
-    });
-
-    if (!pularSyncNuvem) {
-      try {
-        await auth.sincronizarEquipeNuvem();
-        renderizarPainelEquipeCms(true);
-      } catch (_) {}
+        if (todosEl) todosEl.innerHTML = "";
+        if (bloqueadosEl) bloqueadosEl.innerHTML = "";
+        return;
+      }
     }
   }
 
@@ -11872,57 +11957,61 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         .join("");
     }
 
-    // Eventos da grade dinâmica (troca rápida de estoque, abrir editor, imprimir QR, deletar)
+    // Eventos da grade dinâmica (troca rápida de estoque gravando direto em public.products)
     grid.querySelectorAll("[data-cms-quick-stock]").forEach((sel) => {
       sel.addEventListener("change", async (e) => {
         const id = sel.dataset.cmsQuickStock;
         const tipo = sel.dataset.cmsStockTipo || "produto";
         const novoStatus = e.target.value;
+        const labelMap = {
+          disponivel: "🟢 Disponível",
+          poucas_unidades: "🟠 Poucas Unidades",
+          esgotado: "🔴 Esgotado"
+        };
 
-        if (tipo === "cor") {
-          const chavePaleta = sel.dataset.cmsChavePaleta;
-          const corIdx = parseInt(sel.dataset.cmsCorIdx, 10);
-          if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) && window.SITE_DATA[chavePaleta][corIdx]) {
-            window.SITE_DATA[chavePaleta][corIdx].estoqueStatus = novoStatus;
+        sel.disabled = true;
+        try {
+          if (tipo === "cor") {
+            const chavePaleta = sel.dataset.cmsChavePaleta;
+            const corIdx = parseInt(sel.dataset.cmsCorIdx, 10);
+            if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) && window.SITE_DATA[chavePaleta][corIdx]) {
+              window.SITE_DATA[chavePaleta][corIdx].estoqueStatus = novoStatus;
+              sel.className = `cms-quick-stock-select stock-${novoStatus}`;
+              if (window.SJ_DB && window.SJ_DB.catalogo) {
+                if (typeof window.SJ_DB.catalogo.atualizarEstoqueCor === "function") {
+                  await window.SJ_DB.catalogo.atualizarEstoqueCor(chavePaleta, corIdx, novoStatus);
+                } else {
+                  await window.SJ_DB.catalogo.salvarPaletaCores(chavePaleta, window.SITE_DATA[chavePaleta]);
+                }
+              }
+              atualizarContadoresEstoqueKpiCms();
+              atualizarSiteAposEdicaoCms();
+              const nuvemOkCor = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
+              if (nuvemOkCor) {
+                mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(window.SITE_DATA[chavePaleta][corIdx].nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+              } else {
+                mostrarToast(`⚠️ Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão de administrador.")}`, "warning");
+              }
+            }
+          } else {
+            const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
+            if (!prod) return;
+            prod.estoqueStatus = novoStatus;
             sel.className = `cms-quick-stock-select stock-${novoStatus}`;
             if (window.SJ_DB && window.SJ_DB.catalogo) {
-              await window.SJ_DB.catalogo.salvarPaletaCores(chavePaleta, window.SITE_DATA[chavePaleta]);
+              await window.SJ_DB.catalogo.salvarProduto(prod);
             }
             atualizarContadoresEstoqueKpiCms();
             atualizarSiteAposEdicaoCms();
-            const labelMap = {
-              disponivel: "🟢 Em Estoque",
-              poucas_unidades: "🟠 Poucas Unidades",
-              esgotado: "🔴 Esgotado"
-            };
-            const nuvemOkCor = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
-            if (nuvemOkCor) {
-              mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(window.SITE_DATA[chavePaleta][corIdx].nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
+            const nuvemOkProd = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
+            if (nuvemOkProd) {
+              mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(prod.nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
             } else {
-              mostrarToast(`⚠️ Salvo apenas neste navegador! Clique em <strong>"☁️ Conectar Google Admin"</strong> no topo para publicar para todos.`, "warning");
+              mostrarToast(`⚠️ Erro ao gravar no Supabase: ${escaparHtml(window.SJ_DB?.catalogo?.ultimoStatusNuvem?.erro || "verifique sua sessão de administrador.")}`, "warning");
             }
           }
-        } else {
-          const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
-          if (!prod) return;
-          prod.estoqueStatus = novoStatus;
-          sel.className = `cms-quick-stock-select stock-${novoStatus}`;
-          if (window.SJ_DB && window.SJ_DB.catalogo) {
-            await window.SJ_DB.catalogo.salvarProduto(prod);
-          }
-          atualizarContadoresEstoqueKpiCms();
-          atualizarSiteAposEdicaoCms();
-          const labelMap = {
-            disponivel: "🟢 Em Estoque",
-            poucas_unidades: "🟠 Poucas Unidades",
-            esgotado: "🔴 Esgotado"
-          };
-          const nuvemOkProd = window.SJ_DB?.catalogo?.ultimoStatusNuvem?.nuvemOk;
-          if (nuvemOkProd) {
-            mostrarToast(`☁️ Estoque de <strong>"${escaparHtml(prod.nome)}"</strong> alterado para <strong>${labelMap[novoStatus] || novoStatus}</strong> em todos os navegadores!`, "success");
-          } else {
-            mostrarToast(`⚠️ Salvo apenas neste navegador! Clique em <strong>"☁️ Conectar Google Admin"</strong> no topo para publicar para todos.`, "warning");
-          }
+        } finally {
+          sel.disabled = false;
         }
       });
     });
@@ -11990,13 +12079,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const prod = (window.SITE_DATA.catalogo || []).find((i) => i.id === id);
         if (!prod) return;
         if (confirm(`Tem certeza que deseja excluir o produto "${prod.nome}" do catálogo?`)) {
-          if (window.SJ_DB && window.SJ_DB.catalogo) {
-            await window.SJ_DB.catalogo.excluirProduto(id);
-          } else {
-            window.SITE_DATA.catalogo = window.SITE_DATA.catalogo.filter((i) => i.id !== id);
+          btn.disabled = true;
+          let res = { ok: true, nuvem: false };
+          try {
+            if (window.SJ_DB && window.SJ_DB.catalogo) {
+              res = await window.SJ_DB.catalogo.excluirProduto(id);
+            } else {
+              window.SITE_DATA.catalogo = window.SITE_DATA.catalogo.filter((i) => i.id !== id);
+            }
+          } finally {
+            btn.disabled = false;
           }
           renderizarListaProdutosCms();
           atualizarSiteAposEdicaoCms();
+          if (res && res.nuvem) {
+            mostrarToast(`🗑️ Produto <strong>${escaparHtml(prod.nome)}</strong> excluído do catálogo global!`, "success");
+          } else {
+            mostrarToast(`⚠️ Produto removido localmente, mas houve aviso na nuvem: ${escaparHtml(res?.erro || "verifique o SQL no Supabase")}`, "warning");
+          }
         }
       });
     });
@@ -12367,9 +12467,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (appEl) appEl.style.display = "none";
     if (gateEl) {
       gateEl.style.display = "flex";
+      const statusScreen = document.getElementById("admin-gate-status-screen");
+      const authForms = document.getElementById("admin-gate-auth-forms");
+      if (statusScreen) statusScreen.style.display = "none";
+      if (authForms) authForms.style.display = "block";
       const pwdInput = document.getElementById("admin-gate-senha");
       if (pwdInput) pwdInput.value = "";
-      mostrarFeedbackGate("info", "✅ Sessão administrativa encerrada. Todos os acessos foram bloqueados.");
+      mostrarFeedbackGate("info", "✅ Sessão encerrada com segurança.");
     }
     atualizarBadgeUsuarioHeader();
     mostrarToast("🔒 Sessão administrativa encerrada com sucesso.", "info");
@@ -12412,7 +12516,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Barra de Status de Sincronização Global em Nuvem (Supabase Auth + RLS)
+    // Barra de Status de Sincronização Global em Nuvem (Supabase Auth + public.products)
     async function atualizarBannerSincronizacaoNuvemAdmin(statusForcado = null) {
       const banner = document.getElementById("admin-cloud-sync-banner");
       const iconEl = document.getElementById("admin-cloud-sync-icon");
@@ -12432,7 +12536,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         banner.style.color = "#166534";
         if (iconEl) iconEl.textContent = "☁️";
         const contaTxt = sessao.email ? ` (<strong>${escaparHtml(sessao.email)}</strong>)` : "";
-        textEl.innerHTML = `<strong>Sincronização Global Ativa${contaTxt}:</strong> alterações de estoque, preço e nome aparecem automaticamente em todos os navegadores e celulares.`;
+        const fonteTxt = window.SJ_DB?.catalogo?.usandoTabelaProducts ? "tabela <code>public.products</code>" : "Supabase Cloud";
+        textEl.innerHTML = `<strong>Sincronização Global Ativa${contaTxt}:</strong> alterações de estoque, preço, nome e acessos gravam direto na ${fonteTxt} e aparecem em tempo real em todos os navegadores.`;
         if (btnGoogle) btnGoogle.style.display = "none";
         if (btnSync) btnSync.style.display = "inline-flex";
       } else {
@@ -12440,27 +12545,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         banner.style.background = "#fffbeb";
         banner.style.color = "#92400e";
         if (iconEl) iconEl.textContent = "⚠️";
-        textEl.innerHTML = `<strong>Modo Local (apenas este navegador):</strong> para que <strong>Esgotado</strong>, preços e nomes apareçam em outros navegadores, conecte sua conta Google Admin na nuvem (1 clique).`;
+        textEl.innerHTML = `<strong>Sessão Supabase desconectada:</strong> faça login com sua conta de Administrador para publicar alterações globalmente.`;
         if (btnGoogle) btnGoogle.style.display = "inline-flex";
         if (btnSync) btnSync.style.display = "none";
       }
     }
 
     document.getElementById("btn-admin-connect-cloud-google")?.addEventListener("click", async () => {
-      const btn = document.getElementById("btn-admin-connect-cloud-google");
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "⏳ Conectando Google Admin...";
-      }
       if (window.SJ_SUPABASE?.auth?.loginGoogle) {
-        const r = await window.SJ_SUPABASE.auth.loginGoogle();
-        if (!r || !r.sucesso) {
-          mostrarToast("⚠️ Não foi possível iniciar o login Google: " + ((r && r.mensagem) || "tente novamente."), "warning");
-          if (btn) {
-            btn.disabled = false;
-            btn.textContent = "☁️ Conectar Google Admin (Publicar para Todos)";
-          }
-        }
+        await window.SJ_SUPABASE.auth.loginGoogle();
       }
     });
 
@@ -12468,51 +12561,220 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const btn = document.getElementById("btn-admin-force-publish-cloud");
       if (btn) {
         btn.disabled = true;
-        btn.textContent = "⏳ Publicando...";
+        btn.textContent = "⏳ Sincronizando...";
       }
-      const res = await window.SJ_DB?.catalogo?.persistirEstadoAtual?.();
-      if (window.SJ_DB?.auth?.listarUsuarios && window.SJ_DB?.auth?.sincronizarEquipeNuvem) {
-        await window.SJ_DB.auth.sincronizarEquipeNuvem(window.SJ_DB.auth.listarUsuarios());
-      }
+      await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
+      await renderizarPainelEquipeCms(true);
+      renderizarListaProdutosCms();
+      atualizarContadoresEstoqueKpiCms();
       if (btn) {
         btn.disabled = false;
         btn.textContent = "🔄 Sincronizar Tudo Agora";
       }
-      if (res && res.nuvemOk) {
-        mostrarToast("☁️ Catálogo, estoque e equipe publicados na nuvem! Todos os navegadores foram atualizados.", "success");
-      } else {
-        mostrarToast("⚠️ Não foi possível gravar na nuvem: " + ((res && res.erro) || "verifique sua conta Google Admin."), "warning");
-      }
-      atualizarBannerSincronizacaoNuvemAdmin(res);
+      mostrarToast("☁️ Catálogo e acessos sincronizados com o Supabase!", "success");
+      atualizarBannerSincronizacaoNuvemAdmin();
     });
 
     window.addEventListener("sj-catalogo-sync-status", (e) => {
       atualizarBannerSincronizacaoNuvemAdmin(e.detail);
     });
 
-    window.addEventListener("sj-auth-state-changed", async (e) => {
+    // Helpers visuais do Gate de Autenticação (Login / Criar Conta / Telas de Status)
+    let dashboardAdminInicializado = false;
+    let profilesRealtimeSub = null;
+
+    function exibirFormularioLoginGate() {
+      const statusScreen = document.getElementById("admin-gate-status-screen");
+      const tabsEl = document.getElementById("admin-auth-gate-tabs");
+      const formLoginEl = document.getElementById("form-admin-gate-login");
+      const formRegEl = document.getElementById("form-admin-gate-register");
+      if (statusScreen) statusScreen.style.display = "none";
+      if (tabsEl) tabsEl.style.display = "grid";
+      if (formLoginEl) formLoginEl.style.display = "block";
+      if (formRegEl) formRegEl.style.display = "none";
+      document.querySelectorAll("[data-gate-tab]").forEach((b) => b.classList.toggle("active", b.dataset.gateTab === "login"));
+    }
+
+    function exibirTelaStatusGate(modo, emailUsuario = "") {
+      if (appEl) appEl.style.display = "none";
+      if (gateEl) gateEl.style.display = "flex";
+      const statusScreen = document.getElementById("admin-gate-status-screen");
+      const tabsEl = document.getElementById("admin-auth-gate-tabs");
+      const formLoginEl = document.getElementById("form-admin-gate-login");
+      const formRegEl = document.getElementById("form-admin-gate-register");
+      const iconEl = document.getElementById("admin-gate-status-icon");
+      const titleEl = document.getElementById("admin-gate-status-title");
+      const descEl = document.getElementById("admin-gate-status-desc");
+      const emailPill = document.getElementById("admin-gate-status-email-pill");
+      const btnRecheck = document.getElementById("btn-admin-gate-recheck");
+
+      if (tabsEl) tabsEl.style.display = "none";
+      if (formLoginEl) formLoginEl.style.display = "none";
+      if (formRegEl) formRegEl.style.display = "none";
+      if (statusScreen) statusScreen.style.display = "block";
+      if (emailPill) emailPill.textContent = emailUsuario || "Conta autenticada";
+
+      if (modo === "blocked") {
+        if (iconEl) { iconEl.textContent = "🚫"; iconEl.style.background = "#fef2f2"; iconEl.style.borderColor = "#fecaca"; }
+        if (titleEl) titleEl.textContent = "Acesso bloqueado pelo administrador";
+        if (descEl) descEl.innerHTML = "Esta conta foi <strong>bloqueada ou revogada</strong> e não tem permissão para acessar o sistema. Entre em contato com o administrador.";
+        if (btnRecheck) btnRecheck.style.display = "none";
+      } else if (modo === "not_admin") {
+        if (iconEl) { iconEl.textContent = "🔒"; iconEl.style.background = "#f1f5f9"; iconEl.style.borderColor = "#cbd5e1"; }
+        if (titleEl) titleEl.textContent = "Acesso restrito a administradores";
+        if (descEl) descEl.innerHTML = "Sua conta está aprovada como <strong>Usuário Comum</strong>, mas a área <code>/admin</code> é exclusiva para administradores aprovados.";
+        if (btnRecheck) btnRecheck.style.display = "inline-flex";
+      } else if (modo === "needs_migration") {
+        if (iconEl) { iconEl.textContent = "⚙️"; iconEl.style.background = "#eff6ff"; iconEl.style.borderColor = "#bfdbfe"; }
+        if (titleEl) titleEl.textContent = "Tabela profiles ainda não criada";
+        if (descEl) descEl.innerHTML = "Execute os arquivos SQL em <code>supabase/migrations/</code> (001 a 004) no SQL Editor do Supabase para ativar o controle de aprovação e o catálogo global.";
+        if (btnRecheck) btnRecheck.style.display = "inline-flex";
+      } else {
+        // pending (padrão)
+        if (iconEl) { iconEl.textContent = "⏳"; iconEl.style.background = "#fffbeb"; iconEl.style.borderColor = "#fde68a"; }
+        if (titleEl) titleEl.textContent = "Aguardando aprovação do administrador";
+        if (descEl) descEl.innerHTML = "Sua conta foi registrada com status <strong>Pendente</strong>. Assim que o administrador aprovar seu acesso no painel, clique abaixo ou atualize a página para entrar.";
+        if (btnRecheck) btnRecheck.style.display = "inline-flex";
+      }
+    }
+
+    async function abrirDashboardAdminConfirmado(perfil) {
+      const usuarioAdmin = {
+        id: perfil.id,
+        nome: perfil.nome || perfil.email.split("@")[0],
+        email: perfil.email,
+        cargo: "Administrador",
+        role: perfil.role,
+        status: perfil.status,
+        tipo: "admin",
+        isMaster: true
+      };
+
+      state.usuarioGoogle = usuarioAdmin;
+      document.body.classList.add("is-admin-logged-in");
+
+      const emailEl = document.getElementById("crm-sidebar-admin-email");
+      if (emailEl) emailEl.textContent = usuarioAdmin.email;
+      const roleBadge = document.getElementById("crm-sidebar-role-badge");
+      if (roleBadge) roleBadge.textContent = "👑 Administrador";
+      const headerEmailEl = document.getElementById("cms-equipe-logged-email");
+      if (headerEmailEl) headerEmailEl.textContent = usuarioAdmin.email;
+
+      if (gateEl) gateEl.style.display = "none";
+      if (appEl) appEl.style.display = "grid";
+
       await atualizarBannerSincronizacaoNuvemAdmin();
-      // Ao voltar do login Google Admin na nuvem, publica imediatamente catálogo, estoque e equipe pendentes
-      if (e && e.detail && e.detail.session) {
-        let publicouAlgo = false;
-        if (window.SJ_DB?.catalogo?.obterCustomizacoes?.()) {
-          const resPub = await window.SJ_DB.catalogo.persistirEstadoAtual();
-          if (resPub && resPub.nuvemOk) publicouAlgo = true;
-          atualizarBannerSincronizacaoNuvemAdmin(resPub);
+      await window.SJ_DB?.catalogo?.sincronizarDaNuvem?.({ forcar: true });
+
+      if (!dashboardAdminInicializado) {
+        dashboardAdminInicializado = true;
+        const urlParams = new URLSearchParams(window.location.search);
+        const aba = urlParams.get("aba") || "produtos";
+        const editId = urlParams.get("edit");
+
+        selecionarAbaCms(aba);
+        configurarFormularioSenhaAdmin();
+        renderizarListaProdutosCms();
+        preencherFormularioBannerCms();
+        atualizarStatusSupabaseNoCms();
+        atualizarContadoresEstoqueKpiCms();
+        renderizarPainelEquipeCms(true);
+
+        if (editId) abrirEditorProdutoCms(editId);
+
+        // Assina Supabase Realtime em public.profiles para novos pedidos pendentes aparecerem na hora
+        if (!profilesRealtimeSub && window.SJ_SUPABASE?.profiles?.assinarRealtime) {
+          profilesRealtimeSub = window.SJ_SUPABASE.profiles.assinarRealtime(() => {
+            renderizarPainelEquipeCms(true);
+          });
         }
-        if (window.SJ_DB?.auth?.listarUsuarios && window.SJ_DB?.auth?.sincronizarEquipeNuvem) {
-          await window.SJ_DB.auth.sincronizarEquipeNuvem(window.SJ_DB.auth.listarUsuarios());
-          if (window.SJ_DB.auth.ultimoStatusNuvem?.nuvemOk) publicouAlgo = true;
-        }
-        if (publicouAlgo) {
-          mostrarToast("☁️ Conta Google Admin conectada! Estoque, preços e equipe liberada publicados para todos os navegadores.", "success");
-        }
+      } else {
+        renderizarListaProdutosCms();
+        atualizarContadoresEstoqueKpiCms();
+        renderizarPainelEquipeCms(true);
+      }
+    }
+
+    // GUARDIÃO OFICIAL DA ROTA /admin: valida sessão Supabase Auth + role='admin' e status='approved' em public.profiles
+    async function verificarSessaoAdminSupabase(mostrarAviso = false) {
+      if (!window.SJ_SUPABASE || !window.SJ_SUPABASE.auth || !window.SJ_SUPABASE.profiles) {
+        if (gateEl) gateEl.style.display = "flex";
+        if (appEl) appEl.style.display = "none";
+        exibirFormularioLoginGate();
+        return false;
+      }
+
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      if (!sessao || !sessao.user) {
+        if (appEl) appEl.style.display = "none";
+        if (gateEl) gateEl.style.display = "flex";
+        exibirFormularioLoginGate();
+        return false;
+      }
+
+      const emailAtual = sessao.user.email || "";
+      const resPerfil = await window.SJ_SUPABASE.profiles.obterMeuPerfil();
+
+      if (resPerfil && resPerfil.tabelaAusente) {
+        exibirTelaStatusGate("needs_migration", emailAtual);
+        return false;
+      }
+
+      const perfil = resPerfil && resPerfil.perfil ? resPerfil.perfil : null;
+      if (!perfil || perfil.status === "pending") {
+        exibirTelaStatusGate("pending", emailAtual);
+        if (mostrarAviso) mostrarToast("⏳ Seu cadastro ainda aguarda aprovação do administrador.", "info");
+        return false;
+      }
+
+      if (perfil.status === "blocked") {
+        exibirTelaStatusGate("blocked", emailAtual);
+        if (mostrarAviso) mostrarToast("🚫 Esta conta está bloqueada pelo administrador.", "warning");
+        return false;
+      }
+
+      if (perfil.status === "approved" && perfil.role !== "admin") {
+        exibirTelaStatusGate("not_admin", emailAtual);
+        if (mostrarAviso) mostrarToast("🔒 Sua conta é de Usuário Comum. Apenas administradores acessam /admin.", "warning");
+        return false;
+      }
+
+      if (perfil.status === "approved" && perfil.role === "admin") {
+        await abrirDashboardAdminConfirmado(perfil);
+        return true;
+      }
+
+      exibirTelaStatusGate("pending", emailAtual);
+      return false;
+    }
+
+    document.getElementById("btn-admin-gate-recheck")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-admin-gate-recheck");
+      if (btn) { btn.disabled = true; btn.textContent = "⏳ Verificando..."; }
+      await verificarSessaoAdminSupabase(true);
+      if (btn) { btn.disabled = false; btn.textContent = "🔄 Verificar se já fui aprovado"; }
+    });
+
+    document.getElementById("btn-admin-gate-status-logout")?.addEventListener("click", async () => {
+      await encerrarSessaoAdministrativa();
+      exibirFormularioLoginGate();
+    });
+
+    document.getElementById("btn-admin-gate-google")?.addEventListener("click", async () => {
+      const btn = document.getElementById("btn-admin-gate-google");
+      if (btn) { btn.disabled = true; btn.textContent = "⏳ Conectando ao Google..."; }
+      const r = await window.SJ_SUPABASE?.auth?.loginGoogle?.();
+      if (!r || !r.sucesso) {
+        mostrarFeedbackGate("error", (r && r.mensagem) || "Não foi possível iniciar o login com Google.");
+        if (btn) { btn.disabled = false; btn.textContent = "Entrar com Conta Google"; }
       }
     });
 
-    atualizarBannerSincronizacaoNuvemAdmin();
+    window.addEventListener("sj-auth-state-changed", async () => {
+      await verificarSessaoAdminSupabase(false);
+    });
 
-    // Configura abas do Gate (Login vs Solicitar Acesso)
+    // Configura abas do Gate (Entrar vs Criar Conta)
     document.querySelectorAll("[data-gate-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const tab = btn.dataset.gateTab;
@@ -12535,7 +12797,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
-    // Formulário de Login do Gate
+    // Formulário de Login do Gate (Supabase Auth real -> verifica public.profiles)
     const formLogin = document.getElementById("form-admin-gate-login");
     if (formLogin) {
       formLogin.addEventListener("submit", async (e) => {
@@ -12545,90 +12807,34 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const submitBtn = document.getElementById("btn-admin-gate-submit");
 
         if (!email || !senha) {
-          mostrarFeedbackGate("error", "Informe seu e-mail e sua senha administrativa.");
+          mostrarFeedbackGate("error", "Informe seu e-mail e sua senha.");
           return;
         }
 
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.textContent = "Validando credenciais...";
+          submitBtn.textContent = "Validando acesso...";
         }
 
         try {
-          // Bloqueia contas exclusivas de clientes comuns
-          const clienteExistente = buscarDadosClienteSalvoPorEmail(email);
-          if (clienteExistente && clienteExistente.tipo === "cliente" && email !== "jt.designer21@gmail.com") {
-            const adminCheck = (window.SJ_DB?.auth?.listarUsuarios() || []).find(u => String(u.email || '').toLowerCase() === email);
-            if (!adminCheck || adminCheck.status !== "aprovado") {
-              mostrarFeedbackGate("error", "🚫 Acesso restrito! Esta é uma conta de cliente comum e não possui permissão para acessar a área administrativa.");
-              if (submitBtn) {
-                submitBtn.disabled = false;
-                submitBtn.textContent = "Entrar no Painel Administrativo →";
-              }
-              return;
-            }
-          }
-
-          if (!window.SJ_DB || !window.SJ_DB.auth) {
-            mostrarFeedbackGate("error", "Banco de autenticação não inicializado. Recarregue a página.");
+          if (!window.SJ_SUPABASE || !window.SJ_SUPABASE.auth) {
+            mostrarFeedbackGate("error", "Serviço de autenticação Supabase indisponível. Recarregue a página.");
             return;
           }
 
-          const res = await window.SJ_DB.auth.loginEmail(email, senha);
+          const res = await window.SJ_SUPABASE.auth.loginEmail(email, senha);
           if (!res || !res.sucesso) {
-            mostrarFeedbackGate("error", (res && res.mensagem) || "E-mail ou senha administrativa incorretos.");
+            // Mensagem genérica para impedir enumeração de usuários (Pilar 2 de Segurança)
+            mostrarFeedbackGate("error", "E-mail ou senha incorretos.");
             return;
           }
 
-          const usuario = res.usuario;
-          if (!ehUsuarioEquipe(usuario)) {
-            mostrarFeedbackGate("error", "⏳ Seu usuário não possui autorização ativa para a Área Administrativa. Solicite liberação ao Administrador Master.");
-            return;
+          const liberado = await verificarSessaoAdminSupabase(false);
+          if (liberado) {
+            mostrarToast(`👋 Bem-vindo ao Painel, <strong>${escaparHtml(email)}</strong>!`, "success");
           }
-
-          // Tenta autenticar silenciosamente no Supabase Auth para ativar escrita RLS em tempo real
-          try {
-            if (window.SJ_SUPABASE?.auth?.loginEmail) {
-              await window.SJ_SUPABASE.auth.loginEmail(email, senha);
-            }
-          } catch (_) {}
-          atualizarBannerSincronizacaoNuvemAdmin();
-
-          // Salva sessão exclusiva de admin
-          try {
-            localStorage.setItem("loja_sj_sessao_admin_v1", JSON.stringify(usuario));
-          } catch (_) {}
-          state.usuarioGoogle = usuario;
-          document.body.classList.add("is-admin-logged-in");
-
-          // Atualiza dados na sidebar e topbar
-          const emailEl = document.getElementById("crm-sidebar-admin-email");
-          if (emailEl) emailEl.textContent = usuario.email;
-          const roleBadge = document.getElementById("crm-sidebar-role-badge");
-          if (roleBadge) roleBadge.textContent = usuario.isMaster ? "👑 Admin Master" : `👑 ${usuario.cargo || 'Equipe'}`;
-
-          // Transiciona tela: esconde o gate e exibe o dashboard
-          if (gateEl) gateEl.style.display = "none";
-          if (appEl) appEl.style.display = "grid";
-
-          // Inicializa o dashboard
-          const urlParams = new URLSearchParams(window.location.search);
-          const aba = urlParams.get("aba") || "produtos";
-          const editId = urlParams.get("edit");
-
-          selecionarAbaCms(aba);
-          configurarFormularioSenhaAdmin();
-          atualizarBadgesSolicitacoesPendentes();
-          renderizarListaProdutosCms();
-          preencherFormularioBannerCms();
-          atualizarStatusSupabaseNoCms();
-          atualizarContadoresEstoqueKpiCms();
-
-          if (editId) abrirEditorProdutoCms(editId);
-
-          mostrarToast(`👋 Bem-vindo ao Painel, <strong>${escaparHtml(usuario.nome || usuario.email)}</strong>!`, "success");
         } catch (err) {
-          mostrarFeedbackGate("error", "Erro ao processar autenticação: " + (err.message || err));
+          mostrarFeedbackGate("error", "E-mail ou senha incorretos.");
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
@@ -12638,7 +12844,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     }
 
-    // Formulário de Solicitação de Acesso
+    // Formulário de Criação de Conta / Solicitação de Acesso (nasce como pending no Supabase)
     const formReq = document.getElementById("form-admin-gate-register");
     if (formReq) {
       formReq.addEventListener("submit", async (e) => {
@@ -12653,63 +12859,38 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           mostrarFeedbackGateReq("error", "Preencha todos os campos obrigatórios.");
           return;
         }
+        if (senha.length < 6) {
+          mostrarFeedbackGateReq("error", "A senha deve ter no mínimo 6 caracteres.");
+          return;
+        }
 
         if (submitBtn) {
           submitBtn.disabled = true;
-          submitBtn.textContent = "Enviando solicitação...";
+          submitBtn.textContent = "Criando conta...";
         }
 
         try {
-          const res = await window.SJ_DB.auth.registrar({ nome, email, senha, cargo, motivo: "Solicitação via /admin" });
+          const res = await window.SJ_SUPABASE.auth.registrar({ nome, email, password: senha, cargo });
           if (res && res.sucesso) {
-            mostrarFeedbackGateReq("success", res.mensagem || "✅ Solicitação enviada! Aguarde a aprovação do Administrador Master.");
             formReq.reset();
+            exibirTelaStatusGate("pending", email);
+            mostrarToast("📨 Conta criada com status Pendente! Aguarde aprovação do administrador.", "success");
           } else {
-            mostrarFeedbackGateReq("error", (res && res.mensagem) || "Erro ao enviar solicitação.");
+            mostrarFeedbackGateReq("error", (res && res.mensagem) || "Não foi possível criar a conta. Verifique os dados informados.");
           }
         } catch (err) {
-          mostrarFeedbackGateReq("error", "Erro ao enviar solicitação: " + (err.message || err));
+          mostrarFeedbackGateReq("error", "Erro ao criar conta: " + (err.message || err));
         } finally {
           if (submitBtn) {
             submitBtn.disabled = false;
-            submitBtn.textContent = "📨 Enviar Pedido para o Admin Master";
+            submitBtn.textContent = "📨 Criar Conta e Solicitar Aprovação";
           }
         }
       });
     }
 
-    // VERIFICA SE JÁ EXISTE SESSÃO ADMIN ATIVA
-    const adminAtivo = obterSessaoAdminAtiva();
-    if (adminAtivo) {
-      state.usuarioGoogle = adminAtivo;
-      document.body.classList.add("is-admin-logged-in");
-
-      const emailEl = document.getElementById("crm-sidebar-admin-email");
-      if (emailEl) emailEl.textContent = adminAtivo.email;
-      const roleBadge = document.getElementById("crm-sidebar-role-badge");
-      if (roleBadge) roleBadge.textContent = adminAtivo.isMaster ? "👑 Admin Master" : `👑 ${adminAtivo.cargo || 'Equipe'}`;
-
-      if (gateEl) gateEl.style.display = "none";
-      if (appEl) appEl.style.display = "grid";
-
-      const urlParams = new URLSearchParams(window.location.search);
-      const aba = urlParams.get("aba") || "produtos";
-      const editId = urlParams.get("edit");
-
-      selecionarAbaCms(aba);
-      configurarFormularioSenhaAdmin();
-      atualizarBadgesSolicitacoesPendentes();
-      renderizarListaProdutosCms();
-      preencherFormularioBannerCms();
-      atualizarStatusSupabaseNoCms();
-      atualizarContadoresEstoqueKpiCms();
-
-      if (editId) abrirEditorProdutoCms(editId);
-    } else {
-      // NÃO ESTÁ LOGADO COMO ADMIN -> EXIBE O GATE E ESCONDE O APP
-      if (gateEl) gateEl.style.display = "flex";
-      if (appEl) appEl.style.display = "none";
-    }
+    // VERIFICAÇÃO AUTOMÁTICA AO ABRIR /admin (não confia em localStorage — consulta Supabase Auth + public.profiles!)
+    verificarSessaoAdminSupabase(false);
   }
 
   // Inicialização Geral
@@ -13597,28 +13778,49 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         fichaTecnica
       };
 
-      // Se estava editando uma paleta de cores de filamento, salva também a paleta
-      if (cmsState.chavePaletaEditando && Array.isArray(cmsState.coresTempEditando)) {
-        window.SITE_DATA[cmsState.chavePaletaEditando] = JSON.parse(JSON.stringify(cmsState.coresTempEditando));
-        if (window.SJ_DB && window.SJ_DB.catalogo) {
-          await window.SJ_DB.catalogo.salvarPaletaCores(
-            cmsState.chavePaletaEditando,
-            window.SITE_DATA[cmsState.chavePaletaEditando]
-          );
-        }
+      const submitBtn = e.target.querySelector("button[type='submit']");
+      const origSubmitText = submitBtn ? submitBtn.textContent : "";
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = "⏳ Salvando no banco global...";
       }
 
-      if (window.SJ_DB && window.SJ_DB.catalogo) {
-        await window.SJ_DB.catalogo.salvarProduto(produtoAtualizado);
-      } else {
-        const idx = window.SITE_DATA.catalogo.findIndex((p) => p.id === id);
-        if (idx >= 0) window.SITE_DATA.catalogo[idx] = produtoAtualizado;
-        else window.SITE_DATA.catalogo.push(produtoAtualizado);
+      let resProd = { ok: true, nuvem: false };
+      let resCores = { ok: true, nuvem: true };
+      try {
+        // Se estava editando uma paleta de cores de filamento, salva também a paleta
+        if (cmsState.chavePaletaEditando && Array.isArray(cmsState.coresTempEditando)) {
+          window.SITE_DATA[cmsState.chavePaletaEditando] = JSON.parse(JSON.stringify(cmsState.coresTempEditando));
+          if (window.SJ_DB && window.SJ_DB.catalogo) {
+            resCores = await window.SJ_DB.catalogo.salvarPaletaCores(
+              cmsState.chavePaletaEditando,
+              window.SITE_DATA[cmsState.chavePaletaEditando]
+            );
+          }
+        }
+
+        if (window.SJ_DB && window.SJ_DB.catalogo) {
+          resProd = await window.SJ_DB.catalogo.salvarProduto(produtoAtualizado);
+        } else {
+          const idx = window.SITE_DATA.catalogo.findIndex((p) => p.id === id);
+          if (idx >= 0) window.SITE_DATA.catalogo[idx] = produtoAtualizado;
+          else window.SITE_DATA.catalogo.push(produtoAtualizado);
+        }
+      } finally {
+        if (submitBtn) {
+          submitBtn.disabled = false;
+          submitBtn.textContent = origSubmitText;
+        }
       }
 
       atualizarSiteAposEdicaoCms();
       voltarParaListaProdutosCms();
-      mostrarToast(`✅ Produto <strong>"${nome}"</strong> atualizado com sucesso no catálogo!`, "success");
+      if (resProd && resProd.nuvem && (!resCores || resCores.nuvem !== false)) {
+        mostrarToast(`✅ Produto <strong>"${escaparHtml(nome)}"</strong> salvo globalmente no Supabase para todos os visitantes!`, "success");
+      } else {
+        const erroMsg = resProd?.erro || resCores?.erro || "verifique se as migrations do Supabase foram executadas.";
+        mostrarToast(`⚠️ Salvo localmente, mas não sincronizou na nuvem: ${escaparHtml(erroMsg)}`, "warning");
+      }
     });
 
     // Upload de imagem de fundo para o Banner de Promoções

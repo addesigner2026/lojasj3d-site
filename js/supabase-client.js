@@ -811,6 +811,274 @@
     }
   };
 
+  // =========================================================================
+  // MÓDULO DE CONTROLE DE ACESSO E APROVAÇÃO (public.profiles + RLS)
+  // =========================================================================
+  const profiles = {
+    // Retorna o perfil do usuário autenticado atual (role + status) direto do banco
+    obterMeuPerfil: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, perfil: null, tabelaAusente: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, perfil: null, tabelaAusente: false, mensagem: "Não autenticado." };
+
+        const { data, error } = await client
+          .from("profiles")
+          .select("id, email, nome, role, status, created_at, updated_at, approved_at, approved_by")
+          .eq("id", uid)
+          .maybeSingle();
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, perfil: null, tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, perfil: data || null, tabelaAusente: false };
+      } catch (err) {
+        return { sucesso: false, perfil: null, tabelaAusente: false, mensagem: err.message };
+      }
+    },
+
+    // Lista todos os perfis (pendentes, aprovados e bloqueados) — permitido apenas para admin via RLS
+    listarTodos: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client
+          .from("profiles")
+          .select("id, email, nome, role, status, created_at, updated_at, approved_at, approved_by")
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [], tabelaAusente: false };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    // Atualiza status ('pending' | 'approved' | 'blocked') de um perfil — protegido por RLS + trigger
+    atualizarStatus: async function (id, novoStatus) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data, error } = await client
+          .from("profiles")
+          .update({ status: novoStatus })
+          .eq("id", id)
+          .select("id, email, nome, role, status, approved_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, perfil: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Atualiza papel ('admin' | 'user') de um perfil — protegido por RLS + trigger
+    atualizarRole: async function (id, novaRole) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data, error } = await client
+          .from("profiles")
+          .update({ role: novaRole })
+          .eq("id", id)
+          .select("id, email, nome, role, status, approved_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, perfil: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Aprova e define o papel em uma única operação
+    aprovarComRole: async function (id, role = "user") {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data, error } = await client
+          .from("profiles")
+          .update({ status: "approved", role: role === "admin" ? "admin" : "user" })
+          .eq("id", id)
+          .select("id, email, nome, role, status, approved_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, perfil: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Exclui usuário (usa /api/admin-delete-user com JWT do admin ou fallback RLS em public.profiles)
+    excluir: async function (id) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const token = sessData?.session?.access_token;
+
+        if (token && typeof window !== "undefined" && window.fetch) {
+          try {
+            const resApi = await fetch("/api/admin-delete-user", {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${token}`
+              },
+              cache: "no-store",
+              body: JSON.stringify({ userId: id })
+            });
+            const json = await resApi.json().catch(() => null);
+            if (resApi.ok && json && json.sucesso) {
+              return json;
+            }
+            if (json && json.mensagem && resApi.status >= 400 && resApi.status < 500) {
+              return { sucesso: false, mensagem: json.mensagem };
+            }
+          } catch (_) {}
+        }
+
+        // Fallback direto via RLS (também protegido pelo trigger de auto-exclusão e último admin)
+        const { error } = await client.from("profiles").delete().eq("id", id);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, mensagem: "Perfil removido com sucesso." };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Assina mudanças em tempo real em public.profiles
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-profiles-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "profiles" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO DO CATÁLOGO GLOBAL & ESTOQUE EM TEMPO REAL (public.products + RLS)
+  // =========================================================================
+  const products = {
+    // Lê todos os produtos e cores direto do Supabase (sem cache estático)
+    listarTodos: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], tabelaAusente: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client
+          .from("products")
+          .select("*")
+          .order("ordem", { ascending: true })
+          .order("nome", { ascending: true });
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [], tabelaAusente: false };
+      } catch (err) {
+        return { sucesso: false, dados: [], tabelaAusente: false, mensagem: err.message };
+      }
+    },
+
+    // Cria ou atualiza um produto/cor em public.products (RLS: apenas admin aprovado)
+    salvar: async function (registro) {
+      const client = inicializarCliente();
+      if (!client || !registro || !registro.id) return { sucesso: false, mensagem: "Dados inválidos." };
+      try {
+        const { data, error } = await client
+          .from("products")
+          .upsert(registro, { onConflict: "id" })
+          .select("*")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Upsert em lote (usado ao salvar paleta completa de cores)
+    salvarLote: async function (registros) {
+      const client = inicializarCliente();
+      if (!client || !Array.isArray(registros) || registros.length === 0) {
+        return { sucesso: false, mensagem: "Lista vazia." };
+      }
+      try {
+        const { error } = await client.from("products").upsert(registros, { onConflict: "id" });
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Atualiza apenas stock_status ('disponivel' | 'poucas_unidades' | 'esgotado')
+    atualizarEstoque: async function (id, stockStatus) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { data, error } = await client
+          .from("products")
+          .update({ stock_status: stockStatus })
+          .eq("id", id)
+          .select("id, nome, stock_status, updated_at")
+          .maybeSingle();
+
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Exclui um item de public.products (RLS: apenas admin aprovado)
+    excluir: async function (id) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { error } = await client.from("products").delete().eq("id", id);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    // Assina mudanças em tempo real em public.products para atualizar todos os visitantes ao vivo
+    assinarRealtime: function (onChange) {
+      const client = inicializarCliente();
+      if (!client || typeof client.channel !== "function") return null;
+      try {
+        return client
+          .channel("sj-products-realtime")
+          .on("postgres_changes", { event: "*", schema: "public", table: "products" }, (payload) => {
+            if (typeof onChange === "function") onChange(payload);
+          })
+          .subscribe();
+      } catch (_) {
+        return null;
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -832,6 +1100,8 @@
       }
     },
     auth,
+    profiles,
+    products,
     clientes,
     consentimentos,
     retencao,

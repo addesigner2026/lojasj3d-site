@@ -1372,17 +1372,177 @@
       return { ok: true, nuvemOk: salvouNuvem, erro: catalogo.ultimoStatusNuvem.erro };
     },
 
-    // Busca catálogo mais recente do Supabase Cloud (ou /api/catalogo) e atualiza a tela automaticamente
+    // Converte uma linha da tabela public.products para o formato do catálogo em window.SITE_DATA
+    aplicarLinhasTabelaProducts: function (rows) {
+      if (typeof window === "undefined" || !window.SITE_DATA || !Array.isArray(rows) || rows.length === 0) {
+        return false;
+      }
+
+      const produtosRows = rows.filter((r) => (r.item_type || "product") === "product");
+      const coresRows = rows.filter((r) => r.item_type === "filament_color");
+
+      if (produtosRows.length > 0) {
+        window.SITE_DATA.catalogo = produtosRows
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+          .map((r) => {
+            const meta = r.metadata && typeof r.metadata === "object" ? r.metadata : {};
+            return {
+              ...meta,
+              id: r.id,
+              nome: r.nome,
+              subtitulo: r.descricao || meta.subtitulo || "",
+              precoVista: r.preco || meta.precoVista || "Sob consulta",
+              precoVistaValor: Number(r.preco_valor ?? meta.precoVistaValor ?? 0),
+              imagem: r.imagem || meta.imagem || "",
+              categoria: r.categoria || meta.categoria || "pecas",
+              marca: r.marca || meta.marca || "Loja SJ 3D",
+              estoqueStatus: r.stock_status || "disponivel",
+              updated_at: r.updated_at || null
+            };
+          });
+      }
+
+      if (coresRows.length > 0) {
+        const porPaleta = {};
+        coresRows
+          .sort((a, b) => (a.ordem || 0) - (b.ordem || 0))
+          .forEach((r) => {
+            const chave = r.paleta_chave;
+            if (!chave || !CHAVES_PALETAS.includes(chave)) return;
+            if (!porPaleta[chave]) porPaleta[chave] = [];
+            const meta = r.metadata && typeof r.metadata === "object" ? r.metadata : {};
+            porPaleta[chave].push({
+              _dbId: r.id,
+              cod: r.cod || "",
+              nome: r.nome,
+              hex: r.hex || "#888888",
+              preco: r.preco || "R$ 79,90",
+              valor: Number(r.preco_valor ?? 0),
+              filtro: meta.filtro || "none",
+              imgCatalogo: r.imagem || meta.imgCatalogo || "",
+              usaFotoCatalogoDireta: Boolean(meta.usaFotoCatalogoDireta),
+              tipo: meta.tipo || r.descricao || "",
+              estoqueStatus: r.stock_status || "disponivel"
+            });
+          });
+
+        Object.keys(porPaleta).forEach((chave) => {
+          window.SITE_DATA[chave] = porPaleta[chave];
+        });
+      }
+
+      catalogo.usandoTabelaProducts = true;
+      return true;
+    },
+
+    // Converte um produto da UI para linha da tabela public.products
+    montarRowProduto: function (p, ordem = 0) {
+      const meta = { ...p };
+      delete meta.id;
+      delete meta.nome;
+      delete meta.subtitulo;
+      delete meta.precoVista;
+      delete meta.precoVistaValor;
+      delete meta.imagem;
+      delete meta.categoria;
+      delete meta.marca;
+      delete meta.estoqueStatus;
+      delete meta.updated_at;
+
+      const catValida = ["filamentos", "impressoras", "pecas", "manutencao"].includes(p.categoria)
+        ? p.categoria
+        : "pecas";
+      const stValido = ["disponivel", "poucas_unidades", "esgotado"].includes(p.estoqueStatus)
+        ? p.estoqueStatus
+        : "disponivel";
+
+      return {
+        id: String(p.id).trim(),
+        nome: String(p.nome || "Produto").trim(),
+        descricao: String(p.subtitulo || "").trim(),
+        preco: String(p.precoVista || "Sob consulta").trim(),
+        preco_valor: Number(p.precoVistaValor || 0) || 0,
+        imagem: String(p.imagem || "").trim(),
+        categoria: catValida,
+        marca: String(p.marca || "Loja SJ 3D").trim(),
+        stock_status: stValido,
+        item_type: "product",
+        paleta_chave: null,
+        cod: null,
+        hex: null,
+        ordem: Number(ordem || 0),
+        metadata: meta
+      };
+    },
+
+    // Converte uma cor de filamento para linha da tabela public.products
+    montarRowCorFilamento: function (c, chavePaleta, idx = 0) {
+      const slug = String(c.cod || c.nome || idx)
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, "-")
+        .replace(/^-|-$/g, "");
+      const id = c._dbId || `cor-${chavePaleta}-${slug}-${idx + 1}`;
+      const marca = chavePaleta === "coresBambuLab" ? "Bambu Lab" : "Masterprint";
+      const stValido = ["disponivel", "poucas_unidades", "esgotado"].includes(c.estoqueStatus)
+        ? c.estoqueStatus
+        : "disponivel";
+
+      return {
+        id,
+        nome: String(c.nome || "Cor").trim(),
+        descricao: String(c.tipo || ("Filamento " + marca)).trim(),
+        preco: String(c.preco || "R$ 79,90").trim(),
+        preco_valor: Number(c.valor || 0) || 0,
+        imagem: String(c.imgCatalogo || "").trim(),
+        categoria: "filamentos",
+        marca,
+        stock_status: stValido,
+        item_type: "filament_color",
+        paleta_chave: chavePaleta,
+        cod: String(c.cod || ""),
+        hex: String(c.hex || "#888888"),
+        ordem: idx + 1,
+        metadata: {
+          filtro: c.filtro || "none",
+          imgCatalogo: c.imgCatalogo || "",
+          usaFotoCatalogoDireta: Boolean(c.usaFotoCatalogoDireta),
+          tipo: c.tipo || ""
+        }
+      };
+    },
+
+    usandoTabelaProducts: false,
+
+    // Busca catálogo mais recente direto da tabela public.products (com fallback legado) e atualiza a tela
     sincronizarDaNuvem: async function (opcoes = {}) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
       const forcar = Boolean(opcoes && opcoes.forcar);
       const agora = Date.now();
-      if (!forcar && agora - ultimoFetchNuvemMs < 4000) return false;
+      if (!forcar && agora - ultimoFetchNuvemMs < 2500) return false;
       ultimoFetchNuvemMs = agora;
 
-      let remoto = null;
+      // 1) FONTE PRINCIPAL OFICIAL: tabela public.products no Supabase (leitura pública em tempo real)
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.products) {
+          const resProd = await window.SJ_SUPABASE.products.listarTodos();
+          if (resProd && resProd.sucesso && Array.isArray(resProd.dados) && resProd.dados.length > 0) {
+            const aplicou = catalogo.aplicarLinhasTabelaProducts(resProd.dados);
+            if (aplicou) {
+              const maxTs = resProd.dados.reduce((acc, r) => (r.updated_at && r.updated_at > acc ? r.updated_at : acc), "");
+              ultimoCatalogoSyncTs = maxTs || new Date().toISOString();
+              window.dispatchEvent(
+                new CustomEvent("sj-catalogo-sincronizado", {
+                  detail: { atualizadoEm: ultimoCatalogoSyncTs, fonte: "products" }
+                })
+              );
+              return true;
+            }
+          }
+        }
+      } catch (_) {}
 
-      // 1) Leitura direta do Supabase Cloud (mais rápida e sempre atualizada)
+      // 2) Fallback legado: configuracoes_site -> catalogo_oficial_v1 (caso a migration 002/003 ainda não tenha sido rodada)
+      let remoto = null;
       try {
         if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
           const supa = window.SJ_SUPABASE.getClient();
@@ -1403,7 +1563,6 @@
         }
       } catch (_) {}
 
-      // 2) Fallback via /api/catalogo (Vercel Serverless ou servidor local)
       if (!remoto && window.fetch) {
         try {
           const r = await fetch(`/api/catalogo?_t=${Date.now()}`, { cache: "no-store" });
@@ -1416,29 +1575,10 @@
         } catch (_) {}
       }
 
-      const localAtual = catalogo.obterCustomizacoes();
-      const ehPaginaAdmin =
-        window.location &&
-        (window.location.pathname.includes("admin") || Boolean(document.getElementById("admin-standalone-app")));
-
-      // Se a nuvem ainda não tem catálogo publicado mas o Admin já tinha edições locais salvas, publica na nuvem automaticamente!
-      if (!remoto) {
-        if (ehPaginaAdmin && localAtual && (Array.isArray(localAtual.catalogo) || localAtual.coresMaxPrint)) {
-          await catalogo.persistirEstadoAtual();
-        }
-        return false;
-      }
+      if (!remoto) return false;
 
       const tsRemoto = String(remoto.atualizadoEm || "");
-      const tsLocal = String((localAtual && localAtual.atualizadoEm) || "");
-
-      // Se estivermos no Admin e o local for estritamente mais recente (ex: edição offline), respeita e envia para a nuvem
-      if (ehPaginaAdmin && tsLocal && tsRemoto && new Date(tsLocal).getTime() > new Date(tsRemoto).getTime() + 1000) {
-        await catalogo.persistirEstadoAtual();
-        return false;
-      }
-
-      // Se a nuvem tem versão diferente da que está aplicada na tela, aplica e re-renderiza imediatamente!
+      const localAtual = catalogo.obterCustomizacoes();
       if (forcar || !tsRemoto || tsRemoto !== ultimoCatalogoSyncTs || !localAtual) {
         gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, remoto);
         catalogo.aplicarCustomizacoes(remoto);
@@ -1450,7 +1590,7 @@
       return false;
     },
 
-    // Assina mudanças em tempo real (Supabase Realtime) + foco de aba para refletir em todos os navegadores
+    // Assina mudanças em tempo real (Supabase Realtime em public.products) + foco de aba
     iniciarSincronizacaoTempoReal: function () {
       if (typeof window === "undefined" || realtimeCatalogoIniciado) return;
       realtimeCatalogoIniciado = true;
@@ -1458,7 +1598,7 @@
       // 1) Atualiza automaticamente ao voltar para a aba ou focar a janela
       document.addEventListener("visibilitychange", () => {
         if (!document.hidden) {
-          catalogo.sincronizarDaNuvem();
+          catalogo.sincronizarDaNuvem({ forcar: true });
         }
       });
       window.addEventListener("focus", () => {
@@ -1467,7 +1607,7 @@
 
       // 2) Sincronização instantânea entre abas abertas no mesmo navegador
       window.addEventListener("storage", (e) => {
-        if (e.key === STORAGE_KEYS.CATALOGO_CUSTOM && e.newValue) {
+        if (e.key === STORAGE_KEYS.CATALOGO_CUSTOM && e.newValue && !catalogo.usandoTabelaProducts) {
           try {
             const parsed = JSON.parse(e.newValue);
             if (parsed && typeof parsed === "object") {
@@ -1478,14 +1618,16 @@
         }
       });
 
-      // 2.5) Quando o Admin conclui autenticação Supabase (Google/E-mail), publica edições locais pendentes automaticamente
-      window.addEventListener("sj-auth-state-changed", (e) => {
-        if (e && e.detail && e.detail.session) {
-          catalogo.sincronizarDaNuvem({ forcar: true });
+      // 3) Supabase Realtime oficial na tabela public.products (atualização ao vivo para todos os visitantes!)
+      try {
+        if (window.SJ_SUPABASE && window.SJ_SUPABASE.products) {
+          window.SJ_SUPABASE.products.assinarRealtime(() => {
+            catalogo.sincronizarDaNuvem({ forcar: true });
+          });
         }
-      });
+      } catch (_) {}
 
-      // 3) Supabase Realtime (push instantâneo quando o Admin altera preço/nome/esgotado em outro navegador)
+      // 4) Realtime legado em configuracoes_site (compatibilidade durante transição)
       try {
         if (window.SJ_SUPABASE && window.SJ_SUPABASE.isConfigured()) {
           const supa = window.SJ_SUPABASE.getClient();
@@ -1500,15 +1642,8 @@
                   table: "configuracoes_site",
                   filter: `chave=eq.${CHAVE_NUVEM_CATALOGO}`
                 },
-                (payload) => {
-                  const novoValor = payload && payload.new && payload.new.valor;
-                  if (novoValor && typeof novoValor === "object") {
-                    gravarLocal(STORAGE_KEYS.CATALOGO_CUSTOM, novoValor);
-                    catalogo.aplicarCustomizacoes(novoValor);
-                    window.dispatchEvent(new CustomEvent("sj-catalogo-sincronizado"));
-                  } else {
-                    catalogo.sincronizarDaNuvem({ forcar: true });
-                  }
+                () => {
+                  catalogo.sincronizarDaNuvem({ forcar: true });
                 }
               )
               .subscribe();
@@ -1516,7 +1651,7 @@
         }
       } catch (_) {}
 
-      // 4) Polling leve a cada 25s quando a aba está visível (fallback caso Realtime seja bloqueado por rede)
+      // 5) Revalidação periódica leve a cada 25s quando visível (garante consistência mesmo se WebSocket oscilar)
       window.setInterval(() => {
         if (!document.hidden) {
           catalogo.sincronizarDaNuvem();
@@ -1535,7 +1670,7 @@
       return window.SITE_DATA.bannerPromocao;
     },
 
-    // Salva ou adiciona um produto no catálogo
+    // Salva ou adiciona um produto diretamente em public.products (RLS: somente admin aprovado)
     salvarProduto: async function (dadosProduto) {
       if (typeof window === "undefined" || !window.SITE_DATA || !dadosProduto) return null;
       const lista = window.SITE_DATA.catalogo || [];
@@ -1543,48 +1678,127 @@
       dadosProduto.id = id;
 
       const idx = lista.findIndex((p) => p.id === id);
+      const ordem = idx >= 0 ? idx + 1 : lista.length + 1;
+      const mesclado = idx >= 0 ? { ...lista[idx], ...dadosProduto } : dadosProduto;
+
       if (idx >= 0) {
-        lista[idx] = { ...lista[idx], ...dadosProduto };
+        lista[idx] = mesclado;
       } else {
-        lista.push(dadosProduto);
+        lista.push(mesclado);
+      }
+      window.SITE_DATA.catalogo = lista;
+
+      // Gravação direta na tabela oficial public.products
+      let gravouProducts = false;
+      let erroProducts = null;
+      if (window.SJ_SUPABASE && window.SJ_SUPABASE.products) {
+        const row = catalogo.montarRowProduto(mesclado, ordem);
+        const res = await window.SJ_SUPABASE.products.salvar(row);
+        if (res && res.sucesso) {
+          gravouProducts = true;
+          catalogo.usandoTabelaProducts = true;
+        } else if (res && res.mensagem) {
+          erroProducts = res.mensagem;
+        }
       }
 
-      window.SITE_DATA.catalogo = lista;
-      const removidos = obterListaRemovidosProdutos().filter((rid) => rid !== id);
-      await catalogo.persistirEstadoAtual({ produtosRemovidos: removidos });
-      return dadosProduto;
+      if (gravouProducts) {
+        catalogo.ultimoStatusNuvem = { nuvemOk: true, erro: null, atualizadoEm: new Date().toISOString() };
+        window.dispatchEvent(new CustomEvent("sj-catalogo-sync-status", { detail: catalogo.ultimoStatusNuvem }));
+      } else {
+        const removidos = obterListaRemovidosProdutos().filter((rid) => rid !== id);
+        await catalogo.persistirEstadoAtual({ produtosRemovidos: removidos });
+        if (erroProducts && !catalogo.ultimoStatusNuvem.nuvemOk) {
+          catalogo.ultimoStatusNuvem.erro = erroProducts;
+        }
+      }
+      return mesclado;
     },
 
-    // Exclui um produto do catálogo
+    // Exclui um produto diretamente de public.products (RLS: somente admin aprovado)
     excluirProduto: async function (idProduto) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
       const antes = (window.SITE_DATA.catalogo || []).length;
       window.SITE_DATA.catalogo = (window.SITE_DATA.catalogo || []).filter((p) => p.id !== idProduto);
       const excluiu = window.SITE_DATA.catalogo.length < antes;
-      if (excluiu) {
+      if (!excluiu) return false;
+
+      let excluiuProducts = false;
+      if (window.SJ_SUPABASE && window.SJ_SUPABASE.products) {
+        const res = await window.SJ_SUPABASE.products.excluir(idProduto);
+        if (res && res.sucesso) excluiuProducts = true;
+      }
+
+      if (excluiuProducts) {
+        catalogo.ultimoStatusNuvem = { nuvemOk: true, erro: null, atualizadoEm: new Date().toISOString() };
+        window.dispatchEvent(new CustomEvent("sj-catalogo-sync-status", { detail: catalogo.ultimoStatusNuvem }));
+      } else {
         const removidos = [...new Set([...obterListaRemovidosProdutos(), idProduto])];
         await catalogo.persistirEstadoAtual({ produtosRemovidos: removidos });
       }
-      return excluiu;
+      return true;
     },
 
-    // Salva alterações na paleta de cores de uma linha de filamento
+    // Atualiza rapidamente o status de estoque de uma única cor de filamento em public.products
+    atualizarEstoqueCor: async function (chavePaleta, corIdx, novoStatus) {
+      if (typeof window === "undefined" || !window.SITE_DATA) return { ok: false, nuvemOk: false };
+      const lista = window.SITE_DATA[chavePaleta];
+      if (!Array.isArray(lista) || !lista[corIdx]) return { ok: false, nuvemOk: false };
+
+      lista[corIdx].estoqueStatus = novoStatus;
+      const cor = lista[corIdx];
+
+      if (window.SJ_SUPABASE && window.SJ_SUPABASE.products) {
+        const row = catalogo.montarRowCorFilamento(cor, chavePaleta, corIdx);
+        cor._dbId = row.id;
+        const res = await window.SJ_SUPABASE.products.salvar(row);
+        if (res && res.sucesso) {
+          catalogo.usandoTabelaProducts = true;
+          catalogo.ultimoStatusNuvem = { nuvemOk: true, erro: null, atualizadoEm: new Date().toISOString() };
+          window.dispatchEvent(new CustomEvent("sj-catalogo-sync-status", { detail: catalogo.ultimoStatusNuvem }));
+          return { ok: true, nuvemOk: true };
+        }
+      }
+
+      // Fallback legado
+      return await catalogo.persistirEstadoAtual();
+    },
+
+    // Salva alterações na paleta completa de cores diretamente em public.products
     salvarPaletaCores: async function (chavePaleta, novaListaCores) {
       if (typeof window === "undefined" || !window.SITE_DATA) return false;
       if (!CHAVES_PALETAS.includes(chavePaleta) || !Array.isArray(novaListaCores)) return false;
 
-      // Calcula eventuais cores removidas em relação à paleta de fábrica para sincronizar exclusões entre navegadores
-      const anterior = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, {}) || {};
-      const coresRemovidas = { ...(anterior.coresRemovidas || {}) };
-      const chavesAtuais = new Set(novaListaCores.map((c) => normalizarChaveCor(c)).filter(Boolean));
-      const baseFabricaPaleta =
-        SITE_DATA_FACTORY && Array.isArray(SITE_DATA_FACTORY[chavePaleta]) ? SITE_DATA_FACTORY[chavePaleta] : [];
-      coresRemovidas[chavePaleta] = baseFabricaPaleta
-        .map((c) => normalizarChaveCor(c))
-        .filter((k) => k && !chavesAtuais.has(k));
-
       window.SITE_DATA[chavePaleta] = novaListaCores;
-      await catalogo.persistirEstadoAtual({ coresRemovidas });
+
+      let gravouProducts = false;
+      if (window.SJ_SUPABASE && window.SJ_SUPABASE.products && novaListaCores.length > 0) {
+        const rows = novaListaCores.map((c, idx) => {
+          const r = catalogo.montarRowCorFilamento(c, chavePaleta, idx);
+          c._dbId = r.id;
+          return r;
+        });
+        const res = await window.SJ_SUPABASE.products.salvarLote(rows);
+        if (res && res.sucesso) {
+          gravouProducts = true;
+          catalogo.usandoTabelaProducts = true;
+        }
+      }
+
+      if (gravouProducts) {
+        catalogo.ultimoStatusNuvem = { nuvemOk: true, erro: null, atualizadoEm: new Date().toISOString() };
+        window.dispatchEvent(new CustomEvent("sj-catalogo-sync-status", { detail: catalogo.ultimoStatusNuvem }));
+      } else {
+        const anterior = lerLocal(STORAGE_KEYS.CATALOGO_CUSTOM, {}) || {};
+        const coresRemovidas = { ...(anterior.coresRemovidas || {}) };
+        const chavesAtuais = new Set(novaListaCores.map((c) => normalizarChaveCor(c)).filter(Boolean));
+        const baseFabricaPaleta =
+          SITE_DATA_FACTORY && Array.isArray(SITE_DATA_FACTORY[chavePaleta]) ? SITE_DATA_FACTORY[chavePaleta] : [];
+        coresRemovidas[chavePaleta] = baseFabricaPaleta
+          .map((c) => normalizarChaveCor(c))
+          .filter((k) => k && !chavesAtuais.has(k));
+        await catalogo.persistirEstadoAtual({ coresRemovidas });
+      }
       return true;
     },
 

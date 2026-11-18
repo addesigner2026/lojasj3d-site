@@ -59,16 +59,35 @@
         <p style="margin: 0; font-size: 0.84rem; color: #64748b;">Área restrita exclusiva para a equipe e administração oficial.</p>
       </div>
 
-      <!-- ABAS DO GATE: ENTRAR | SOLICITAR ACESSO -->
-      <div class="admin-auth-gate-tabs" role="tablist">
+      <!-- ABAS DO GATE: ENTRAR | CRIAR CONTA / SOLICITAR ACESSO -->
+      <div class="admin-auth-gate-tabs" id="admin-auth-gate-tabs" role="tablist">
         <button type="button" class="btn-admin-gate-tab active" data-gate-tab="login" role="tab">🔐 Entrar no Painel</button>
-        <button type="button" class="btn-admin-gate-tab" data-gate-tab="register" role="tab">📨 Solicitar Acesso</button>
+        <button type="button" class="btn-admin-gate-tab" data-gate-tab="register" role="tab">📨 Criar Conta</button>
       </div>
 
-      <!-- PAINEL 1: LOGIN ADMINISTRATIVO -->
+      <!-- TELA DEDICADA DE STATUS: AGUARDANDO APROVAÇÃO / BLOQUEADO / USUÁRIO COMUM -->
+      <div id="admin-gate-status-screen" style="display: none; text-align: center; padding: 12px 4px 4px;">
+        <div id="admin-gate-status-icon" style="width: 60px; height: 60px; margin: 0 auto 14px; border-radius: 16px; background: #fffbeb; border: 1.5px solid #fde68a; display: flex; align-items: center; justify-content: center; font-size: 1.8rem;">⏳</div>
+        <h3 id="admin-gate-status-title" style="margin: 0 0 8px; font-size: 1.15rem; font-weight: 800; color: #0f172a;">Aguardando aprovação do administrador</h3>
+        <p id="admin-gate-status-desc" style="margin: 0 0 14px; font-size: 0.86rem; color: #475569; line-height: 1.55;">
+          Sua conta foi criada com sucesso, mas ainda precisa ser aprovada pelo administrador para liberar o acesso ao sistema.
+        </p>
+        <div id="admin-gate-status-email-pill" style="display: inline-block; padding: 6px 14px; border-radius: 999px; background: #f1f5f9; color: #0f172a; font-size: 0.8rem; font-weight: 700; margin-bottom: 18px;">—</div>
+        <div style="display: flex; flex-direction: column; gap: 10px;">
+          <button type="button" id="btn-admin-gate-recheck" class="btn-cms-primary" style="width: 100%; justify-content: center; padding: 11px; border-radius: 10px; font-size: 0.88rem; cursor: pointer;">
+            🔄 Verificar se já fui aprovado
+          </button>
+          <button type="button" id="btn-admin-gate-status-logout" class="btn-cms-secondary" style="width: 100%; justify-content: center; padding: 10px; border-radius: 10px; font-size: 0.84rem; cursor: pointer;">
+            🚪 Sair e trocar de conta
+          </button>
+          <a href="index.html" style="font-size: 0.82rem; color: #64748b; text-decoration: none; font-weight: 600; margin-top: 6px;">← Voltar para a Loja Pública</a>
+        </div>
+      </div>
+
+      <!-- PAINEL 1: LOGIN ADMINISTRATIVO (SUPABASE AUTH REAL) -->
       <form id="form-admin-gate-login" style="display: block;">
         <div class="admin-gate-input-group">
-          <label for="admin-gate-email">E-mail Administrativo</label>
+          <label for="admin-gate-email">E-mail de Acesso</label>
           <input type="email" id="admin-gate-email" class="admin-gate-input" placeholder="seu-email@dominio.com" autocomplete="username" required />
         </div>
 
@@ -77,11 +96,22 @@
             <label for="admin-gate-senha">Senha de Acesso</label>
             <button type="button" id="btn-toggle-gate-pwd" style="background: none; border: none; font-size: 0.72rem; color: #64748b; cursor: pointer; padding: 0;">👁️ Ver senha</button>
           </div>
-          <input type="password" id="admin-gate-senha" class="admin-gate-input" placeholder="Digite sua senha administrativa" autocomplete="current-password" required />
+          <input type="password" id="admin-gate-senha" class="admin-gate-input" placeholder="Digite sua senha" autocomplete="current-password" required />
         </div>
 
         <button type="submit" id="btn-admin-gate-submit" class="btn-cms-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
           Entrar no Painel Administrativo →
+        </button>
+
+        <div style="display: flex; align-items: center; gap: 10px; margin: 14px 0;">
+          <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+          <span style="font-size: 0.74rem; color: #94a3b8; font-weight: 600;">OU</span>
+          <span style="flex: 1; height: 1px; background: #e2e8f0;"></span>
+        </div>
+
+        <button type="button" id="btn-admin-gate-google" style="width: 100%; padding: 11px 14px; border-radius: 10px; border: 1.5px solid #cbd5e1; background: #ffffff; color: #0f172a; font-size: 0.86rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 8px; transition: all 0.15s ease;">
+          <svg width="18" height="18" viewBox="0 0 48 48" aria-hidden="true"><path fill="#FFC107" d="M43.611 20.083H42V20H24v8h11.303c-1.649 4.657-6.08 8-11.303 8-6.627 0-12-5.373-12-12s5.373-12 12-12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 12.955 4 4 12.955 4 24s8.955 20 20 20 20-8.955 20-20c0-1.341-.138-2.65-.389-3.917z"/><path fill="#FF3D00" d="m6.306 14.691 6.571 4.819C14.655 15.108 18.961 12 24 12c3.059 0 5.842 1.154 7.961 3.039l5.657-5.657C34.046 6.053 29.268 4 24 4 16.318 4 9.656 8.337 6.306 14.691z"/><path fill="#4CAF50" d="M24 44c5.166 0 9.86-1.977 13.409-5.192l-6.19-5.238A11.91 11.91 0 0 1 24 36c-5.202 0-9.619-3.317-11.283-7.946l-6.522 5.025C9.505 39.556 16.227 44 24 44z"/><path fill="#1976D2" d="M43.611 20.083H42V20H24v8h11.303a12.04 12.04 0 0 1-4.087 5.571l.003-.002 6.19 5.238C36.971 39.205 44 34 44 24c0-1.341-.138-2.65-.389-3.917z"/></svg>
+          <span>Entrar com Conta Google</span>
         </button>
 
         <div id="admin-gate-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
@@ -91,7 +121,7 @@
         </div>
       </form>
 
-      <!-- PAINEL 2: SOLICITAR ACESSO / CADASTRO DE EQUIPE -->
+      <!-- PAINEL 2: CRIAR CONTA / SOLICITAR ACESSO (NASCE COMO PENDING NO SUPABASE) -->
       <form id="form-admin-gate-register" style="display: none;">
         <div class="admin-gate-input-group">
           <label for="admin-gate-req-nome">Nome Completo</label>
@@ -99,13 +129,13 @@
         </div>
 
         <div class="admin-gate-input-group">
-          <label for="admin-gate-req-email">E-mail Profissional</label>
-          <input type="email" id="admin-gate-req-email" class="admin-gate-input" placeholder="seu-email@dominio.com" required />
+          <label for="admin-gate-req-email">E-mail</label>
+          <input type="email" id="admin-gate-req-email" class="admin-gate-input" placeholder="seu-email@dominio.com" autocomplete="email" required />
         </div>
 
         <div class="admin-gate-input-group">
-          <label for="admin-gate-req-senha">Criar Senha de Acesso</label>
-          <input type="password" id="admin-gate-req-senha" class="admin-gate-input" placeholder="Mínimo 4 caracteres" required />
+          <label for="admin-gate-req-senha">Criar Senha (mín. 6 caracteres)</label>
+          <input type="password" id="admin-gate-req-senha" class="admin-gate-input" placeholder="Mínimo 6 caracteres" minlength="6" autocomplete="new-password" required />
         </div>
 
         <div class="admin-gate-input-group">
@@ -118,14 +148,14 @@
           </select>
         </div>
 
-        <button type="submit" id="btn-admin-gate-req-submit" class="btn-cms-secondary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
-          📨 Enviar Pedido para o Admin Master
+        <button type="submit" id="btn-admin-gate-req-submit" class="btn-cms-primary" style="width: 100%; justify-content: center; padding: 12px; font-size: 0.92rem; border-radius: 10px; margin-top: 6px; cursor: pointer;">
+          📨 Criar Conta e Solicitar Aprovação
         </button>
 
         <div id="admin-gate-req-feedback" style="display: none; margin-top: 14px; padding: 10px 14px; border-radius: 10px; font-size: 0.82rem; font-weight: 600;"></div>
 
         <p style="margin: 12px 0 0; font-size: 0.74rem; color: #94a3b8; text-align: center;">
-          💡 Novos acessos ficam pendentes e requerem liberação manual do Administrador Oficial.
+          💡 Toda nova conta fica com status <strong>Pendente</strong> até o administrador aprovar no painel.
         </p>
       </form>
     </div>
@@ -831,40 +861,51 @@
           </form>
         </div>
 
-        <!-- ABA 5: EQUIPE & FUNCIONÁRIOS -->
+        <!-- ABA 5: ACESSOS, EQUIPE & PERMISSÕES (public.profiles + RLS) -->
         <div class="admin-cms-pane" id="cms-pane-equipe" style="display: none;">
-          <!-- Card Resumo do Administrador Oficial -->
+          <!-- Card Resumo do Administrador Logado -->
           <div style="background:linear-gradient(135deg, #0f172a 0%, #1e293b 100%); color:#fff; border-radius:16px; padding:22px 24px; margin-bottom:20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:14px; box-shadow:0 4px 16px rgba(15,23,42,0.1);">
             <div>
-              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:0.05em; margin-bottom:8px;">👑 ADMINISTRADOR MASTER</span>
-              <div style="font-size:1.15rem; font-weight:700; letter-spacing:-0.01em;">jt.designer21@gmail.com</div>
-              <div style="font-size:0.84rem; color:#94a3b8; margin-top:4px; line-height:1.45;">Controle de Funcionários, Vendedores e Administradores com acesso ao Painel, Consulta QR Code e Orçamentos.</div>
+              <span style="display:inline-block; background:#F04E23; color:#fff; font-size:0.7rem; font-weight:700; padding:3px 10px; border-radius:999px; letter-spacing:0.05em; margin-bottom:8px;">👑 CONTROLE DE ACESSOS • SUPABASE AUTH &amp; RLS</span>
+              <div id="cms-equipe-logged-email" style="font-size:1.15rem; font-weight:700; letter-spacing:-0.01em;">jt.designer21@gmail.com</div>
+              <div style="font-size:0.84rem; color:#94a3b8; margin-top:4px; line-height:1.45;">Aprove pedidos pendentes, defina quem é Administrador ou Usuário Comum, bloqueie ou exclua contas em tempo real.</div>
             </div>
             <button type="button" class="btn-cms-secondary" id="btn-cms-refresh-equipe" style="background:rgba(255,255,255,0.1); color:#fff; border:1px solid rgba(255,255,255,0.22); border-radius:10px; padding:10px 16px; font-weight:600; cursor:pointer;">
-              🔄 Atualizar Solicitações
+              🔄 Atualizar Acessos
             </button>
           </div>
 
           <!-- 1) SOLICITAÇÕES PENDENTES DE APROVAÇÃO -->
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="margin-bottom:14px;">
-              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">📩 Solicitações Pendentes de Acesso</h4>
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">⏳ Pedidos de Acesso Pendentes</h4>
               <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
-                Quando um colaborador ou vendedor pedir acesso na tela de login administrativo, o pedido aparecerá aqui para você <strong>Aprovar (Liberar)</strong>, <strong>Negar / Bloquear</strong> ou <strong>Excluir</strong>.
+                Toda conta criada fica pendente até você clicar em <strong>Aprovar</strong>. Você pode liberar como <strong>Administrador</strong> ou <strong>Usuário Comum</strong>, bloquear ou excluir.
               </p>
             </div>
             <div id="cms-pending-requests-list"></div>
           </div>
 
-          <!-- 2) FUNCIONÁRIOS & ADMINISTRADORES CADASTRADOS -->
+          <!-- 2) USUÁRIOS & ADMINISTRADORES APROVADOS -->
           <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
             <div style="margin-bottom:14px;">
-              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">👥 Funcionários &amp; Administradores Cadastrados</h4>
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">✅ Usuários &amp; Administradores Aprovados</h4>
               <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
-                Gerencie quem pode entrar na Área Administrativa. Você pode liberar, colocar pendente, bloquear ou excluir qualquer registro a qualquer momento.
+                Altere o papel (Admin ou Usuário Comum), bloqueie/revogue ou exclua contas. Sua própria conta e o último administrador ficam protegidos no banco.
               </p>
             </div>
             <div id="cms-all-admins-list"></div>
+          </div>
+
+          <!-- 3) CONTAS BLOQUEADAS / REVOGADAS -->
+          <div style="background:#ffffff; border:1.5px solid #e2e8f0; border-radius:16px; padding:22px 24px; margin-bottom:20px; box-shadow:0 1px 3px rgba(15,23,42,0.03);">
+            <div style="margin-bottom:14px;">
+              <h4 style="margin:0 0 4px; font-size:1.05rem; font-weight:700; color:#0f172a;">🚫 Contas Bloqueadas / Revogadas</h4>
+              <p style="margin:0; color:#64748b; font-size:0.84rem; line-height:1.5;">
+                Contas bloqueadas perdem acesso imediatamente. Você pode reativá-las ou excluí-las permanentemente.
+              </p>
+            </div>
+            <div id="cms-blocked-admins-list"></div>
           </div>
 
           <!-- 3) CADASTRAR NOVO FUNCIONÁRIO / ADMINISTRADOR DIRETAMENTE -->
@@ -1347,10 +1388,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261114_01"></script>
-  <script src="js/dados.js?v=20261118_04"></script>
-  <script src="js/database.js?v=20261118_04"></script>
-  <script src="js/app.js?v=20261118_04"></script>
+  <script src="js/supabase-client.js?v=20261118_05"></script>
+  <script src="js/dados.js?v=20261118_05"></script>
+  <script src="js/database.js?v=20261118_05"></script>
+  <script src="js/app.js?v=20261118_05"></script>
 
 </body>
 
