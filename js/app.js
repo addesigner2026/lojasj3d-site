@@ -11285,6 +11285,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const listEl = document.getElementById("cms-portal-quotes-list");
     const badgeEl = document.getElementById("cms-portal-quotes-badge");
     const filterEl = document.getElementById("cms-filter-quotes-status");
+    const filterNfEl = document.getElementById("cms-filter-quotes-nf");
     const searchEl = document.getElementById("cms-search-quotes-input");
     if (!window.SJ_SUPABASE?.quotes) return;
 
@@ -11295,7 +11296,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const res = await window.SJ_SUPABASE.quotes.listarTodos();
     if (!res.sucesso) {
       if (listEl) {
-        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute a Migration 006 no SQL Editor do Supabase para ativar Orçamentos dos Clientes." : (res.mensagem || "Erro ao carregar orçamentos."))}</div>`;
+        listEl.innerHTML = `<div style="padding:18px; background:#fffbeb; border:1.5px solid #fde68a; border-radius:12px; color:#92400e; font-size:0.84rem;">⚠️ ${escaparHtml(res.tabelaAusente ? "Execute as Migrations 006 e 007 no SQL Editor do Supabase para ativar Orçamentos dos Clientes." : (res.mensagem || "Erro ao carregar orçamentos."))}</div>`;
       }
       return;
     }
@@ -11305,13 +11306,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (badgeEl) badgeEl.textContent = String(novosCount || todos.length);
 
     const filtro = filterEl ? filterEl.value : "todos";
+    const filtroNf = filterNfEl ? filterNfEl.value : "todos";
     const busca = (searchEl ? searchEl.value : "").trim().toLowerCase();
+    const buscaDigitos = busca.replace(/\D/g, "");
 
     const filtrados = todos.filter((q) => {
       if (filtro !== "todos" && q.status !== filtro) return false;
+      const comNota = Boolean(q.precisa_nota_fiscal);
+      if (filtroNf === "com_nf" && !comNota) return false;
+      if (filtroNf === "sem_nf" && comNota) return false;
       if (busca) {
-        const alvo = `${q.quote_number || ""} ${q.cliente_nome || ""} ${q.cliente_email || ""} ${q.cliente_telefone || ""}`.toLowerCase();
-        if (!alvo.includes(busca)) return false;
+        const snap = q.customer_snapshot && typeof q.customer_snapshot === "object" ? q.customer_snapshot : {};
+        const docRaw = String(snap.documento || snap.cpf || snap.cnpj || "");
+        const alvoTexto = `${q.quote_number || ""} ${q.cliente_nome || ""} ${snap.razao_social || ""} ${snap.nome_fantasia || ""} ${q.cliente_email || ""} ${q.cliente_telefone || ""} ${docRaw}`.toLowerCase();
+        const matchTexto = alvoTexto.includes(busca);
+        const matchDoc = buscaDigitos.length >= 3 && docRaw.replace(/\D/g, "").includes(buscaDigitos);
+        if (!matchTexto && !matchDoc) return false;
       }
       return true;
     });
@@ -11331,6 +11341,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       cancelado: "🚫 Cancelado"
     };
     const fmtBRL = (v) => Number(v || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const fmtCpf = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : v;
+    };
+    const fmtCnpj = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
+    };
+    const fmtCep = (v) => {
+      const d = String(v || "").replace(/\D/g, "");
+      return d.length === 8 ? `${d.slice(0, 5)}-${d.slice(5)}` : d;
+    };
+
+    const fiscalCopyMap = {};
 
     listEl.innerHTML = filtrados
       .map((q) => {
@@ -11339,10 +11363,42 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         const itens = Array.isArray(q.quote_items) ? q.quote_items : [];
         const totalRef = itens.reduce((acc, it) => acc + Number(it.unit_price || 0) * Number(it.quantity || 1), 0);
 
-        const telDigitos = String(q.cliente_telefone || "").replace(/\D/g, "");
+        const snap = q.customer_snapshot && typeof q.customer_snapshot === "object" ? q.customer_snapshot : {};
+        const comNota = Boolean(q.precisa_nota_fiscal);
+        const tipo = snap.person_type === "pj" ? "pj" : "pf";
+        const nomeExib = snap.display_name || q.cliente_nome || "Cliente";
+        const docLimpo = snap.documento || (tipo === "pj" ? snap.cnpj : snap.cpf) || "";
+        const docFmt = tipo === "pj" ? (docLimpo ? fmtCnpj(docLimpo) : "—") : (docLimpo ? fmtCpf(docLimpo) : "—");
+        const docTitulo = tipo === "pj" ? "CNPJ" : "CPF";
+        const telStr = snap.telefone || q.cliente_telefone || "";
+        const emailStr = snap.email || q.cliente_email || "";
+
+        const endLinha = [
+          [snap.logradouro, snap.numero].filter(Boolean).join(", "),
+          snap.complemento || "",
+          snap.bairro || "",
+          [snap.cidade, snap.uf].filter(Boolean).join(" / "),
+          snap.cep ? `CEP ${fmtCep(snap.cep)}` : ""
+        ].filter(Boolean).join(" • ");
+
+        // Texto pronto para o botão "Copiar dados para emissão da nota"
+        fiscalCopyMap[q.id] = [
+          `ORÇAMENTO #${q.quote_number} (${comNota ? "COM NOTA FISCAL" : "SEM NOTA FISCAL"})`,
+          `Tipo: ${tipo === "pj" ? "Pessoa Jurídica" : "Pessoa Física"}`,
+          tipo === "pj" ? `Razão Social: ${snap.razao_social || nomeExib}` : `Nome: ${snap.nome || nomeExib}`,
+          tipo === "pj" && snap.nome_fantasia ? `Nome Fantasia: ${snap.nome_fantasia}` : "",
+          `${docTitulo}: ${docFmt}`,
+          tipo === "pj" && snap.inscricao_estadual ? `Inscrição Estadual: ${snap.inscricao_estadual}` : "",
+          tipo === "pj" && snap.contato_nome ? `Contato: ${snap.contato_nome}` : "",
+          `Telefone: ${telStr || "—"}`,
+          `E-mail: ${emailStr || "—"}`,
+          endLinha ? `Endereço: ${endLinha}` : ""
+        ].filter(Boolean).join("\n");
+
+        const telDigitos = String(telStr).replace(/\D/g, "");
         const telWa = telDigitos ? (telDigitos.startsWith("55") ? telDigitos : `55${telDigitos}`) : "";
         const waMsgCliente = telWa
-          ? encodeURIComponent(`Olá ${q.cliente_nome || ""}! Aqui é da Loja SJ 3D sobre o seu Orçamento nº ${q.quote_number}.`)
+          ? encodeURIComponent(`Olá ${nomeExib}! Aqui é da Loja SJ 3D sobre o seu Orçamento nº ${q.quote_number}.`)
           : "";
 
         const itensHtml = itens
@@ -11359,22 +11415,45 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             <div style="display:flex; justify-content:space-between; align-items:flex-start; flex-wrap:wrap; gap:10px; margin-bottom:10px;">
               <div>
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
-                  <strong style="font-size:1.04rem; color:#0f172a;">Orçamento nº ${escaparHtml(q.quote_number)}</strong>
+                  <strong style="font-size:1.05rem; color:#0f172a;">Orçamento nº ${escaparHtml(q.quote_number)}</strong>
                   <span style="padding:3px 10px; border-radius:999px; font-size:0.74rem; font-weight:800; background:#f1f5f9; color:#0f172a;">
                     ${escaparHtml(statusLabels[q.status] || q.status)}
                   </span>
+                  <span style="padding:3px 10px; border-radius:999px; font-size:0.72rem; font-weight:800; background:${comNota ? "#dcfce7" : "#f1f5f9"}; color:${comNota ? "#15803d" : "#475569"}; border:1px solid ${comNota ? "#bbf7d0" : "#e2e8f0"};">
+                    ${comNota ? "🧾 COM NOTA FISCAL" : "📄 SEM NOTA"}
+                  </span>
+                  <span style="padding:3px 9px; border-radius:999px; font-size:0.72rem; font-weight:800; background:#eff6ff; color:#1d4ed8;">
+                    ${tipo === "pj" ? "🏢 PJ" : "👤 PF"}
+                  </span>
                   ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.72rem; font-weight:800; padding:3px 9px; border-radius:999px;">⚠️ Alterado pelo cliente</span>` : ""}
                 </div>
-                <div style="font-size:0.76rem; color:#64748b; margin-top:3px;">
+                <div style="font-size:0.76rem; color:#64748b; margin-top:4px;">
                   Recebido em ${escaparHtml(dataFmt)} • Referência catálogo: <strong>${escaparHtml(fmtBRL(totalRef))}</strong>
                 </div>
-                <div style="font-size:0.83rem; color:#334155; margin-top:6px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
-                  <span>👤 <strong>${escaparHtml(q.cliente_nome || "Cliente")}</strong></span>
-                  ${q.cliente_email ? `<span>📧 ${escaparHtml(q.cliente_email)}</span>` : ""}
-                  ${q.cliente_telefone ? `<span>📱 ${escaparHtml(q.cliente_telefone)}</span>` : ""}
-                  ${telWa ? `<a href="https://wa.me/${escaparHtml(telWa)}?text=${waMsgCliente}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:#16a34a; color:#fff; font-size:0.74rem; font-weight:800; text-decoration:none;">💬 Chamar no WhatsApp</a>` : ""}
-                </div>
               </div>
+
+              <button type="button" class="btn-cms-secondary" data-quote-copy-fiscal="${escaparHtml(q.id)}" style="padding:7px 12px; border-radius:9px; font-size:0.78rem; font-weight:800; cursor:pointer;">
+                📋 Copiar dados para emissão da nota
+              </button>
+            </div>
+
+            <!-- Dados Fiscais do Snapshot (Imutável) -->
+            <div style="background:${comNota ? "#f0fdf4" : "#f8fafc"}; border:1px solid ${comNota ? "#bbf7d0" : "#e2e8f0"}; border-radius:11px; padding:12px 14px; margin-bottom:12px; font-size:0.82rem; color:#1e293b;">
+              <div style="display:flex; flex-wrap:wrap; gap:12px; align-items:center;">
+                <span><strong>${tipo === "pj" ? "Razão Social:" : "Nome:"}</strong> ${escaparHtml(nomeExib)}</span>
+                ${tipo === "pj" && snap.nome_fantasia && snap.nome_fantasia !== nomeExib ? `<span><strong>Fantasia:</strong> ${escaparHtml(snap.nome_fantasia)}</span>` : ""}
+                <span><strong>${docTitulo}:</strong> ${escaparHtml(docFmt)}</span>
+                ${telStr ? `<span>📱 <strong>${escaparHtml(telStr)}</strong></span>` : ""}
+                ${telWa ? `<a href="https://wa.me/${escaparHtml(telWa)}?text=${waMsgCliente}" target="_blank" rel="noopener" style="display:inline-flex; align-items:center; gap:5px; padding:4px 10px; border-radius:8px; background:#16a34a; color:#fff; font-size:0.74rem; font-weight:800; text-decoration:none;">💬 Chamar no WhatsApp</a>` : ""}
+              </div>
+              ${comNota ? `
+                <div style="margin-top:8px; padding-top:8px; border-top:1px dashed #bbf7d0; display:flex; flex-wrap:wrap; gap:12px; font-size:0.8rem; color:#14532d;">
+                  ${emailStr ? `<span>📧 <strong>E-mail:</strong> ${escaparHtml(emailStr)}</span>` : ""}
+                  ${tipo === "pj" && snap.inscricao_estadual ? `<span>🏷️ <strong>IE:</strong> ${escaparHtml(snap.inscricao_estadual)}</span>` : ""}
+                  ${tipo === "pj" && snap.contato_nome ? `<span>🤝 <strong>Contato:</strong> ${escaparHtml(snap.contato_nome)}</span>` : ""}
+                  ${endLinha ? `<span style="flex-basis:100%;">📍 <strong>Endereço fiscal:</strong> ${escaparHtml(endLinha)}</span>` : ""}
+                </div>
+              ` : ""}
             </div>
 
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; padding:10px 14px; margin-bottom:12px;">
@@ -11412,6 +11491,19 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         `;
       })
       .join("");
+
+    listEl.querySelectorAll("[data-quote-copy-fiscal]").forEach((btn) => {
+      btn.addEventListener("click", async () => {
+        const texto = fiscalCopyMap[btn.dataset.quoteCopyFiscal] || "";
+        if (!texto) return;
+        try {
+          await navigator.clipboard.writeText(texto);
+          mostrarToast("📋 Dados fiscais copiados para a área de transferência!", "success");
+        } catch (_) {
+          mostrarToast("Não foi possível copiar automaticamente.", "warning");
+        }
+      });
+    });
 
     listEl.querySelectorAll("[data-quote-save-btn]").forEach((btn) => {
       btn.addEventListener("click", async () => {
@@ -13176,6 +13268,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
         // Bind filtros, busca e botão de atualizar da aba Orçamentos dos Clientes
         document.getElementById("cms-filter-quotes-status")?.addEventListener("change", () => renderizarOrcamentosPortalCms());
+        document.getElementById("cms-filter-quotes-nf")?.addEventListener("change", () => renderizarOrcamentosPortalCms());
         document.getElementById("cms-search-quotes-input")?.addEventListener("input", () => renderizarOrcamentosPortalCms());
         document.getElementById("btn-cms-refresh-portal-quotes")?.addEventListener("click", () => renderizarOrcamentosPortalCms());
 

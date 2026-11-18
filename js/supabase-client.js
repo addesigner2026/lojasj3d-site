@@ -848,9 +848,9 @@
       }
     },
 
-    // Atualiza apenas dados cadastrais do próprio perfil (nome, telefone, endereco, cidade_uf)
+    // Atualiza dados cadastrais e fiscais (PF/PJ + Endereço) do próprio perfil.
     // Role e status são bloqueados pelo banco (RLS + trigger) para não-admins.
-    atualizarMeuPerfil: async function ({ nome, telefone, endereco, cidade_uf }) {
+    atualizarMeuPerfil: async function (dados) {
       const client = inicializarCliente();
       if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
       try {
@@ -858,12 +858,41 @@
         const uid = sessData?.session?.user?.id;
         if (!uid) return { sucesso: false, mensagem: "Sessão expirada. Faça login novamente." };
 
+        const d = dados || {};
+        const personType = d.person_type === "pj" ? "pj" : "pf";
+        const ieTipo = ["contribuinte", "isento", "nao_contribuinte"].includes(d.ie_tipo)
+          ? d.ie_tipo
+          : "contribuinte";
+
+        const limparDigitos = (v) => String(v || "").replace(/\D/g, "");
+        const cpfDigits = limparDigitos(d.cpf);
+        const cnpjDigits = limparDigitos(d.cnpj);
+        const cepDigits = limparDigitos(d.cep);
+        const ufLimpo = String(d.uf || "").trim().toUpperCase().slice(0, 2);
+
         const payload = {
-          nome: String(nome || "").trim(),
-          telefone: String(telefone || "").trim(),
-          endereco: String(endereco || "").trim(),
-          cidade_uf: String(cidade_uf || "").trim()
+          person_type: personType,
+          nome: String(d.nome || "").trim(),
+          telefone: String(d.telefone || "").trim(),
+          cpf: cpfDigits ? cpfDigits : null,
+          cnpj: cnpjDigits ? cnpjDigits : null,
+          razao_social: String(d.razao_social || "").trim(),
+          nome_fantasia: String(d.nome_fantasia || "").trim(),
+          inscricao_estadual: ieTipo === "contribuinte" ? String(d.inscricao_estadual || "").trim() : "",
+          ie_tipo: ieTipo,
+          contato_nome: String(d.contato_nome || "").trim(),
+          cep: cepDigits ? cepDigits : null,
+          logradouro: String(d.logradouro || "").trim(),
+          numero: String(d.numero || "").trim(),
+          complemento: String(d.complemento || "").trim(),
+          bairro: String(d.bairro || "").trim(),
+          cidade: String(d.cidade || "").trim(),
+          uf: ufLimpo ? ufLimpo : null
         };
+
+        // Mantém fallback legado sincronizado caso a Migration 007 ainda não tenha sido aplicada
+        if (d.endereco !== undefined) payload.endereco = String(d.endereco || "").trim();
+        if (d.cidade_uf !== undefined) payload.cidade_uf = String(d.cidade_uf || "").trim();
 
         const { data, error } = await client
           .from("profiles")
@@ -872,10 +901,22 @@
           .select("*")
           .maybeSingle();
 
-        if (error) return { sucesso: false, mensagem: error.message };
+        if (error) {
+          const msgRaw = String(error.message || "");
+          if (String(error.code || "") === "23505" || msgRaw.includes("idx_profiles_cpf_unique") || msgRaw.includes("idx_profiles_cnpj_unique")) {
+            return { sucesso: false, mensagem: "Este CPF ou CNPJ já está cadastrado em outra conta. Cada documento pode ter apenas uma conta." };
+          }
+          if (msgRaw.includes("profiles_cpf_check")) {
+            return { sucesso: false, mensagem: "CPF inválido. Verifique os 11 dígitos informados." };
+          }
+          if (msgRaw.includes("profiles_cnpj_check")) {
+            return { sucesso: false, mensagem: "CNPJ inválido. Verifique os 14 dígitos informados." };
+          }
+          return { sucesso: false, mensagem: "Não foi possível salvar os dados. Confira os campos informados." };
+        }
         return { sucesso: true, perfil: data };
       } catch (err) {
-        return { sucesso: false, mensagem: err.message };
+        return { sucesso: false, mensagem: "Erro ao salvar seus dados cadastrais." };
       }
     },
 
@@ -1426,13 +1467,14 @@
     },
 
     // Chama a função RPC SECURITY DEFINER create_quote_from_cart no banco:
-    // cria orçamento 'solicitado', copia preços de public.products e esvazia o carrinho!
-    criarDoCarrinho: async function (notes = "") {
+    // valida obrigatoriedade COM/SEM nota fiscal, grava snapshot fiscal e cria orçamento!
+    criarDoCarrinho: async function (notes = "", precisaNotaFiscal = false) {
       const client = inicializarCliente();
       if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
       try {
         const { data, error } = await client.rpc("create_quote_from_cart", {
-          p_notes: String(notes || "").trim()
+          p_notes: String(notes || "").trim(),
+          p_precisa_nota_fiscal: Boolean(precisaNotaFiscal)
         });
 
         if (error) {
@@ -1619,8 +1661,36 @@
       return cachedWhatsappNumber;
     },
 
-    gerarUrlOrcamento: async function ({ quoteNumber, clienteNome, items = [], notes = "", ehAlteracao = false }) {
+    gerarUrlOrcamento: async function ({
+      quoteNumber,
+      clienteNome,
+      items = [],
+      notes = "",
+      ehAlteracao = false,
+      precisaNotaFiscal = false,
+      snapshot = null
+    }) {
       const numero = await whatsapp.obterNumeroLoja();
+      const snap = snapshot && typeof snapshot === "object" ? snapshot : {};
+      const comNota = Boolean(precisaNotaFiscal || snap.precisa_nota_fiscal);
+      const tipo = snap.person_type === "pj" ? "pj" : "pf";
+
+      const fmtCpf = (v) => {
+        const d = String(v || "").replace(/\D/g, "");
+        return d.length === 11 ? `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}` : v;
+      };
+      const fmtCnpj = (v) => {
+        const d = String(v || "").replace(/\D/g, "");
+        return d.length === 14 ? `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}` : v;
+      };
+
+      const nomeExibicao = snap.display_name || (tipo === "pj" ? (snap.razao_social || snap.nome_fantasia) : snap.nome) || clienteNome || "";
+      const docFmt = tipo === "pj"
+        ? (snap.cnpj || snap.documento ? fmtCnpj(snap.cnpj || snap.documento) : "")
+        : (snap.cpf || snap.documento ? fmtCpf(snap.cpf || snap.documento) : "");
+      const docLabel = tipo === "pj" ? "CNPJ" : "CPF";
+      const telefoneCli = snap.telefone || "";
+
       const linhasItens = (Array.isArray(items) ? items : []).map((it) => {
         const qtd = it.quantity || it.quantidade || 1;
         const nome = it.product_name || it.nome || "Produto";
@@ -1634,10 +1704,25 @@
         ? `Olá! *Orçamento nº ${quoteNumber} atualizado*`
         : `Olá! Gostaria de solicitar o *Orçamento nº ${quoteNumber}* na Loja SJ 3D:`;
 
+      const cepRaw = String(snap.cep || "").replace(/\D/g, "");
+      const cepFmt = cepRaw.length === 8 ? `${cepRaw.slice(0, 5)}-${cepRaw.slice(5)}` : cepRaw;
+      const enderecoCompleto = [
+        [snap.logradouro, snap.numero].filter(Boolean).join(", "),
+        snap.complemento || "",
+        snap.bairro || "",
+        [snap.cidade, snap.uf].filter(Boolean).join("/"),
+        cepFmt ? `CEP ${cepFmt}` : ""
+      ].filter(Boolean).join(" - ");
+
       const blocos = [
         cabecalho,
-        clienteNome ? `*Cliente:* ${clienteNome}` : "",
         `*Orçamento:* #${quoteNumber}`,
+        nomeExibicao ? `*${tipo === "pj" ? "Empresa / Razão Social" : "Cliente"}:* ${nomeExibicao}` : "",
+        docFmt ? `*${docLabel}:* ${docFmt}` : "",
+        telefoneCli ? `*Telefone:* ${telefoneCli}` : "",
+        `*Nota fiscal:* ${comNota ? "Sim" : "Não"}`,
+        comNota && tipo === "pj" && snap.inscricao_estadual ? `*Inscrição Estadual:* ${snap.inscricao_estadual}` : "",
+        comNota && enderecoCompleto ? `*Endereço:* ${enderecoCompleto}` : "",
         "",
         "*Itens solicitados:*",
         ...(linhasItens.length > 0 ? linhasItens : ["• (Sem itens listados)"]),
@@ -1646,6 +1731,63 @@
 
       const textoCodificado = encodeURIComponent(blocos.join("\n"));
       return `https://wa.me/${numero}?text=${textoCodificado}`;
+    }
+  };
+
+  // =========================================================================
+  // MÓDULO FISCAL SERVER-SIDE (CONSULTA DE CNPJ & CEP VIA API PROTEGIDA)
+  // =========================================================================
+  const fiscal = {
+    consultarCnpj: async function (cnpjRaw) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      const digits = String(cnpjRaw || "").replace(/\D/g, "");
+      if (digits.length !== 14) {
+        return { sucesso: false, mensagem: "Informe os 14 dígitos do CNPJ." };
+      }
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const token = sessData?.session?.access_token;
+        if (!token) return { sucesso: false, mensagem: "Sessão expirada. Entre novamente." };
+
+        const r = await fetch(`/api/lookup-cnpj?cnpj=${encodeURIComponent(digits)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store"
+        });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.sucesso) {
+          return { sucesso: false, mensagem: j?.mensagem || "Não foi possível consultar o CNPJ." };
+        }
+        return j;
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro de conexão ao consultar CNPJ. Preencha manualmente." };
+      }
+    },
+
+    consultarCep: async function (cepRaw) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      const digits = String(cepRaw || "").replace(/\D/g, "");
+      if (digits.length !== 8) {
+        return { sucesso: false, mensagem: "Informe os 8 dígitos do CEP." };
+      }
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const token = sessData?.session?.access_token;
+        if (!token) return { sucesso: false, mensagem: "Sessão expirada. Entre novamente." };
+
+        const r = await fetch(`/api/lookup-cep?cep=${encodeURIComponent(digits)}`, {
+          headers: { Authorization: `Bearer ${token}` },
+          cache: "no-store"
+        });
+        const j = await r.json().catch(() => null);
+        if (!r.ok || !j?.sucesso) {
+          return { sucesso: false, mensagem: j?.mensagem || "CEP não encontrado." };
+        }
+        return j;
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao consultar CEP. Preencha manualmente." };
+      }
     }
   };
 
@@ -1676,6 +1818,7 @@
     cart,
     quotes,
     whatsapp,
+    fiscal,
     clientes,
     consentimentos,
     retencao,

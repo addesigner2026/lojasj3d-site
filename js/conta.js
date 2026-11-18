@@ -1,12 +1,18 @@
 /**
  * PAINEL DO CLIENTE (/conta) — LOJA SJ 3D
  * =====================================================================
- * Implementa as 4 áreas do cliente:
+ * 4 áreas:
  * 1. Favoritos (public.favorites) -> Adicionar ao carrinho, Remover
- * 2. Carrinho (public.cart_items) -> Alterar qtd, Remover, Esvaziar, Solicitar orçamento
- * 3. Orçamentos (public.quotes + public.quote_items) -> Editar enquanto 'solicitado',
- *    Enviar alteração no WhatsApp, Reenviar no WhatsApp, Trava após atendimento da equipe
- * 4. Meus Dados (public.profiles) -> Nome, Telefone (WhatsApp), E-mail e Endereço opcional
+ * 2. Carrinho (public.cart_items) -> Alterar qtd, Pergunta Nota Fiscal, Validação PF/PJ,
+ *    Completar dados ali mesmo ou em Meus Dados, Solicitar orçamento no WhatsApp
+ * 3. Orçamentos (public.quotes + quote_items + customer_snapshot) -> Editar enquanto 'solicitado',
+ *    Enviar alteração / Reenviar no WhatsApp com dados do snapshot, Trava após atendimento
+ * 4. Meus Dados (public.profiles) -> Pessoa Física | Pessoa Jurídica, máscaras,
+ *    busca server-side de CNPJ e CEP, CPF parcialmente mascarado fora de edição
+ *
+ * SEGURANÇA E LGPD:
+ * - Nunca registra CPF ou CNPJ em console.log ou mensagens de erro.
+ * - Valida dígitos verificadores no navegador e também no servidor/banco.
  */
 (function () {
   "use strict";
@@ -19,7 +25,12 @@
     favorites: [],
     cartItems: [],
     quotes: [],
-    realtimeAssinado: false
+    realtimeAssinado: false,
+    personType: "pf",
+    editandoCpf: false,
+    voltarParaCarrinhoAposSalvar: false,
+    ultimoCnpjConsultado: "",
+    ultimoCepConsultado: ""
   };
 
   function escaparHtml(str) {
@@ -29,6 +40,79 @@
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;")
       .replace(/'/g, "&#039;");
+  }
+
+  function apenasDigitos(str) {
+    return String(str || "").replace(/\D/g, "");
+  }
+
+  function formatarCpf(v) {
+    const d = apenasDigitos(v).slice(0, 11);
+    if (d.length > 9) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+    if (d.length > 6) return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6)}`;
+    if (d.length > 3) return `${d.slice(0, 3)}.${d.slice(3)}`;
+    return d;
+  }
+
+  function mascararCpfParcial(v) {
+    const d = apenasDigitos(v);
+    if (d.length !== 11) return "***.***.***-**";
+    return `***.${d.slice(3, 6)}.${d.slice(6, 9)}-**`;
+  }
+
+  function formatarCnpj(v) {
+    const d = apenasDigitos(v).slice(0, 14);
+    if (d.length > 12) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8, 12)}-${d.slice(12)}`;
+    if (d.length > 8) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5, 8)}/${d.slice(8)}`;
+    if (d.length > 5) return `${d.slice(0, 2)}.${d.slice(2, 5)}.${d.slice(5)}`;
+    if (d.length > 2) return `${d.slice(0, 2)}.${d.slice(2)}`;
+    return d;
+  }
+
+  function formatarCep(v) {
+    const d = apenasDigitos(v).slice(0, 8);
+    if (d.length > 5) return `${d.slice(0, 5)}-${d.slice(5)}`;
+    return d;
+  }
+
+  function formatarTelefone(v) {
+    const d = apenasDigitos(v).slice(0, 11);
+    if (d.length > 10) return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+    if (d.length > 6) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    if (d.length > 2) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length > 0) return `(${d}`;
+    return "";
+  }
+
+  function validarCpfOficial(raw) {
+    const d = apenasDigitos(raw);
+    if (d.length !== 11 || /^(\d)\1{10}$/.test(d)) return false;
+    let sum = 0;
+    for (let i = 0; i < 9; i += 1) sum += Number(d[i]) * (10 - i);
+    let rem = (sum * 10) % 11;
+    if (rem === 10 || rem === 11) rem = 0;
+    if (rem !== Number(d[9])) return false;
+
+    sum = 0;
+    for (let i = 0; i < 10; i += 1) sum += Number(d[i]) * (11 - i);
+    rem = (sum * 10) % 11;
+    if (rem === 10 || rem === 11) rem = 0;
+    return rem === Number(d[10]);
+  }
+
+  function validarCnpjOficial(raw) {
+    const d = apenasDigitos(raw);
+    if (d.length !== 14 || /^(\d)\1{13}$/.test(d)) return false;
+    const calc = (base, w) => {
+      let s = 0;
+      for (let i = 0; i < w.length; i += 1) s += Number(base[i]) * w[i];
+      const r = s % 11;
+      return r < 2 ? 0 : 11 - r;
+    };
+    const w1 = [5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    const w2 = [6, 5, 4, 3, 2, 9, 8, 7, 6, 5, 4, 3, 2];
+    if (calc(d.slice(0, 12), w1) !== Number(d[12])) return false;
+    return calc(d.slice(0, 13), w2) === Number(d[13]);
   }
 
   function formatarMoeda(valor) {
@@ -63,7 +147,7 @@
       el.style.opacity = "0";
       el.style.transition = "opacity 0.25s ease";
       setTimeout(() => el.remove(), 260);
-    }, 4200);
+    }, 4400);
   }
 
   function mostrarFeedback(elId, tipo, texto) {
@@ -104,13 +188,66 @@
 
   function badgeEstoqueHtml(stockStatus) {
     const st = stockStatus || "disponivel";
-    if (st === "esgotado") {
-      return `<span class="stock-pill stock-esgotado">🔴 Esgotado</span>`;
-    }
-    if (st === "poucas_unidades") {
-      return `<span class="stock-pill stock-poucas_unidades">🟠 Poucas unidades</span>`;
-    }
+    if (st === "esgotado") return `<span class="stock-pill stock-esgotado">🔴 Esgotado</span>`;
+    if (st === "poucas_unidades") return `<span class="stock-pill stock-poucas_unidades">🟠 Poucas unidades</span>`;
     return `<span class="stock-pill stock-disponivel">🟢 Disponível</span>`;
+  }
+
+  // =========================================================================
+  // VALIDAÇÃO DE CAMPOS PARA ORÇAMENTO (SEM NOTA vs COM NOTA FISCAL)
+  // =========================================================================
+  function validarPerfilParaOrcamento(perfil, precisaNota) {
+    const p = perfil || {};
+    const tipo = p.person_type === "pj" ? "pj" : "pf";
+    const faltando = [];
+    const camposFaltandoKeys = [];
+
+    const addFalta = (key, label) => {
+      faltando.push(label);
+      if (!camposFaltandoKeys.includes(key)) camposFaltandoKeys.push(key);
+    };
+
+    const telDigits = apenasDigitos(p.telefone);
+    if (telDigits.length < 10) addFalta("telefone", "Telefone / WhatsApp com DDD");
+
+    if (tipo === "pf") {
+      if (!String(p.nome || "").trim()) addFalta("nome", "Nome completo");
+      if (!validarCpfOficial(p.cpf)) addFalta("cpf", "CPF válido (11 dígitos)");
+
+      if (precisaNota) {
+        if (!String(p.email || "").trim()) addFalta("email", "E-mail");
+        if (apenasDigitos(p.cep).length !== 8) addFalta("cep", "CEP (8 dígitos)");
+        if (!String(p.logradouro || "").trim()) addFalta("logradouro", "Rua / Logradouro");
+        if (!String(p.numero || "").trim()) addFalta("numero", "Número do endereço");
+        if (!String(p.bairro || "").trim()) addFalta("bairro", "Bairro");
+        if (!String(p.cidade || "").trim()) addFalta("cidade", "Cidade");
+        if (!/^[A-Z]{2}$/.test(String(p.uf || "").trim().toUpperCase())) addFalta("uf", "UF (Estado com 2 letras)");
+      }
+    } else {
+      const razao = String(p.razao_social || "").trim();
+      const fantasia = String(p.nome_fantasia || "").trim();
+      if (!validarCnpjOficial(p.cnpj)) addFalta("cnpj", "CNPJ válido (14 dígitos)");
+
+      if (precisaNota) {
+        if (!razao) addFalta("razao_social", "Razão social");
+        if (!String(p.contato_nome || "").trim()) addFalta("contato_nome", "Nome da pessoa de contato");
+        if (!String(p.email || "").trim()) addFalta("email", "E-mail");
+        const ieTipo = p.ie_tipo || "contribuinte";
+        if (ieTipo === "contribuinte" && !String(p.inscricao_estadual || "").trim()) {
+          addFalta("ie", "Inscrição Estadual (ou marcar Isento / Não contribuinte)");
+        }
+        if (apenasDigitos(p.cep).length !== 8) addFalta("cep", "CEP (8 dígitos)");
+        if (!String(p.logradouro || "").trim()) addFalta("logradouro", "Rua / Logradouro");
+        if (!String(p.numero || "").trim()) addFalta("numero", "Número do endereço");
+        if (!String(p.bairro || "").trim()) addFalta("bairro", "Bairro");
+        if (!String(p.cidade || "").trim()) addFalta("cidade", "Cidade");
+        if (!/^[A-Z]{2}$/.test(String(p.uf || "").trim().toUpperCase())) addFalta("uf", "UF (Estado com 2 letras)");
+      } else {
+        if (!razao && !fantasia) addFalta("razao_social", "Razão social ou Nome fantasia");
+      }
+    }
+
+    return { ok: faltando.length === 0, tipo, faltando, keys: camposFaltandoKeys };
   }
 
   // =========================================================================
@@ -149,7 +286,6 @@
     if (adminLink) adminLink.style.display = mostrarLinkAdmin ? "inline-flex" : "none";
   }
 
-  // Processa ação pendente caso o visitante tenha clicado em Favoritar ou Adicionar ao Carrinho deslogado
   async function processarAcaoPendentePosLogin() {
     const params = new URLSearchParams(window.location.search);
     let pend = null;
@@ -173,13 +309,11 @@
       }
     }
 
-    // Se veio de uma página da loja com returnTo, devolve a pessoa para onde ela estava!
     if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.startsWith("/conta")) {
       window.location.replace(returnTo);
       return true;
     }
 
-    // Seleciona aba inicial pedida na URL (?aba=carrinho | favoritos | orcamentos | dados)
     const abaUrl = params.get("aba");
     if (abaUrl && ["favoritos", "carrinho", "orcamentos", "dados"].includes(abaUrl)) {
       ativarAbaConta(abaUrl);
@@ -200,7 +334,13 @@
     if (dash) dash.style.display = "block";
 
     const nameEl = document.getElementById("conta-header-user-name");
-    if (nameEl) nameEl.textContent = perfil.nome || perfil.email || "Cliente";
+    if (nameEl) {
+      nameEl.textContent =
+        (perfil.person_type === "pj" ? (perfil.nome_fantasia || perfil.razao_social) : perfil.nome) ||
+        perfil.nome ||
+        perfil.email ||
+        "Cliente";
+    }
 
     preencherFormularioDados(perfil);
     await carregarTodosOsDadosCliente();
@@ -267,7 +407,7 @@
   }
 
   // =========================================================================
-  // CARREGAMENTO DE DADOS DO CLIENTE (CATÁLOGO + FAVORITOS + CARRINHO + ORÇAMENTOS)
+  // CATÁLOGO + FAVORITOS + CARRINHO + ORÇAMENTOS
   // =========================================================================
   async function carregarCatalogoProdutos() {
     if (!window.SJ_SUPABASE?.products) return;
@@ -275,7 +415,6 @@
     if (!res.sucesso) return;
     contaState.produtos = res.dados || [];
 
-    // Preenche seletor rápido do carrinho (bloqueando itens esgotados)
     const selQuick = document.getElementById("cart-quick-add-select");
     if (selQuick) {
       const disponiveis = contaState.produtos.filter((p) => p.stock_status !== "esgotado");
@@ -293,7 +432,6 @@
     }
   }
 
-  // 1. FAVORITOS
   async function carregarMeusFavoritos() {
     const listEl = document.getElementById("conta-favorites-list");
     const badgeEl = document.getElementById("badge-conta-favorites");
@@ -393,7 +531,6 @@
     });
   }
 
-  // 2. CARRINHO
   async function carregarMeuCarrinho() {
     const listEl = document.getElementById("conta-cart-list");
     const badgeEl = document.getElementById("badge-conta-cart");
@@ -485,7 +622,6 @@
       })
       .join("");
 
-    // Stepper +/-
     listEl.querySelectorAll("[data-cart-step]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const pid = btn.dataset.cartPid;
@@ -503,7 +639,6 @@
       });
     });
 
-    // Input direto de quantidade
     listEl.querySelectorAll("[data-cart-input]").forEach((inp) => {
       inp.addEventListener("change", async () => {
         const pid = inp.dataset.cartInput;
@@ -514,7 +649,6 @@
       });
     });
 
-    // Remover item
     listEl.querySelectorAll("[data-cart-remove]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const pid = btn.dataset.cartRemove;
@@ -526,7 +660,107 @@
     });
   }
 
-  // 3. ORÇAMENTOS (SOLICITADOS VIA WHATSAPP + EDIÇÃO ENQUANTO 'solicitado')
+  // Renderiza caixinha de campos faltantes diretamente no Carrinho para completar sem sair da tela
+  function exibirCaixaCamposFaltantesNoCarrinho(check, precisaNota) {
+    const box = document.getElementById("cart-missing-fiscal-box");
+    const list = document.getElementById("cart-missing-fields-list");
+    const fieldsEl = document.getElementById("cart-inline-quick-fields");
+    if (!box || !list || !fieldsEl) return;
+
+    const p = contaState.perfil || {};
+    const tipoLabel = check.tipo === "pj" ? "Pessoa Jurídica" : "Pessoa Física";
+    list.innerHTML = check.faltando.map((f) => `<li>${escaparHtml(f)}</li>`).join("");
+
+    const inputs = [];
+    inputs.push(`
+      <div style="font-size:0.75rem; font-weight:700; color:#475569; margin-bottom:2px;">
+        Cadastro atual: <strong>${escaparHtml(tipoLabel)}</strong> ${precisaNota ? "• Com Nota Fiscal" : "• Sem Nota Fiscal"}
+      </div>
+    `);
+
+    if (check.keys.includes("nome")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="nome" placeholder="Nome completo *" value="${escaparHtml(p.nome || "")}" />`);
+    }
+    if (check.keys.includes("cpf")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="cpf" maxlength="14" inputmode="numeric" placeholder="CPF (11 números) *" value="${escaparHtml(p.cpf ? formatarCpf(p.cpf) : "")}" />`);
+    }
+    if (check.keys.includes("cnpj")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="cnpj" maxlength="18" inputmode="numeric" placeholder="CNPJ (14 números) *" value="${escaparHtml(p.cnpj ? formatarCnpj(p.cnpj) : "")}" />`);
+    }
+    if (check.keys.includes("razao_social")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="razao_social" placeholder="Razão Social *" value="${escaparHtml(p.razao_social || "")}" />`);
+    }
+    if (check.keys.includes("contato_nome")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="contato_nome" placeholder="Nome da pessoa de contato *" value="${escaparHtml(p.contato_nome || "")}" />`);
+    }
+    if (check.keys.includes("ie")) {
+      inputs.push(`
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:6px;">
+          <select class="conta-select" data-quick-field="ie_tipo" style="padding:9px; font-size:0.8rem;">
+            <option value="contribuinte" ${p.ie_tipo === "contribuinte" ? "selected" : ""}>Contribuinte IE</option>
+            <option value="isento" ${p.ie_tipo === "isento" ? "selected" : ""}>Isento</option>
+            <option value="nao_contribuinte" ${p.ie_tipo === "nao_contribuinte" ? "selected" : ""}>Não contribuinte</option>
+          </select>
+          <input type="text" class="conta-input" data-quick-field="inscricao_estadual" placeholder="Nº Inscrição Estadual" value="${escaparHtml(p.inscricao_estadual || "")}" style="padding:9px; font-size:0.8rem;" />
+        </div>
+      `);
+    }
+    if (check.keys.includes("telefone")) {
+      inputs.push(`<input type="tel" class="conta-input" data-quick-field="telefone" maxlength="15" placeholder="Telefone / WhatsApp com DDD *" value="${escaparHtml(p.telefone ? formatarTelefone(p.telefone) : "")}" />`);
+    }
+    if (check.keys.includes("cep")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="cep" maxlength="9" inputmode="numeric" placeholder="CEP (00000-000) *" value="${escaparHtml(p.cep ? formatarCep(p.cep) : "")}" />`);
+    }
+    if (check.keys.includes("logradouro")) {
+      inputs.push(`<input type="text" class="conta-input" data-quick-field="logradouro" placeholder="Rua / Logradouro *" value="${escaparHtml(p.logradouro || "")}" />`);
+    }
+    if (check.keys.includes("numero") || check.keys.includes("bairro")) {
+      inputs.push(`
+        <div style="display:grid; grid-template-columns:100px 1fr; gap:6px;">
+          <input type="text" class="conta-input" data-quick-field="numero" placeholder="Número *" value="${escaparHtml(p.numero || "")}" />
+          <input type="text" class="conta-input" data-quick-field="bairro" placeholder="Bairro *" value="${escaparHtml(p.bairro || "")}" />
+        </div>
+      `);
+    }
+    if (check.keys.includes("cidade") || check.keys.includes("uf")) {
+      inputs.push(`
+        <div style="display:grid; grid-template-columns:1fr 75px; gap:6px;">
+          <input type="text" class="conta-input" data-quick-field="cidade" placeholder="Cidade *" value="${escaparHtml(p.cidade || "")}" />
+          <input type="text" class="conta-input" data-quick-field="uf" maxlength="2" placeholder="UF *" style="text-transform:uppercase;" value="${escaparHtml(p.uf || "")}" />
+        </div>
+      `);
+    }
+
+    fieldsEl.innerHTML = inputs.join("");
+    box.style.display = "block";
+
+    // Aplica máscaras nos campos rápidos inline
+    fieldsEl.querySelector("[data-quick-field='cpf']")?.addEventListener("input", (e) => { e.target.value = formatarCpf(e.target.value); });
+    fieldsEl.querySelector("[data-quick-field='cnpj']")?.addEventListener("input", (e) => { e.target.value = formatarCnpj(e.target.value); });
+    fieldsEl.querySelector("[data-quick-field='telefone']")?.addEventListener("input", (e) => { e.target.value = formatarTelefone(e.target.value); });
+    const qCep = fieldsEl.querySelector("[data-quick-field='cep']");
+    qCep?.addEventListener("input", async (e) => {
+      e.target.value = formatarCep(e.target.value);
+      const dig = apenasDigitos(e.target.value);
+      if (dig.length === 8) {
+        const resCep = await window.SJ_SUPABASE.fiscal.consultarCep(dig);
+        if (resCep?.sucesso && resCep.dados) {
+          const setQ = (k, val) => { const el = fieldsEl.querySelector(`[data-quick-field='${k}']`); if (el && !el.value && val) el.value = val; };
+          setQ("logradouro", resCep.dados.logradouro);
+          setQ("bairro", resCep.dados.bairro);
+          setQ("cidade", resCep.dados.cidade);
+          setQ("uf", resCep.dados.uf);
+        }
+      }
+    });
+  }
+
+  function ocultarCaixaCamposFaltantesNoCarrinho() {
+    const box = document.getElementById("cart-missing-fiscal-box");
+    if (box) box.style.display = "none";
+  }
+
+  // 3. ORÇAMENTOS
   async function carregarMeusOrcamentos() {
     const listEl = document.getElementById("conta-quotes-list");
     const badgeEl = document.getElementById("badge-conta-quotes");
@@ -572,6 +806,12 @@
         const itens = Array.isArray(q.quote_items) ? q.quote_items : [];
         const totalRef = itens.reduce((acc, it) => acc + Number(it.unit_price || 0) * Number(it.quantity || 1), 0);
         const temRespostaEquipe = Boolean(q.admin_response || (q.admin_total != null && Number(q.admin_total) > 0));
+        const comNota = Boolean(q.precisa_nota_fiscal);
+        const snap = q.customer_snapshot && typeof q.customer_snapshot === "object" ? q.customer_snapshot : {};
+
+        const docLabel = snap.person_type === "pj"
+          ? (snap.cnpj ? `CNPJ ${formatarCnpj(snap.cnpj)}` : "")
+          : (snap.cpf ? `CPF ${mascararCpfParcial(snap.cpf)}` : "");
 
         const itensHtml = itens
           .map((it) => {
@@ -608,10 +848,15 @@
                 <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
                   <span style="font-size:1.05rem; font-weight:900; color:#0f172a;">Orçamento nº ${escaparHtml(q.quote_number)}</span>
                   <span class="conta-status-badge status-${escaparHtml(q.status)}">${escaparHtml(labelStatusQuote(q.status))}</span>
+                  <span style="padding:3px 9px; border-radius:999px; font-size:0.7rem; font-weight:800; background:${comNota ? "#dcfce7" : "#f1f5f9"}; color:${comNota ? "#15803d" : "#475569"};">
+                    ${comNota ? "🧾 Com Nota Fiscal" : "📄 Sem Nota Fiscal"}
+                  </span>
                   ${q.changed_by_customer ? `<span style="background:#fef3c7; color:#b45309; border:1px solid #fde68a; font-size:0.7rem; font-weight:800; padding:2px 8px; border-radius:999px;">✏️ Alterado por você</span>` : ""}
                 </div>
-                <div style="font-size:0.76rem; color:#64748b; margin-top:3px;">
+                <div style="font-size:0.76rem; color:#64748b; margin-top:4px;">
                   Solicitado em ${escaparHtml(formatarData(q.created_at))} • Referência: <strong>${escaparHtml(formatarMoeda(totalRef))}</strong>
+                  ${snap.display_name ? ` • ${escaparHtml(snap.display_name)}` : ""}
+                  ${docLabel ? ` (${escaparHtml(docLabel)})` : ""}
                 </div>
               </div>
 
@@ -633,13 +878,11 @@
               </div>
             </div>
 
-            <!-- Lista de Itens do Orçamento -->
             <div style="background:#f8fafc; border:1px solid #e2e8f0; border-radius:12px; padding:10px 14px; margin-bottom:12px;">
               ${itensHtml || `<div style="font-size:0.82rem; color:#64748b; padding:6px 0;">Nenhum item neste orçamento.</div>`}
             </div>
 
             ${editavel ? `
-              <!-- Controles de edição enquanto status === 'solicitado' -->
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin-bottom:12px;">
                 <select data-quote-add-select="${escaparHtml(q.id)}" class="conta-select" style="flex:1; min-width:210px; padding:8px 11px; font-size:0.8rem;">
                   <option value="">+ Adicionar item do catálogo a este orçamento...</option>
@@ -673,7 +916,6 @@
       })
       .join("");
 
-    // Bind botões de edição de itens de orçamento (enquanto 'solicitado')
     listEl.querySelectorAll("[data-qitem-step]").forEach((btn) => {
       btn.addEventListener("click", async () => {
         const quoteId = btn.dataset.quoteId;
@@ -777,16 +1019,20 @@
       });
     });
 
-    // Abrir WhatsApp (Reenviar / Enviar alteração / Pedir mudança)
     async function abrirWhatsAppDoOrcamento(quoteId, ehAlteracao) {
       const q = contaState.quotes.find((x) => x.id === quoteId);
       if (!q) return;
+      const snap = q.customer_snapshot && Object.keys(q.customer_snapshot).length > 0
+        ? q.customer_snapshot
+        : contaState.perfil;
       const url = await window.SJ_SUPABASE.whatsapp.gerarUrlOrcamento({
         quoteNumber: q.quote_number,
-        clienteNome: contaState.perfil?.nome || q.cliente_nome,
+        clienteNome: q.cliente_nome || contaState.perfil?.nome,
         items: q.quote_items || [],
         notes: q.notes || "",
-        ehAlteracao
+        ehAlteracao,
+        precisaNotaFiscal: Boolean(q.precisa_nota_fiscal),
+        snapshot: snap
       });
       window.open(url, "_blank", "noopener");
     }
@@ -802,12 +1048,317 @@
     });
   }
 
+  // =========================================================================
+  // 4. MEUS DADOS: PF / PJ, MÁSCARAS, CPF MASCARADO, CNPJ & CEP VIA SERVIDOR
+  // =========================================================================
+  function alternarTipoPessoaFormulario(tipo) {
+    contaState.personType = tipo === "pj" ? "pj" : "pf";
+    document.querySelectorAll("#profile-person-type-tabs [data-person-type]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.personType === contaState.personType);
+    });
+    const secPf = document.getElementById("profile-section-pf");
+    const secPj = document.getElementById("profile-section-pj");
+    if (secPf) secPf.style.display = contaState.personType === "pf" ? "block" : "none";
+    if (secPj) secPj.style.display = contaState.personType === "pj" ? "block" : "none";
+  }
+
+  function atualizarEstadoCampoCpf(cpfSalvo, forcarEdicao = false) {
+    const maskWrap = document.getElementById("profile-cpf-masked-wrap");
+    const maskText = document.getElementById("profile-cpf-masked-text");
+    const cpfInput = document.getElementById("profile-pf-cpf");
+    const digitos = apenasDigitos(cpfSalvo);
+
+    if (digitos.length === 11 && validarCpfOficial(digitos) && !forcarEdicao) {
+      contaState.editandoCpf = false;
+      if (maskText) maskText.textContent = mascararCpfParcial(digitos);
+      if (maskWrap) maskWrap.style.display = "flex";
+      if (cpfInput) {
+        cpfInput.value = formatarCpf(digitos);
+        cpfInput.style.display = "none";
+      }
+    } else {
+      contaState.editandoCpf = true;
+      if (maskWrap) maskWrap.style.display = "none";
+      if (cpfInput) {
+        cpfInput.style.display = "block";
+        if (digitos) cpfInput.value = formatarCpf(digitos);
+      }
+    }
+  }
+
+  function sincronizarEstadoCampoIE() {
+    const selIe = document.getElementById("profile-pj-ie-tipo");
+    const inpIe = document.getElementById("profile-pj-ie");
+    if (!selIe || !inpIe) return;
+    const contribuinte = selIe.value === "contribuinte";
+    inpIe.disabled = !contribuinte;
+    if (!contribuinte) {
+      inpIe.value = "";
+      inpIe.placeholder = selIe.value === "isento" ? "Isento de Inscrição Estadual" : "Não contribuinte";
+      inpIe.style.background = "#f1f5f9";
+    } else {
+      inpIe.placeholder = "Número da Inscrição Estadual";
+      inpIe.style.background = "#ffffff";
+    }
+  }
+
   function preencherFormularioDados(perfil) {
+    const p = perfil || {};
     const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ""; };
-    setVal("profile-email", perfil.email || "");
-    setVal("profile-nome", perfil.nome || "");
-    setVal("profile-telefone", perfil.telefone || "");
-    setVal("profile-endereco", perfil.endereco || "");
+
+    alternarTipoPessoaFormulario(p.person_type === "pj" ? "pj" : "pf");
+
+    setVal("profile-email", p.email || "");
+    setVal("profile-pf-nome", p.nome || "");
+    atualizarEstadoCampoCpf(p.cpf || "", false);
+
+    setVal("profile-pj-cnpj", p.cnpj ? formatarCnpj(p.cnpj) : "");
+    setVal("profile-pj-razao", p.razao_social || "");
+    setVal("profile-pj-fantasia", p.nome_fantasia || "");
+    setVal("profile-pj-ie-tipo", p.ie_tipo || "contribuinte");
+    setVal("profile-pj-ie", p.inscricao_estadual || "");
+    setVal("profile-pj-contato", p.contato_nome || p.nome || "");
+    sincronizarEstadoCampoIE();
+
+    setVal("profile-telefone", p.telefone ? formatarTelefone(p.telefone) : "");
+    setVal("profile-cep", p.cep ? formatarCep(p.cep) : "");
+    setVal("profile-logradouro", p.logradouro || "");
+    setVal("profile-numero", p.numero || "");
+    setVal("profile-complemento", p.complemento || "");
+    setVal("profile-bairro", p.bairro || "");
+    setVal("profile-cidade", p.cidade || "");
+    setVal("profile-uf", (p.uf || "").toUpperCase());
+  }
+
+  async function executarBuscaCnpjServidor(cnpjRaw) {
+    const fb = document.getElementById("profile-cnpj-feedback");
+    const alertBox = document.getElementById("profile-cnpj-status-alert");
+    const btn = document.getElementById("btn-lookup-cnpj");
+    const digits = apenasDigitos(cnpjRaw);
+
+    if (alertBox) alertBox.style.display = "none";
+
+    if (digits.length !== 14) {
+      if (fb) {
+        fb.style.display = "block";
+        fb.style.color = "#b91c1c";
+        fb.textContent = "Informe os 14 dígitos do CNPJ.";
+      }
+      return;
+    }
+
+    if (!validarCnpjOficial(digits)) {
+      if (fb) {
+        fb.style.display = "block";
+        fb.style.color = "#b91c1c";
+        fb.textContent = "❌ CNPJ inválido (dígitos verificadores não conferem). Confira os números.";
+      }
+      return;
+    }
+
+    if (fb) {
+      fb.style.display = "block";
+      fb.style.color = "#1d4ed8";
+      fb.textContent = "🔍 Consultando dados oficiais da empresa...";
+    }
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ Buscando..."; }
+
+    const res = await window.SJ_SUPABASE.fiscal.consultarCnpj(digits);
+
+    if (btn) { btn.disabled = false; btn.textContent = "🔍 Buscar CNPJ"; }
+
+    if (!res?.sucesso || !res.dados) {
+      if (fb) {
+        fb.style.display = "block";
+        fb.style.color = "#b45309";
+        fb.textContent = `ℹ️ ${res?.mensagem || "CNPJ não localizado automaticamente. Preencha os campos abaixo manualmente."}`;
+      }
+      return;
+    }
+
+    const d = res.dados;
+    const setEdit = (id, v) => {
+      const el = document.getElementById(id);
+      if (el && v) el.value = v;
+    };
+
+    setEdit("profile-pj-razao", d.razao_social);
+    setEdit("profile-pj-fantasia", d.nome_fantasia || d.razao_social);
+    if (d.cep) setEdit("profile-cep", formatarCep(d.cep));
+    setEdit("profile-logradouro", d.logradouro);
+    setEdit("profile-numero", d.numero);
+    setEdit("profile-complemento", d.complemento);
+    setEdit("profile-bairro", d.bairro);
+    setEdit("profile-cidade", d.cidade);
+    setEdit("profile-uf", d.uf);
+    if (d.telefone) {
+      const telEl = document.getElementById("profile-telefone");
+      if (telEl && !apenasDigitos(telEl.value)) {
+        telEl.value = formatarTelefone(d.telefone);
+      }
+    }
+
+    if (!d.ativa && alertBox) {
+      alertBox.style.display = "block";
+      alertBox.style.background = "#fef3c7";
+      alertBox.style.color = "#92400e";
+      alertBox.style.border = "1px solid #fde68a";
+      alertBox.textContent = `⚠️ Atenção: situação cadastral informada na Receita: ${d.situacao_cadastral || "INATIVA"}. Verifique antes de emitir nota fiscal (campos liberados para edição).`;
+    }
+
+    if (fb) {
+      fb.style.display = "block";
+      fb.style.color = "#15803d";
+      fb.textContent = "✅ Dados preenchidos! Todos os campos continuam editáveis e a Inscrição Estadual deve ser conferida abaixo.";
+    }
+  }
+
+  async function executarBuscaCepServidor(cepRaw) {
+    const fb = document.getElementById("profile-cep-feedback");
+    const btn = document.getElementById("btn-lookup-cep");
+    const digits = apenasDigitos(cepRaw);
+    if (digits.length !== 8) {
+      if (fb) {
+        fb.style.display = "block";
+        fb.style.color = "#b91c1c";
+        fb.textContent = "Informe os 8 números do CEP.";
+      }
+      return;
+    }
+
+    if (fb) {
+      fb.style.display = "block";
+      fb.style.color = "#1d4ed8";
+      fb.textContent = "🔍 Buscando endereço pelo CEP...";
+    }
+    if (btn) btn.disabled = true;
+
+    const res = await window.SJ_SUPABASE.fiscal.consultarCep(digits);
+
+    if (btn) btn.disabled = false;
+
+    if (!res?.sucesso || !res.dados) {
+      if (fb) {
+        fb.style.display = "block";
+        fb.style.color = "#b45309";
+        fb.textContent = "CEP não encontrado automaticamente. Preencha manualmente.";
+      }
+      return;
+    }
+
+    const d = res.dados;
+    const setEdit = (id, v) => {
+      const el = document.getElementById(id);
+      if (el && v) el.value = v;
+    };
+    setEdit("profile-logradouro", d.logradouro);
+    if (d.complemento) setEdit("profile-complemento", d.complemento);
+    setEdit("profile-bairro", d.bairro);
+    setEdit("profile-cidade", d.cidade);
+    setEdit("profile-uf", d.uf);
+
+    if (fb) {
+      fb.style.display = "block";
+      fb.style.color = "#15803d";
+      fb.textContent = "✅ Endereço preenchido (editável). Confira o número.";
+    }
+  }
+
+  async function salvarPerfilDoFormulario() {
+    const tipo = contaState.personType;
+    const cpfRaw = document.getElementById("profile-pf-cpf")?.value || "";
+    const cnpjRaw = document.getElementById("profile-pj-cnpj")?.value || "";
+    const cepRaw = document.getElementById("profile-cep")?.value || "";
+    const telRaw = document.getElementById("profile-telefone")?.value || "";
+    const ufRaw = (document.getElementById("profile-uf")?.value || "").trim().toUpperCase();
+
+    const cpfDigits = apenasDigitos(cpfRaw);
+    const cnpjDigits = apenasDigitos(cnpjRaw);
+    const cepDigits = apenasDigitos(cepRaw);
+    const telDigits = apenasDigitos(telRaw);
+
+    if (telDigits && telDigits.length < 10) {
+      mostrarToast("⚠️ Informe um telefone/WhatsApp válido com DDD.", "warning");
+      return false;
+    }
+
+    if (tipo === "pf" && cpfDigits) {
+      if (!validarCpfOficial(cpfDigits)) {
+        mostrarToast("❌ CPF inválido. Confira os 11 dígitos informados.", "error");
+        return false;
+      }
+    }
+
+    if (tipo === "pj" && cnpjDigits) {
+      if (!validarCnpjOficial(cnpjDigits)) {
+        mostrarToast("❌ CNPJ inválido. Confira os 14 dígitos informados.", "error");
+        return false;
+      }
+    }
+
+    if (cepDigits && cepDigits.length !== 8) {
+      mostrarToast("⚠️ CEP incompleto (informe os 8 números).", "warning");
+      return false;
+    }
+
+    if (ufRaw && !/^[A-Z]{2}$/.test(ufRaw)) {
+      mostrarToast("⚠️ UF deve ter 2 letras (ex: PR, SP).", "warning");
+      return false;
+    }
+
+    const nomePf = document.getElementById("profile-pf-nome")?.value.trim() || "";
+    const razaoPj = document.getElementById("profile-pj-razao")?.value.trim() || "";
+    const fantasiaPj = document.getElementById("profile-pj-fantasia")?.value.trim() || "";
+    const contatoPj = document.getElementById("profile-pj-contato")?.value.trim() || "";
+
+    const dadosSalvar = {
+      person_type: tipo,
+      nome: tipo === "pf" ? nomePf : (contatoPj || fantasiaPj || razaoPj || contaState.perfil?.nome || ""),
+      cpf: tipo === "pf" ? cpfDigits : (contaState.perfil?.cpf || ""),
+      cnpj: tipo === "pj" ? cnpjDigits : (contaState.perfil?.cnpj || ""),
+      razao_social: razaoPj,
+      nome_fantasia: fantasiaPj,
+      ie_tipo: document.getElementById("profile-pj-ie-tipo")?.value || "contribuinte",
+      inscricao_estadual: document.getElementById("profile-pj-ie")?.value.trim() || "",
+      contato_nome: contatoPj,
+      telefone: telRaw.trim(),
+      cep: cepDigits,
+      logradouro: document.getElementById("profile-logradouro")?.value.trim() || "",
+      numero: document.getElementById("profile-numero")?.value.trim() || "",
+      complemento: document.getElementById("profile-complemento")?.value.trim() || "",
+      bairro: document.getElementById("profile-bairro")?.value.trim() || "",
+      cidade: document.getElementById("profile-cidade")?.value.trim() || "",
+      uf: ufRaw
+    };
+
+    const btn = document.getElementById("btn-profile-save");
+    const btnBack = document.getElementById("btn-profile-save-and-cart");
+    if (btn) { btn.disabled = true; btn.textContent = "⏳ Salvando..."; }
+    if (btnBack) btnBack.disabled = true;
+
+    const res = await window.SJ_SUPABASE.profiles.atualizarMeuPerfil(dadosSalvar);
+
+    if (btn) { btn.disabled = false; btn.textContent = "💾 Salvar Meus Dados"; }
+    if (btnBack) btnBack.disabled = false;
+
+    if (!res?.sucesso) {
+      mostrarToast(`❌ ${escaparHtml(res?.mensagem || "Não foi possível salvar os dados.")}`, "error");
+      return false;
+    }
+
+    if (res.perfil) {
+      contaState.perfil = res.perfil;
+      preencherFormularioDados(res.perfil);
+      const nameEl = document.getElementById("conta-header-user-name");
+      if (nameEl) {
+        nameEl.textContent =
+          (res.perfil.person_type === "pj" ? (res.perfil.nome_fantasia || res.perfil.razao_social) : res.perfil.nome) ||
+          res.perfil.email;
+      }
+    }
+
+    mostrarToast("✅ Seus dados cadastrais e fiscais foram salvos com sucesso!", "success");
+    return true;
   }
 
   async function carregarTodosOsDadosCliente() {
@@ -840,6 +1391,53 @@
     document.querySelectorAll(".conta-pane").forEach((pane) => {
       pane.classList.toggle("active", pane.id === `conta-pane-${aba}`);
     });
+    const btnBack = document.getElementById("btn-profile-save-and-cart");
+    if (btnBack) {
+      btnBack.style.display = contaState.voltarParaCarrinhoAposSalvar && aba === "dados" ? "inline-flex" : "none";
+    }
+  }
+
+  // Envia a solicitação de orçamento ao banco (RPC segura) e abre o WhatsApp
+  async function executarSolicitacaoOrcamento(precisaNotaFiscal) {
+    const btn = document.getElementById("btn-cart-request-quote");
+    const notesEl = document.getElementById("cart-quote-notes");
+    const notes = notesEl ? notesEl.value.trim() : "";
+
+    if (btn) {
+      btn.disabled = true;
+      btn.textContent = "⏳ Gerando orçamento e abrindo WhatsApp...";
+    }
+
+    const res = await window.SJ_SUPABASE.quotes.criarDoCarrinho(notes, precisaNotaFiscal);
+
+    if (btn) {
+      btn.disabled = false;
+      btn.textContent = "📲 Solicitar orçamento no WhatsApp";
+    }
+
+    if (!res.sucesso || !res.orcamento) {
+      mostrarToast(`❌ ${escaparHtml(res.mensagem || "Não foi possível gerar o orçamento.")}`, "error");
+      return;
+    }
+
+    ocultarCaixaCamposFaltantesNoCarrinho();
+    const orc = res.orcamento;
+    if (notesEl) notesEl.value = "";
+
+    const urlWhatsApp = await window.SJ_SUPABASE.whatsapp.gerarUrlOrcamento({
+      quoteNumber: orc.quote_number,
+      clienteNome: orc.cliente_nome || contaState.perfil?.nome,
+      items: orc.items || [],
+      notes: orc.notes || "",
+      ehAlteracao: false,
+      precisaNotaFiscal: Boolean(orc.precisa_nota_fiscal),
+      snapshot: orc.customer_snapshot || contaState.perfil
+    });
+
+    window.open(urlWhatsApp, "_blank", "noopener");
+    mostrarToast(`✅ Orçamento nº ${escaparHtml(orc.quote_number)} criado! Abrindo WhatsApp...`, "success");
+    await Promise.all([carregarMeuCarrinho(), carregarMeusOrcamentos()]);
+    ativarAbaConta("orcamentos");
   }
 
   function inicializarEventos() {
@@ -866,6 +1464,11 @@
       ativarAbaConta("carrinho");
     });
 
+    // Máscara telefone no cadastro rápido
+    document.getElementById("conta-reg-telefone")?.addEventListener("input", (e) => {
+      e.target.value = formatarTelefone(e.target.value);
+    });
+
     // Login de Cliente
     document.getElementById("form-conta-login")?.addEventListener("submit", async (e) => {
       e.preventDefault();
@@ -889,7 +1492,6 @@
       await verificarSessaoCliente();
     });
 
-    // Login Google
     document.getElementById("btn-conta-google")?.addEventListener("click", async () => {
       const btn = document.getElementById("btn-conta-google");
       if (btn) btn.disabled = true;
@@ -900,7 +1502,6 @@
       }
     });
 
-    // Cadastro de Cliente (accountType: 'customer')
     document.getElementById("form-conta-register")?.addEventListener("submit", async (e) => {
       e.preventDefault();
       const nome = document.getElementById("conta-reg-nome")?.value.trim() || "";
@@ -945,7 +1546,6 @@
       await verificarSessaoCliente();
     });
 
-    // Logout
     async function fazerLogout() {
       await window.SJ_SUPABASE?.auth?.logout();
       contaState.perfil = null;
@@ -955,7 +1555,7 @@
     document.getElementById("btn-conta-logout")?.addEventListener("click", fazerLogout);
     document.getElementById("btn-conta-status-logout")?.addEventListener("click", fazerLogout);
 
-    // Adicionar item rápido no carrinho
+    // Carrinho: incluir rápido, esvaziar e regra da Nota Fiscal
     document.getElementById("btn-cart-quick-add")?.addEventListener("click", async () => {
       const sel = document.getElementById("cart-quick-add-select");
       const pid = sel ? sel.value : "";
@@ -976,7 +1576,6 @@
       }
     });
 
-    // Esvaziar carrinho
     document.getElementById("btn-cart-clear")?.addEventListener("click", async () => {
       if (!confirm("Deseja esvaziar todo o seu carrinho?")) return;
       const r = await window.SJ_SUPABASE.cart.esvaziar();
@@ -988,79 +1587,196 @@
       }
     });
 
-    // SOLICITAR ORÇAMENTO (atômico: cria orçamento 'solicitado' no banco + abre WhatsApp + esvazia carrinho + vai para aba Orçamentos)
+    // Dica dinâmica quando cliente alterna "Precisa de nota fiscal?"
+    document.querySelectorAll("input[name='cart_precisa_nf']").forEach((radio) => {
+      radio.addEventListener("change", () => {
+        const hintEl = document.getElementById("cart-nf-rule-hint");
+        const sim = radio.value === "sim";
+        if (hintEl) {
+          hintEl.textContent = sim
+            ? "Para Nota Fiscal, é necessário ter CPF ou CNPJ, telefone, e-mail, Inscrição Estadual (se PJ) e endereço completo."
+            : "Sem Nota Fiscal, exigimos apenas nome/razão social, telefone e CPF/CNPJ.";
+        }
+        ocultarCaixaCamposFaltantesNoCarrinho();
+      });
+    });
+
+    // Botão Solicitar Orçamento -> valida pergunta NF + campos obrigatórios antes de chamar o banco
     document.getElementById("btn-cart-request-quote")?.addEventListener("click", async () => {
       if (contaState.cartItems.length === 0) {
         mostrarToast("Adicione pelo menos 1 produto ao carrinho antes de solicitar orçamento.", "warning");
         return;
       }
 
-      const btn = document.getElementById("btn-cart-request-quote");
-      const notesEl = document.getElementById("cart-quote-notes");
-      const notes = notesEl ? notesEl.value.trim() : "";
-
-      if (btn) {
-        btn.disabled = true;
-        btn.textContent = "⏳ Gerando orçamento e abrindo WhatsApp...";
-      }
-
-      const res = await window.SJ_SUPABASE.quotes.criarDoCarrinho(notes);
-
-      if (btn) {
-        btn.disabled = false;
-        btn.textContent = "📲 Solicitar orçamento no WhatsApp";
-      }
-
-      if (!res.sucesso || !res.orcamento) {
-        mostrarToast(`❌ Erro ao gerar orçamento: ${escaparHtml(res.mensagem || "verifique se executou a Migration 006")}`, "error");
+      const selectedNf = document.querySelector("input[name='cart_precisa_nf']:checked");
+      if (!selectedNf) {
+        mostrarToast("⚠️ Responda primeiro se você precisa de Nota Fiscal (Sim ou Não).", "warning");
         return;
       }
 
-      const orc = res.orcamento;
-      if (notesEl) notesEl.value = "";
+      const precisaNota = selectedNf.value === "sim";
+      const check = validarPerfilParaOrcamento(contaState.perfil, precisaNota);
+      if (!check.ok) {
+        exibirCaixaCamposFaltantesNoCarrinho(check, precisaNota);
+        mostrarToast("⚠️ Complete os campos obrigatórios destacados para enviar o orçamento.", "warning");
+        return;
+      }
 
-      // Gera link oficial do WhatsApp com número do orçamento, nome do cliente e itens
-      const urlWhatsApp = await window.SJ_SUPABASE.whatsapp.gerarUrlOrcamento({
-        quoteNumber: orc.quote_number,
-        clienteNome: contaState.perfil?.nome || orc.cliente_nome,
-        items: orc.items || [],
-        notes: orc.notes || "",
-        ehAlteracao: false
-      });
-
-      window.open(urlWhatsApp, "_blank", "noopener");
-
-      mostrarToast(`✅ Orçamento nº ${escaparHtml(orc.quote_number)} registrado! Abrindo WhatsApp...`, "success");
-      await Promise.all([carregarMeuCarrinho(), carregarMeusOrcamentos()]);
-      ativarAbaConta("orcamentos");
+      await executarSolicitacaoOrcamento(precisaNota);
     });
 
-    // Salvar Meus Dados
-    document.getElementById("form-conta-profile")?.addEventListener("submit", async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById("btn-profile-save");
-      if (btn) { btn.disabled = true; btn.textContent = "⏳ Salvando..."; }
+    // Salvar campos rápidos inline no Carrinho e já enviar orçamento
+    document.getElementById("btn-cart-save-quick-fiscal")?.addEventListener("click", async () => {
+      const fieldsEl = document.getElementById("cart-inline-quick-fields");
+      const selectedNf = document.querySelector("input[name='cart_precisa_nf']:checked");
+      const precisaNota = selectedNf?.value === "sim";
+      if (!fieldsEl) return;
 
-      const res = await window.SJ_SUPABASE.profiles.atualizarMeuPerfil({
-        nome: document.getElementById("profile-nome")?.value.trim(),
-        telefone: document.getElementById("profile-telefone")?.value.trim(),
-        endereco: document.getElementById("profile-endereco")?.value.trim(),
-        cidade_uf: contaState.perfil?.cidade_uf || ""
+      const p = { ...(contaState.perfil || {}) };
+      fieldsEl.querySelectorAll("[data-quick-field]").forEach((el) => {
+        const k = el.dataset.quickField;
+        p[k] = el.value.trim();
       });
 
-      if (btn) { btn.disabled = false; btn.textContent = "💾 Salvar Meus Dados"; }
-
-      if (!res.sucesso) {
-        mostrarToast(`❌ Erro ao salvar dados: ${escaparHtml(res.mensagem)}`, "error");
+      if ((p.person_type || "pf") === "pf" && p.cpf && !validarCpfOficial(p.cpf)) {
+        mostrarToast("❌ CPF inválido. Confira os 11 números informados.", "error");
+        return;
+      }
+      if (p.person_type === "pj" && p.cnpj && !validarCnpjOficial(p.cnpj)) {
+        mostrarToast("❌ CNPJ inválido. Confira os 14 números informados.", "error");
         return;
       }
 
-      if (res.perfil) {
-        contaState.perfil = res.perfil;
-        const nameEl = document.getElementById("conta-header-user-name");
-        if (nameEl) nameEl.textContent = res.perfil.nome || res.perfil.email;
+      const btnQuick = document.getElementById("btn-cart-save-quick-fiscal");
+      if (btnQuick) { btnQuick.disabled = true; btnQuick.textContent = "⏳ Salvando..."; }
+
+      const resSave = await window.SJ_SUPABASE.profiles.atualizarMeuPerfil(p);
+
+      if (btnQuick) { btnQuick.disabled = false; btnQuick.textContent = "💾 Salvar e Solicitar Orçamento"; }
+
+      if (!resSave?.sucesso) {
+        mostrarToast(`❌ ${escaparHtml(resSave?.mensagem || "Não foi possível salvar os dados.")}`, "error");
+        return;
       }
-      mostrarToast("✅ Seus dados foram salvos com sucesso!", "success");
+
+      if (resSave.perfil) {
+        contaState.perfil = resSave.perfil;
+        preencherFormularioDados(resSave.perfil);
+      }
+
+      const recheck = validarPerfilParaOrcamento(contaState.perfil, precisaNota);
+      if (!recheck.ok) {
+        exibirCaixaCamposFaltantesNoCarrinho(recheck, precisaNota);
+        mostrarToast("⚠️ Ainda faltam campos obrigatórios.", "warning");
+        return;
+      }
+
+      await executarSolicitacaoOrcamento(precisaNota);
+    });
+
+    // Botão "Completar em Meus Dados (voltar depois)"
+    document.getElementById("btn-cart-go-profile")?.addEventListener("click", () => {
+      contaState.voltarParaCarrinhoAposSalvar = true;
+      ativarAbaConta("dados");
+      mostrarToast("👤 Complete seus dados abaixo e clique em 'Salvar e Voltar ao Carrinho'.", "info");
+    });
+
+    // Eventos da aba Meus Dados (PF/PJ toggle, máscaras, buscas CNPJ/CEP)
+    document.querySelectorAll("#profile-person-type-tabs [data-person-type]").forEach((btn) => {
+      btn.addEventListener("click", () => alternarTipoPessoaFormulario(btn.dataset.personType));
+    });
+
+    document.getElementById("btn-profile-edit-cpf")?.addEventListener("click", () => {
+      atualizarEstadoCampoCpf(contaState.perfil?.cpf || "", true);
+      document.getElementById("profile-pf-cpf")?.focus();
+    });
+
+    document.getElementById("profile-pf-cpf")?.addEventListener("input", (e) => {
+      e.target.value = formatarCpf(e.target.value);
+      const fb = document.getElementById("profile-cpf-feedback");
+      const dig = apenasDigitos(e.target.value);
+      if (!fb) return;
+      if (dig.length === 0) {
+        fb.style.display = "none";
+      } else if (dig.length < 11) {
+        fb.style.display = "block";
+        fb.style.color = "#64748b";
+        fb.textContent = "Digite os 11 números do CPF...";
+      } else if (validarCpfOficial(dig)) {
+        fb.style.display = "block";
+        fb.style.color = "#15803d";
+        fb.textContent = "✓ CPF válido";
+      } else {
+        fb.style.display = "block";
+        fb.style.color = "#b91c1c";
+        fb.textContent = "❌ CPF inválido (dígitos verificadores incorretos)";
+      }
+    });
+
+    document.getElementById("profile-pj-cnpj")?.addEventListener("input", async (e) => {
+      e.target.value = formatarCnpj(e.target.value);
+      const dig = apenasDigitos(e.target.value);
+      const fb = document.getElementById("profile-cnpj-feedback");
+      if (dig.length === 14) {
+        if (!validarCnpjOficial(dig)) {
+          if (fb) {
+            fb.style.display = "block";
+            fb.style.color = "#b91c1c";
+            fb.textContent = "❌ CNPJ inválido (dígitos verificadores incorretos).";
+          }
+          return;
+        }
+        if (contaState.ultimoCnpjConsultado !== dig) {
+          contaState.ultimoCnpjConsultado = dig;
+          await executarBuscaCnpjServidor(dig);
+        }
+      } else if (fb) {
+        fb.style.display = dig.length > 0 ? "block" : "none";
+        fb.style.color = "#64748b";
+        fb.textContent = "Digite os 14 números do CNPJ para preenchimento automático...";
+      }
+    });
+
+    document.getElementById("btn-lookup-cnpj")?.addEventListener("click", () => {
+      const cnpj = document.getElementById("profile-pj-cnpj")?.value || "";
+      executarBuscaCnpjServidor(cnpj);
+    });
+
+    document.getElementById("profile-pj-ie-tipo")?.addEventListener("change", sincronizarEstadoCampoIE);
+
+    document.getElementById("profile-telefone")?.addEventListener("input", (e) => {
+      e.target.value = formatarTelefone(e.target.value);
+    });
+
+    document.getElementById("profile-cep")?.addEventListener("input", async (e) => {
+      e.target.value = formatarCep(e.target.value);
+      const dig = apenasDigitos(e.target.value);
+      if (dig.length === 8 && contaState.ultimoCepConsultado !== dig) {
+        contaState.ultimoCepConsultado = dig;
+        await executarBuscaCepServidor(dig);
+      }
+    });
+
+    document.getElementById("btn-lookup-cep")?.addEventListener("click", () => {
+      const cep = document.getElementById("profile-cep")?.value || "";
+      executarBuscaCepServidor(cep);
+    });
+
+    document.getElementById("profile-uf")?.addEventListener("input", (e) => {
+      e.target.value = String(e.target.value || "").replace(/[^a-zA-Z]/g, "").toUpperCase().slice(0, 2);
+    });
+
+    document.getElementById("form-conta-profile")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      await salvarPerfilDoFormulario();
+    });
+
+    document.getElementById("btn-profile-save-and-cart")?.addEventListener("click", async () => {
+      const ok = await salvarPerfilDoFormulario();
+      if (ok) {
+        contaState.voltarParaCarrinhoAposSalvar = false;
+        ativarAbaConta("carrinho");
+      }
     });
 
     document.getElementById("btn-refresh-favorites")?.addEventListener("click", carregarMeusFavoritos);

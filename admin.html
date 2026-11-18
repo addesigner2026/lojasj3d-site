@@ -877,7 +877,12 @@
                 <p style="margin:0; color:#64748b; font-size:0.84rem;">Veja itens, quantidades, contato com link direto para o WhatsApp e registre o status ou valor de resposta.</p>
               </div>
               <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
-                <input type="text" id="cms-search-quotes-input" placeholder="Buscar por cliente ou nº (ex: 1001)..." style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; min-width:220px;" />
+                <input type="text" id="cms-search-quotes-input" placeholder="Buscar por nome, CPF/CNPJ ou nº..." style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; min-width:220px;" />
+                <select id="cms-filter-quotes-nf" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
+                  <option value="todos">🧾 Todas as notas</option>
+                  <option value="com_nf">✅ Com Nota Fiscal</option>
+                  <option value="sem_nf">📄 Sem Nota Fiscal</option>
+                </select>
                 <select id="cms-filter-quotes-status" style="padding:8px 12px; border-radius:9px; border:1.5px solid #cbd5e1; font-size:0.82rem; font-weight:700;">
                   <option value="todos">Todos os status</option>
                   <option value="solicitado">📨 Solicitados (Novos)</option>
@@ -1434,10 +1439,10 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_07"></script>
-  <script src="js/dados.js?v=20261118_07"></script>
-  <script src="js/database.js?v=20261118_07"></script>
-  <script src="js/app.js?v=20261118_07"></script>
+  <script src="js/supabase-client.js?v=20261118_08"></script>
+  <script src="js/dados.js?v=20261118_08"></script>
+  <script src="js/database.js?v=20261118_08"></script>
+  <script src="js/app.js?v=20261118_08"></script>
 
 </body>
 
