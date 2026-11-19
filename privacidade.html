@@ -563,7 +563,7 @@
   </footer>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261118_10"></script>
+  <script src="js/supabase-client.js?v=20261119_01"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const form = document.getElementById("priv-page-lgpd-form");
@@ -597,12 +597,38 @@
               s.async = true;
               s.onload = () => {
                 if (window.turnstile && tsBox) {
-                  turnstileWidgetId = window.turnstile.render(tsBox, { sitekey: des.turnstileSiteKey });
+                  try {
+                    turnstileWidgetId = window.turnstile.render(tsBox, {
+                      sitekey: des.turnstileSiteKey,
+                      "error-callback": () => {
+                        tsBox.style.display = "none";
+                        hmLbl.style.display = "flex";
+                        turnstileWidgetId = null;
+                      }
+                    });
+                  } catch (_) {
+                    tsBox.style.display = "none";
+                    hmLbl.style.display = "flex";
+                    turnstileWidgetId = null;
+                  }
                 }
               };
               document.head.appendChild(s);
             } else {
-              turnstileWidgetId = window.turnstile.render(tsBox, { sitekey: des.turnstileSiteKey });
+              try {
+                turnstileWidgetId = window.turnstile.render(tsBox, {
+                  sitekey: des.turnstileSiteKey,
+                  "error-callback": () => {
+                    tsBox.style.display = "none";
+                    hmLbl.style.display = "flex";
+                    turnstileWidgetId = null;
+                  }
+                });
+              } catch (_) {
+                tsBox.style.display = "none";
+                hmLbl.style.display = "flex";
+                turnstileWidgetId = null;
+              }
             }
           }
         }
@@ -642,7 +668,7 @@
           }
           form.reset();
           if (fiscalBox) fiscalBox.style.display = "none";
-        } catch (err) {
+        } catch (_) {
           alert("Erro ao enviar solicitação.");
         } finally {
           btnSubmit.disabled = false;

@@ -1677,11 +1677,22 @@
       humanLabel.style.display = "none";
       const renderWidget = () => {
         if (window.turnstile && tsContainer) {
+          const fallbackCheckbox = () => {
+            lgpdModalState.turnstileSiteKey = null;
+            lgpdModalState.turnstileWidgetId = null;
+            tsContainer.style.display = "none";
+            humanLabel.style.display = "flex";
+          };
           if (lgpdModalState.turnstileWidgetId === null) {
-            lgpdModalState.turnstileWidgetId = window.turnstile.render(tsContainer, {
-              sitekey: lgpdModalState.turnstileSiteKey,
-              theme: "light"
-            });
+            try {
+              lgpdModalState.turnstileWidgetId = window.turnstile.render(tsContainer, {
+                sitekey: lgpdModalState.turnstileSiteKey,
+                theme: "light",
+                "error-callback": fallbackCheckbox
+              });
+            } catch (_) {
+              fallbackCheckbox();
+            }
           } else {
             window.turnstile.reset(lgpdModalState.turnstileWidgetId);
           }

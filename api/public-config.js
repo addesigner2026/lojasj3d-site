@@ -40,6 +40,21 @@ function obterChallengeSecret(supabaseAnonKey) {
   return process.env.LGPD_CHALLENGE_SECRET || process.env.TURNSTILE_SECRET_KEY || `${supabaseAnonKey}:sj3d-lgpd-v1`;
 }
 
+function ehChaveTurnstileValida(chave) {
+  return /^[0-3]x[A-Za-z0-9_-]{16,128}$/.test(String(chave || "").trim());
+}
+
+function obterConfigTurnstile() {
+  const rawSite = process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || "";
+  const rawSecret = process.env.TURNSTILE_SECRET_KEY || "";
+  const siteKey = ehChaveTurnstileValida(rawSite) ? String(rawSite).trim() : null;
+  const secretKey = ehChaveTurnstileValida(rawSecret) ? String(rawSecret).trim() : "";
+  if (!siteKey || !secretKey) {
+    return { siteKey: null, secretKey: "" };
+  }
+  return { siteKey, secretKey };
+}
+
 function gerarTokenDesafioLgpd(supabaseAnonKey) {
   const ts = String(Date.now());
   const nonce = crypto.randomBytes(8).toString("hex");
@@ -186,10 +201,7 @@ module.exports = async function handler(req, res) {
       "5544991351318";
 
     const whatsappNumber = String(rawWhatsapp).replace(/\D/g, "") || "5544991351318";
-    const turnstileSiteKey =
-      process.env.TURNSTILE_SITE_KEY ||
-      process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ||
-      null;
+    const { siteKey: turnstileSiteKey } = obterConfigTurnstile();
 
     return res.status(200).json({
       ok: true,
@@ -203,9 +215,10 @@ module.exports = async function handler(req, res) {
 
   // 1B) Novo desafio anti-bot sob demanda
   if (tipo === "lgpd-challenge") {
+    const { siteKey: turnstileSiteKey } = obterConfigTurnstile();
     return res.status(200).json({
       ok: true,
-      turnstileSiteKey: process.env.TURNSTILE_SITE_KEY || process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY || null,
+      turnstileSiteKey,
       lgpdChallengeToken: gerarTokenDesafioLgpd(SUPABASE_ANON_KEY)
     });
   }
@@ -237,7 +250,7 @@ module.exports = async function handler(req, res) {
     }
 
     // Verificação CAPTCHA (Turnstile quando configurado; senão desafio assinado pelo servidor)
-    const turnstileSecret = process.env.TURNSTILE_SECRET_KEY || "";
+    const { secretKey: turnstileSecret } = obterConfigTurnstile();
     if (turnstileSecret) {
       const cfToken = String(body.captchaToken || "").trim();
       if (!cfToken) {
