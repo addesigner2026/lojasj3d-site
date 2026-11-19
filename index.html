@@ -65,9 +65,9 @@
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_02" />
-  <link rel="stylesheet" href="css/styles.css?v=20261119_02" />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_03" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119_03" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -208,91 +208,35 @@
   </div>
 
   <!-- ====================================================================
-       1. ÚNICO MENU / HEADER COM IDENTIDADE FORTE LOJA SJ 3D (100% LIMPO)
+       1. CABEÇALHO PRINCIPAL LOJA SJ 3D (LIMPO, ENXUTO E CONSISTENTE)
        ==================================================================== -->
   <header class="site-header">
-    <!-- ====================================================================
-         FAIXA PROMOCIONAL ROTATIVA CONTÍNUA (BLACK 🔥 SJ 3D)
-         ==================================================================== -->
-    <div class="top-promo-marquee-bar" id="top-promo-marquee-bar" role="region"
-      aria-label="Avisos e Ofertas da Loja SJ 3D">
-      <div class="top-promo-marquee-track">
-        <!-- GRUPO 1 -->
-        <div class="top-promo-marquee-group">
-          <span class="marquee-brand-badge" data-nav-cat="home" role="button" tabindex="0">
-            <span class="mb-black">BLACK</span><span class="mb-flame">🔥</span><span class="mb-brand">SJ 3D</span>
-          </span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span class="m-icon">🔥</span>
-            <span>FILAMENTO PLA A PARTIR DE <strong class="m-highlight">R$ 79,90</strong></span>
-          </span>
-          <span class="marquee-sep">🔥</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>PETG A PARTIR DE <strong class="m-highlight">R$ 59,90</strong></span>
-          </span>
-          <span class="marquee-sep">🚚</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>FRETE GRÁTIS PARA <strong class="m-highlight-city">UMUARAMA</strong> A PARTIR DE <strong
-                class="m-highlight">5 FILAMENTOS</strong></span>
-          </span>
-          <span class="marquee-sep">🔥</span>
-          <span class="marquee-item" data-nav-cat="impressoras" role="button" tabindex="0">
-            <span>IMPRESSORAS 3D BAMBU LAB COM ATÉ 20% DE DESCONTO — <strong class="m-highlight">FRETE GRÁTIS + PRONTA
-                ENTREGA</strong></span>
-          </span>
-          <span class="marquee-sep">🛡️</span>
-          <span class="marquee-item" data-nav-cat="home" role="button" tabindex="0">
-            <span>REVENDA AUTORIZADA OFICIAL <strong class="m-highlight-brand">BAMBU LAB &amp;
-                MASTERPRINT</strong></span>
-          </span>
-          <span class="marquee-sep">✨</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>+127 CORES E OPÇÕES DE FILAMENTOS DISPONÍVEIS</span>
-          </span>
-        </div>
-
-        <!-- GRUPO 2 (DUPLICADO PARA LOOPING INFINITO 100% CONTÍNUO E SEM PARAR) -->
-        <div class="top-promo-marquee-group" aria-hidden="true">
-          <span class="marquee-brand-badge" data-nav-cat="home" role="button" tabindex="0">
-            <span class="mb-black">BLACK</span><span class="mb-flame">🔥</span><span class="mb-brand">SJ 3D</span>
-          </span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span class="m-icon">🔥</span>
-            <span>FILAMENTO PLA A PARTIR DE <strong class="m-highlight">R$ 79,90</strong></span>
-          </span>
-          <span class="marquee-sep">🔥</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>PETG A PARTIR DE <strong class="m-highlight">R$ 59,90</strong></span>
-          </span>
-          <span class="marquee-sep">🚚</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>FRETE GRÁTIS PARA <strong class="m-highlight-city">UMUARAMA</strong> A PARTIR DE <strong
-                class="m-highlight">5 FILAMENTOS</strong></span>
-          </span>
-          <span class="marquee-sep">🔥</span>
-          <span class="marquee-item" data-nav-cat="impressoras" role="button" tabindex="0">
-            <span>IMPRESSORAS 3D BAMBU LAB COM ATÉ 20% DE DESCONTO — <strong class="m-highlight">FRETE GRÁTIS + PRONTA
-                ENTREGA</strong></span>
-          </span>
-          <span class="marquee-sep">🛡️</span>
-          <span class="marquee-item" data-nav-cat="home" role="button" tabindex="0">
-            <span>REVENDA AUTORIZADA OFICIAL <strong class="m-highlight-brand">BAMBU LAB &amp;
-                MASTERPRINT</strong></span>
-          </span>
-          <span class="marquee-sep">✨</span>
-          <span class="marquee-item" data-nav-cat="filamentos" role="button" tabindex="0">
-            <span>+127 CORES E OPÇÕES DE FILAMENTOS DISPONÍVEIS</span>
-          </span>
-        </div>
+    <!-- Barra de Avisos Discreta (1 aviso por vez em rotação suave + fechar) -->
+    <div class="top-promo-marquee-bar sj-announcement-bar" id="top-promo-marquee-bar" role="region"
+      aria-label="Avisos da Loja SJ 3D">
+      <div class="container sj-announcement-inner">
+        <button type="button" class="sj-announcement-rotator" id="top-promo-rotator-btn" data-nav-cat="filamentos"
+          aria-live="polite">
+          <span class="sj-announcement-dot" aria-hidden="true"></span>
+          <span class="sj-announcement-text" id="top-promo-rotator-text">Filamento PLA a partir de <strong>R$ 79,90</strong></span>
+        </button>
+        <button type="button" class="sj-announcement-close" id="top-promo-close-btn" aria-label="Fechar aviso"
+          title="Fechar aviso">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <line x1="18" y1="6" x2="6" y2="18"></line>
+            <line x1="6" y1="6" x2="18" y2="18"></line>
+          </svg>
+        </button>
       </div>
     </div>
 
     <div class="container header-inner">
-      <!-- BOTÃO SANDUÍCHE MOBILE (HAMBURGER MENU) -->
+      <!-- Botão Menu Mobile -->
       <button type="button" class="mobile-menu-toggle-btn" id="mobile-menu-toggle-btn"
         aria-label="Abrir Menu de Navegação" aria-expanded="false" aria-controls="mobile-nav-drawer">
-        <svg class="hamburger-icon-open" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <svg class="hamburger-icon-open" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="3" y1="6" x2="21" y2="6"></line>
           <line x1="3" y1="12" x2="21" y2="12"></line>
           <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -300,48 +244,35 @@
         <span class="mobile-menu-toggle-text">Menu</span>
       </button>
 
-      <a href="#" class="header-logo" data-nav-cat="home" aria-label="Loja SJ 3D — Impressão 3D em Umuarama">
-        <img src="assets/img/logo-horizontal.png" alt="Loja SJ" class="header-logo-img" />
-        <span class="header-logo-divider" aria-hidden="true"></span>
-        <span class="header-logo-tagline">
-          <strong>IMPRESSÃO 3D</strong>
-          <small>Revenda Autorizada • Umuarama PR</small>
-        </span>
+      <a href="#home" class="header-logo" data-nav-cat="home" aria-label="Loja SJ 3D — Ir para o início">
+        <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="128" height="35" class="header-logo-img" />
       </a>
 
-      <nav class="header-nav sj-nav-dock" aria-label="Menu Principal">
-        <button type="button" class="header-nav-link active" data-nav-cat="home">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
-            <polyline points="9 22 9 12 15 12 15 22"></polyline>
-          </svg>
-          <span>Início</span>
-        </button>
-        <button type="button" class="header-nav-link" data-nav-cat="filamentos">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <circle cx="12" cy="12" r="3.5"></circle>
-            <line x1="12" y1="3" x2="12" y2="8.5"></line>
-          </svg>
-          <span>Filamentos</span>
-        </button>
+      <nav class="header-nav sj-nav-dock" aria-label="Navegação Principal">
         <button type="button" class="header-nav-link" data-nav-cat="impressoras">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path
-              d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z">
-            </path>
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
             <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
-          <span>Impressoras 3D</span>
+          <span>Impressoras</span>
         </button>
+
+        <button type="button" class="header-nav-link" data-nav-cat="filamentos">
+          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="9"></circle>
+            <circle cx="12" cy="12" r="3"></circle>
+            <line x1="12" y1="3" x2="12" y2="9"></line>
+          </svg>
+          <span>Filamentos</span>
+        </button>
+
         <button type="button" class="header-nav-link" data-nav-cat="pecas">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
             <rect x="9" y="9" width="6" height="6"></rect>
             <line x1="9" y1="1" x2="9" y2="4"></line>
             <line x1="15" y1="1" x2="15" y2="4"></line>
@@ -350,29 +281,19 @@
           </svg>
           <span>Peças</span>
         </button>
+
         <button type="button" class="header-nav-link" data-nav-cat="manutencao">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path
-              d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
-            </path>
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
           </svg>
-          <span>Manutenção</span>
+          <span>Serviços</span>
         </button>
-        <button type="button" class="header-nav-link" data-nav-cat="todos">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="3" y="3" width="7" height="7" rx="1"></rect>
-            <rect x="14" y="3" width="7" height="7" rx="1"></rect>
-            <rect x="14" y="14" width="7" height="7" rx="1"></rect>
-            <rect x="3" y="14" width="7" height="7" rx="1"></rect>
-          </svg>
-          <span>Catálogo</span>
-        </button>
+
         <a href="/calculadora" class="header-nav-link header-nav-calc"
-          title="Calculadora & Precificadora 3D Profissional — Loja SJ 3D">
+          title="Calculadora de Precificação 3D — Loja SJ 3D">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="2" width="16" height="20" rx="2"></rect>
             <line x1="8" y1="6" x2="16" y2="6"></line>
             <line x1="16" y1="14" x2="16" y2="18"></line>
@@ -384,45 +305,41 @@
             <path d="M12 18h.01"></path>
             <path d="M8 18h.01"></path>
           </svg>
-          <span>Calculadora 3D</span>
-          <span class="nav-calc-badge">NOVO</span>
+          <span>Calculadora</span>
+          <span class="nav-calc-badge">Novo</span>
         </a>
       </nav>
 
       <div class="header-icons">
-        <button class="icon-btn sj-header-circle-btn" id="toggle-search-btn" aria-label="Buscar no catálogo"
+        <button type="button" class="icon-btn sj-header-circle-btn" id="toggle-search-btn" aria-label="Buscar no catálogo"
           title="Buscar no catálogo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="11" cy="11" r="8"></circle>
             <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
           </svg>
         </button>
 
-        <!-- Botão Meus Favoritos (Wishlist) -->
-        <button class="icon-btn sj-header-circle-btn header-fav-btn-wrap" id="header-fav-btn"
+        <button type="button" class="icon-btn sj-header-circle-btn header-fav-btn-wrap" id="header-fav-btn"
           aria-label="Meus Favoritos" title="Ver meus produtos favoritados">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round">
-            <path
-              d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z">
-            </path>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
           </svg>
           <span class="bag-badge" id="fav-count-badge" style="display: none;">0</span>
         </button>
 
-        <!-- Botão Área do Cliente / Minha Conta / Menu Compacto -->
         <div class="sj-acct-anchor" id="store-acct-anchor">
           <button type="button" class="header-account-pill-btn" id="header-account-btn" aria-label="Área do Cliente"
             aria-haspopup="menu" aria-expanded="false" aria-controls="store-user-popover" title="Acessar Minha Conta / Cadastrar">
             <span class="account-pill-avatar" aria-hidden="true">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
                 stroke-linecap="round" stroke-linejoin="round">
                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                 <circle cx="12" cy="7" r="4"></circle>
               </svg>
             </span>
-            <span id="header-account-btn-text">Entrar / Conta</span>
+            <span id="header-account-btn-text">Entrar</span>
           </button>
           <div id="store-user-popover" class="sj-acct-popover" role="menu" aria-labelledby="header-account-btn">
             <div class="sj-acct-popover-head">
@@ -430,24 +347,28 @@
               <div class="sj-acct-popover-email" id="store-popover-user-email">—</div>
             </div>
             <a href="/conta" class="sj-acct-menu-item" role="menuitem">
-              <span>👤</span><span>Minha conta</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+              <span>Minha conta</span>
             </a>
             <a href="/calculadora" class="sj-acct-menu-item" role="menuitem">
-              <span>⚡</span><span>Calculadora</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line></svg>
+              <span>Calculadora 3D</span>
             </a>
             <a href="/admin" id="store-popover-admin-link" class="sj-acct-menu-item" role="menuitem" style="display: none;">
-              <span>⚙️</span><span>Painel Admin</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+              <span>Painel Admin</span>
             </a>
             <hr class="sj-acct-sep" />
             <button type="button" id="btn-store-menu-logout" class="sj-acct-menu-item is-danger" role="menuitem">
-              <span>🚪</span><span>Sair</span>
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+              <span>Sair</span>
             </button>
           </div>
         </div>
 
-        <button class="icon-btn bag-btn-wrap sj-header-cart-pill" id="header-bag-btn" aria-label="Ver Seu Pedido"
+        <button type="button" class="icon-btn bag-btn-wrap sj-header-cart-pill" id="header-bag-btn" aria-label="Ver Seu Pedido"
           title="Abrir Carrinho / Seu Pedido">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
             <line x1="3" y1="6" x2="21" y2="6"></line>
@@ -485,19 +406,19 @@
   </header>
 
   <!-- ====================================================================
-       MENU SANDUÍCHE MOBILE (DRAWER MODERNO — SEM ROLAGEM HORIZONTAL)
+       MENU MOBILE (GAVETA LIMPA FULLSCREEN / LATERAL — SEM EMOJIS)
        ==================================================================== -->
   <div class="mobile-nav-overlay" id="mobile-nav-overlay" aria-hidden="true"></div>
   <aside class="mobile-nav-drawer" id="mobile-nav-drawer" role="dialog" aria-modal="true"
     aria-label="Menu de Navegação Principal" aria-hidden="true">
     <div class="mobile-drawer-header">
       <div class="mobile-drawer-brand">
-        <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" class="mobile-drawer-logo" />
-        <span class="mobile-drawer-badge">Revenda Oficial</span>
+        <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="110" height="28" class="mobile-drawer-logo" />
+        <span class="mobile-drawer-badge">Revenda Oficial • Umuarama PR</span>
       </div>
       <button type="button" class="mobile-drawer-close-btn" id="mobile-drawer-close-btn" aria-label="Fechar menu"
         title="Fechar menu">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
           stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           <line x1="18" y1="6" x2="6" y2="18"></line>
           <line x1="6" y1="6" x2="18" y2="18"></line>
@@ -505,95 +426,95 @@
       </button>
     </div>
 
-    <!-- Banner VIP da Comunidade no Topo do Menu Mobile -->
-    <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
-      class="mobile-drawer-comm-banner" title="Entrar na Comunidade VIP SJ 3D no WhatsApp">
-      <div class="comm-banner-left">
-        <span class="comm-pulse-dot" aria-hidden="true"></span>
-        <div class="comm-banner-text">
-          <strong>Comunidade VIP no WhatsApp</strong>
-          <small>Ofertas, cupons &amp; novidades em 1ª mão</small>
-        </div>
-      </div>
-      <span class="comm-banner-btn">Entrar →</span>
-    </a>
-
     <div class="mobile-drawer-body">
       <div class="mobile-drawer-section-title">Departamentos</div>
       <nav class="mobile-drawer-nav" aria-label="Categorias Mobile">
         <button type="button" class="mobile-drawer-nav-item active" data-nav-cat="home">
-          <span class="drawer-nav-icon">🏠</span>
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          </span>
           <span class="drawer-nav-title">Início</span>
           <span class="drawer-nav-arrow" aria-hidden="true">›</span>
         </button>
 
+        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="impressoras">
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
+          </span>
+          <span class="drawer-nav-title">Impressoras 3D</span>
+          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
+        </button>
+
         <button type="button" class="mobile-drawer-nav-item" data-nav-cat="filamentos">
-          <span class="drawer-nav-icon">🧶</span>
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="3" x2="12" y2="9"></line></svg>
+          </span>
           <span class="drawer-nav-title">Filamentos</span>
           <span class="drawer-nav-badge">80+ cores</span>
           <span class="drawer-nav-arrow" aria-hidden="true">›</span>
         </button>
 
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="impressoras">
-          <span class="drawer-nav-icon">🖨️</span>
-          <span class="drawer-nav-title">Impressoras 3D</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
         <button type="button" class="mobile-drawer-nav-item" data-nav-cat="pecas">
-          <span class="drawer-nav-icon">⚙️</span>
-          <span class="drawer-nav-title">Peças &amp; Acessórios</span>
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line></svg>
+          </span>
+          <span class="drawer-nav-title">Peças e upgrades</span>
           <span class="drawer-nav-arrow" aria-hidden="true">›</span>
         </button>
 
         <button type="button" class="mobile-drawer-nav-item" data-nav-cat="manutencao">
-          <span class="drawer-nav-icon">🔧</span>
-          <span class="drawer-nav-title">Manutenção</span>
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          </span>
+          <span class="drawer-nav-title">Serviços e manutenção</span>
           <span class="drawer-nav-arrow" aria-hidden="true">›</span>
         </button>
 
         <button type="button" class="mobile-drawer-nav-item" data-nav-cat="todos">
-          <span class="drawer-nav-icon">📦</span>
-          <span class="drawer-nav-title">Todos os Produtos</span>
+          <span class="drawer-nav-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
+          </span>
+          <span class="drawer-nav-title">Catálogo completo</span>
           <span class="drawer-nav-arrow" aria-hidden="true">›</span>
         </button>
       </nav>
 
-      <div class="mobile-drawer-section-title">Ferramentas Exclusivas</div>
+      <div class="mobile-drawer-section-title">Ferramenta</div>
       <div class="mobile-drawer-tools">
         <a href="/calculadora" class="mobile-drawer-tool-card"
-          title="Calculadora e Precificadora 3D Profissional — Loja SJ 3D">
-          <div class="tool-icon-box">⚡</div>
+          title="Calculadora de Precificação 3D — Loja SJ 3D">
+          <div class="tool-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line></svg>
+          </div>
           <div class="tool-info-box">
             <div class="tool-title-row">
-              <strong>Calculadora 3D &amp; Custos</strong>
-              <span class="tool-badge-new">NOVO</span>
+              <strong>Calculadora 3D</strong>
+              <span class="tool-badge-new">Novo</span>
             </div>
-            <small>Engenharia de custos, tempo e precificação de peças</small>
+            <small>Custos, taxas e margem de impressão 3D</small>
           </div>
           <span class="tool-arrow" aria-hidden="true">→</span>
         </a>
       </div>
 
-      <div class="mobile-drawer-section-title">Comunidade &amp; Atendimento</div>
+      <div class="mobile-drawer-section-title">Atendimento</div>
       <div class="mobile-drawer-contact-list">
         <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
-          class="drawer-contact-item community-highlight" title="Entrar na Comunidade Oficial do WhatsApp">
-          <span class="contact-icon wa">
-            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor" aria-hidden="true">
-              <path
-                d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-            </svg>
+          class="drawer-contact-item community-highlight" title="Entrar na Comunidade VIP no WhatsApp">
+          <span class="contact-icon wa" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
           </span>
           <div class="contact-info">
             <strong>Comunidade VIP no WhatsApp</strong>
-            <small>Participe do nosso grupo oficial e exclusivo</small>
+            <small>Ofertas e novidades em primeira mão</small>
           </div>
           <span class="contact-action-badge">Entrar</span>
         </a>
 
         <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon">💬</span>
+          <span class="contact-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+          </span>
           <div class="contact-info">
             <strong>WhatsApp: (44) 99135-1318</strong>
             <small>Atendimento direto e suporte técnico</small>
@@ -601,18 +522,22 @@
         </a>
 
         <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon">📸</span>
+          <span class="contact-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
+          </span>
           <div class="contact-info">
             <strong>Instagram: @lojasj3d</strong>
-            <small>Acompanhe novidades, impressões e sorteios</small>
+            <small>Novidades, impressões e sorteios</small>
           </div>
         </a>
 
         <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon">📍</span>
+          <span class="contact-icon" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          </span>
           <div class="contact-info">
-            <strong>Loja Física em Umuarama</strong>
-            <small>Av. Portugal, 6759 — Showroom e Pronta Entrega</small>
+            <strong>Showroom em Umuarama</strong>
+            <small>Av. Portugal, 6759 — Pronta Entrega</small>
           </div>
         </a>
       </div>
@@ -934,6 +859,36 @@
     </aside>
   </div>
 
+  <!-- Barra Fixa Inferior Mobile (Início, Buscar, Favoritos, Carrinho, Conta) -->
+  <nav class="sj-mobile-bottom-nav" id="sj-mobile-bottom-nav" aria-label="Atalhos mobile">
+    <button type="button" class="sj-mbnav-item active" data-mbnav="home">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+      <span>Início</span>
+    </button>
+    <button type="button" class="sj-mbnav-item" data-mbnav="search">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      <span>Buscar</span>
+    </button>
+    <a href="/conta?aba=favoritos" class="sj-mbnav-item" data-mbnav="favoritos">
+      <span class="sj-mbnav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
+        <span class="sj-mbnav-badge" id="mobile-bottom-fav-badge" style="display: none;">0</span>
+      </span>
+      <span>Favoritos</span>
+    </a>
+    <a href="/conta?aba=carrinho" class="sj-mbnav-item" data-mbnav="carrinho" id="mobile-bottom-cart-link">
+      <span class="sj-mbnav-icon-wrap">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
+        <span class="sj-mbnav-badge" id="mobile-bottom-cart-badge" style="display: none;">0</span>
+      </span>
+      <span>Carrinho</span>
+    </a>
+    <a href="/conta" class="sj-mbnav-item" data-mbnav="conta">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+      <span>Conta</span>
+    </a>
+  </nav>
+
   <!-- Botão Flutuante Rápido de WhatsApp (Canto Inferior Direito) -->
   <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Estou%20no%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida."
     target="_blank" rel="noopener" class="floating-whatsapp-fab" id="floating-whatsapp-btn"
@@ -989,188 +944,115 @@
   </div>
 
   <!-- ====================================================================
-       3. RODAPÉ INSTITUCIONAL PREMIUM LOJA SJ 3D (HARMONIOSO, CLEAN & COMPLETO)
+       FAIXA CURTA COMUNIDADE VIP WHATSAPP (ACIMA DO RODAPÉ)
+       ==================================================================== -->
+  <section class="sj-vip-pre-footer" aria-label="Comunidade VIP no WhatsApp">
+    <div class="container sj-vip-pre-footer-inner">
+      <div class="sj-vip-pre-left">
+        <span class="sj-vip-icon-circle" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+        </span>
+        <div>
+          <strong>Comunidade VIP no WhatsApp</strong>
+          <p>Ofertas, cupons e novidades de impressão 3D em primeira mão.</p>
+        </div>
+      </div>
+      <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
+        class="sj-vip-pre-btn" title="Entrar na Comunidade VIP da Loja SJ 3D no WhatsApp">
+        <span>Entrar no grupo</span>
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
+      </a>
+    </div>
+  </section>
+
+  <!-- ====================================================================
+       3. RODAPÉ ENXUTO LOJA SJ 3D (3 COLUNAS: LOJA, ATENDIMENTO, INSTITUCIONAL)
        ==================================================================== -->
   <footer class="site-footer" id="rodape-ajuda">
     <div class="container footer-container">
-
-      <!-- FAIXA SUPERIOR DE PROCEDÊNCIA & ORIGINALIDADE (CLEAN & INTEGRADA) -->
-      <div class="footer-trust-strip" role="region" aria-label="Garantia de Procedência Loja SJ 3D">
-        <div class="trust-strip-card">
-          <div class="trust-strip-icon-box">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-              <path
-                d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-1.45 14.54L6.8 11.8l1.41-1.41 2.34 2.34 5.24-5.24 1.41 1.41-6.65 6.64z" />
-            </svg>
-          </div>
-          <div class="trust-strip-info">
-            <strong>Revendedor Autorizado Oficial</strong>
-            <span>Bambu Lab &amp; Masterprint com procedência garantida</span>
-          </div>
-        </div>
-
-        <div class="trust-strip-card">
-          <div class="trust-strip-icon-box">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-              <circle cx="12" cy="10" r="3"></circle>
-            </svg>
-          </div>
-          <div class="trust-strip-info">
-            <strong>Showroom &amp; Pronta Entrega</strong>
-            <span>Av. Portugal, 6759 — Umuarama / PR (Retirada imediata)</span>
-          </div>
-        </div>
-
-        <div class="trust-strip-card">
-          <div class="trust-strip-icon-box">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path
-                d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z">
-              </path>
-            </svg>
-          </div>
-          <div class="trust-strip-info">
-            <strong>Assistência Técnica Especializada</strong>
-            <span>Peças originais, revisão preventiva e suporte próprio</span>
-          </div>
-        </div>
-      </div>
-
-      <!-- GRID PRINCIPAL DE 4 COLUNAS HARMONIOSAS -->
-      <div class="footer-main-grid">
-
-        <!-- Coluna 1: Marca & Endereço Físico -->
-        <div class="footer-brand-col">
+      <div class="footer-main-grid is-3col">
+        <!-- Coluna 1: Loja -->
+        <div class="footer-nav-col footer-col-loja">
           <div class="footer-logo-row">
-            <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" class="footer-logo-img" />
+            <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="120" height="32" class="footer-logo-img" />
           </div>
           <p class="footer-desc-text">
-            Sua referência em impressão 3D em Umuarama e toda a região noroeste. Revenda autorizada oficial Bambu Lab e
-            Masterprint.
+            Revenda autorizada oficial Bambu Lab &amp; Masterprint em Umuarama - PR.
           </p>
-          <div class="footer-info-capsules">
-            <div class="footer-info-pill">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <span>Av. Portugal, 6759 — Zona I-A, Umuarama - PR</span>
-            </div>
-            <div class="footer-info-pill">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <line x1="7" y1="8" x2="17" y2="8"></line>
-                <line x1="7" y1="12" x2="17" y2="12"></line>
-              </svg>
-              <span>CNPJ: 66.275.129/0001-10</span>
-            </div>
+          <h4 class="footer-col-title">Loja</h4>
+          <ul class="footer-nav-links">
+            <li><a href="#impressoras" data-nav-cat="impressoras">Impressoras 3D</a></li>
+            <li><a href="#filamentos" data-nav-cat="filamentos">Filamentos 1.75 mm</a></li>
+            <li><a href="#pecas" data-nav-cat="pecas">Peças e upgrades</a></li>
+            <li><a href="#manutencao" data-nav-cat="manutencao">Serviços e manutenção</a></li>
+            <li><a href="#todos" data-nav-cat="todos">Catálogo completo</a></li>
+            <li><a href="/calculadora" class="footer-calc-link">Calculadora 3D <span class="footer-mini-tag">Novo</span></a></li>
+          </ul>
+          <div class="footer-models-sub" aria-label="Impressoras em linha">
+            <span>Em linha:</span>
+            <a href="#impressoras" data-nav-cat="impressoras">A1 Mini</a> ·
+            <a href="#impressoras" data-nav-cat="impressoras">A1 Mini Combo</a> ·
+            <a href="#impressoras" data-nav-cat="impressoras">A1 &amp; Combo</a> ·
+            <a href="#impressoras" data-nav-cat="impressoras">P2S Combo</a> ·
+            <a href="#impressoras" data-nav-cat="impressoras">Snapmaker U1</a>
           </div>
         </div>
 
-        <!-- Coluna 2: Navegação Rápida -->
+        <!-- Coluna 2: Atendimento -->
         <div class="footer-nav-col">
-          <h4 class="footer-col-title">Catálogo &amp; Serviços</h4>
+          <h4 class="footer-col-title">Atendimento</h4>
           <ul class="footer-nav-links">
-            <li><a href="#catalogo-topo" data-nav-cat="home">Início (Destaques)</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="filamentos">Filamentos (+80 Cores)</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Impressoras 3D</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="pecas">Peças &amp; Acessórios</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="manutencao">Manutenção Especializada</a></li>
-            <li><a href="/calculadora" class="footer-calc-link">Calculadora 3D &amp; Custos <span
-                  class="footer-mini-tag">NOVO</span></a></li>
+            <li>
+              <a href="https://wa.me/5544991351318" target="_blank" rel="noopener">
+                WhatsApp: (44) 99135-1318
+              </a>
+            </li>
+            <li>
+              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener">
+                Av. Portugal, 6759 — Zona I-A, Umuarama - PR
+              </a>
+            </li>
+            <li>
+              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener">
+                Ver rota no Google Maps
+              </a>
+            </li>
+            <li>
+              <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">
+                Instagram: @lojasj3d
+              </a>
+            </li>
+            <li>
+              <a href="/conta">Minha conta e pedidos</a>
+            </li>
           </ul>
         </div>
 
-        <!-- Coluna 3: Impressoras em Linha (Sem quebras de texto) -->
+        <!-- Coluna 3: Institucional -->
         <div class="footer-nav-col">
-          <h4 class="footer-col-title">Impressoras em Linha</h4>
+          <h4 class="footer-col-title">Institucional</h4>
           <ul class="footer-nav-links">
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Bambu Lab A1 Mini</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Bambu Lab A1 Mini Combo</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Bambu Lab A1 &amp; A1 Combo</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Bambu Lab P2S Combo (CoreXY)</a></li>
-            <li><a href="#catalogo-topo" data-nav-cat="impressoras">Snapmaker U1 (4 Cabeçotes)</a></li>
+            <li>
+              <a href="#modal-privacy-policy" id="footer-privacy-link"
+                title="Política de Privacidade e Proteção de Dados LGPD">Privacidade &amp; LGPD</a>
+            </li>
+            <li>
+              <a href="#modal-lgpd-titular-request" id="footer-lgpd-request-link"
+                title="Solicitar ou Apagar Meus Dados (LGPD Art. 18)">Direitos do titular (LGPD)</a>
+            </li>
+            <li>
+              <a href="#modal-cookie-preferences" id="btn-footer-cookie-pref"
+                title="Gerenciar preferências de cookies e privacidade">Preferências de cookies</a>
+            </li>
+            <li><span class="footer-meta-line">CNPJ: 66.275.129/0001-10</span></li>
+            <li><span class="footer-meta-line">Retirada presencial e envio rápido</span></li>
           </ul>
         </div>
-
-        <!-- Coluna 4: Redes & Comunidade VIP -->
-        <div class="footer-community-col">
-          <h4 class="footer-col-title">Redes &amp; Atendimento</h4>
-          <div class="footer-social-row" role="navigation" aria-label="Canais Oficiais Loja SJ 3D">
-            <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener"
-              class="footer-social-pill instagram" title="Instagram @lojasj3d" aria-label="Instagram">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect>
-                <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                <line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line>
-              </svg>
-              <span>Instagram</span>
-            </a>
-            <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="footer-social-pill whatsapp"
-              title="WhatsApp Atendimento (44) 99135-1318" aria-label="WhatsApp">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor" aria-hidden="true">
-                <path
-                  d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z" />
-              </svg>
-              <span>WhatsApp</span>
-            </a>
-            <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener"
-              class="footer-social-pill maps" title="Google Maps — Av. Portugal, 6759" aria-label="Como Chegar">
-              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path>
-                <circle cx="12" cy="10" r="3"></circle>
-              </svg>
-              <span>Como Chegar</span>
-            </a>
-          </div>
-
-          <!-- Card Elegante e Integrado da Comunidade VIP -->
-          <div class="footer-vip-box">
-            <div class="vip-box-badge">
-              <span class="vip-pulse-dot" aria-hidden="true"></span>
-              <span>COMUNIDADE VIP SJ 3D</span>
-            </div>
-            <strong class="vip-box-title">Grupo Oficial no WhatsApp</strong>
-            <p class="vip-box-desc">
-              Receba ofertas relâmpago, cupons de desconto e novidades em primeira mão.
-            </p>
-            <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
-              class="vip-join-btn" title="Entrar na Comunidade VIP da Loja SJ 3D no WhatsApp">
-              <span>Entrar no Grupo VIP</span>
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
-                stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <line x1="5" y1="12" x2="19" y2="12"></line>
-                <polyline points="12 5 19 12 12 19"></polyline>
-              </svg>
-            </a>
-          </div>
-        </div>
-
       </div>
 
-      <!-- LINHA FINAL: COPYRIGHT & LGPD -->
       <div class="footer-bottom-bar">
-        <span class="footer-copy-text">© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10 • Revendedor Autorizado Bambu Lab
-          &amp; Masterprint • Umuarama / PR</span>
-        <div class="footer-legal-links">
-          <a href="#modal-privacy-policy" id="footer-privacy-link"
-            title="Política de Privacidade e Proteção de Dados LGPD">Privacidade &amp; LGPD</a>
-          <span class="dot-sep" aria-hidden="true">•</span>
-          <a href="#modal-lgpd-titular-request" id="footer-lgpd-request-link"
-            title="Solicitar ou Apagar Meus Dados (LGPD Art. 18)">Solicitar / Apagar Dados</a>
-          <span class="dot-sep" aria-hidden="true">•</span>
-          <a href="#modal-cookie-preferences" id="btn-footer-cookie-pref"
-            title="Gerenciar preferências de cookies e privacidade">Preferências de Cookies</a>
-        </div>
+        <span class="footer-copy-text">© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10 • Umuarama / PR • Todos os direitos reservados.</span>
       </div>
-
     </div>
   </footer>
 
@@ -4082,10 +3964,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261119_02"></script>
-  <script src="js/dados.js?v=20261119_02"></script>
-  <script src="js/database.js?v=20261119_02"></script>
-  <script src="js/app.js?v=20261119_02"></script>
+  <script src="js/supabase-client.js?v=20261119_03"></script>
+  <script src="js/dados.js?v=20261119_03"></script>
+  <script src="js/database.js?v=20261119_03"></script>
+  <script src="js/app.js?v=20261119_03"></script>
 </body>
 
 </html>

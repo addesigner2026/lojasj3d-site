@@ -281,7 +281,7 @@
         const arr = JSON.parse(raw);
         if (Array.isArray(arr)) return arr;
       }
-    } catch (_) {}
+    } catch (_) { }
     return [];
   }
 
@@ -289,7 +289,7 @@
     if (!clienteId) return;
     try {
       localStorage.setItem(`sj_pedidos_cliente_${clienteId}`, JSON.stringify(lista));
-    } catch (_) {}
+    } catch (_) { }
   }
 
   // Validação Oficial Matemática de CPF (Receita Federal - Módulo 11)
@@ -650,7 +650,7 @@
             enderecoFiscal: formatarEnderecoCompletoCliente(c)
           }
         });
-      } catch (_) {}
+      } catch (_) { }
     }
 
     // 3. Feedback visual
@@ -754,17 +754,17 @@
 
     const fraseNotaFiscal = precisaNf
       ? (state.clienteLogado
-          ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados informados acima.`
-          : `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Gostaria de solicitar Nota Fiscal (NF-e). Enviarei os dados fiscais (CPF/CNPJ) neste chat.`)
+        ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados informados acima.`
+        : `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Gostaria de solicitar Nota Fiscal (NF-e). Enviarei os dados fiscais (CPF/CNPJ) neste chat.`)
       : "";
 
     const msg = encodeURIComponent(
       `Olá *Loja SJ 3D*! Montei meu pedido no catálogo do site:\n\n` +
-        `🛒 *ITENS ESCOLHIDOS:*\n` +
-        `${linhas.join("\n")}${resumoPeso}${resumoValor}${pedidoTag}` +
-        `${linhasCliente.join("\n")}` +
-        `${fraseNotaFiscal}\n\n` +
-        `Gostaria de confirmar a disponibilidade e finalizar a compra!`
+      `🛒 *ITENS ESCOLHIDOS:*\n` +
+      `${linhas.join("\n")}${resumoPeso}${resumoValor}${pedidoTag}` +
+      `${linhasCliente.join("\n")}` +
+      `${fraseNotaFiscal}\n\n` +
+      `Gostaria de confirmar a disponibilidade e finalizar a compra!`
     );
 
     window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
@@ -863,16 +863,15 @@
         <p class="raffle-modal-desc">Participe do sorteio oficial de fim de ano da Loja SJ 3D! O sorteio da impressora Bambu Lab A1 Mini lacrada com kit de 4 kg de filamentos será transmitido ao vivo no dia <strong>20 de Dezembro de 2026</strong> pelo Instagram oficial <strong>@lojasj3d</strong>.</p>
       </div>
 
-      ${
-        cards.length > 0
-          ? `
+      ${cards.length > 0
+        ? `
         <div class="raffle-modal-section-label">COMO PARTICIPAR E GARANTIR SEUS CUPONS:</div>
         <div class="raffle-modal-rules-grid">
           ${cards
-            .map(
-              (rc, i) => {
-                const tagLimpa = String(rc.tag || "").replace(/^[0-9️⃣\s]+/u, "").trim();
-                return `
+          .map(
+            (rc, i) => {
+              const tagLimpa = String(rc.tag || "").replace(/^[0-9️⃣\s]+/u, "").trim();
+              return `
               <div class="raffle-modal-rule-card">
                 <div class="raffle-modal-rule-top">
                   <span class="raffle-modal-step-num">${i + 1}</span>
@@ -882,12 +881,12 @@
                 <p>${rc.texto || ""}</p>
               </div>
             `;
-              }
-            )
-            .join("")}
+            }
+          )
+          .join("")}
         </div>
       `
-          : b.precoDestaque
+        : b.precoDestaque
           ? `<div class="raffle-modal-price-highlight">${b.precoDestaque}</div>`
           : ""
       }
@@ -1003,7 +1002,7 @@
       const fav = localStorage.getItem("sj_cliente_favoritos_v1");
       if (fav) state.favoritos = JSON.parse(fav);
       if (!Array.isArray(state.favoritos)) state.favoritos = [];
-    } catch (_) {}
+    } catch (_) { }
   }
   carregarClienteSalvo();
 
@@ -1014,7 +1013,7 @@
       if (window.SJ_DB?.clientes?.salvar) {
         try {
           window.SJ_DB.clientes.salvar(cliente);
-        } catch (_) {}
+        } catch (_) { }
       }
       if (typeof cliente.precisaNotaFiscal === "boolean" && typeof state.precisaNotaFiscalPedido !== "boolean") {
         state.precisaNotaFiscalPedido = cliente.precisaNotaFiscal;
@@ -1058,7 +1057,7 @@
     const returnTo = `${window.location.pathname || "/"}${window.location.search || ""}${window.location.hash || ""}`;
     try {
       sessionStorage.setItem(PENDING_STORE_ACTION_KEY, JSON.stringify({ action, productId, returnTo }));
-    } catch (_) {}
+    } catch (_) { }
     const url = `/conta?action=${encodeURIComponent(action)}&productId=${encodeURIComponent(productId)}&returnTo=${encodeURIComponent(returnTo)}`;
     window.location.href = url;
   }
@@ -1074,6 +1073,11 @@
         atualizarBotaoHeaderConta();
         const topBagBadge = document.getElementById("cart-count-badge");
         if (topBagBadge) topBagBadge.textContent = "0";
+        const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
+        if (mbCartBadge) {
+          mbCartBadge.textContent = "0";
+          mbCartBadge.style.display = "none";
+        }
         sincronizarCoracoesNaTela();
         return;
       }
@@ -1105,6 +1109,11 @@
           const totalQtd = (resCart.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
           const topBagBadge = document.getElementById("cart-count-badge");
           if (topBagBadge) topBagBadge.textContent = String(totalQtd);
+          const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
+          if (mbCartBadge) {
+            mbCartBadge.textContent = String(totalQtd);
+            mbCartBadge.style.display = totalQtd > 0 ? "inline-flex" : "none";
+          }
         }
       }
 
@@ -1114,7 +1123,7 @@
         window.SJ_SUPABASE?.favorites?.assinarRealtime?.(() => sincronizarClienteLojaSupabase());
         window.SJ_SUPABASE?.cart?.assinarRealtime?.(() => sincronizarClienteLojaSupabase());
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function sincronizarCoracoesNaTela() {
@@ -1195,11 +1204,13 @@
   }
 
   function atualizarBadgeFavoritos() {
-    const badge = document.getElementById("fav-count-badge");
-    if (!badge) return;
     const total = (state.favoritos || []).length;
-    badge.textContent = total;
-    badge.style.display = total > 0 ? "inline-flex" : "none";
+    ["fav-count-badge", "mobile-bottom-fav-badge"].forEach((id) => {
+      const badge = document.getElementById(id);
+      if (!badge) return;
+      badge.textContent = total;
+      badge.style.display = total > 0 ? "inline-flex" : "none";
+    });
   }
 
   function atualizarBotaoHeaderConta() {
@@ -1224,7 +1235,7 @@
         popAdmin.style.display = (papel === "admin" || papel === "staff") ? "flex" : "none";
       }
     } else {
-      btnText.textContent = "Entrar / Conta";
+      btnText.textContent = "Entrar";
       btn.classList.remove("logged-in");
       btn.title = "Acessar Minha Conta / Cadastrar";
       if (pop) pop.classList.remove("is-open");
@@ -1604,7 +1615,7 @@
               aoCompletarCep(dados);
             }
           }
-        } catch (_) {}
+        } catch (_) { }
       }
     });
   }
@@ -1750,7 +1761,7 @@
             }
           }
         }
-      } catch (_) {}
+      } catch (_) { }
     } else if (state.usuarioGoogle?.email) {
       emailLogado = state.usuarioGoogle.email;
       nomeLogado = state.usuarioGoogle.nome || "";
@@ -1842,7 +1853,7 @@
     };
     try {
       window.dispatchEvent(new CustomEvent("sj_cookies_updated", { detail: consent }));
-    } catch (_) {}
+    } catch (_) { }
   }
 
   async function salvarConsentimentoCookies(prefs = {}) {
@@ -1877,9 +1888,9 @@
           status: "concedido",
           versao_termo: "v1.0-2026",
           canal: "banner_cookies"
-        }).catch(() => {});
+        }).catch(() => { });
       }
-    } catch (_) {}
+    } catch (_) { }
 
     mostrarToast("Preferências de privacidade e cookies salvas com sucesso!", "success");
   }
@@ -2255,7 +2266,7 @@
           btnCopy.textContent = "Copiado";
           setTimeout(() => { btnCopy.textContent = "Copiar"; }, 2000);
         }
-      } catch (_) {}
+      } catch (_) { }
     });
 
     // Consulta de status de protocolo existente (exige protocolo + e-mail)
@@ -2354,7 +2365,7 @@
       if (p.get("lgpd") === "1" || window.location.hash === "#modal-lgpd-titular-request") {
         setTimeout(abrirModalLgpdSolicitacao, 150);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     // ========================================================================
     // EVENTOS E INICIALIZAÇÃO DO BANNER E MODAL DE COOKIES LGPD
@@ -2809,7 +2820,7 @@
                 canal: "web"
               });
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         const tinhaAcaoPendente = Boolean(state.acaoPendenteAposLogin);
@@ -2932,7 +2943,7 @@
             endereco: formatarEnderecoCompletoCliente(clienteAtualizado),
             bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
           });
-        } catch (_) {}
+        } catch (_) { }
       }
 
       // Registro da prova de consentimento e aceite na base LGPD
@@ -2956,7 +2967,7 @@
               canal: "web"
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const tinhaAcaoPendente = Boolean(state.acaoPendenteAposLogin);
@@ -3005,15 +3016,14 @@
             </button>
           </div>
         </div>
-        ${
-          favsVisitante.length > 0
-            ? `
+        ${favsVisitante.length > 0
+          ? `
           <div style="margin-bottom: 48px;">
             <h3 style="font-size:1.1rem; font-weight:800; margin-bottom:14px; color:#18181b;">❤️ Seus Produtos Favoritos (${favsVisitante.length})</h3>
             <div class="client-favorites-grid">
               ${favsVisitante
-                .map(
-                  (item) => `
+            .map(
+              (item) => `
                 <div class="client-fav-item-card" data-fav-card="${item.id}">
                   <button type="button" class="btn-remove-fav" data-del-fav="${item.id}" title="Remover dos favoritos">✕</button>
                   <div class="client-fav-img-wrap" data-open-modal="${item.id}" style="cursor:pointer;">
@@ -3032,12 +3042,12 @@
                   </div>
                 </div>
               `
-                )
-                .join("")}
+            )
+            .join("")}
             </div>
           </div>
         `
-            : ""
+          : ""
         }
       `;
 
@@ -3198,14 +3208,14 @@
             <span class="client-stat-tag">Blindagem &amp; Dados</span>
           </div>
           <div class="client-stat-val">${(() => {
-            const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
-            return val.valido ? "100% OK" : "Pendente";
-          })()}</div>
+        const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+        return val.valido ? "100% OK" : "Pendente";
+      })()}</div>
           <div class="client-stat-desc">
             <span>${(() => {
-              const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
-              return val.valido ? "Cadastro aprovado e seguro" : "Clique para completar dados";
-            })()}</span>
+        const val = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+        return val.valido ? "Cadastro aprovado e seguro" : "Clique para completar dados";
+      })()}</span>
             <span>Editar →</span>
           </div>
         </div>
@@ -3234,13 +3244,12 @@
 
       <!-- ABA A: FAVORITOS -->
       <div class="client-tab-pane ${abaAtiva === "favoritos" ? "active" : ""}" id="pane-client-favoritos">
-        ${
-          produtosFavoritos.length > 0
-            ? `
+        ${produtosFavoritos.length > 0
+        ? `
           <div class="client-favorites-grid">
             ${produtosFavoritos
-              .map(
-                (item) => `
+          .map(
+            (item) => `
               <div class="client-fav-item-card" data-fav-card="${item.id}">
                 <button type="button" class="btn-remove-fav" data-del-fav="${item.id}" title="Remover dos favoritos">✕</button>
                 <div class="client-fav-img-wrap" data-open-modal="${item.id}" style="cursor:pointer;">
@@ -3259,11 +3268,11 @@
                 </div>
               </div>
             `
-              )
-              .join("")}
+          )
+          .join("")}
           </div>
         `
-            : `
+        : `
           <div class="client-empty-box">
             <div class="client-empty-icon">❤️</div>
             <h4>Sua lista de favoritos está vazia</h4>
@@ -3273,41 +3282,40 @@
             </button>
           </div>
         `
-        }
+      }
       </div>
 
       <!-- ABA B: PEDIDOS E HISTÓRICO DE COMPRAS -->
       <div class="client-tab-pane ${abaAtiva === "pedidos" ? "active" : ""}" id="pane-client-pedidos">
-        ${
-          pedidosCliente.length > 0
-            ? `
+        ${pedidosCliente.length > 0
+        ? `
           <div class="client-orders-list">
             ${pedidosCliente
-              .map((ped) => {
-                const totalFmt = (Number(ped.total) || 0).toLocaleString("pt-BR", {
-                  style: "currency",
-                  currency: "BRL"
-                });
-                const dataObj = ped.dataHoraSalvo ? new Date(ped.dataHoraSalvo) : new Date();
-                const dataFmt = !isNaN(dataObj.getTime())
-                  ? dataObj.toLocaleDateString("pt-BR")
-                  : "Recente";
-                const horaFmt = !isNaN(dataObj.getTime())
-                  ? dataObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
-                  : "";
+          .map((ped) => {
+            const totalFmt = (Number(ped.total) || 0).toLocaleString("pt-BR", {
+              style: "currency",
+              currency: "BRL"
+            });
+            const dataObj = ped.dataHoraSalvo ? new Date(ped.dataHoraSalvo) : new Date();
+            const dataFmt = !isNaN(dataObj.getTime())
+              ? dataObj.toLocaleDateString("pt-BR")
+              : "Recente";
+            const horaFmt = !isNaN(dataObj.getTime())
+              ? dataObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+              : "";
 
-                const itensLista = Array.isArray(ped.itens) ? ped.itens : [];
-                const itensTabelaHtml = itensLista
-                  .map((it) => {
-                    const subtotal = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
-                    const subtotalFmt = subtotal > 0
-                      ? subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
-                      : "(Sob consulta)";
-                    const dotHtml = it.corHex
-                      ? `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${it.corHex}; margin-right:6px; vertical-align:middle;"></span>`
-                      : "";
-                    const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
-                    return `
+            const itensLista = Array.isArray(ped.itens) ? ped.itens : [];
+            const itensTabelaHtml = itensLista
+              .map((it) => {
+                const subtotal = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
+                const subtotalFmt = subtotal > 0
+                  ? subtotal.toLocaleString("pt-BR", { style: "currency", currency: "BRL" })
+                  : "(Sob consulta)";
+                const dotHtml = it.corHex
+                  ? `<span style="display:inline-block; width:10px; height:10px; border-radius:50%; background:${it.corHex}; margin-right:6px; vertical-align:middle;"></span>`
+                  : "";
+                const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
+                return `
                       <tr>
                         <td>
                           ${dotHtml}<strong>${it.qtd}x</strong> ${it.nome}
@@ -3316,51 +3324,51 @@
                         <td>${subtotalFmt}</td>
                       </tr>
                     `;
-                  })
-                  .join("");
+              })
+              .join("");
 
-                // Mensagem personalizada para enviar no WhatsApp (com dados completos e solicitação de NF-e)
-                const linhasMsg = itensLista.map((it) => {
-                  const sub = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
-                  const precoStr = sub > 0 ? ` — *${formatarMoedaBR(sub)}*` : "";
-                  const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
-                  return `• ${it.qtd}x *${it.nome}*${det ? ` (${det})` : ""}${precoStr}`;
-                });
-                const totalMsg = Number(ped.total) > 0 ? `\n*Total Estimado:* ${totalFmt}` : "";
-                const solicitaNfPed = Boolean(ped.precisaNotaFiscal || c.precisaNotaFiscal);
-                const endCompletoPed = formatarEnderecoCompletoCliente(c) || ped.clienteEnderecoFiscal || "";
-                const blocoCliPed = [
-                  `\n\n📋 *DADOS DO CLIENTE:*`,
-                  `• *Nome do Titular:* ${c.nome || ped.clienteNome}`,
-                  c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (ped.clienteCpfCnpj ? `• *Documento:* ${ped.clienteCpfCnpj}` : ""),
-                  c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
-                  c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
-                  c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
-                  c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
-                  c.whatsapp ? `• *WhatsApp:* ${c.whatsapp}` : "",
-                  c.email ? `• *E-mail:* ${c.email}` : "",
-                  endCompletoPed ? `• *Endereço Completo:* ${endCompletoPed}` : ""
-                ].filter(Boolean).join("\n");
-                const fraseNfPed = solicitaNfPed
-                  ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados fiscais completos informados acima.`
-                  : "";
-                const msgWhats = encodeURIComponent(
-                  `Olá *Loja SJ 3D*! Gostaria de finalizar meu pedido *${ped.id}* salvo no site:\n\n` +
-                    `🛒 *ITENS ESCOLHIDOS:*\n` +
-                    `${linhasMsg.join("\n")}${totalMsg}` +
-                    `${blocoCliPed}${fraseNfPed}\n\n` +
-                    `Gostaria de confirmar a disponibilidade e finalizar a compra!`
-                );
+            // Mensagem personalizada para enviar no WhatsApp (com dados completos e solicitação de NF-e)
+            const linhasMsg = itensLista.map((it) => {
+              const sub = (Number(it.precoUnitario) || 0) * (Number(it.qtd) || 1);
+              const precoStr = sub > 0 ? ` — *${formatarMoedaBR(sub)}*` : "";
+              const det = [it.detalhe1, it.detalhe2].filter(Boolean).join(" | ");
+              return `• ${it.qtd}x *${it.nome}*${det ? ` (${det})` : ""}${precoStr}`;
+            });
+            const totalMsg = Number(ped.total) > 0 ? `\n*Total Estimado:* ${totalFmt}` : "";
+            const solicitaNfPed = Boolean(ped.precisaNotaFiscal || c.precisaNotaFiscal);
+            const endCompletoPed = formatarEnderecoCompletoCliente(c) || ped.clienteEnderecoFiscal || "";
+            const blocoCliPed = [
+              `\n\n📋 *DADOS DO CLIENTE:*`,
+              `• *Nome do Titular:* ${c.nome || ped.clienteNome}`,
+              c.cpf ? `• *CPF:* ${formatarCpf(c.cpf)}` : (ped.clienteCpfCnpj ? `• *Documento:* ${ped.clienteCpfCnpj}` : ""),
+              c.cnpj ? `• *CNPJ da Empresa:* ${formatarCnpj(c.cnpj)}` : "",
+              c.razaoSocial ? `• *Razão Social:* ${c.razaoSocial}` : "",
+              c.nomeFantasia ? `• *Nome Fantasia:* ${c.nomeFantasia}` : "",
+              c.inscricaoEstadual ? `• *Inscrição Estadual:* ${c.inscricaoEstadual}` : "",
+              c.whatsapp ? `• *WhatsApp:* ${c.whatsapp}` : "",
+              c.email ? `• *E-mail:* ${c.email}` : "",
+              endCompletoPed ? `• *Endereço Completo:* ${endCompletoPed}` : ""
+            ].filter(Boolean).join("\n");
+            const fraseNfPed = solicitaNfPed
+              ? `\n\n🧾 *SOLICITAÇÃO DE NOTA FISCAL:* Preciso da emissão de Nota Fiscal (NF-e) para este pedido com os dados fiscais completos informados acima.`
+              : "";
+            const msgWhats = encodeURIComponent(
+              `Olá *Loja SJ 3D*! Gostaria de finalizar meu pedido *${ped.id}* salvo no site:\n\n` +
+              `🛒 *ITENS ESCOLHIDOS:*\n` +
+              `${linhasMsg.join("\n")}${totalMsg}` +
+              `${blocoCliPed}${fraseNfPed}\n\n` +
+              `Gostaria de confirmar a disponibilidade e finalizar a compra!`
+            );
 
-                const statusClass = ped.status || "guardado";
-                const statusTexto =
-                  ped.status === "enviado_whatsapp"
-                    ? "💬 Enviado no WhatsApp"
-                    : ped.status === "guardado"
-                      ? "💾 Orçamento Guardado"
-                      : (ped.statusLabel || String(ped.status).toUpperCase());
+            const statusClass = ped.status || "guardado";
+            const statusTexto =
+              ped.status === "enviado_whatsapp"
+                ? "💬 Enviado no WhatsApp"
+                : ped.status === "guardado"
+                  ? "💾 Orçamento Guardado"
+                  : (ped.statusLabel || String(ped.status).toUpperCase());
 
-                return `
+            return `
                 <div class="client-order-card" data-order-card="${ped.id}">
                   <div class="client-order-header">
                     <div class="client-order-id-group">
@@ -3396,11 +3404,11 @@
                   </div>
                 </div>
               `;
-              })
-              .join("")}
+          })
+          .join("")}
           </div>
         `
-            : `
+        : `
           <div class="client-empty-box">
             <div class="client-empty-icon">📦</div>
             <h4>Nenhum pedido ou orçamento guardado ainda</h4>
@@ -3410,7 +3418,7 @@
             </button>
           </div>
         `
-        }
+      }
       </div>
 
       <!-- ABA C: CUPONS DO SORTEIO DA A1 MINI -->
@@ -3454,23 +3462,23 @@
         <div style="max-width: 820px; margin: 0 auto;">
 
           ${(() => {
-            const valAtual = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
-            return valAtual.valido
-              ? `<div style="margin:0 0 20px; padding:14px 18px; background:#ECFDF5; border:1.5px solid #A7F3D0; border-radius:16px; color:#065F46; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(16,185,129,0.1);">
+        const valAtual = validarDadosCliente(c, Boolean(c.precisaNotaFiscal));
+        return valAtual.valido
+          ? `<div style="margin:0 0 20px; padding:14px 18px; background:#ECFDF5; border:1.5px solid #A7F3D0; border-radius:16px; color:#065F46; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(16,185,129,0.1);">
                    <span style="font-size:1.3rem;">✅</span>
                    <div>
                      <div>Cadastro Aprovado e Blindado!</div>
                      <small style="font-weight:500; opacity:0.9;">Seus dados cadastrais e fiscais já vão completos e prontos quando você finalizar pedidos no WhatsApp.</small>
                    </div>
                  </div>`
-              : `<div style="margin:0 0 20px; padding:14px 18px; background:#FEF2F2; border:1.5px solid #FECACA; border-radius:16px; color:#991B1B; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(239,68,68,0.1);">
+          : `<div style="margin:0 0 20px; padding:14px 18px; background:#FEF2F2; border:1.5px solid #FECACA; border-radius:16px; color:#991B1B; font-size:0.86rem; font-weight:700; display:flex; align-items:center; gap:10px; box-shadow:0 4px 14px rgba(239,68,68,0.1);">
                    <span style="font-size:1.3rem;">⚠️</span>
                    <div>
                      <div>Cadastro Pendente de Informações</div>
                      <small style="font-weight:500; opacity:0.9;">Preencha os campos obrigatórios abaixo (${escaparHtml(valAtual.faltando.join(", "))}) para aprovar seu cadastro e garantir agilidade no envio.</small>
                    </div>
                  </div>`;
-          })()}
+      })()}
 
           <form id="form-client-edit-profile" class="client-auth-form">
             <!-- CARD 1: DADOS PESSOAIS DO TITULAR -->
@@ -3807,7 +3815,7 @@
         if (window.SJ_DB?.orcamentos?.excluir) {
           try {
             await window.SJ_DB.orcamentos.excluir(pedId);
-          } catch (_) {}
+          } catch (_) { }
         }
 
         mostrarToast(`🗑️ Pedido ${pedId} removido do histórico.`, "info");
@@ -3969,7 +3977,7 @@
               endereco: formatarEnderecoCompletoCliente(atualizado),
               bairroCidadeUf: `${bairro ? bairro + " - " : ""}${cidade}/${uf}`
             });
-          } catch (_) {}
+          } catch (_) { }
         }
 
         mostrarToastNotificacao("✅ Dados cadastrais e fiscais aprovados e salvos com sucesso!", "sucesso");
@@ -4179,7 +4187,7 @@
       return {
         vistaTexto: vistaStr,
         vistaValor: vistaVal,
-         vistaSub: item.precoParcelado || "",
+        vistaSub: item.precoParcelado || "",
         parceladoMain: `${qtdParcelas}x de R$ ${match[2]}`,
         parceladoSub: `Total a prazo: ${formatarMoedaBR(totalPrazo)} (ou ${vistaStr} à vista)`,
         parceladoValorTotal: totalPrazo,
@@ -4267,14 +4275,14 @@
           </thead>
           <tbody>
             ${impressoras
-              .map((imp) => {
-                const extra = metadadosExtras[imp.id] || {};
-                const ft = imp.fichaTecnica || {};
-                const vol = ft["Volume de Impressão"] || extra.volume || "256 × 256 × 256 mm³";
-                const multi = ft["Sistema Multicor"] || extra.multicor || "Multicor";
-                const estr = ft["Arquitetura"] || extra.estrutura || "Alta Velocidade";
-                const ideal = extra.perfil || imp.subtitulo || "Produção 3D";
-                return `
+        .map((imp) => {
+          const extra = metadadosExtras[imp.id] || {};
+          const ft = imp.fichaTecnica || {};
+          const vol = ft["Volume de Impressão"] || extra.volume || "256 × 256 × 256 mm³";
+          const multi = ft["Sistema Multicor"] || extra.multicor || "Multicor";
+          const estr = ft["Arquitetura"] || extra.estrutura || "Alta Velocidade";
+          const ideal = extra.perfil || imp.subtitulo || "Produção 3D";
+          return `
                   <tr>
                     <td>
                       <div class="compare-model-cell" data-compare-open="${imp.id}">
@@ -4300,8 +4308,8 @@
                     </td>
                   </tr>
                 `;
-              })
-              .join("")}
+        })
+        .join("")}
           </tbody>
         </table>
       </div>
@@ -4350,7 +4358,24 @@
     }
   });
 
-  // 2. Renderiza um Card Ultra-Clean na Grade Principal (Estilo Referência Anycubic)
+  function encurtarOpcaoVariacaoImpressora(opRaw) {
+    const op = String(opRaw || "").trim();
+    const low = op.toLowerCase();
+    if (low.startsWith("somente impressora")) return "Somente impressora";
+    if (low.includes("ams lite")) return "Com AMS Lite";
+    if (low.includes("fechada + ams")) return "P2S + AMS";
+    if (low.includes("4 cabeçotes")) return "4 cabeçotes";
+    if (low.includes("filamento pla a escolher")) return "+ PLA";
+    if (low.includes("filamentos masterprint")) return "+ Masterprint";
+    if (low.includes("filamentos bambu lab rfid")) return "+ Bambu RFID";
+    if (low.includes("pla / petg / abs")) return "+ Kit filamentos";
+    if (low.includes("filamentos multicores")) return "+ Kit multicores";
+    if (low.includes("sorteio")) return "Cupom sorteio";
+    if (low.includes("retirada / envio")) return "Retirada / envio";
+    return op.length > 22 ? `${op.slice(0, 20).trim()}…` : op;
+  }
+
+  // 2. Renderiza um Card Ultra-Clean na Grade Principal (Design System Unificado SJ 3D)
   function gerarCardHTML(item) {
     const marcaAtual = state.marcaNoCardOverride[item.id] || item.marca;
     const isBambu = marcaAtual === "Bambu Lab";
@@ -4439,8 +4464,8 @@
       swatchesHtml = `
         <div class="color-swatches-strip" id="swatches-${item.id}" aria-label="Troca rápida de cor">
           ${coresVisiveis
-            .map(
-              (cor, idx) => `
+          .map(
+            (cor, idx) => `
               <button
                 type="button"
                 class="color-swatch-dot ${idx === idxInicial ? "active" : ""}"
@@ -4451,13 +4476,12 @@
                 aria-label="Selecionar cor ${cor.nome}"
               ></button>
             `
-            )
-            .join("")}
-          ${
-            restantes > 0
-              ? `<button type="button" class="color-swatch-more" data-open-modal="${item.id}" title="Ver todas as ${listaCores.length} cores disponíveis">+${restantes} cores</button>`
-              : ""
-          }
+          )
+          .join("")}
+          ${restantes > 0
+          ? `<button type="button" class="color-swatch-more" data-open-modal="${item.id}" title="Ver todas as ${listaCores.length} cores disponíveis">+${restantes} cores</button>`
+          : ""
+        }
         </div>
       `;
     } else {
@@ -4473,16 +4497,17 @@
         ? `<span class="clean-price-sub" id="price-sub-${item.id}">${item.precoParcelado}</span>`
         : "";
 
+    const ehPecaSobConsulta =
+      item.categoria === "pecas" &&
+      (Number(item.precoVistaValor || 0) <= 0 ||
+        String(item.precoVista || "Sob consulta").toLowerCase().includes("consulta"));
+
     const priceLineHtml = item.categoria === "pecas"
       ? `
         <div class="combo-card-peca-clean-meta">
-          <div class="peca-clean-tags-row">
-            <span class="peca-compat-badge">${escaparHtml(item.compatibilidade || item.marca || "Bambu Lab Original")}</span>
-            <span class="peca-clean-sub">${escaparHtml(item.area || "Componente Original")}</span>
-          </div>
+          <span class="peca-clean-sub">${escaparHtml(item.compatibilidade || item.marca || "Bambu Lab Original")}</span>
           <div class="combo-card-clean-price">
-            <strong id="price-val-${item.id}">${item.precoVista || "Sob Consulta"}</strong>
-            <span class="clean-price-sub">${item.precoParcelado || "Pronta Entrega em Umuarama"}</span>
+            <strong id="price-val-${item.id}">${escaparHtml(item.precoVista || "Sob consulta")}</strong>
           </div>
         </div>
       `
@@ -4506,7 +4531,7 @@
     const ehEsgotado = statusInicial === "esgotado";
     const ehPoucas = statusInicial === "poucas_unidades";
 
-    const stockBadgeCardHtml = `<span class="card-stock-badge status-${statusInicial}" id="stock-badge-${item.id}" style="${statusInicial === "disponivel" ? "display:none;" : ""}">${ehEsgotado ? "🔴 ESGOTADO" : ehPoucas ? "🟠 POUCAS UNIDADES" : ""}</span>`;
+    const stockBadgeCardHtml = `<span class="card-stock-badge status-${statusInicial}" id="stock-badge-${item.id}" style="${statusInicial === "disponivel" ? "display:none;" : ""}">${ehEsgotado ? "Esgotado" : ehPoucas ? "Poucas unidades" : ""}</span>`;
 
     const opcoesSelect2 = item.select2Opcoes || ["Padrão"];
     const mostrarSel1 =
@@ -4515,36 +4540,62 @@
       !item.variantesDiametro &&
       Array.isArray(opcoesSelect1) &&
       opcoesSelect1.length > 1;
+    const usarChipsImpressora =
+      item.categoria === "impressoras" &&
+      Array.isArray(opcoesSelect2) &&
+      opcoesSelect2.length > 1 &&
+      !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão");
     const mostrarSel2 =
       item.categoria !== "pecas" &&
       !item.variantesDiametro &&
+      !usarChipsImpressora &&
       (Boolean(item.tipoFilamento) ||
-      (Array.isArray(opcoesSelect2) &&
-        opcoesSelect2.length > 1 &&
-        !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão")));
+        (Array.isArray(opcoesSelect2) &&
+          opcoesSelect2.length > 1 &&
+          !(opcoesSelect2.length === 1 && opcoesSelect2[0] === "Padrão")));
     const ocultarLinhaSelects = !mostrarSel1 && !mostrarSel2;
 
-    // No card da grade, os seletores de diâmetro foram movidos para dentro da Página/Modal de Detalhes do Produto (PDP)
-    // para garantir um design 100% clean, moderno e sem poluição visual na capa e no catálogo.
-    const diametrosCardHtml = "";
+    const chipsVariacaoImpressoraHtml = usarChipsImpressora
+      ? `
+        <div class="sj-card-chips-group" role="group" aria-label="Opções de ${escaparHtml(tituloCard)}">
+          ${opcoesSelect2
+        .map(
+          (op, idx) => `
+              <button
+                type="button"
+                class="sj-card-var-chip ${idx === 0 ? "active" : ""}"
+                data-var-chip="${item.id}"
+                data-var-val="${escaparHtml(op)}"
+                aria-pressed="${idx === 0 ? "true" : "false"}"
+                title="${escaparHtml(op)}"
+              >${escaparHtml(encurtarOpcaoVariacaoImpressora(op))}</button>
+            `
+        )
+        .join("")}
+        </div>
+      `
+      : "";
+
+    const waPecaUrl = `https://wa.me/5544991351318?text=${encodeURIComponent(
+      `Olá Loja SJ 3D! Gostaria de consultar disponibilidade e valor de: ${tituloCard}`
+    )}`;
 
     return `
       <article
         class="combo-filament-card ${ehEsgotado ? "is-out-of-stock" : ""}"
         data-item-id="${item.id}"
-        ${
-          dadosImp
-            ? `data-vista-txt="${dadosImp.vistaTexto}" data-vista-sub="${dadosImp.vistaSub}" data-parc-main="${dadosImp.parceladoMain}" data-parc-sub="${dadosImp.parceladoSub}"`
-            : ""
-        }
+        ${dadosImp
+        ? `data-vista-txt="${dadosImp.vistaTexto}" data-vista-sub="${dadosImp.vistaSub}" data-parc-main="${dadosImp.parceladoMain}" data-parc-sub="${dadosImp.parceladoSub}"`
+        : ""
+      }
       >
         <button type="button" class="admin-quick-edit-btn" data-admin-edit-prod="${item.id}" title="Editar foto, preço, estoque e descrição deste produto">
-          ✏️ Editar
+          Editar
         </button>
 
-        <div class="combo-image-wrap" data-open-modal="${item.id}" title="Clique para ver detalhes">
-          <button type="button" class="card-fav-btn ${isFavorito(item.id) ? "active" : ""}" data-toggle-fav="${item.id}" aria-label="Favoritar ${tituloCard}" title="Guardar nos Favoritos">
-            <svg width="17" height="17" viewBox="0 0 24 24" fill="${isFavorito(item.id) ? "#f04e23" : "none"}" stroke="${isFavorito(item.id) ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+        <div class="combo-image-wrap" data-open-modal="${item.id}" title="Ver detalhes de ${escaparHtml(tituloCard)}">
+          <button type="button" class="card-fav-btn ${isFavorito(item.id) ? "active" : ""}" data-toggle-fav="${item.id}" aria-label="Favoritar ${escaparHtml(tituloCard)}" title="Guardar nos Favoritos">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="${isFavorito(item.id) ? "#f04e23" : "none"}" stroke="${isFavorito(item.id) ? "#f04e23" : "#64748b"}" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
             </svg>
           </button>
@@ -4552,8 +4603,10 @@
           ${stockBadgeCardHtml}
           <img
             src="${imagemCard}"
-            alt="${tituloCard}"
+            alt="${escaparHtml(tituloCard)}"
             id="img-${item.id}"
+            width="400"
+            height="400"
             class="${item.tipoFilamento ? "cover-img" : ""}"
             style="filter: ${filtroInicial};"
             loading="lazy"
@@ -4563,8 +4616,8 @@
         <h3 class="combo-card-title" data-open-modal="${item.id}">${tituloCard}</h3>
 
         ${priceLineHtml}
-        ${diametrosCardHtml}
         ${swatchesHtml}
+        ${chipsVariacaoImpressoraHtml}
 
         <div class="combo-selects-row ${mostrarSel1 && mostrarSel2 ? "" : "single-select-row"}" style="${ocultarLinhaSelects ? "display:none;" : ""}">
           <select class="combo-select" id="sel1-${item.id}" data-type-select="${item.id}" aria-label="Primeira opção" style="${mostrarSel1 ? "" : "display:none;"}">
@@ -4572,29 +4625,28 @@
           </select>
 
           <select
-            class="combo-select"
+            class="combo-select ${usarChipsImpressora ? "sj-sr-only-select" : ""}"
             id="sel2-${item.id}"
             ${item.tipoFilamento ? `data-color-select="${item.id}"` : ""}
-            aria-label="Segunda opção ou cor"
+            aria-label="Variação ou cor"
             style="${mostrarSel2 ? "" : "display:none;"}"
           >
             ${select2Html}
           </select>
         </div>
 
-        ${
-          item.categoria === "pecas"
-            ? `
-            <button type="button" class="btn-add-to-box btn-peca-clean-details" data-open-modal="${item.id}" title="Ver especificações, diâmetros e compatibilidade desta peça">
-              Ver Detalhes &amp; Especificações →
+        ${item.categoria === "pecas"
+        ? (
+          ehPecaSobConsulta
+            ? `<a href="${waPecaUrl}" target="_blank" rel="noopener" class="btn-add-to-box btn-peca-clean-details btn-peca-consult-direct">Consultar</a>`
+            : `<button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" ${ehEsgotado ? "disabled" : ""}>${ehEsgotado ? "Esgotado" : "Adicionar ao pedido"}</button>`
+        )
+        : `
+            <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao pedido"}" ${ehEsgotado ? "disabled" : ""}>
+              ${ehEsgotado ? "Esgotado" : "Adicionar ao pedido"}
             </button>
           `
-            : `
-            <button type="button" class="btn-add-to-box ${ehEsgotado ? "btn-out-of-stock" : ""}" id="btn-add-${item.id}" data-add-item="${item.id}" data-default-txt="${item.botaoTexto || "Adicionar ao Pedido"}" ${ehEsgotado ? "disabled" : ""}>
-              ${ehEsgotado ? "🔴 Esgotado no Momento" : (item.botaoTexto || "+ Adicionar ao Pedido")}
-            </button>
-          `
-        }
+      }
       </article>
     `;
   }
@@ -4692,8 +4744,8 @@
       barraMateriaisHtml = `
         <div class="sj-fil-line-pills" role="tablist" aria-label="Linha de filamento Masterprint">
           ${materiaisMaxPrint
-            .map(
-              (m) => `
+          .map(
+            (m) => `
             <button
               type="button"
               class="sj-fil-line-pill ${matAtivoId === m.id ? "active" : ""}"
@@ -4703,8 +4755,8 @@
               <span class="pill-count">${m.qtdCores}</span>
             </button>
           `
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       `;
 
@@ -4715,15 +4767,15 @@
       gradeCoresHtml = `
         <div class="sj-fil-clean-grid">
           ${coresFiltradas
-            .map((cor) => {
-              const stCor =
-                cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
-              const isEsg = stCor === "esgotado";
-              const isPouc = stCor === "poucas_unidades";
-              const nomeLimpo = formatarNomeCorClean(cor.nome, matAtivoId);
-              const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
-              const ehFavCor = isFavorito(corDbId);
-              return `
+          .map((cor) => {
+            const stCor =
+              cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
+            const isEsg = stCor === "esgotado";
+            const isPouc = stCor === "poucas_unidades";
+            const nomeLimpo = formatarNomeCorClean(cor.nome, matAtivoId);
+            const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
+            const ehFavCor = isFavorito(corDbId);
+            return `
                 <article class="filament-color-tile sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
                     class="filament-color-tile-img sj-fil-card-media"
@@ -4743,13 +4795,12 @@
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                       </svg>
                     </button>
-                    ${
-                      isEsg
-                        ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
-                        : isPouc
-                          ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
-                          : ""
-                    }
+                    ${isEsg
+                ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
+                : isPouc
+                  ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
+                  : ""
+              }
                     <img
                       src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem}"
                       alt="${cor.nome}"
@@ -4782,8 +4833,8 @@
                   </div>
                 </article>
               `;
-            })
-            .join("")}
+          })
+          .join("")}
         </div>
       `;
     } else {
@@ -4814,8 +4865,8 @@
       barraMateriaisHtml = `
         <div class="sj-fil-line-pills" role="tablist" aria-label="Apresentação Bambu Lab">
           ${opcoesBambu
-            .map(
-              (op) => `
+          .map(
+            (op) => `
             <button
               type="button"
               class="sj-fil-line-pill ${filtroBambu === op.id ? "active" : ""}"
@@ -4825,26 +4876,26 @@
               <span class="pill-count">${op.qtd}</span>
             </button>
           `
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       `;
 
       gradeCoresHtml = `
         <div class="sj-fil-clean-grid">
           ${coresBambuFiltradas
-            .map((cor) => {
-              const ehRefil =
-                (cor.nome || "").toLowerCase().includes("refil") ||
-                (cor.tipo || "").toLowerCase().includes("refil");
-              const stCor =
-                cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
-              const isEsg = stCor === "esgotado";
-              const isPouc = stCor === "poucas_unidades";
-              const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
-              const corDbId = resolverIdCorBanco(cor, "coresBambuLab", cor.originalIdx);
-              const ehFavCor = isFavorito(corDbId);
-              return `
+          .map((cor) => {
+            const ehRefil =
+              (cor.nome || "").toLowerCase().includes("refil") ||
+              (cor.tipo || "").toLowerCase().includes("refil");
+            const stCor =
+              cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
+            const isEsg = stCor === "esgotado";
+            const isPouc = stCor === "poucas_unidades";
+            const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
+            const corDbId = resolverIdCorBanco(cor, "coresBambuLab", cor.originalIdx);
+            const ehFavCor = isFavorito(corDbId);
+            return `
                 <article class="filament-color-tile sj-fil-card bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
                   <div
                     class="filament-color-tile-img sj-fil-card-media"
@@ -4853,9 +4904,8 @@
                     title="Ver detalhes de ${cor.nome} (#${cor.cod})"
                   >
                     <span class="sj-fil-code-tag">#${cor.cod}</span>
-                    <span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${
-                      ehRefil ? "Refil" : "Bobina RFID"
-                    }</span>
+                    <span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${ehRefil ? "Refil" : "Bobina RFID"
+              }</span>
                     <button
                       type="button"
                       class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
@@ -4867,13 +4917,12 @@
                         <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
                       </svg>
                     </button>
-                    ${
-                      isEsg
-                        ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
-                        : isPouc
-                          ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
-                          : ""
-                    }
+                    ${isEsg
+                ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
+                : isPouc
+                  ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
+                  : ""
+              }
                     <img
                       src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
                       alt="${cor.nome}"
@@ -4906,8 +4955,8 @@
                   </div>
                 </article>
               `;
-            })
-            .join("")}
+          })
+          .join("")}
         </div>
       `;
     }
@@ -5273,10 +5322,10 @@
         if (stockBadgeEl) {
           stockBadgeEl.className = `card-stock-badge status-${estoqueCor}`;
           if (estoqueCor === "esgotado") {
-            stockBadgeEl.textContent = "🔴 ESGOTADO";
+            stockBadgeEl.textContent = "Esgotado";
             stockBadgeEl.style.display = "inline-flex";
           } else if (estoqueCor === "poucas_unidades") {
-            stockBadgeEl.textContent = "🟠 POUCAS UNIDADES";
+            stockBadgeEl.textContent = "Poucas unidades";
             stockBadgeEl.style.display = "inline-flex";
           } else {
             stockBadgeEl.textContent = "";
@@ -5287,11 +5336,11 @@
         const btnAddCard = document.getElementById(`btn-add-${itemId}`);
         if (btnAddCard) {
           const itemCat = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
-          const defaultBtnText = itemCat ? itemCat.textoBotao || "Adicionar ao Pedido" : "Adicionar ao Pedido";
+          const defaultBtnText = itemCat ? itemCat.textoBotao || "Adicionar ao pedido" : "Adicionar ao pedido";
           if (estoqueCor === "esgotado") {
             btnAddCard.disabled = true;
             btnAddCard.classList.add("btn-out-of-stock");
-            btnAddCard.textContent = "🔴 Esgotado no Momento";
+            btnAddCard.textContent = "Esgotado";
           } else {
             btnAddCard.disabled = false;
             btnAddCard.classList.remove("btn-out-of-stock");
@@ -5303,6 +5352,27 @@
         if (swatchesContainer) {
           swatchesContainer.querySelectorAll(".color-swatch-dot").forEach((dot) => {
             dot.classList.toggle("active", Number(dot.dataset.swatchIndex) === selectedIndex);
+          });
+        }
+      });
+    });
+
+    // Troca rápida via chips de variação nas impressoras (sincroniza #sel2-<id>)
+    container.querySelectorAll("[data-var-chip]").forEach((chipBtn) => {
+      chipBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const itemId = chipBtn.dataset.varChip;
+        const val = chipBtn.dataset.varVal;
+        const sel2El = document.getElementById(`sel2-${itemId}`);
+        if (sel2El && val !== undefined) {
+          sel2El.value = val;
+        }
+        const group = chipBtn.closest(".sj-card-chips-group");
+        if (group) {
+          group.querySelectorAll("[data-var-chip]").forEach((b) => {
+            const active = b === chipBtn;
+            b.classList.toggle("active", active);
+            b.setAttribute("aria-pressed", active ? "true" : "false");
           });
         }
       });
@@ -5520,12 +5590,17 @@
         return;
       }
 
-      // Atualiza badge do carrinho no header com o total real do banco
+      // Atualiza badge do carrinho no header e na barra mobile com o total real do banco
       const listaAtual = await window.SJ_SUPABASE.cart.listarMeu();
       if (listaAtual?.sucesso) {
         const totalUnidades = (listaAtual.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
         const topBagBadge = document.getElementById("cart-count-badge");
         if (topBagBadge) topBagBadge.textContent = String(totalUnidades);
+        const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
+        if (mbCartBadge) {
+          mbCartBadge.textContent = String(totalUnidades);
+          mbCartBadge.style.display = totalUnidades > 0 ? "inline-flex" : "none";
+        }
       }
 
       if (btnEl) {
@@ -5702,9 +5777,8 @@
 
     let textoTotalCaixa = "";
     if (valorTotalEstimado > 0) {
-      textoTotalCaixa = `Total Estimado: ${formatarMoedaBR(valorTotalEstimado)}${
-        totalKgFil > 0 ? ` (${totalKgFil} kg)` : ""
-      }${temItensSobConsulta ? " + sob consulta" : ""}`;
+      textoTotalCaixa = `Total Estimado: ${formatarMoedaBR(valorTotalEstimado)}${totalKgFil > 0 ? ` (${totalKgFil} kg)` : ""
+        }${temItensSobConsulta ? " + sob consulta" : ""}`;
     } else if (totalItens > 0 && temItensSobConsulta) {
       textoTotalCaixa = `Total: ${totalItens} ${totalItens === 1 ? "item" : "itens"} (Valor sob consulta)`;
     } else {
@@ -5720,9 +5794,8 @@
       mobileBar.style.display = mostrarBarra ? "flex" : "none";
 
       if (totalItens > 0) {
-        mobileCount.textContent = `${totalItens} ${
-          totalItens === 1 ? "item no carrinho" : "itens no carrinho"
-        }`;
+        mobileCount.textContent = `${totalItens} ${totalItens === 1 ? "item no carrinho" : "itens no carrinho"
+          }`;
         mobileTotal.textContent =
           valorTotalEstimado > 0
             ? `Total: ${formatarMoedaBR(valorTotalEstimado)}`
@@ -5849,20 +5922,19 @@
       state.itensCaixa.length === 0
         ? htmlVazio
         : state.itensCaixa
-            .map(
-              (item, idx) => `
+          .map(
+            (item, idx) => `
         <div class="box-item-row">
           <div class="box-item-left">
             <span class="box-color-dot" style="background:${item.corHex};"></span>
             <div>
               <strong style="display:block;">${item.nome}</strong>
               <span style="color:var(--text-muted); display:block;">${item.detalhe2}</span>
-              ${
-                item.precoUnitario > 0
-                  ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem;">${formatarMoedaBR(
-                      item.precoUnitario * item.qtd
-                    )} (${item.qtd}x ${item.precoTexto})</span>`
-                  : `<span class="cart-consult-badge">Sob consulta • ${item.detalhe1}</span>`
+              ${item.precoUnitario > 0
+                ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem;">${formatarMoedaBR(
+                  item.precoUnitario * item.qtd
+                )} (${item.qtd}x ${item.precoTexto})</span>`
+                : `<span class="cart-consult-badge">Sob consulta • ${item.detalhe1}</span>`
               }
             </div>
           </div>
@@ -5873,8 +5945,8 @@
           </div>
         </div>
       `
-            )
-            .join("");
+          )
+          .join("");
 
     [listEl, drawerListEl].forEach((container) => {
       if (!container) return;
@@ -5999,20 +6071,50 @@
       (i) => i.categoria === "pecas"
     );
 
-    // Destaques de Peças na Capa (Clean & Simétrico — exatamente 3 peças para fechar 1 linha perfeita de 3 colunas)
+    // Destaques de Peças na Capa (4 cartões limpos — 4 col desktop / 2 tablet / 1-2 mobile)
     const idsPecasDestaque = [
       "peca-kit-hotend-bambu-a1",
       "peca-extrusora-original-a1",
-      "peca-placa-peo-pei-257"
+      "peca-placa-peo-pei-257",
+      "peca-hub-ams-lite-5way"
     ];
     const pecasDestaqueHome = idsPecasDestaque
       .map((id) => todasPecas.find((p) => p.id === id))
       .filter(Boolean);
     const pecasParaExibirHome =
-      pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 3);
+      pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 4);
+
+    // Preço inicial dinâmico por marca de filamento
+    function calcularMenorPrecoFilamentos(marcaTarget, fallbackStr) {
+      let minVal = Infinity;
+      let minFmt = "";
+      todosFilamentos
+        .filter((f) => String(f.marca || "").toLowerCase() === marcaTarget.toLowerCase())
+        .forEach((f) => {
+          const valBase = Number(f.precoVistaValor || 0);
+          if (valBase > 0 && valBase < minVal) {
+            minVal = valBase;
+            minFmt = f.precoVista || "";
+          }
+          const pal = obterPaletaPorChave(f.usaCoresDinamicas, f.marca === "Bambu Lab");
+          (pal || []).forEach((c) => {
+            const v = Number(c.valor || 0);
+            if (v > 0 && v < minVal) {
+              minVal = v;
+              minFmt = c.preco || "";
+            }
+          });
+        });
+      if (minVal < Infinity && minFmt) return minFmt;
+      if (minVal < Infinity) return formatarMoedaBR(minVal);
+      return fallbackStr;
+    }
+
+    const menorPrecoMaster = calcularMenorPrecoFilamentos("MaxPrint", "R$ 59,90");
+    const menorPrecoBambu = calcularMenorPrecoFilamentos("Bambu Lab", "R$ 79,90");
 
     homeEl.innerHTML = `
-      <!-- 1. HERO CAROUSEL DE DESTAQUES (BANNERS GRÁFICOS OFICIAIS BLACK SJ 3D) -->
+      <!-- 1. HERO CAROUSEL DE DESTAQUES (BANNERS GRÁFICOS OFICIAIS BLACK SJ 3D — PRESERVADOS) -->
       <div class="hero-slider-container" id="hero-slider-container" role="region" aria-label="Carrossel de Ofertas Black SJ 3D">
         <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar Banner de Promoções da Capa">
           ✏️ Editar Banner de Promoção
@@ -6030,8 +6132,10 @@
                     <img
                       src="${b.desktopPng}"
                       alt="${b.titulo}"
+                      width="1280"
+                      height="460"
                       class="hero-graphic-img"
-                      ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'loading="lazy"'}
+                      ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'fetchpriority="low" loading="lazy"'}
                     />
                   </picture>
                   ${b.isSorteio ? `
@@ -6083,174 +6187,159 @@
         </div>
       </div>
 
-      <!-- 2. FAIXA DE DIFERENCIAIS LOJA SJ 3D (UI/UX PRO MAX — ÍCONES SVG VETORIAIS) -->
-      <div class="home-benefits-strip">
+      <!-- 2. FAIXA COMPACTA DE CONFIANÇA (4 ITENS CURTOS, 1 LINHA) -->
+      <div class="home-benefits-strip sj-trust-compact" aria-label="Diferenciais Loja SJ 3D">
         <div class="home-benefit-card">
-          <div class="sj-benefit-icon-box">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
-          </div>
-          <div>
-            <strong>Revendedor Autorizado</strong>
-            <span>Bambu Lab &amp; Masterprint oficiais</span>
-          </div>
+          <span class="sj-benefit-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+          </span>
+          <strong>Revendedor autorizado Bambu Lab</strong>
         </div>
         <div class="home-benefit-card">
-          <div class="sj-benefit-icon-box">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          </div>
-          <div>
-            <strong>Pronta Entrega em Umuarama</strong>
-            <span>Av. Portugal, 6759 — retire na hora</span>
-          </div>
+          <span class="sj-benefit-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
+          </span>
+          <strong>Pronta entrega em Umuarama</strong>
         </div>
         <div class="home-benefit-card">
-          <div class="sj-benefit-icon-box">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
-          </div>
-          <div>
-            <strong>Até 10x ou Desconto à Vista</strong>
-            <span>Condições especiais em impressoras 3D</span>
-          </div>
+          <span class="sj-benefit-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+          </span>
+          <strong>Até 10x no cartão</strong>
         </div>
         <div class="home-benefit-card">
-          <div class="sj-benefit-icon-box">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-          </div>
-          <div>
-            <strong>Assistência Técnica Própria</strong>
-            <span>Manutenção, revisão e peças originais</span>
-          </div>
+          <span class="sj-benefit-icon-box" aria-hidden="true">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+          </span>
+          <strong>Assistência técnica própria</strong>
         </div>
       </div>
 
-      <!-- 3. IMPRESSORAS EM DESTAQUE (COM ABAS LIMPAS) -->
-      <div class="home-section-block">
-        <div class="home-section-head">
-          <div>
-            <span class="home-eyebrow">IMPRESSORAS 3D EM ESTOQUE</span>
-            <h2>Bambu Lab &amp; Snapmaker</h2>
+      <!-- 3. IMPRESSORAS 3D (HIERARQUIA LIMPA, CHIPS E FILTROS) -->
+      <section class="home-section-block" aria-labelledby="home-heading-impressoras">
+        <div class="home-section-head sj-section-head">
+          <div class="sj-section-title-group">
+            <h2 id="home-heading-impressoras">Impressoras 3D</h2>
+            <p class="sj-section-subtitle">Bambu Lab e Snapmaker com nota fiscal, garantia e suporte técnico.</p>
           </div>
-          <div class="home-tabs-row" id="home-printer-tabs">
-            <button type="button" class="home-tab-btn active" data-printer-tab="todas">Todas (6)</button>
-            <button type="button" class="home-tab-btn" data-printer-tab="COMECE A CRIAR">Iniciantes &amp; Multicolor</button>
-            <button type="button" class="home-tab-btn" data-printer-tab="EVOLUA SUA PRODUÇÃO">Produção</button>
-            <button type="button" class="home-tab-btn" data-printer-tab="ALTA PERFORMANCE">Alta Performance</button>
-            <button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">Comparar Modelos</button>
-          </div>
+          <button type="button" class="sj-section-link-btn" data-open-printer-compare="1">Comparar modelos →</button>
+        </div>
+
+        <div class="home-tabs-row sj-printer-tabs" id="home-printer-tabs" role="tablist" aria-label="Filtrar impressoras por perfil">
+          <button type="button" class="home-tab-btn active" role="tab" aria-selected="true" data-printer-tab="todas">Todas</button>
+          <button type="button" class="home-tab-btn" role="tab" aria-selected="false" data-printer-tab="COMECE A CRIAR">Iniciantes</button>
+          <button type="button" class="home-tab-btn" role="tab" aria-selected="false" data-printer-tab="EVOLUA SUA PRODUÇÃO">Produção</button>
+          <button type="button" class="home-tab-btn" role="tab" aria-selected="false" data-printer-tab="ALTA PERFORMANCE">Alta performance</button>
         </div>
 
         <div class="combo-products-row" id="home-printers-grid">
           ${todasImpressoras.map((imp) => gerarCardHTML(imp)).join("")}
         </div>
+      </section>
+
+      <!-- BANNER DO SORTEIO BAMBU LAB A1 MINI (PRESERVADO COM RESPIRO GENEROSO) -->
+      <div class="sj-home-raffle-wrap">
+        ${gerarBannerPromocionalSecaoHtml()}
       </div>
 
-      <!-- BANNER OFICIAL DO GRANDE SORTEIO BAMBU LAB A1 MINI -->
-      ${gerarBannerPromocionalSecaoHtml()}
-
-      <!-- 4. VITRINE CLEAN DE FILAMENTOS (2 PORTAIS MODERNOS DE MARCA — SEM POLUIÇÃO VISUAL) -->
-      <div class="home-section-block" id="home-filamentos-showcase">
-        <div class="home-section-head">
-          <div>
-            <span class="home-eyebrow">FILAMENTOS 1.75 MM LACRADOS A VÁCUO</span>
-            <h2>Filamentos Bambu Lab &amp; Masterprint</h2>
+      <!-- 4. FILAMENTOS (NÍVEL 1 — DESTAQUE PRINCIPAL) + ATALHOS (NÍVEL 2) -->
+      <section class="home-section-block" id="home-filamentos-showcase" aria-labelledby="home-heading-filamentos">
+        <div class="home-section-head sj-section-head">
+          <div class="sj-section-title-group">
+            <h2 id="home-heading-filamentos">Filamentos 1.75 mm</h2>
+            <p class="sj-section-subtitle">Mais de 80 cores lacradas a vácuo com pronta entrega.</p>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="filamentos">Explorar Todas as +80 Cores →</button>
+          <button type="button" class="sj-section-link-btn" data-home-go-cat="filamentos">Ver tudo →</button>
         </div>
 
         <div class="sj-home-fil-showcase-grid">
-          <!-- Card 1: Masterprint -->
-          <div class="sj-home-fil-brand-card" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint" title="Explorar Catálogo de Filamentos Masterprint">
+          <div class="sj-home-fil-brand-card" data-home-fil-jump-brand="MaxPrint" data-home-fil-jump-mat="fil-pla-maxprint" role="button" tabindex="0">
             <div class="sj-home-fil-card-visual">
-              <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint" loading="lazy" />
-              <span class="sj-home-fil-badge">REVENDA AUTORIZADA • 68 CORES</span>
+              <img src="assets/produtos/pla-maxprint.jpg" alt="Filamentos Masterprint 1 kg" width="160" height="160" loading="lazy" />
+              <span class="sj-home-fil-badge">68 cores</span>
             </div>
             <div class="sj-home-fil-card-content">
               <div class="sj-home-fil-card-top">
                 <h3>Filamentos Masterprint</h3>
-                <p class="sj-home-fil-card-desc">PLA, Silk Bicolor, PETG, TPU Flex e ABS para qualquer impressora 3D.</p>
+                <p class="sj-home-fil-card-desc">PLA, Silk, PETG, TPU e ABS para qualquer impressora 3D.</p>
               </div>
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
-                  <strong>R$ 79,90 <span>/ 1 kg</span></strong>
+                  <strong>${escaparHtml(menorPrecoMaster)} <span>/ 1 kg</span></strong>
                 </div>
-                <span class="sj-home-fil-cta">Ver Cores Masterprint →</span>
+                <span class="sj-home-fil-cta">Ver cores →</span>
               </div>
             </div>
           </div>
 
-          <!-- Card 2: Bambu Lab RFID -->
-          <div class="sj-home-fil-brand-card is-bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos" title="Explorar Catálogo Bambu Lab RFID">
+          <div class="sj-home-fil-brand-card is-bambu" data-home-fil-jump-brand="Bambu Lab" data-home-fil-jump-bambu="todos" role="button" tabindex="0">
             <div class="sj-home-fil-card-visual">
-              <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID" loading="lazy" />
-              <span class="sj-home-fil-badge bambu">CHIP RFID ORIGINAL • 13 CORES</span>
+              <img src="assets/produtos/pla-bambulab.jpg" alt="Filamentos Bambu Lab RFID 1 kg" width="160" height="160" loading="lazy" />
+              <span class="sj-home-fil-badge bambu">Chip RFID</span>
             </div>
             <div class="sj-home-fil-card-content">
               <div class="sj-home-fil-card-top">
                 <h3>Filamentos Bambu Lab RFID</h3>
-                <p class="sj-home-fil-card-desc">Reconhecimento automático no AMS e AMS Lite. Bobinas Inteligentes e Refis.</p>
+                <p class="sj-home-fil-card-desc">Leitura automática no AMS e AMS Lite em bobina ou refil.</p>
               </div>
               <div class="sj-home-fil-card-footer">
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
-                  <strong>R$ 79,90 <span>/ 1 kg</span></strong>
+                  <strong>${escaparHtml(menorPrecoBambu)} <span>/ 1 kg</span></strong>
                 </div>
-                <span class="sj-home-fil-cta bambu">Ver Cores Bambu Lab →</span>
+                <span class="sj-home-fil-cta bambu">Ver cores →</span>
               </div>
             </div>
           </div>
         </div>
-      </div>
 
-      <!-- 5. PEÇAS & MANUTENÇÃO ESPECIALIZADA (BENTO CLEAN 2 COLUNAS) -->
-      <div class="home-section-block">
-        <div class="sj-home-bento-2col">
-          <div class="sj-home-bento-card" data-home-go-cat="pecas" title="Ver Catálogo de Peças de Reposição">
-            <div class="sj-home-bento-img">
-              <img src="assets/produtos/peca-hotend.jpg" alt="Peças de Reposição e Upgrades" loading="lazy" />
-            </div>
-            <div class="sj-home-bento-body">
-              <span class="home-eyebrow">COMPONENTES GENUÍNOS</span>
-              <h3>Peças &amp; Upgrades Originais</h3>
-              <p class="sj-home-bento-desc">Hotends Quick-Swap, Extrusoras, Placas PEI e Acessórios Bambu Lab.</p>
-              <span class="home-cat-cta">Ver Peças &amp; Acessórios →</span>
-            </div>
-          </div>
+        <!-- NÍVEL 2: 2 CARTÕES MENORES DE ATALHO (PEÇAS & MANUTENÇÃO) -->
+        <div class="sj-home-shortcuts-row" aria-label="Atalhos de peças e serviços">
+          <button type="button" class="sj-home-shortcut-card" data-home-go-cat="pecas">
+            <span class="sj-shortcut-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
+            </span>
+            <span class="sj-shortcut-text">
+              <strong>Peças e upgrades</strong>
+              <span>Hotends, extrusoras, placas PEI e acessórios originais.</span>
+            </span>
+            <span class="sj-shortcut-arrow" aria-hidden="true">→</span>
+          </button>
 
-          <div class="sj-home-bento-card" data-home-go-cat="manutencao" title="Ver Serviços de Assistência Técnica e Manutenção">
-            <div class="sj-home-bento-img">
-              <img src="assets/produtos/impressora-p2s_combo.jpg" alt="Serviços e Manutenção Especializada" loading="lazy" />
-            </div>
-            <div class="sj-home-bento-body">
-              <span class="home-eyebrow">LABORATÓRIO EM UMUARAMA</span>
-              <h3>Manutenção &amp; Revisão 3D</h3>
-              <p class="sj-home-bento-desc">Revisão preventiva, desentupimento, calibração e suporte com garantia.</p>
-              <span class="home-cat-cta">Ver Serviços Técnicos →</span>
-            </div>
-          </div>
+          <button type="button" class="sj-home-shortcut-card" data-home-go-cat="manutencao">
+            <span class="sj-shortcut-icon" aria-hidden="true">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
+            </span>
+            <span class="sj-shortcut-text">
+              <strong>Manutenção e revisão</strong>
+              <span>Revisão preventiva, desentupimento e calibração técnica.</span>
+            </span>
+            <span class="sj-shortcut-arrow" aria-hidden="true">→</span>
+          </button>
         </div>
-      </div>
+      </section>
 
-      <!-- 6. VITRINE DE PEÇAS DE REPOSIÇÃO & ACESSÓRIOS ORIGINAIS (DESTAQUES NA HOME) -->
-      <div class="home-section-block" id="home-pecas-showcase">
-        <div class="home-section-head">
-          <div>
-            <span class="home-eyebrow">COMPONENTES ORIGINAIS &amp; UPGRADES</span>
-            <h2>Peças de Reposição em Destaque</h2>
+      <!-- 5. PEÇAS EM DESTAQUE (3 A 4 CARTÕES LIMPOS + LINK DISCRETO) -->
+      <section class="home-section-block" id="home-pecas-showcase" aria-labelledby="home-heading-pecas">
+        <div class="home-section-head sj-section-head">
+          <div class="sj-section-title-group">
+            <h2 id="home-heading-pecas">Peças em destaque</h2>
+            <p class="sj-section-subtitle">Componentes originais para reposição rápida e manutenção.</p>
           </div>
-          <button type="button" class="pdp-back-btn" data-home-go-cat="pecas">Ver Todas as Peças (${todasPecas.length}) →</button>
+          <button type="button" class="sj-section-link-btn" data-home-go-cat="pecas">Ver tudo →</button>
         </div>
 
-        <div class="combo-products-row" id="home-pecas-grid">
+        <div class="combo-products-row sj-home-pecas-grid-4" id="home-pecas-grid">
           ${pecasParaExibirHome.map((peca) => gerarCardHTML(peca)).join("")}
         </div>
 
-        <div style="text-align: center; margin-top: 24px;">
-          <button type="button" class="btn-ver-todas-pecas-home" data-home-go-cat="pecas">
-            ⚙️ Explorar Catálogo Completo de Peças &amp; Acessórios (${todasPecas.length} itens) →
+        <div class="sj-home-section-footer-link">
+          <button type="button" class="sj-btn-ghost-subtle" data-home-go-cat="pecas">
+            Ver todas as peças (${todasPecas.length}) →
           </button>
         </div>
-      </div>
+      </section>
     `;
 
     // Botão Admin Rápido nos banners da Home
@@ -6384,9 +6473,9 @@
       });
     });
 
-    // Clique nos cards e pílulas da Vitrine Clean de Filamentos na Capa -> abre direto a aba Filamentos naquela marca/material
+    // Clique nos cards da Vitrine de Filamentos na Capa -> abre direto a aba Filamentos (também suporta teclado Enter/Espaço)
     homeEl.querySelectorAll("[data-home-fil-jump-brand]").forEach((el) => {
-      el.addEventListener("click", (e) => {
+      const abrirFilamentosMarca = (e) => {
         e.stopPropagation();
         const marca = el.getAttribute("data-home-fil-jump-brand");
         const matMax = el.getAttribute("data-home-fil-jump-mat");
@@ -6395,22 +6484,49 @@
         if (matMax) state.hubFilamentoMaterialMaxPrint = matMax;
         if (filtroBambu) state.hubFilamentoFiltroBambu = filtroBambu;
         navegarParaCategoria("filamentos");
+      };
+      el.addEventListener("click", abrirFilamentosMarca);
+      el.addEventListener("keydown", (e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          abrirFilamentosMarca(e);
+        }
       });
     });
 
-    // Abas de filtro das Impressoras na Home
-    homeEl.querySelectorAll("[data-printer-tab]").forEach((tabBtn) => {
-      tabBtn.addEventListener("click", () => {
-        const grupo = tabBtn.dataset.printerTab;
-        homeEl.querySelectorAll("[data-printer-tab]").forEach((b) => b.classList.toggle("active", b === tabBtn));
-        const filtradas =
-          grupo === "todas"
-            ? todasImpressoras
-            : todasImpressoras.filter((i) => i.grupoCatalogo === grupo);
-        const gridImp = document.getElementById("home-printers-grid");
-        if (gridImp) {
-          gridImp.innerHTML = filtradas.map((imp) => gerarCardHTML(imp)).join("");
-          vincularEventosDosCards(gridImp);
+    // Abas de filtro das Impressoras na Home (com suporte ARIA + setas do teclado)
+    const printerTabs = Array.from(homeEl.querySelectorAll("[data-printer-tab]"));
+    function selecionarAbaImpressora(tabBtn, moverFoco = false) {
+      const grupo = tabBtn.dataset.printerTab;
+      printerTabs.forEach((b) => {
+        const active = b === tabBtn;
+        b.classList.toggle("active", active);
+        b.setAttribute("aria-selected", active ? "true" : "false");
+      });
+      if (moverFoco) {
+        tabBtn.focus();
+        tabBtn.scrollIntoView({ block: "nearest", inline: "nearest" });
+      }
+      const filtradas =
+        grupo === "todas"
+          ? todasImpressoras
+          : todasImpressoras.filter((i) => i.grupoCatalogo === grupo);
+      const gridImp = document.getElementById("home-printers-grid");
+      if (gridImp) {
+        gridImp.innerHTML = filtradas.map((imp) => gerarCardHTML(imp)).join("");
+        vincularEventosDosCards(gridImp);
+      }
+    }
+
+    printerTabs.forEach((tabBtn, idx) => {
+      tabBtn.addEventListener("click", () => selecionarAbaImpressora(tabBtn, false));
+      tabBtn.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          selecionarAbaImpressora(printerTabs[(idx + 1) % printerTabs.length], true);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          selecionarAbaImpressora(printerTabs[(idx - 1 + printerTabs.length) % printerTabs.length], true);
         }
       });
     });
@@ -6493,10 +6609,19 @@
   function navegarParaCategoria(cat, updateHistory = true) {
     state.categoriaMenu = cat;
     document.querySelectorAll(".header-nav-link[data-nav-cat]").forEach((l) => {
-      l.classList.toggle("active", l.dataset.navCat === cat);
+      const ativo = l.dataset.navCat === cat;
+      l.classList.toggle("active", ativo);
+      if (ativo) {
+        l.setAttribute("aria-current", "page");
+      } else {
+        l.removeAttribute("aria-current");
+      }
     });
     document.querySelectorAll(".mobile-drawer-nav-item[data-nav-cat]").forEach((l) => {
       l.classList.toggle("active", l.dataset.navCat === cat);
+    });
+    document.querySelectorAll("#sj-mobile-bottom-nav .sj-mbnav-item").forEach((el) => {
+      el.classList.toggle("active", el.dataset.mbnav === "home" && cat === "home");
     });
     const headerAccBtn = document.getElementById("header-account-btn");
     if (headerAccBtn) {
@@ -6722,8 +6847,8 @@
             </div>
             <div class="pdp-diam-cards-grid" role="radiogroup" aria-label="Escolher diâmetro do bico">
               ${item.variantesDiametro
-                .map(
-                  (v) => `
+            .map(
+              (v) => `
                   <button
                     type="button"
                     class="pdp-diam-card-btn ${v.diametro === varDiamAtiva.diametro ? "active" : ""}"
@@ -6736,8 +6861,8 @@
                     <span class="pdp-diam-tag">${v.destaque}</span>
                   </button>
                 `
-                )
-                .join("")}
+            )
+            .join("")}
             </div>
 
             <div class="pdp-diam-instruction-box" id="pdp-diam-instruction-box">
@@ -6871,8 +6996,8 @@
     const relacionados = item.tipoFilamento
       ? []
       : window.SITE_DATA.catalogo
-          .filter((i) => i.categoria === item.categoria && i.id !== item.id)
-          .slice(0, 3);
+        .filter((i) => i.categoria === item.categoria && i.id !== item.id)
+        .slice(0, 3);
 
     pdpView.innerHTML = `
       <!-- Topo: Breadcrumb + Voltar ao Catálogo -->
@@ -7149,11 +7274,10 @@
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
                 <span>${item.categoria === "pecas" ? "Consultar Peça no WhatsApp" : "Comprar Agora pelo WhatsApp"}</span>
               </button>
-              ${
-                item.categoria === "impressoras"
-                  ? `<button type="button" class="btn-compare-printers-pill pdp-compare-btn" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
-                  : ""
-              }
+              ${item.categoria === "impressoras"
+        ? `<button type="button" class="btn-compare-printers-pill pdp-compare-btn" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
+        : ""
+      }
             </div>
           </div>
 
@@ -7326,10 +7450,10 @@
       if (pdpFavBtn) {
         const targetFavId = corAtiva
           ? resolverIdCorBanco(
-              corAtiva,
-              obterChavePaletaPorChave(item.usaCoresDinamicas, marcaAtual === "Bambu Lab"),
-              idxCorAtiva
-            )
+            corAtiva,
+            obterChavePaletaPorChave(item.usaCoresDinamicas, marcaAtual === "Bambu Lab"),
+            idxCorAtiva
+          )
           : item.id;
         pdpFavBtn.dataset.toggleFav = targetFavId;
         pdpFavBtn.classList.toggle("active", isFavorito(targetFavId));
@@ -7719,7 +7843,7 @@
     try {
       const raw = localStorage.getItem("loja_sj_sessao_admin_v1");
       if (raw) sessao = JSON.parse(raw);
-    } catch (_) {}
+    } catch (_) { }
 
     if (sessao && filtrarApenasEquipe(sessao)) {
       state.usuarioGoogle = sessao;
@@ -7739,7 +7863,7 @@
         if (raw) {
           state.usuarioGoogle = filtrarApenasEquipe(JSON.parse(raw));
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     atualizarBadgeUsuarioHeader();
   }
@@ -7768,7 +7892,7 @@
         if (window.localStorage) {
           window.localStorage.setItem(STORAGE_KEY_GOOGLE_USER, JSON.stringify(usuario));
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     atualizarBadgeUsuarioHeader();
@@ -7789,7 +7913,7 @@
         window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
         window.localStorage.removeItem("SJ_DB_USUARIO_ATIVO_V1");
       }
-    } catch (_) {}
+    } catch (_) { }
     if (window.SJ_DB && window.SJ_DB.auth) {
       window.SJ_DB.auth.logout();
     }
@@ -7831,7 +7955,7 @@
       if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.sincronizarEquipeNuvem === "function") {
         window.SJ_DB.auth.sincronizarEquipeNuvem()
           .then((lista) => atualizarBadgesSolicitacoesPendentes(lista))
-          .catch(() => {});
+          .catch(() => { });
       }
     }
   }
@@ -7963,7 +8087,7 @@
           { theme: "outline", size: "large", text: "continue_with", width: 280, shape: "rectangular" }
         );
       }
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function fecharModalAuthGoogle() {
@@ -7973,7 +8097,7 @@
 
   // Hook global chamado pelo Google Identity Services
   // Login Google NUNCA concede acesso administrativo (Área Restrita exige e-mail + senha aprovados)
-  window.onGoogleSignInSuccess = function() {
+  window.onGoogleSignInSuccess = function () {
     mostrarFeedbackAuth("error", "A Área Restrita aceita apenas login com e-mail e senha de administrador autorizado.");
   };
 
@@ -8164,7 +8288,7 @@
         if (window.location.hash === "#orcamento") {
           history.replaceState(null, "", window.location.pathname);
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
@@ -8285,7 +8409,7 @@
             window.location.hash = "#orcamento";
           }
         }
-      } catch (_) {}
+      } catch (_) { }
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
   }
@@ -8768,8 +8892,8 @@
           return;
         }
 
-        const listaClientes = (window.SJ_DB && window.SJ_DB.clientes && typeof window.SJ_DB.clientes.listar === "function") 
-          ? window.SJ_DB.clientes.listar() 
+        const listaClientes = (window.SJ_DB && window.SJ_DB.clientes && typeof window.SJ_DB.clientes.listar === "function")
+          ? window.SJ_DB.clientes.listar()
           : [];
 
         const limpoQuery = query.replace(/\D/g, "");
@@ -8988,8 +9112,8 @@
           return;
         }
 
-        const todosItens = (typeof obterListaTodosItensCatalogoParaConsulta === "function") 
-          ? obterListaTodosItensCatalogoParaConsulta() 
+        const todosItens = (typeof obterListaTodosItensCatalogoParaConsulta === "function")
+          ? obterListaTodosItensCatalogoParaConsulta()
           : [];
 
         const correspondencias = todosItens.filter((it) => {
@@ -9787,7 +9911,7 @@
       try {
         const raw = localStorage.getItem(STORAGE_KEY_ORCAMENTOS);
         lista = raw ? JSON.parse(raw) : [];
-      } catch (_) {}
+      } catch (_) { }
     }
 
     if (!Array.isArray(lista) || lista.length === 0) {
@@ -9995,7 +10119,7 @@
     const obsStr = meta.observacoes ? `\n\n*Observações:* ${meta.observacoes}` : "";
 
     const msg =
-`📄 *PROPOSTA COMERCIAL / ORÇAMENTO*
+      `📄 *PROPOSTA COMERCIAL / ORÇAMENTO*
 *Empresa:* ${loja.razaoSocial} — CNPJ: ${loja.cnpj}
 *Endereço:* ${loja.logradouroNumero} — ${loja.cidadeUf}
 *Telefone:* ${loja.whatsappFormatado}
@@ -10397,7 +10521,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if ("BarcodeDetector" in window) {
       try {
         detectorNativo = new window.BarcodeDetector({ formats: ["qr_code"] });
-      } catch (_) {}
+      } catch (_) { }
     }
 
     let ultimoProcessamento = 0;
@@ -10419,7 +10543,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             if (barcodes && barcodes.length > 0 && barcodes[0].rawValue) {
               payloadLido = barcodes[0].rawValue;
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (!payloadLido && typeof jsQR === "function") {
@@ -10431,7 +10555,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             if (code && code.data) {
               payloadLido = code.data;
             }
-          } catch (_) {}
+          } catch (_) { }
         }
 
         if (payloadLido) {
@@ -10463,11 +10587,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.18);
       osc.start();
       osc.stop(audioCtx.currentTime + 0.18);
-    } catch (_) {}
+    } catch (_) { }
 
     // Vibração háptica no celular
     if (navigator.vibrate) {
-      try { navigator.vibrate(80); } catch (_) {}
+      try { navigator.vibrate(80); } catch (_) { }
     }
 
     mostrarToast(`📷 QR Code lido com sucesso: <strong>${limpo}</strong>`, "success");
@@ -10585,8 +10709,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     const brandClass = (item.marca || "").toLowerCase().includes("bambu")
       ? "brand-bambu"
       : (item.marca || "").toLowerCase().includes("max") || (item.marca || "").toLowerCase().includes("master")
-      ? "brand-maxprint"
-      : "brand-sj";
+        ? "brand-maxprint"
+        : "brand-sj";
 
     card.className = "sj-qr-spotlight-card";
     card.style.display = "block";
@@ -10744,7 +10868,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Rola suavemente até o spotlight
     try {
       card.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    } catch (_) {}
+    } catch (_) { }
   }
 
   function executarConsultaPreco(termoBusca, abrirSpotlightAutomatico = false) {
@@ -10951,8 +11075,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const brandClass = (it.marca || "").toLowerCase().includes("bambu")
         ? "brand-bambu"
         : (it.marca || "").toLowerCase().includes("max") || (it.marca || "").toLowerCase().includes("master")
-        ? "brand-maxprint"
-        : "brand-sj";
+          ? "brand-maxprint"
+          : "brand-sj";
 
       return `
         <div class="sj-qr-item-card" data-qr-select-id="${escaparHtml(it.id)}" title="Clique para ver QR Code, preços e alterar estoque">
@@ -11245,7 +11369,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                   dados_novos: { campo: "cnpj_cpf", motivo: "Consulta visual autorizada no CRM" }
                 });
               }
-            } catch (_) {}
+            } catch (_) { }
           }
         }
       });
@@ -11306,10 +11430,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               usuario_id: user?.id || null,
               usuario_email: user?.email || "operador@local",
               dados_novos: { total_registros: lista.length, motivo: "Exportação manual autorizada via CRM" }
-            }).then(() => {});
+            }).then(() => { });
           });
         }
-      } catch (_) {}
+      } catch (_) { }
     }
 
     const cabecalho = ["ID", "Nome", "WhatsApp/Telefone", "CPF/CNPJ", "Email", "Cidade/UF", "Endereco", "Origem", "CriadoEm"];
@@ -11734,7 +11858,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           lgpdList = resLgpd;
           cmsState.lgpdCache = lgpdList;
         }
-      } catch (_) {}
+      } catch (_) { }
     }
     atualizarBadgesLgpdAdmin(lgpdList);
 
@@ -12602,7 +12726,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               p_solicitacao_id: String(s.id)
             });
           }
-        } catch (_) {}
+        } catch (_) { }
       } else {
         docValEl.textContent = mascararDocumentoLgpd(docBruto);
         btnRev.textContent = "Revelar";
@@ -12930,9 +13054,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                   ? `<span style="font-size:0.76rem; background:#ECFDF5; color:#166534; border:1px solid #BBF7D0; padding:6px 12px; border-radius:8px; font-weight:700;">🛡️ Sua Conta (Protegida)</span>`
                   : `
                     ${p.role === "admin"
-                      ? `<button type="button" data-profile-action="role-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>🛠️ Tornar Funcionário</button>`
-                      : `<button type="button" data-profile-action="role-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Promover a Admin</button>`
-                    }
+                    ? `<button type="button" data-profile-action="role-staff" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#0284C7")}>🛠️ Tornar Funcionário</button>`
+                    : `<button type="button" data-profile-action="role-admin" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#EA580C")}>👑 Promover a Admin</button>`
+                  }
                     <button type="button" data-profile-action="role-customer" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#475569")}>👤 Mudar para Cliente</button>
                     <button type="button" data-profile-action="block" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#DC2626")}>🚫 Bloquear</button>
                     <button type="button" data-profile-action="delete" data-profile-id="${escaparHtmlEquipe(p.id)}" data-profile-email="${escaparHtmlEquipe(p.email)}" ${btnStyle("#64748B")}>🗑️ Excluir</button>
@@ -13754,14 +13878,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               </thead>
               <tbody>
                 ${paginaItens.map((sku) => {
-                  const key = obterChaveItemCatalogoCms(sku);
-                  const pending = cmsState.pendingEdits.get(key) || {};
-                  const statusEst = pending.estoqueStatus || sku.estoqueStatus || "disponivel";
-                  const precoExib = pending.preco !== undefined ? pending.preco : (sku.preco || "Sob consulta");
-                  const checked = cmsState.selectedKeys.has(key);
-                  const isDirty = cmsState.pendingEdits.has(key);
+          const key = obterChaveItemCatalogoCms(sku);
+          const pending = cmsState.pendingEdits.get(key) || {};
+          const statusEst = pending.estoqueStatus || sku.estoqueStatus || "disponivel";
+          const precoExib = pending.preco !== undefined ? pending.preco : (sku.preco || "Sob consulta");
+          const checked = cmsState.selectedKeys.has(key);
+          const isDirty = cmsState.pendingEdits.has(key);
 
-                  return `
+          return `
                     <tr class="${isDirty ? "is-pending-edit" : ""}">
                       <td>
                         <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${checked ? "checked" : ""} aria-label="Selecionar ${escaparHtml(sku.nome)}" />
@@ -13805,7 +13929,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                       </td>
                     </tr>
                   `;
-                }).join("")}
+        }).join("")}
               </tbody>
             </table>
           </div>
@@ -13988,12 +14112,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             subRowsHtml = `
               <div class="cms-model-colors-drawer">
                 ${subItems.map(({ c, idx }) => {
-                  const key = `cor:${chavePaleta}:${idx}`;
-                  const pend = cmsState.pendingEdits.get(key) || {};
-                  const stCor = pend.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
-                  const precoCor = pend.preco !== undefined ? pend.preco : (c.preco || p.precoVista || "Sob consulta");
-                  const isDirty = cmsState.pendingEdits.has(key);
-                  return `
+              const key = `cor:${chavePaleta}:${idx}`;
+              const pend = cmsState.pendingEdits.get(key) || {};
+              const stCor = pend.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
+              const precoCor = pend.preco !== undefined ? pend.preco : (c.preco || p.precoVista || "Sob consulta");
+              const isDirty = cmsState.pendingEdits.has(key);
+              return `
                     <div class="cms-color-subrow ${isDirty ? "is-pending-edit" : ""}">
                       <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${cmsState.selectedKeys.has(key) ? "checked" : ""} aria-label="Selecionar cor ${escaparHtml(c.nome)}" />
                       <div class="cms-color-name-wrap">
@@ -14016,7 +14140,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                       <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}" data-cms-focus-cor="${idx}">Editar</button>
                     </div>
                   `;
-                }).join("")}
+            }).join("")}
               </div>
             `;
           }
@@ -14124,8 +14248,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const brandClass = (sku.marca || "").toLowerCase().includes("bambu")
             ? "brand-bambu"
             : (sku.marca || "").toLowerCase().includes("max") || (sku.marca || "").toLowerCase().includes("master")
-            ? "brand-maxprint"
-            : "brand-sj";
+              ? "brand-maxprint"
+              : "brand-sj";
 
           return `
             <div class="cms-sku-item-card">
@@ -14212,8 +14336,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const brandClass = (p.marca || "").toLowerCase().includes("bambu")
             ? "brand-bambu"
             : (p.marca || "").toLowerCase().includes("max") || (p.marca || "").toLowerCase().includes("master")
-            ? "brand-maxprint"
-            : "brand-sj";
+              ? "brand-maxprint"
+              : "brand-sj";
 
           let swatchesHtml = "";
           if (qtdCores > 0 && paletaCores) {
@@ -14222,15 +14346,15 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             swatchesHtml = `
               <div class="cms-colors-swatch-row" title="Clique para gerenciar a paleta de cores deste filamento">
                 ${amostra
-                  .map(
-                    (c) => `
+                .map(
+                  (c) => `
                       <span class="cms-color-mini-dot"
                         style="background:${escaparHtml(c.hex || '#ccc')};"
                         title="${escaparHtml(c.nome)} (${escaparHtml(c.cod ? 'CÓD. ' + c.cod : '')})"
                         data-cms-open-color="${escaparHtml(p.id)}"></span>
                     `
-                  )
-                  .join("")}
+                )
+                .join("")}
                 ${restantes > 0 ? `<span class="cms-colors-more-chip" data-cms-open-color="${escaparHtml(p.id)}" title="Ver todas as ${qtdCores} cores">+${restantes} cores</span>` : ""}
               </div>
             `;
@@ -14549,7 +14673,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           cmsState.coresTempEditando[idx].imgCatalogo = dataUrl;
           cmsState.coresTempEditando[idx].usaFotoCatalogoDireta = true;
           renderizarListaCoresFilamentoCms();
-        } catch (_) {}
+        } catch (_) { }
       });
     });
 
@@ -14768,7 +14892,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     try {
       const raw = localStorage.getItem("loja_sj_sessao_admin_v1");
       if (raw) sessao = JSON.parse(raw);
-    } catch (_) {}
+    } catch (_) { }
 
     if (!sessao && window.SJ_DB && window.SJ_DB.auth) {
       sessao = window.SJ_DB.auth.getUsuarioAtual();
@@ -14824,7 +14948,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (window.localStorage) {
         window.localStorage.removeItem(STORAGE_KEY_GOOGLE_USER);
       }
-    } catch (_) {}
+    } catch (_) { }
 
     if (window.SJ_DB && window.SJ_DB.auth && typeof window.SJ_DB.auth.logout === "function") {
       window.SJ_DB.auth.logout();
@@ -15343,8 +15467,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const searchInp = cmsState.abaAtiva === "clientes"
             ? document.getElementById("cms-clients-search-input")
             : cmsState.abaAtiva === "orcamentos-clientes"
-            ? document.getElementById("cms-search-quotes-input")
-            : document.getElementById("cms-product-search");
+              ? document.getElementById("cms-search-quotes-input")
+              : document.getElementById("cms-product-search");
           if (searchInp && searchInp.offsetParent !== null) {
             e.preventDefault();
             searchInp.focus();
@@ -16125,7 +16249,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           };
           window.SJ_DB.clientes.salvar(novoClienteObj);
           clienteSalvo = novoClienteObj;
-        } catch (_) {}
+        } catch (_) { }
       }
 
       const subtotal = (wizardState.itens || []).reduce(
@@ -16188,7 +16312,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             metadados: state.orcamentoMetadados,
             itens: state.itensOrcamento
           });
-        } catch (_) {}
+        } catch (_) { }
       }
 
       mostrarToast(`📄 Orçamento <strong>${numeroOrcamento}</strong> pronto! Adicione os produtos e imprima/envie.`, "success");
@@ -16845,6 +16969,76 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
     });
 
+    // Barra de Avisos Discreta (1 aviso por vez, rotação suave, pausa no hover, botão fechar)
+    const promoBar = document.getElementById("top-promo-marquee-bar");
+    const promoRotatorBtn = document.getElementById("top-promo-rotator-btn");
+    const promoRotatorText = document.getElementById("top-promo-rotator-text");
+    const promoCloseBtn = document.getElementById("top-promo-close-btn");
+
+    if (promoBar && sessionStorage.getItem("sj_promo_bar_closed") === "1") {
+      promoBar.style.display = "none";
+    } else if (promoBar && promoRotatorBtn && promoRotatorText) {
+      const avisosTopo = [
+        { html: 'Filamento PLA a partir de <strong>R$ 79,90</strong>', cat: "filamentos" },
+        { html: 'Frete grátis em Umuarama a partir de <strong>5 filamentos</strong>', cat: "filamentos" },
+        { html: 'Impressoras Bambu Lab a pronta entrega em <strong>até 10x</strong>', cat: "impressoras" },
+        { html: 'Revenda autorizada oficial <strong>Bambu Lab &amp; Masterprint</strong>', cat: "home" }
+      ];
+      let idxAviso = 0;
+      let timerAviso = null;
+      let pausado = false;
+
+      const aplicarAviso = (novoIdx) => {
+        idxAviso = (novoIdx + avisosTopo.length) % avisosTopo.length;
+        const av = avisosTopo[idxAviso];
+        promoRotatorText.classList.add("is-fading");
+        setTimeout(() => {
+          promoRotatorText.innerHTML = av.html;
+          promoRotatorBtn.dataset.navCat = av.cat;
+          promoRotatorText.classList.remove("is-fading");
+        }, 160);
+      };
+
+      const iniciarRotacaoAvisos = () => {
+        if (timerAviso) clearInterval(timerAviso);
+        if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+        timerAviso = setInterval(() => {
+          if (!pausado) aplicarAviso(idxAviso + 1);
+        }, 4500);
+      };
+
+      promoBar.addEventListener("mouseenter", () => { pausado = true; });
+      promoBar.addEventListener("mouseleave", () => { pausado = false; });
+      promoBar.addEventListener("focusin", () => { pausado = true; });
+      promoBar.addEventListener("focusout", () => { pausado = false; });
+      iniciarRotacaoAvisos();
+
+      promoCloseBtn?.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (timerAviso) clearInterval(timerAviso);
+        promoBar.style.display = "none";
+        try { sessionStorage.setItem("sj_promo_bar_closed", "1"); } catch (_) { }
+      });
+    }
+
+    // Atalhos da Barra Fixa Inferior Mobile
+    document.querySelectorAll("#sj-mobile-bottom-nav [data-mbnav]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        const acao = btn.dataset.mbnav;
+        if (acao === "home") {
+          e.preventDefault();
+          navegarParaCategoria("home");
+        } else if (acao === "search") {
+          e.preventDefault();
+          const drop = document.getElementById("search-bar-drop");
+          const inp = document.getElementById("global-search-input");
+          if (drop) drop.classList.add("open");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+          setTimeout(() => inp?.focus(), 140);
+        }
+      });
+    });
+
     // Navegação do Menu do Topo
     document.querySelectorAll("[data-nav-cat]").forEach((link) => {
       link.addEventListener("click", (e) => {
@@ -16969,17 +17163,16 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         </div>
         <div class="search-live-list">
           ${topResultados
-            .map(
-              (r, i) => `
+          .map(
+            (r, i) => `
               <div class="search-live-item" data-live-idx="${i}">
                 <div class="search-live-item-main" data-live-open="${i}">
                   <div class="search-live-thumb-wrap">
                     <img src="${r.img}" alt="${r.titulo}" loading="lazy" />
-                    ${
-                      r.hex
-                        ? `<span class="search-live-color-dot" style="background:${r.hex};"></span>`
-                        : ""
-                    }
+                    ${r.hex
+                ? `<span class="search-live-color-dot" style="background:${r.hex};"></span>`
+                : ""
+              }
                   </div>
                   <div class="search-live-info">
                     <strong>${r.titulo}</strong>
@@ -16994,8 +17187,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
                 </div>
               </div>
             `
-            )
-            .join("")}
+          )
+          .join("")}
         </div>
       `;
 

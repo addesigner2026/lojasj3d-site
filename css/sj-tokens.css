@@ -7,11 +7,38 @@
   --sj-brand-orange: #f04e23;
   --sj-brand-orange-hover: #d8431b;
   --sj-brand-orange-vivid: #ff5500;
-  --sj-brand-orange-soft: rgba(240, 78, 35, 0.1);
+  --sj-brand-orange-soft: rgba(240, 78, 35, 0.08);
   --sj-brand-orange-border: rgba(240, 78, 35, 0.28);
+
+  --sj-bg-page: #ffffff;
+  --sj-bg-subtle: #f8fafc;
+  --sj-bg-surface: #ffffff;
+  --sj-bg-muted: #f1f5f9;
+  --sj-border-subtle: #e2e8f0;
+  --sj-border-strong: #cbd5e1;
+
+  --sj-text-primary: #0f172a;
+  --sj-text-secondary: #334155;
+  --sj-text-muted: #64748b;
+
+  /* Cores de apoio e status de estoque */
+  --sj-accent-ink: #1e293b;
+  --sj-status-ok: #15803d;
+  --sj-status-ok-bg: #f0fdf4;
+  --sj-status-warn: #b45309;
+  --sj-status-warn-bg: #fffbeb;
+  --sj-status-danger: #b91c1c;
+  --sj-status-danger-bg: #fef2f2;
 
   --sj-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
   --sj-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --sj-space-xs: 6px;
+  --sj-space-sm: 12px;
+  --sj-space-md: 20px;
+  --sj-space-lg: 32px;
+  --sj-space-xl: 48px;
+  --sj-space-section: 56px;
 
   --sj-radius-sm: 8px;
   --sj-radius-md: 12px;
@@ -19,12 +46,13 @@
   --sj-radius-xl: 20px;
   --sj-radius-pill: 9999px;
 
-  --sj-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
-  --sj-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.1);
+  --sj-shadow-sm: 0 1px 3px rgba(15, 23, 42, 0.05);
+  --sj-shadow-md: 0 10px 28px rgba(15, 23, 42, 0.08);
   --sj-shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
-  --sj-shadow-orange: 0 6px 18px rgba(240, 78, 35, 0.26);
+  --sj-shadow-orange: 0 6px 18px rgba(240, 78, 35, 0.22);
 
   --sj-focus-outline: 2.5px solid var(--sj-brand-orange);
+  --sj-transition: 0.18s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 /* Foco visível consistente em botões, links e controles */
