@@ -167,7 +167,7 @@ create or replace function public.gerar_protocolo_lgpd()
 returns text
 language plpgsql
 security definer
-set search_path = public
+set search_path = public, extensions
 as $$
 declare
   v_prot text;
@@ -175,10 +175,10 @@ declare
 begin
   loop
     v_tentativas := v_tentativas + 1;
-    v_prot := 'LGPD-' || to_char(now(), 'YYYY') || '-' || upper(encode(gen_random_bytes(5), 'hex'));
+    v_prot := 'LGPD-' || to_char(now(), 'YYYY') || '-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 10));
     exit when not exists (select 1 from public.solicitacoes_titular where upper(protocolo) = v_prot);
     if v_tentativas >= 10 then
-      v_prot := 'LGPD-' || to_char(now(), 'YYYY') || '-' || upper(replace(substr(gen_random_uuid()::text, 1, 12), '-', ''));
+      v_prot := 'LGPD-' || to_char(now(), 'YYYY') || '-' || upper(substr(replace(gen_random_uuid()::text, '-', ''), 1, 12));
       exit;
     end if;
   end loop;
