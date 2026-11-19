@@ -1205,6 +1205,10 @@
   function atualizarBotaoHeaderConta() {
     const btnText = document.getElementById("header-account-btn-text");
     const btn = document.getElementById("header-account-btn");
+    const pop = document.getElementById("store-user-popover");
+    const popName = document.getElementById("store-popover-user-name");
+    const popEmail = document.getElementById("store-popover-user-email");
+    const popAdmin = document.getElementById("store-popover-admin-link");
     if (!btnText || !btn) return;
 
     const usuarioAtivo = state.supabaseStoreUser || state.clienteLogado;
@@ -1213,10 +1217,19 @@
       btnText.textContent = `Olá, ${primeiroNome}`;
       btn.classList.add("logged-in");
       btn.title = `Minha Conta (${usuarioAtivo.nome || usuarioAtivo.email})`;
+      if (popName) popName.textContent = usuarioAtivo.nome || "Minha Conta";
+      if (popEmail) popEmail.textContent = usuarioAtivo.email || "—";
+      if (popAdmin) {
+        const papel = String(usuarioAtivo.role || "").toLowerCase();
+        popAdmin.style.display = (papel === "admin" || papel === "staff") ? "flex" : "none";
+      }
     } else {
       btnText.textContent = "Entrar / Conta";
       btn.classList.remove("logged-in");
       btn.title = "Acessar Minha Conta / Cadastrar";
+      if (pop) pop.classList.remove("is-open");
+      btn.setAttribute("aria-expanded", "false");
+      if (popAdmin) popAdmin.style.display = "none";
     }
   }
 
@@ -4046,11 +4059,40 @@
       return;
     }
 
-    // Clique no botão Minha Conta / Entrar do Header -> abre porta dedicada /conta
+    // Clique no botão Minha Conta / Entrar do Header
     const btnHeaderAcc = e.target.closest("#header-account-btn");
     if (btnHeaderAcc) {
       e.preventDefault();
-      window.location.href = "/conta";
+      const usuarioAtivo = state.supabaseStoreUser || state.clienteLogado;
+      const pop = document.getElementById("store-user-popover");
+      if (!usuarioAtivo || !pop) {
+        window.location.href = "/conta";
+        return;
+      }
+      const abrir = !pop.classList.contains("is-open");
+      pop.classList.toggle("is-open", abrir);
+      btnHeaderAcc.setAttribute("aria-expanded", abrir ? "true" : "false");
+      return;
+    }
+
+    // Fechar menu compacto da conta ao clicar fora
+    const storePop = document.getElementById("store-user-popover");
+    if (storePop?.classList.contains("is-open") && !e.target.closest("#store-acct-anchor")) {
+      storePop.classList.remove("is-open");
+      document.getElementById("header-account-btn")?.setAttribute("aria-expanded", "false");
+    }
+
+    // Logout direto pelo menu compacto da conta na loja
+    if (e.target.closest("#btn-store-menu-logout")) {
+      e.preventDefault();
+      if (storePop) storePop.classList.remove("is-open");
+      document.getElementById("header-account-btn")?.setAttribute("aria-expanded", "false");
+      window.SJ_SUPABASE?.auth?.logout?.().then(() => {
+        state.supabaseStoreUser = null;
+        atualizarEstadoCliente(null);
+        sincronizarClienteLojaSupabase();
+        mostrarToast("Você saiu da sua conta.", "info");
+      });
       return;
     }
 
@@ -4060,6 +4102,18 @@
       e.preventDefault();
       window.location.href = "/conta";
       return;
+    }
+  });
+
+  document.addEventListener("keydown", (e) => {
+    if (e.key === "Escape") {
+      const pop = document.getElementById("store-user-popover");
+      const btn = document.getElementById("header-account-btn");
+      if (pop?.classList.contains("is-open")) {
+        pop.classList.remove("is-open");
+        btn?.setAttribute("aria-expanded", "false");
+        btn?.focus();
+      }
     }
   });
 

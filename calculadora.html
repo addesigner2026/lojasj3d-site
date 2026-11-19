@@ -6,7 +6,7 @@
   <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NXSBR5H5"></script>
   <script>
     window.dataLayer = window.dataLayer || [];
-    function gtag(){dataLayer.push(arguments);}
+    function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
   </script>
 
@@ -22,11 +22,12 @@
         if (h && (h.indexOf("vercel.app") !== -1 || h === "lojasj3d.com.br")) {
           window.location.replace("https://www.lojasj3d.com.br" + window.location.pathname + window.location.search + window.location.hash);
         }
-      } catch (_) {}
+      } catch (_) { }
     })();
   </script>
   <title>⚡ Calculadora 3D &amp; Precificador Oficial (Taxas 2026) • Loja SJ 3D</title>
-  <meta name="description" content="Calculadora de precificação profissional para impressão 3D da Loja SJ 3D. Taxas reais de Mercado Livre, Shopee e TikTok Shop 2026, cálculo de filamento, energia e lucro limpo." />
+  <meta name="description"
+    content="Calculadora de precificação profissional para impressão 3D da Loja SJ 3D. Taxas reais de Mercado Livre, Shopee e TikTok Shop 2026, cálculo de filamento, energia e lucro limpo." />
   <meta name="robots" content="index, follow" />
   <!-- Favicon Oficial Multi-Resolução -->
   <meta name="theme-color" content="#F04E23" />
@@ -41,8 +42,11 @@
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/calculadora.css?v=20261117_05" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800;900&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_02" />
+  <link rel="stylesheet" href="css/calculadora.css?v=20261119_02" />
 </head>
 
 <body class="calc-page-body">
@@ -68,7 +72,8 @@
       <nav class="calc-header-nav" aria-label="Ações do Precificador">
         <div class="calc-nav-group actions">
           <a href="/" class="calc-nav-btn" title="Ir para a Loja Pública Loja SJ 3D">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
               <polyline points="9 22 9 12 15 12 15 22"></polyline>
             </svg>
@@ -76,30 +81,38 @@
           </a>
 
           <button type="button" id="btn-reset-calc" class="calc-nav-btn" title="Limpar formulário e iniciar nova peça">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
             </svg>
             <span class="calc-btn-label">Novo</span>
           </button>
 
           <button type="button" id="btn-history" class="calc-nav-btn" title="Histórico de Peças Salvas">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="10"></circle>
               <polyline points="12 6 12 12 16 14"></polyline>
             </svg>
             <span class="calc-btn-label">Histórico</span>
           </button>
 
-          <button type="button" id="btn-prefs" class="calc-nav-btn" title="Preferências Globais (kWh, Imposto, Embalagem)">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button type="button" id="btn-prefs" class="calc-nav-btn"
+            title="Preferências Globais (kWh, Imposto, Embalagem)">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <circle cx="12" cy="12" r="3"></circle>
-              <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              <path
+                d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z">
+              </path>
             </svg>
             <span class="calc-btn-label">Ajustes</span>
           </button>
 
-          <button type="button" id="btn-copy-summary" class="calc-nav-btn" title="Copiar Resumo Formatado para WhatsApp">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button type="button" id="btn-copy-summary" class="calc-nav-btn"
+            title="Copiar Resumo Formatado para WhatsApp">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
               <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
             </svg>
@@ -107,7 +120,8 @@
           </button>
 
           <button type="button" id="btn-save-calc" class="calc-nav-btn primary" title="Salvar Peça no Histórico">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
               <polyline points="17 21 17 13 7 13 7 21"></polyline>
               <polyline points="7 3 7 8 15 8"></polyline>
@@ -116,112 +130,99 @@
           </button>
 
           <!-- Botão Exclusivo do Administrador (Gestão de Leads) -->
-          <button type="button" id="btn-calc-admin-access" class="calc-nav-btn admin-btn" style="display: none;" title="Painel de Gestão de Usuários & Leads">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <button type="button" id="btn-calc-admin-access" class="calc-nav-btn admin-btn" style="display: none;"
+            title="Painel de Gestão de Usuários & Leads">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
               <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
               <circle cx="9" cy="7" r="4"></circle>
               <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
               <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
             </svg>
             <span class="calc-btn-label">Leads</span>
-            <span id="calc-pending-count-badge" class="calc-badge-count" style="display: none;" title="Total de leads">0</span>
+            <span id="calc-pending-count-badge" class="calc-badge-count" style="display: none;"
+              title="Total de leads">0</span>
           </button>
         </div>
 
         <div class="calc-nav-group session">
-          <!-- Identificação do Usuário Logado -->
-          <div id="calc-user-pill" class="calc-user-pill" style="display: none;">
-            <span class="calc-user-dot" aria-hidden="true"></span>
-            <span id="calc-user-email">Autorizado</span>
+          <!-- Menu Compacto da Conta Unificada -->
+          <div id="calc-acct-anchor" class="sj-acct-anchor is-dark" style="display: none;">
+            <button type="button" id="btn-calc-account-menu" class="sj-acct-chip-btn" aria-haspopup="menu" aria-expanded="false" aria-controls="calc-user-popover" title="Conta e navegação">
+              <span class="sj-acct-avatar" id="calc-user-avatar">SJ</span>
+              <span class="sj-acct-name" id="calc-user-short-name">Conta</span>
+              <span class="sj-acct-role-tag" id="calc-user-role-tag" style="display: none;">Admin</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="calc-user-popover" class="sj-acct-popover" role="menu" aria-labelledby="btn-calc-account-menu">
+              <div class="sj-acct-popover-head">
+                <div class="sj-acct-popover-title" id="calc-popover-user-name">Conta</div>
+                <div class="sj-acct-popover-email" id="calc-popover-user-email">—</div>
+              </div>
+              <a href="/conta" class="sj-acct-menu-item" role="menuitem">
+                <span>👤</span><span>Minha conta</span>
+              </a>
+              <a href="/calculadora" class="sj-acct-menu-item" role="menuitem" aria-current="page">
+                <span>⚡</span><span>Calculadora</span>
+              </a>
+              <a href="/admin" id="calc-popover-admin-link" class="sj-acct-menu-item" role="menuitem" style="display: none;">
+                <span>⚙️</span><span>Painel Admin</span>
+              </a>
+              <hr class="sj-acct-sep" />
+              <button type="button" id="calc-btn-logout" class="sj-acct-menu-item is-danger" role="menuitem">
+                <span>🚪</span><span>Sair</span>
+              </button>
+            </div>
           </div>
-
-          <button type="button" id="calc-btn-logout" class="calc-nav-btn btn-logout-nav" style="display: none;" title="Sair da conta">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
-              <polyline points="16 17 21 12 16 7"></polyline>
-              <line x1="21" y1="12" x2="9" y2="12"></line>
-            </svg>
-            <span class="calc-btn-label">Sair</span>
-          </button>
         </div>
       </nav>
     </div>
   </header>
 
   <!-- ====================================================================
-       GATE DE ACESSO & CADASTRO IMEDIATO DE LEADS — PRECIFICADOR LOJA SJ 3D
-       Cadastro rápido com liberação automática na mesma hora
+       TELA DE CONTROLE DE ACESSO UNIFICADO (SEM LOGIN DUPLICADO)
+       Exibida quando sem sessão, pendente, bloqueado ou aguardando 2FA.
        ==================================================================== -->
-  <div id="calc-auth-gate" class="calc-auth-gate-wrapper" style="display: flex;">
+  <div id="calc-auth-gate" class="calc-auth-gate-wrapper" style="display: flex;" aria-live="polite">
     <div class="calc-auth-gate-card">
       <div class="calc-gate-header">
-        <span class="calc-gate-badge">⚡ Acesso Imediato</span>
-        <h2 class="calc-gate-title">Precificador 3D Loja SJ</h2>
-        <p class="calc-gate-desc">
-          Calculadora de engenharia de custos e taxas oficiais 2026 (Shopee, Mercado Livre, TikTok Shop e Balcão). Cadastre-se grátis e acesse instantaneamente!
+        <div id="calc-access-icon" class="calc-lock-icon-wrap" aria-hidden="true">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+          </svg>
+        </div>
+        <h2 id="calc-access-title" class="calc-gate-title">Você precisa ser cadastrado</h2>
+        <p id="calc-access-desc" class="calc-gate-desc">
+          Crie sua conta gratuita ou entre para usar a calculadora de precificação.
         </p>
       </div>
 
-      <div class="calc-gate-tabs" role="tablist">
-        <button type="button" class="btn-calc-gate-tab active" data-calc-gate-tab="register" role="tab">🚀 Cadastre-se &amp; Acessar</button>
-        <button type="button" class="btn-calc-gate-tab" data-calc-gate-tab="login" role="tab">🔐 Já Tenho Cadastro</button>
-      </div>
-
-      <!-- Feedback de status / erros -->
       <div id="calc-gate-feedback"></div>
 
-      <!-- Formulário 1: Cadastro Grátis com Liberação Automática Imediata -->
-      <form id="form-calc-gate-register" style="display: block;">
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-reg-nome">Nome Completo *</label>
-          <input type="text" id="calc-reg-nome" class="calc-gate-input" placeholder="Seu nome ou da sua oficina" required />
-        </div>
+      <div id="calc-access-actions" class="calc-gate-actions">
+        <a id="btn-calc-goto-login" href="/conta?next=%2Fcalculadora&amp;tab=login" class="btn-calc-gate-submit" style="text-decoration: none;">
+          <span>Entrar</span>
+        </a>
+        <a id="btn-calc-goto-register" href="/conta?next=%2Fcalculadora&amp;tab=register" class="calc-btn-secondary" style="text-decoration: none;">
+          <span>Criar conta</span>
+        </a>
+      </div>
 
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-reg-whatsapp">WhatsApp (com DDD) *</label>
-          <input type="tel" id="calc-reg-whatsapp" class="calc-gate-input" placeholder="(44) 99999-9999" required />
-        </div>
-
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-reg-email">Seu Melhor E-mail *</label>
-          <input type="email" id="calc-reg-email" class="calc-gate-input" placeholder="seu-email@exemplo.com" required />
-        </div>
-
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-reg-cidade">Cidade / UF (Opcional)</label>
-          <input type="text" id="calc-reg-cidade" class="calc-gate-input" placeholder="Ex: Umuarama / PR" />
-        </div>
-
-        <button type="submit" id="btn-calc-gate-register" class="btn-calc-gate-submit" style="background: linear-gradient(135deg, #FF5500 0%, #E03E00 100%);">
-          <span>🚀 Liberar Meu Acesso Grátis Agora</span>
-          <span>→</span>
+      <div id="calc-access-status-actions" class="calc-gate-actions" style="display: none;">
+        <a id="btn-calc-status-primary" href="/conta" class="btn-calc-gate-submit" style="text-decoration: none; display: none;">
+          <span>Ir para Minha conta</span>
+        </a>
+        <a id="btn-calc-status-wa" href="https://wa.me/5544991351318" target="_blank" rel="noopener noreferrer" class="calc-btn-secondary" style="text-decoration: none; display: none;">
+          <span>Falar no WhatsApp</span>
+        </a>
+        <button type="button" id="btn-calc-gate-logout" class="calc-btn-secondary">
+          <span>Sair e trocar de conta</span>
         </button>
-        <p style="font-size: 0.70rem; color: #71717a; text-align: center; margin-top: 10px; line-height: 1.35;">
-          🔒 Cadastro instantâneo sem burocracia. Liberamos seu acesso na mesma hora.
-        </p>
-      </form>
-
-      <!-- Formulário 2: Login de Usuário Já Cadastrado ou Admin -->
-      <form id="form-calc-gate-login" style="display: none;">
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-gate-email">E-mail ou WhatsApp Cadastrado</label>
-          <input type="text" id="calc-gate-email" class="calc-gate-input" placeholder="seu-email@dominio.com ou (44) 99999-9999" autocomplete="username" required />
-        </div>
-
-        <div class="calc-gate-form-group">
-          <label class="calc-gate-label" for="calc-gate-senha">Senha de Acesso (Administradores)</label>
-          <input type="password" id="calc-gate-senha" class="calc-gate-input" placeholder="Opcional para usuários cadastrados" autocomplete="current-password" />
-          <span style="font-size: 0.68rem; color: #71717a; margin-top: 4px; display: block;">Se você se cadastrou como lead/usuário, pode deixar a senha em branco para entrar.</span>
-        </div>
-
-        <button type="submit" id="btn-calc-gate-login" class="btn-calc-gate-submit">
-          <span>Entrar no Precificador 3D</span>
-          <span>→</span>
-        </button>
-      </form>
+      </div>
 
       <div class="calc-gate-footer-links">
-        <a href="/">← Voltar para a Loja Pública Loja SJ 3D</a>
+        <a href="/">← Voltar para a Loja SJ 3D</a>
       </div>
     </div>
   </div>
@@ -258,7 +259,8 @@
           <input type="file" id="gcode-file-input" accept=".gcode,.3mf,.gcode.3mf,.stl" style="display: none;" />
           <div class="dropzone-inner">
             <div class="dropzone-icon">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
                 <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
                 <polyline points="17 8 12 3 7 8" />
                 <line x1="12" y1="3" x2="12" y2="15" />
@@ -292,7 +294,8 @@
               <span class="label-hint">Com suportes</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="weight-input" class="form-input has-suffix" min="0" max="10000" value="" placeholder="0" />
+              <input type="number" id="weight-input" class="form-input has-suffix" min="0" max="10000" value=""
+                placeholder="0" />
               <span class="input-suffix">gramas</span>
             </div>
           </div>
@@ -314,7 +317,8 @@
               <span>Tempo (Horas)</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="hours-input" class="form-input has-suffix" min="0" max="200" value="" placeholder="0" />
+              <input type="number" id="hours-input" class="form-input has-suffix" min="0" max="200" value=""
+                placeholder="0" />
               <span class="input-suffix">h</span>
             </div>
           </div>
@@ -324,7 +328,8 @@
               <span>Tempo (Minutos)</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="minutes-input" class="form-input has-suffix" min="0" max="59" value="" placeholder="0" />
+              <input type="number" id="minutes-input" class="form-input has-suffix" min="0" max="59" value=""
+                placeholder="0" />
               <span class="input-suffix">min</span>
             </div>
           </div>
@@ -369,7 +374,8 @@
             </div>
             <div class="production-total-value mono" id="prod-total-cost">R$ 0,00</div>
           </div>
-          <div id="prod-unit-hint" style="display: none; font-size: 11px; color: var(--sj-orange); margin-top: 8px;"></div>
+          <div id="prod-unit-hint" style="display: none; font-size: 11px; color: var(--sj-orange); margin-top: 8px;">
+          </div>
 
           <div class="production-breakdown-grid">
             <div class="breakdown-item">
@@ -408,7 +414,8 @@
               <label class="form-label" for="product-name-input">
                 <span>Nome ou Referência da Peça</span>
               </label>
-              <input type="text" id="product-name-input" class="form-input" value="" placeholder="Ex: Vaso Geométrico, Suporte Alexa, Chaveiro..." />
+              <input type="text" id="product-name-input" class="form-input" value=""
+                placeholder="Ex: Vaso Geométrico, Suporte Alexa, Chaveiro..." />
             </div>
 
             <div class="form-group full-width">
@@ -482,7 +489,8 @@
           <div class="mp-tab active" data-mp="ml_premium" id="tab-ml">
             <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
               <rect width="24" height="24" rx="6" fill="#FFE600" />
-              <path d="M5.5 13.5L9 16.5L13.5 11.5L18.5 15" stroke="#2D3277" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" />
+              <path d="M5.5 13.5L9 16.5L13.5 11.5L18.5 15" stroke="#2D3277" stroke-width="2.2" stroke-linecap="round"
+                stroke-linejoin="round" />
             </svg>
             <div class="mp-tab-text">
               <span class="mp-tab-title">Mercado Livre</span>
@@ -494,8 +502,10 @@
           <div class="mp-tab" data-mp="shopee_fge" id="tab-shopee">
             <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
               <rect width="24" height="24" rx="6" fill="#EE4D2D" />
-              <path d="M8.5 7.5C8.5 5.57 10.07 4 12 4C13.93 4 15.5 5.57 15.5 7.5V8.5H8.5V7.5Z" stroke="white" stroke-width="1.8" />
-              <path d="M5.5 8.5H18.5L17.5 19.5H6.5L5.5 8.5Z" fill="#EE4D2D" stroke="white" stroke-width="1.8" stroke-linejoin="round" />
+              <path d="M8.5 7.5C8.5 5.57 10.07 4 12 4C13.93 4 15.5 5.57 15.5 7.5V8.5H8.5V7.5Z" stroke="white"
+                stroke-width="1.8" />
+              <path d="M5.5 8.5H18.5L17.5 19.5H6.5L5.5 8.5Z" fill="#EE4D2D" stroke="white" stroke-width="1.8"
+                stroke-linejoin="round" />
             </svg>
             <div class="mp-tab-text">
               <span class="mp-tab-title">Shopee</span>
@@ -507,8 +517,12 @@
           <div class="mp-tab" data-mp="tiktok_shop" id="tab-tiktok">
             <svg class="mp-tab-svg" viewBox="0 0 24 24" fill="none">
               <rect width="24" height="24" rx="6" fill="#000000" />
-              <path d="M12.5 5v8.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V8.2a5.5 5.5 0 1 0 4.3 5.3V9.1c1.2 1 2.7 1.6 4.3 1.6V8.2a5 5 0 0 1-3.8-3.2H12.5z" fill="#00F2FE" />
-              <path d="M13.5 6v7.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V9.2a5.5 5.5 0 1 0 4.3 5.3V10.1c1.2 1 2.7 1.6 4.3 1.6V9.2a5 5 0 0 1-3.8-3.2H13.5z" fill="#FE2C55" />
+              <path
+                d="M12.5 5v8.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V8.2a5.5 5.5 0 1 0 4.3 5.3V9.1c1.2 1 2.7 1.6 4.3 1.6V8.2a5 5 0 0 1-3.8-3.2H12.5z"
+                fill="#00F2FE" />
+              <path
+                d="M13.5 6v7.5a3 3 0 1 1-3-3c.4 0 .8.1 1.2.2V9.2a5.5 5.5 0 1 0 4.3 5.3V10.1c1.2 1 2.7 1.6 4.3 1.6V9.2a5 5 0 0 1-3.8-3.2H13.5z"
+                fill="#FE2C55" />
             </svg>
             <div class="mp-tab-text">
               <span class="mp-tab-title">TikTok Shop</span>
@@ -542,11 +556,13 @@
               <span>Clássico (14% + taxas)</span>
             </label>
           </div>
-          <div style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
+          <div
+            style="margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 6px;">
             <span style="font-size: 11.5px; color: var(--text-dim);">Sobrescrever frete/taxa fixa (opcional):</span>
             <div class="input-wrapper" style="width: 120px;">
               <span class="input-prefix" style="font-size: 11px;">R$</span>
-              <input type="number" id="ml-custom-shipping-input" class="form-input has-prefix" step="0.50" min="0" placeholder="Automático" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
+              <input type="number" id="ml-custom-shipping-input" class="form-input has-prefix" step="0.50" min="0"
+                placeholder="Automático" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
             </div>
           </div>
         </div>
@@ -582,12 +598,14 @@
               <span>Cartão à vista</span>
             </label>
           </div>
-          <div id="direta-card-fee-box" style="display: none; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%;">
+          <div id="direta-card-fee-box"
+            style="display: none; align-items: center; gap: 8px; margin-top: 8px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); width: 100%;">
             <label for="card-fee-input" style="font-size: 12px; color: var(--text-muted);">
               Taxa da sua maquininha:
             </label>
             <div class="input-wrapper" style="width: 95px;">
-              <input type="number" id="card-fee-input" class="form-input has-suffix" step="0.1" min="0" max="30" value="3.5" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
+              <input type="number" id="card-fee-input" class="form-input has-suffix" step="0.1" min="0" max="30"
+                value="3.5" style="padding: 4px 8px; height: 28px; font-size: 12px;" />
               <span class="input-suffix">%</span>
             </div>
           </div>
@@ -617,11 +635,13 @@
               <span class="label-hint">Calcula o preço exato cobrindo todos os custos e taxas</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="target-margin-input" class="form-input has-suffix" step="1" min="5" max="90" value="50" />
+              <input type="number" id="target-margin-input" class="form-input has-suffix" step="1" min="5" max="90"
+                value="50" />
               <span class="input-suffix">% limpa</span>
             </div>
             <div class="quick-pills margin-quick-pills">
-              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Atalhos:</span>
+              <span
+                style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Atalhos:</span>
               <button type="button" class="quick-pill margin-pill" data-margin="30">30% (Giro Rápido)</button>
               <button type="button" class="quick-pill margin-pill" data-margin="40">40% (Equilibrada)</button>
               <button type="button" class="quick-pill margin-pill active" data-margin="50">50% (Ideal 3D)</button>
@@ -639,10 +659,12 @@
             </label>
             <div class="input-wrapper">
               <span class="input-prefix">R$</span>
-              <input type="number" id="sale-price-input" class="form-input has-prefix" step="0.10" min="0" value="" placeholder="0,00" />
+              <input type="number" id="sale-price-input" class="form-input has-prefix" step="0.10" min="0" value=""
+                placeholder="0,00" />
             </div>
             <div class="quick-pills price-quick-pills">
-              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Sugestões:</span>
+              <span
+                style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Sugestões:</span>
               <button type="button" class="quick-pill price-pill" data-price="24.90">R$ 24,90</button>
               <button type="button" class="quick-pill price-pill" data-price="29.90">R$ 29,90</button>
               <button type="button" class="quick-pill price-pill" data-price="39.90">R$ 39,90</button>
@@ -654,7 +676,8 @@
 
         <!-- Recomendações Prontas -->
         <div style="margin-top: 14px;">
-          <span style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
+          <span
+            style="font-size: 11px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; letter-spacing: 0.5px; display: block; margin-bottom: 8px;">
             Recomendações Prontas para a Internet (1 Clique):
           </span>
           <div class="smart-pricing-grid">
@@ -667,7 +690,8 @@
                 <div class="smart-price-title">🟢 Bom Preço</div>
                 <div class="smart-price-number mono" id="smart-good-price">R$ 0,00</div>
                 <div class="smart-price-metrics">
-                  Lucro: <strong id="smart-good-profit">R$ 0,00</strong> · Margem: <strong id="smart-good-margin">0%</strong>
+                  Lucro: <strong id="smart-good-profit">R$ 0,00</strong> · Margem: <strong
+                    id="smart-good-margin">0%</strong>
                 </div>
               </div>
               <button type="button" class="smart-price-btn" id="btn-use-good-price">
@@ -684,7 +708,8 @@
                 <div class="smart-price-title">🌟 Preço Ideal 3D</div>
                 <div class="smart-price-number mono" id="smart-ideal-price">R$ 0,00</div>
                 <div class="smart-price-metrics">
-                  Lucro: <strong id="smart-ideal-profit">R$ 0,00</strong> · Margem: <strong id="smart-ideal-margin">0%</strong>
+                  Lucro: <strong id="smart-ideal-profit">R$ 0,00</strong> · Margem: <strong
+                    id="smart-ideal-margin">0%</strong>
                 </div>
               </div>
               <button type="button" class="smart-price-btn" id="btn-use-ideal-price">
@@ -782,7 +807,8 @@
         <div class="detalhamento-lucro-box" id="det-lucro-box">
           <div class="detalhamento-lucro-top">
             <span class="lucro-title">
-              <svg class="lucro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+              <svg class="lucro-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
                 <polyline points="23 6 13.5 15.5 8.5 10.5 1 18"></polyline>
                 <polyline points="17 6 23 6 23 12"></polyline>
               </svg>
@@ -832,7 +858,8 @@
 
         <!-- Botão Salvar Cálculo -->
         <button type="button" id="btn-save-detalhamento" class="btn-save-detalhamento">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round">
             <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
             <polyline points="17 21 17 13 7 13 7 21"></polyline>
             <polyline points="7 3 7 8 15 8"></polyline>
@@ -850,7 +877,8 @@
       <!-- PASSO 5: RAIO-X & GRÁFICO DE COMPOSIÇÃO DE CUSTOS -->
       <div class="card" id="card-donut-breakdown">
         <div class="card-header">
-          <div class="step-badge" style="color: var(--sj-purple);">5 · RAIO-X &amp; GRÁFICO DE COMPOSIÇÃO DE CUSTOS</div>
+          <div class="step-badge" style="color: var(--sj-purple);">5 · RAIO-X &amp; GRÁFICO DE COMPOSIÇÃO DE CUSTOS
+          </div>
           <span class="production-multiplier-badge">Composição Real</span>
         </div>
         <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 16px;">
@@ -907,7 +935,8 @@
           <div class="step-badge" style="color: var(--sj-purple);">7 · PROMOÇÃO COM LUCRO PRESERVADO</div>
         </div>
         <p style="font-size: 12px; color: var(--text-dim); margin-bottom: 12px;">
-          Vai participar de campanhas na Shopee, Mercado Livre ou Black Friday? Calcule por quanto anunciar para dar desconto e garantir 100% do lucro no bolso:
+          Vai participar de campanhas na Shopee, Mercado Livre ou Black Friday? Calcule por quanto anunciar para dar
+          desconto e garantir 100% do lucro no bolso:
         </p>
 
         <div>
@@ -917,11 +946,13 @@
               <span class="label-hint">Ex: 10%, 15%, 20%</span>
             </label>
             <div class="input-wrapper">
-              <input type="number" id="promo-discount-input" class="form-input has-suffix" min="1" max="80" value="10" />
+              <input type="number" id="promo-discount-input" class="form-input has-suffix" min="1" max="80"
+                value="10" />
               <span class="input-suffix">% OFF</span>
             </div>
             <div class="quick-pills promo-quick-pills">
-              <span style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Descontos:</span>
+              <span
+                style="font-size: 10px; color: var(--text-dim); margin-right: 4px; align-self: center;">Descontos:</span>
               <button type="button" class="quick-pill promo-pill" data-discount="5">5% OFF</button>
               <button type="button" class="quick-pill promo-pill active" data-discount="10">10% OFF</button>
               <button type="button" class="quick-pill promo-pill" data-discount="15">15% OFF</button>
@@ -950,15 +981,17 @@
     </div>
   </main>
 
-  <!-- ================= MODAL: GESTÃO DE LEADS & CONTATOS (EXCLUSIVO ADMIN) ================= -->
+  <!-- ================= MODAL: GESTÃO DE LEADS & CONTATOS (EQUIPE APROVADA & ADMIN) ================= -->
   <div id="modal-calc-admin-access" class="modal-overlay" style="display: none;">
     <div class="modal-content modal-content-admin" style="max-width: 800px;">
       <div class="modal-header">
         <div style="display: flex; align-items: center; gap: 10px;">
           <span style="font-size: 1.5rem;">👥</span>
           <div>
-            <h3 class="modal-title" style="margin: 0; line-height: 1.2;">Gestão de Usuários &amp; Leads (Precificador 3D)</h3>
-            <span style="font-size: 0.72rem; color: #a1a1aa;">Administrador Master: <strong id="calc-admin-current-email" style="color: #FF5500;">jt.designer21@gmail.com</strong></span>
+            <h3 class="modal-title" style="margin: 0; line-height: 1.2;">Gestão de Usuários &amp; Leads (Precificador
+              3D)</h3>
+            <span style="font-size: 0.72rem; color: #a1a1aa;">Equipe conectada: <strong
+                id="calc-admin-current-email" style="color: #FF5500;">—</strong></span>
           </div>
         </div>
         <button id="close-admin-modal" class="modal-close" aria-label="Fechar painel de leads">✕</button>
@@ -986,31 +1019,60 @@
           <div class="admin-modal-card-header">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">📲</span>
-              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Exportar Contatos para WhatsApp &amp; Marketing</h4>
+              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Exportar Contatos para
+                WhatsApp &amp; Marketing</h4>
             </div>
             <button type="button" id="btn-refresh-acessos" class="btn-admin-refresh" title="Atualizar dados em nuvem">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path></svg>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"></path>
+              </svg>
               <span>Atualizar</span>
             </button>
           </div>
           <p style="font-size: 0.74rem; color: #a1a1aa; margin-top: 0; margin-bottom: 12px; line-height: 1.4;">
-            Exporte os contatos para importar no WhatsApp / Google Contatos ou em planilhas para campanhas de marketing e prospecção:
+            Exporte os contatos para importar no WhatsApp / Google Contatos ou em planilhas para campanhas de marketing
+            e prospecção:
           </p>
           <div class="admin-export-toolbar">
-            <button type="button" id="btn-export-vcf" class="btn-export-tool wa" title="Gera arquivo .vcf para importar na agenda do celular / Google Contatos">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
+            <button type="button" id="btn-export-vcf" class="btn-export-tool wa"
+              title="Gera arquivo .vcf para importar na agenda do celular / Google Contatos">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path
+                  d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z">
+                </path>
+              </svg>
               <span>📲 Baixar Contatos WhatsApp (.vcf)</span>
             </button>
-            <button type="button" id="btn-export-csv" class="btn-export-tool csv" title="Exporta planilha Excel completa com dados dos leads">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <button type="button" id="btn-export-csv" class="btn-export-tool csv"
+              title="Exporta planilha Excel completa com dados dos leads">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
               <span>📊 Exportar Excel / CSV</span>
             </button>
-            <button type="button" id="btn-copy-phones" class="btn-export-tool secondary" title="Copia lista de telefones para disparo ou transmissão">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg>
+            <button type="button" id="btn-copy-phones" class="btn-export-tool secondary"
+              title="Copia lista de telefones para disparo ou transmissão">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
               <span>📋 Copiar WhatsApps</span>
             </button>
-            <button type="button" id="btn-copy-emails" class="btn-export-tool secondary" title="Copia todos os e-mails separados por vírgula">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <button type="button" id="btn-copy-emails" class="btn-export-tool secondary"
+              title="Copia todos os e-mails separados por vírgula">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path>
+                <polyline points="22,6 12,13 2,6"></polyline>
+              </svg>
               <span>✉️ Copiar E-mails</span>
             </button>
           </div>
@@ -1021,16 +1083,21 @@
           <div class="admin-modal-card-header">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">📋</span>
-              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Leads &amp; Usuários Registrados</h4>
+              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Leads &amp; Usuários
+                Registrados</h4>
             </div>
           </div>
 
           <div class="admin-filter-bar">
-            <input type="text" id="input-search-leads" class="admin-search-input" placeholder="🔍 Buscar por nome, WhatsApp ou e-mail..." />
+            <input type="text" id="input-search-leads" class="admin-search-input"
+              placeholder="🔍 Buscar por nome, WhatsApp ou e-mail..." />
             <div class="admin-pill-tabs">
-              <button type="button" class="admin-pill-tab active" data-lead-filter="todos">Todos (<span id="count-filter-todos">0</span>)</button>
-              <button type="button" class="admin-pill-tab" data-lead-filter="ativos">Ativos (<span id="count-filter-ativos">0</span>)</button>
-              <button type="button" class="admin-pill-tab" data-lead-filter="revogados">Revogados (<span id="count-filter-revogados">0</span>)</button>
+              <button type="button" class="admin-pill-tab active" data-lead-filter="todos">Todos (<span
+                  id="count-filter-todos">0</span>)</button>
+              <button type="button" class="admin-pill-tab" data-lead-filter="ativos">Ativos (<span
+                  id="count-filter-ativos">0</span>)</button>
+              <button type="button" class="admin-pill-tab" data-lead-filter="revogados">Revogados (<span
+                  id="count-filter-revogados">0</span>)</button>
             </div>
           </div>
 
@@ -1044,13 +1111,18 @@
           <div class="admin-modal-card-header">
             <div style="display: flex; align-items: center; gap: 8px;">
               <span style="font-size: 1.1rem;">⚡</span>
-              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Cadastrar Novo Lead Manualmente</h4>
+              <h4 style="margin: 0; font-size: 0.92rem; font-weight: 800; color: #ffffff;">Cadastrar Novo Lead
+                Manualmente</h4>
             </div>
           </div>
-          <form id="form-admin-add-lead" class="admin-manual-form" style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
-            <input type="text" id="input-admin-lead-nome" class="form-input" placeholder="Nome Completo *" required style="flex: 1; min-width: 140px;" />
-            <input type="tel" id="input-admin-lead-whatsapp" class="form-input" placeholder="WhatsApp com DDD *" required style="flex: 1; min-width: 130px;" />
-            <input type="email" id="input-admin-lead-email" class="form-input" placeholder="E-mail *" required style="flex: 1.2; min-width: 160px;" />
+          <form id="form-admin-add-lead" class="admin-manual-form"
+            style="display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px;">
+            <input type="text" id="input-admin-lead-nome" class="form-input" placeholder="Nome Completo *" required
+              style="flex: 1; min-width: 140px;" />
+            <input type="tel" id="input-admin-lead-whatsapp" class="form-input" placeholder="WhatsApp com DDD *"
+              required style="flex: 1; min-width: 130px;" />
+            <input type="email" id="input-admin-lead-email" class="form-input" placeholder="E-mail *" required
+              style="flex: 1.2; min-width: 160px;" />
             <button type="submit" class="calc-nav-btn primary" style="padding: 0 16px; height: 38px;">
               <span>+ Salvar Lead</span>
             </button>
@@ -1066,11 +1138,17 @@
     <div class="modal-content">
       <div class="modal-header">
         <h3 class="modal-title">Histórico de Precificações Salvas</h3>
-        <button id="close-history-modal" class="modal-close">✕</button>
+        <button id="close-history-modal" class="modal-close" aria-label="Fechar histórico">✕</button>
       </div>
-      <p class="modal-desc">
-        Clique em um cálculo para carregar todos os dados de volta para a ferramenta:
-      </p>
+      <div style="display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap;">
+        <p class="modal-desc" style="margin: 0;">
+          Clique em um cálculo para carregar todos os dados de volta para a ferramenta:
+        </p>
+        <button type="button" id="btn-export-local-history-backup" class="calc-nav-btn" style="height: 30px; font-size: 0.72rem;" title="Baixar cópia em JSON dos dados locais do navegador">
+          📥 Backup Local (.json)
+        </button>
+      </div>
+      <div id="calc-migrated-notice" style="display: none; margin-top: 10px; padding: 8px 10px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); border: 1px solid rgba(16, 185, 129, 0.35); color: #6ee7b7; font-size: 0.76rem; font-weight: 600;"></div>
       <div id="history-list" class="history-list"></div>
     </div>
   </div>
@@ -1117,7 +1195,8 @@
       </div>
 
       <div style="margin-top: 24px; text-align: right;">
-        <button type="button" id="save-prefs-btn" class="btn-calc-gate-submit" style="width: 100%; justify-content: center; padding: 12px;">
+        <button type="button" id="save-prefs-btn" class="btn-calc-gate-submit"
+          style="width: 100%; justify-content: center; padding: 12px;">
           Salvar Preferências
         </button>
       </div>
@@ -1151,8 +1230,8 @@
 
   <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261114_01"></script>
-  <script type="module" src="js/calculadora/calc-app.js?v=20261117_05"></script>
+  <script src="js/supabase-client.js?v=20261119_02"></script>
+  <script type="module" src="js/calculadora/calc-app.js?v=20261119_02"></script>
 </body>
 
 </html>

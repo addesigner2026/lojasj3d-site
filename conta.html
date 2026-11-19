@@ -41,6 +41,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_02" />
 
   <style>
     *, *::before, *::after { box-sizing: border-box; }
@@ -545,6 +546,17 @@
         </div>
       </div>
 
+      <!-- Verificação em duas etapas (TOTP / Google Authenticator) quando habilitada na conta -->
+      <form id="form-conta-mfa" style="display: none; padding-top: 14px;">
+        <div class="conta-field">
+          <label for="conta-mfa-code">Código de 6 dígitos (Google Authenticator / TOTP)</label>
+          <input type="text" id="conta-mfa-code" class="conta-input" inputmode="numeric" autocomplete="one-time-code" maxlength="8" placeholder="000000" required />
+        </div>
+        <button type="submit" id="btn-conta-mfa-submit" class="btn-sj-primary" style="width: 100%;">Confirmar código →</button>
+        <div id="conta-mfa-feedback" class="conta-feedback"></div>
+        <button type="button" id="btn-conta-mfa-logout" class="btn-sj-secondary" style="width: 100%; margin-top: 8px;">Sair e trocar de conta</button>
+      </form>
+
       <!-- Formulários de Login / Cadastro de Cliente -->
       <div id="conta-gate-forms">
         <div class="conta-gate-tabs" role="tablist">
@@ -632,22 +644,41 @@
         </a>
 
         <div class="conta-user-actions">
-          <span class="conta-user-pill">
-            <span>👤</span>
-            <span id="conta-header-user-name">Cliente</span>
-          </span>
-          <a href="index.html" class="btn-sj-secondary" style="padding: 8px 13px; font-size: 0.8rem;">← Continuar Comprando</a>
+          <a href="index.html" class="btn-sj-secondary" style="padding: 8px 13px; font-size: 0.8rem;">← Loja</a>
           <button type="button" id="btn-conta-header-cart" class="btn-sj-primary" style="padding: 8px 14px; font-size: 0.8rem;">
             🛒 Carrinho (<span id="header-conta-cart-count">0</span>)
           </button>
-          <button type="button" id="btn-conta-logout" class="btn-sj-danger" style="padding: 8px 13px; font-size: 0.8rem;">🚪 Sair</button>
+
+          <div class="sj-acct-anchor" id="conta-acct-anchor">
+            <button type="button" class="sj-acct-chip-btn" id="btn-conta-user-menu" aria-haspopup="menu" aria-expanded="false" aria-controls="conta-user-popover">
+              <span class="sj-acct-avatar" aria-hidden="true">👤</span>
+              <span class="sj-acct-name" id="conta-header-user-name">Cliente</span>
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" aria-hidden="true"><polyline points="6 9 12 15 18 9"></polyline></svg>
+            </button>
+            <div id="conta-user-popover" class="sj-acct-popover" role="menu" aria-labelledby="btn-conta-user-menu">
+              <div class="sj-acct-popover-head">
+                <div class="sj-acct-popover-title" id="conta-popover-user-name">Cliente</div>
+                <div class="sj-acct-popover-email" id="conta-popover-user-email">—</div>
+              </div>
+              <a href="/conta" class="sj-acct-menu-item" role="menuitem" aria-current="page">
+                <span>👤</span><span>Minha conta</span>
+              </a>
+              <a href="/calculadora" class="sj-acct-menu-item" role="menuitem">
+                <span>⚡</span><span>Calculadora</span>
+              </a>
+              <hr class="sj-acct-sep" />
+              <button type="button" id="btn-conta-logout" class="sj-acct-menu-item is-danger" role="menuitem">
+                <span>🚪</span><span>Sair</span>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </header>
 
     <main class="conta-container">
       <!-- Abas do Painel do Cliente -->
-      <nav class="conta-nav-tabs" role="tablist">
+      <nav class="conta-nav-tabs" role="tablist" aria-label="Navegação do Painel do Cliente">
         <button type="button" class="conta-tab-btn active" data-conta-tab="favoritos" role="tab">
           <span>❤️ Favoritos</span>
           <span class="conta-tab-badge" id="badge-conta-favorites">0</span>
@@ -663,6 +694,9 @@
         <button type="button" class="conta-tab-btn" data-conta-tab="dados" role="tab">
           <span>👤 Meus Dados</span>
         </button>
+        <a href="/calculadora" class="conta-tab-btn" style="text-decoration: none;" title="Abrir Calculadora de Precificação 3D">
+          <span>⚡ Calculadora</span>
+        </a>
       </nav>
 
       <!-- ================= ABA 1: FAVORITOS ================= -->
@@ -973,8 +1007,8 @@
 
   <!-- Supabase JS SDK + Cliente Oficial Loja SJ 3D -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-  <script src="js/supabase-client.js?v=20261118_10"></script>
-  <script src="js/conta.js?v=20261118_10"></script>
+  <script src="js/supabase-client.js?v=20261119_02"></script>
+  <script src="js/conta.js?v=20261119_02"></script>
 </body>
 
 </html>

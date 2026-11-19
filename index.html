@@ -66,7 +66,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/styles.css?v=20261119_01" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_02" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119_02" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -410,18 +411,39 @@
           <span class="bag-badge" id="fav-count-badge" style="display: none;">0</span>
         </button>
 
-        <!-- Botão Área do Cliente / Minha Conta / Entrar -->
-        <button type="button" class="header-account-pill-btn" id="header-account-btn" aria-label="Área do Cliente"
-          title="Acessar Minha Conta / Cadastrar">
-          <span class="account-pill-avatar" aria-hidden="true">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
-              stroke-linecap="round" stroke-linejoin="round">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-          </span>
-          <span id="header-account-btn-text">Entrar / Conta</span>
-        </button>
+        <!-- Botão Área do Cliente / Minha Conta / Menu Compacto -->
+        <div class="sj-acct-anchor" id="store-acct-anchor">
+          <button type="button" class="header-account-pill-btn" id="header-account-btn" aria-label="Área do Cliente"
+            aria-haspopup="menu" aria-expanded="false" aria-controls="store-user-popover" title="Acessar Minha Conta / Cadastrar">
+            <span class="account-pill-avatar" aria-hidden="true">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.3"
+                stroke-linecap="round" stroke-linejoin="round">
+                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                <circle cx="12" cy="7" r="4"></circle>
+              </svg>
+            </span>
+            <span id="header-account-btn-text">Entrar / Conta</span>
+          </button>
+          <div id="store-user-popover" class="sj-acct-popover" role="menu" aria-labelledby="header-account-btn">
+            <div class="sj-acct-popover-head">
+              <div class="sj-acct-popover-title" id="store-popover-user-name">Minha Conta</div>
+              <div class="sj-acct-popover-email" id="store-popover-user-email">—</div>
+            </div>
+            <a href="/conta" class="sj-acct-menu-item" role="menuitem">
+              <span>👤</span><span>Minha conta</span>
+            </a>
+            <a href="/calculadora" class="sj-acct-menu-item" role="menuitem">
+              <span>⚡</span><span>Calculadora</span>
+            </a>
+            <a href="/admin" id="store-popover-admin-link" class="sj-acct-menu-item" role="menuitem" style="display: none;">
+              <span>⚙️</span><span>Painel Admin</span>
+            </a>
+            <hr class="sj-acct-sep" />
+            <button type="button" id="btn-store-menu-logout" class="sj-acct-menu-item is-danger" role="menuitem">
+              <span>🚪</span><span>Sair</span>
+            </button>
+          </div>
+        </div>
 
         <button class="icon-btn bag-btn-wrap sj-header-cart-pill" id="header-bag-btn" aria-label="Ver Seu Pedido"
           title="Abrir Carrinho / Seu Pedido">
@@ -4060,10 +4082,10 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261119_01"></script>
-  <script src="js/dados.js?v=20261119_01"></script>
-  <script src="js/database.js?v=20261119_01"></script>
-  <script src="js/app.js?v=20261119_01"></script>
+  <script src="js/supabase-client.js?v=20261119_02"></script>
+  <script src="js/dados.js?v=20261119_02"></script>
+  <script src="js/database.js?v=20261119_02"></script>
+  <script src="js/app.js?v=20261119_02"></script>
 </body>
 
 </html>

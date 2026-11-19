@@ -791,6 +791,50 @@ body.calc-page-body {
   text-decoration: underline;
 }
 
+.calc-lock-icon-wrap {
+  width: 56px;
+  height: 56px;
+  margin: 0 auto 14px;
+  border-radius: 16px;
+  background: var(--sj-orange-bg);
+  border: 1px solid var(--sj-orange-border);
+  color: var(--sj-orange);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calc-gate-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.calc-btn-secondary {
+  width: 100%;
+  background: var(--sj-card-sub);
+  color: #f8fafc;
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-md);
+  padding: 12px 14px;
+  font-size: 0.9rem;
+  font-weight: 800;
+  font-family: inherit;
+  cursor: pointer;
+  transition: border-color 0.18s ease, background-color 0.18s ease, transform 0.14s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.calc-btn-secondary:hover {
+  background: var(--sj-hover-bg);
+  border-color: var(--sj-orange-border);
+  transform: translateY(-1px);
+}
+
 /* ==========================================================================
    CONTEÚDO PRINCIPAL DA CALCULADORA (WORKSPACE)
    ========================================================================== */

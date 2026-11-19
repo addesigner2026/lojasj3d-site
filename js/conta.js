@@ -18,6 +18,33 @@
   "use strict";
 
   const PENDING_ACTION_KEY = "sj_pending_store_action_v1";
+  const POST_LOGIN_NEXT_KEY = "sj_post_login_next_v1";
+
+  function validarRotaInterna(raw) {
+    const val = String(raw || "").trim();
+    if (!val || val.length > 160) return "";
+    if (!val.startsWith("/") || val.startsWith("//") || val.includes("\\") || val.includes("://")) {
+      return "";
+    }
+    return val;
+  }
+
+  function obterDestinoPosLogin() {
+    const params = new URLSearchParams(window.location.search);
+    const fromQuery = validarRotaInterna(params.get("next") || params.get("returnTo"));
+    if (fromQuery) return fromQuery;
+    try {
+      return validarRotaInterna(sessionStorage.getItem(POST_LOGIN_NEXT_KEY));
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function consumirDestinoPosLogin() {
+    const dest = obterDestinoPosLogin();
+    try { sessionStorage.removeItem(POST_LOGIN_NEXT_KEY); } catch (_) {}
+    return dest;
+  }
 
   const contaState = {
     perfil: null,
@@ -258,10 +285,28 @@
     const dash = document.getElementById("conta-dashboard-shell");
     const forms = document.getElementById("conta-gate-forms");
     const statusScr = document.getElementById("conta-gate-status-screen");
+    const mfaForm = document.getElementById("form-conta-mfa");
     if (gate) gate.style.display = "flex";
     if (dash) dash.style.display = "none";
     if (forms) forms.style.display = "block";
     if (statusScr) statusScr.style.display = "none";
+    if (mfaForm) mfaForm.style.display = "none";
+  }
+
+  function exibirTelaMfa() {
+    const gate = document.getElementById("conta-auth-gate");
+    const dash = document.getElementById("conta-dashboard-shell");
+    const forms = document.getElementById("conta-gate-forms");
+    const statusScr = document.getElementById("conta-gate-status-screen");
+    const mfaForm = document.getElementById("form-conta-mfa");
+    if (gate) gate.style.display = "flex";
+    if (dash) dash.style.display = "none";
+    if (forms) forms.style.display = "none";
+    if (statusScr) statusScr.style.display = "none";
+    if (mfaForm) {
+      mfaForm.style.display = "block";
+      document.getElementById("conta-mfa-code")?.focus();
+    }
   }
 
   function exibirTelaStatus({ icon, titulo, desc, email, mostrarLinkAdmin }) {
@@ -269,10 +314,12 @@
     const dash = document.getElementById("conta-dashboard-shell");
     const forms = document.getElementById("conta-gate-forms");
     const statusScr = document.getElementById("conta-gate-status-screen");
+    const mfaForm = document.getElementById("form-conta-mfa");
     if (gate) gate.style.display = "flex";
     if (dash) dash.style.display = "none";
     if (forms) forms.style.display = "none";
     if (statusScr) statusScr.style.display = "block";
+    if (mfaForm) mfaForm.style.display = "none";
 
     const iconEl = document.getElementById("conta-status-icon");
     const titleEl = document.getElementById("conta-status-title");
@@ -299,7 +346,7 @@
 
     const action = pend?.action || params.get("action");
     const productId = pend?.productId || params.get("productId");
-    const returnTo = pend?.returnTo || params.get("returnTo");
+    const nextDest = validarRotaInterna(pend?.returnTo || consumirDestinoPosLogin());
 
     if (action && productId) {
       if (action === "fav") {
@@ -309,8 +356,8 @@
       }
     }
 
-    if (returnTo && returnTo.startsWith("/") && !returnTo.startsWith("//") && !returnTo.startsWith("/conta")) {
-      window.location.replace(returnTo);
+    if (nextDest && !nextDest.startsWith("/conta")) {
+      window.location.replace(nextDest);
       return true;
     }
 
@@ -333,14 +380,17 @@
     if (gate) gate.style.display = "none";
     if (dash) dash.style.display = "block";
 
+    const nomeExibicao =
+      (perfil.person_type === "pj" ? (perfil.nome_fantasia || perfil.razao_social) : perfil.nome) ||
+      perfil.nome ||
+      perfil.email ||
+      "Cliente";
     const nameEl = document.getElementById("conta-header-user-name");
-    if (nameEl) {
-      nameEl.textContent =
-        (perfil.person_type === "pj" ? (perfil.nome_fantasia || perfil.razao_social) : perfil.nome) ||
-        perfil.nome ||
-        perfil.email ||
-        "Cliente";
-    }
+    if (nameEl) nameEl.textContent = nomeExibicao;
+    const popNameEl = document.getElementById("conta-popover-user-name");
+    if (popNameEl) popNameEl.textContent = nomeExibicao;
+    const popEmailEl = document.getElementById("conta-popover-user-email");
+    if (popEmailEl) popEmailEl.textContent = perfil.email || "—";
 
     preencherFormularioDados(perfil);
     await carregarTodosOsDadosCliente();
@@ -359,6 +409,12 @@
       return;
     }
 
+    const mfaInfo = await window.SJ_SUPABASE.auth.obterNivelMfa?.();
+    if (mfaInfo?.requiresMfa) {
+      exibirTelaMfa();
+      return;
+    }
+
     const res = await window.SJ_SUPABASE.profiles.obterMeuPerfil();
     if (!res.sucesso || !res.perfil) {
       exibirGateLogin();
@@ -370,6 +426,7 @@
     const status = String(perfil.status || "approved").toLowerCase();
 
     if (status === "blocked") {
+      try { sessionStorage.removeItem(POST_LOGIN_NEXT_KEY); } catch (_) {}
       exibirTelaStatus({
         icon: "🚫",
         titulo: "Conta bloqueada",
@@ -380,6 +437,11 @@
     }
 
     if ((role === "admin" || role === "staff") && status === "approved") {
+      const nextDest = consumirDestinoPosLogin();
+      if (nextDest && !nextDest.startsWith("/conta")) {
+        window.location.replace(nextDest);
+        return;
+      }
       exibirTelaStatus({
         icon: "⚙️",
         titulo: "Redirecionando para o Painel de Gestão...",
@@ -1490,6 +1552,50 @@
   }
 
   function inicializarEventos() {
+    // Preserva retorno pós-login seguro (?next=/calculadora) e aba inicial (?tab=register)
+    const paramsInit = new URLSearchParams(window.location.search);
+    const nextInit = validarRotaInterna(paramsInit.get("next") || paramsInit.get("returnTo"));
+    if (nextInit) {
+      try { sessionStorage.setItem(POST_LOGIN_NEXT_KEY, nextInit); } catch (_) {}
+      const gateSub = document.getElementById("conta-gate-subtitle");
+      if (gateSub && nextInit.startsWith("/calculadora")) {
+        gateSub.textContent = "Entre ou crie sua conta gratuita para liberar e voltar direto para a Calculadora 3D.";
+      }
+    }
+    const tabInit = paramsInit.get("tab");
+    if (tabInit === "register" || tabInit === "login") {
+      document.querySelectorAll("[data-conta-auth-tab]").forEach((b) => b.classList.toggle("active", b.dataset.contaAuthTab === tabInit));
+      const fLogin = document.getElementById("form-conta-login");
+      const fReg = document.getElementById("form-conta-register");
+      if (fLogin) fLogin.style.display = tabInit === "login" ? "block" : "none";
+      if (fReg) fReg.style.display = tabInit === "register" ? "block" : "none";
+    }
+
+    // Menu compacto do usuário no cabeçalho
+    const menuBtn = document.getElementById("btn-conta-user-menu");
+    const menuPop = document.getElementById("conta-user-popover");
+    const fecharMenuConta = () => {
+      if (menuPop) menuPop.classList.remove("is-open");
+      if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+    };
+    menuBtn?.addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      const aberto = !menuPop?.classList.contains("is-open");
+      if (menuPop) menuPop.classList.toggle("is-open", aberto);
+      menuBtn.setAttribute("aria-expanded", aberto ? "true" : "false");
+    });
+    document.addEventListener("click", (ev) => {
+      if (menuPop?.classList.contains("is-open") && !ev.target.closest("#conta-acct-anchor")) {
+        fecharMenuConta();
+      }
+    });
+    document.addEventListener("keydown", (ev) => {
+      if (ev.key === "Escape" && menuPop?.classList.contains("is-open")) {
+        fecharMenuConta();
+        menuBtn?.focus();
+      }
+    });
+
     // Abas Login / Cadastro no Gate
     document.querySelectorAll("[data-conta-auth-tab]").forEach((btn) => {
       btn.addEventListener("click", () => {
@@ -1544,11 +1650,27 @@
     document.getElementById("btn-conta-google")?.addEventListener("click", async () => {
       const btn = document.getElementById("btn-conta-google");
       if (btn) btn.disabled = true;
-      const res = await window.SJ_SUPABASE.auth.loginGoogle();
+      const nextDest = obterDestinoPosLogin();
+      const res = await window.SJ_SUPABASE.auth.loginGoogle(nextDest);
       if (!res.sucesso) {
         if (btn) btn.disabled = false;
         mostrarFeedback("conta-login-feedback", "error", res.mensagem || "Erro ao iniciar login com Google.");
       }
+    });
+
+    document.getElementById("form-conta-mfa")?.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const code = document.getElementById("conta-mfa-code")?.value || "";
+      const btn = document.getElementById("btn-conta-mfa-submit");
+      if (btn) { btn.disabled = true; btn.textContent = "Verificando..."; }
+      mostrarFeedback("conta-mfa-feedback", "info", "");
+      const res = await window.SJ_SUPABASE.auth.verificarTotpMfa(code);
+      if (btn) { btn.disabled = false; btn.textContent = "Confirmar código →"; }
+      if (!res.sucesso) {
+        mostrarFeedback("conta-mfa-feedback", "error", res.mensagem || "Código inválido.");
+        return;
+      }
+      await verificarSessaoCliente();
     });
 
     document.getElementById("form-conta-register")?.addEventListener("submit", async (e) => {
@@ -1603,6 +1725,7 @@
     }
     document.getElementById("btn-conta-logout")?.addEventListener("click", fazerLogout);
     document.getElementById("btn-conta-status-logout")?.addEventListener("click", fazerLogout);
+    document.getElementById("btn-conta-mfa-logout")?.addEventListener("click", fazerLogout);
 
     // Carrinho: incluir rápido, esvaziar e regra da Nota Fiscal
     document.getElementById("btn-cart-quick-add")?.addEventListener("click", async () => {

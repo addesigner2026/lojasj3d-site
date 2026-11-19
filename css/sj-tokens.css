@@ -1,0 +1,264 @@
+/* ==========================================================================
+   TOKENS DE DESIGN COMPARTILHADOS — LOJA SJ 3D
+   Usado na loja (/), painel do cliente (/conta), admin (/admin) e calculadora
+   ========================================================================== */
+
+:root {
+  --sj-brand-orange: #f04e23;
+  --sj-brand-orange-hover: #d8431b;
+  --sj-brand-orange-vivid: #ff5500;
+  --sj-brand-orange-soft: rgba(240, 78, 35, 0.1);
+  --sj-brand-orange-border: rgba(240, 78, 35, 0.28);
+
+  --sj-font-sans: 'Plus Jakarta Sans', 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  --sj-font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  --sj-radius-sm: 8px;
+  --sj-radius-md: 12px;
+  --sj-radius-lg: 16px;
+  --sj-radius-xl: 20px;
+  --sj-radius-pill: 9999px;
+
+  --sj-shadow-sm: 0 2px 8px rgba(15, 23, 42, 0.06);
+  --sj-shadow-md: 0 10px 30px rgba(15, 23, 42, 0.1);
+  --sj-shadow-lg: 0 20px 50px rgba(15, 23, 42, 0.14);
+  --sj-shadow-orange: 0 6px 18px rgba(240, 78, 35, 0.26);
+
+  --sj-focus-outline: 2.5px solid var(--sj-brand-orange);
+}
+
+/* Foco visível consistente em botões, links e controles */
+:where(a, button, input, select, textarea, [tabindex]):focus-visible {
+  outline: var(--sj-focus-outline);
+  outline-offset: 2px;
+}
+
+/* Menu compacto unificado da conta no cabeçalho */
+.sj-acct-anchor {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+
+.sj-acct-chip-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 36px;
+  padding: 5px 11px 5px 7px;
+  border-radius: var(--sj-radius-pill);
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.82rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.14s ease;
+  white-space: nowrap;
+}
+
+.sj-acct-chip-btn:hover {
+  border-color: var(--sj-brand-orange);
+  background: #fff8f5;
+}
+
+.sj-acct-chip-btn[aria-expanded="true"] {
+  border-color: var(--sj-brand-orange);
+  box-shadow: 0 0 0 3px rgba(240, 78, 35, 0.14);
+}
+
+.sj-acct-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--sj-brand-orange), var(--sj-brand-orange-hover));
+  color: #ffffff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  letter-spacing: 0.02em;
+}
+
+.sj-acct-name {
+  max-width: 130px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sj-acct-role-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  border-radius: var(--sj-radius-pill);
+  background: var(--sj-brand-orange-soft);
+  color: var(--sj-brand-orange-hover);
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.sj-acct-popover {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 232px;
+  max-width: min(290px, calc(100vw - 24px));
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--sj-radius-lg);
+  box-shadow: var(--sj-shadow-lg);
+  padding: 6px;
+  z-index: 1200;
+  display: none;
+}
+
+.sj-acct-popover.is-open {
+  display: block;
+}
+
+.sj-acct-popover-head {
+  padding: 8px 10px 10px;
+  border-bottom: 1px solid #f1f5f9;
+  margin-bottom: 4px;
+}
+
+.sj-acct-popover-title {
+  font-size: 0.84rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.25;
+  word-break: break-word;
+}
+
+.sj-acct-popover-email {
+  font-size: 0.74rem;
+  color: #64748b;
+  margin-top: 2px;
+  word-break: break-all;
+}
+
+.sj-acct-menu-item {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 9px 10px;
+  border: none;
+  border-radius: var(--sj-radius-sm);
+  background: transparent;
+  color: #1e293b;
+  font-family: inherit;
+  font-size: 0.83rem;
+  font-weight: 600;
+  text-decoration: none;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.sj-acct-menu-item:hover,
+.sj-acct-menu-item:focus-visible {
+  background: #f8fafc;
+  color: var(--sj-brand-orange);
+}
+
+.sj-acct-menu-item[aria-current="page"] {
+  background: var(--sj-brand-orange-soft);
+  color: var(--sj-brand-orange-hover);
+  font-weight: 800;
+}
+
+.sj-acct-menu-item.is-danger {
+  color: #b91c1c;
+}
+
+.sj-acct-menu-item.is-danger:hover,
+.sj-acct-menu-item.is-danger:focus-visible {
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.sj-acct-sep {
+  border: none;
+  border-top: 1px solid #f1f5f9;
+  margin: 4px 0;
+}
+
+/* Variante escura para o cabeçalho da Calculadora 3D */
+.sj-acct-anchor.is-dark .sj-acct-chip-btn {
+  background: #14141a;
+  border-color: rgba(255, 255, 255, 0.14);
+  color: #f8fafc;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-chip-btn:hover {
+  background: #1c1c24;
+  border-color: rgba(255, 85, 0, 0.55);
+}
+
+.sj-acct-anchor.is-dark .sj-acct-role-tag {
+  background: rgba(245, 158, 11, 0.18);
+  color: #fbbf24;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-popover {
+  background: #14141c;
+  border-color: rgba(255, 255, 255, 0.14);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.65);
+}
+
+.sj-acct-anchor.is-dark .sj-acct-popover-head {
+  border-bottom-color: rgba(255, 255, 255, 0.09);
+}
+
+.sj-acct-anchor.is-dark .sj-acct-popover-title {
+  color: #f8fafc;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-popover-email {
+  color: #94a3b8;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-menu-item {
+  color: #e2e8f0;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-menu-item:hover,
+.sj-acct-anchor.is-dark .sj-acct-menu-item:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  color: #ff7a3d;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-menu-item[aria-current="page"] {
+  background: rgba(255, 85, 0, 0.16);
+  color: #ff7a3d;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-menu-item.is-danger {
+  color: #fca5a5;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-menu-item.is-danger:hover,
+.sj-acct-anchor.is-dark .sj-acct-menu-item.is-danger:focus-visible {
+  background: rgba(239, 68, 68, 0.16);
+  color: #fecaca;
+}
+
+.sj-acct-anchor.is-dark .sj-acct-sep {
+  border-top-color: rgba(255, 255, 255, 0.09);
+}
+
+@media (max-width: 640px) {
+  .sj-acct-name {
+    max-width: 84px;
+  }
+  .sj-acct-role-tag {
+    display: none;
+  }
+}

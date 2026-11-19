@@ -227,8 +227,8 @@
       return auth.loginEmail(arg1, arg2);
     },
 
-    // Login com Google OAuth
-    loginGoogle: async function () {
+    // Login com Google OAuth (preserva destino interno seguro se informado)
+    loginGoogle: async function (nextPath) {
       const client = inicializarCliente();
       if (!client) {
         return { sucesso: false, fallback: true, mensagem: "Supabase não configurado." };
@@ -238,7 +238,13 @@
         const baseOrigin = (typeof window !== "undefined" && (window.location.hostname.includes("vercel.app") || window.location.hostname.includes("lojasj3d.com.br")))
           ? "https://www.lojasj3d.com.br"
           : (window.location.origin || "");
-        const redirectTo = baseOrigin + (window.location.pathname || "/");
+        const safeNext = (typeof nextPath === "string" && nextPath.startsWith("/") && !nextPath.startsWith("//") && !nextPath.includes("\\"))
+          ? nextPath
+          : "";
+        const pathActual = window.location.pathname || "/";
+        const redirectTo = safeNext
+          ? `${baseOrigin}${pathActual}?next=${encodeURIComponent(safeNext)}`
+          : `${baseOrigin}${pathActual}`;
         const { data, error } = await client.auth.signInWithOAuth({
           provider: "google",
           options: {
@@ -259,8 +265,57 @@
       }
     },
 
-    loginComGoogle: async function () {
-      return auth.loginGoogle();
+    loginComGoogle: async function (nextPath) {
+      return auth.loginGoogle(nextPath);
+    },
+
+    obterNivelMfa: async function () {
+      const client = inicializarCliente();
+      if (!client?.auth?.mfa || typeof client.auth.mfa.getAuthenticatorAssuranceLevel !== "function") {
+        return { currentLevel: "aal1", nextLevel: "aal1", requiresMfa: false };
+      }
+      try {
+        const { data, error } = await client.auth.mfa.getAuthenticatorAssuranceLevel();
+        if (error || !data) {
+          return { currentLevel: "aal1", nextLevel: "aal1", requiresMfa: false };
+        }
+        const requiresMfa = data.nextLevel === "aal2" && data.currentLevel !== "aal2";
+        return {
+          currentLevel: data.currentLevel || "aal1",
+          nextLevel: data.nextLevel || "aal1",
+          requiresMfa
+        };
+      } catch (_) {
+        return { currentLevel: "aal1", nextLevel: "aal1", requiresMfa: false };
+      }
+    },
+
+    verificarTotpMfa: async function (codigoRaw) {
+      const client = inicializarCliente();
+      if (!client?.auth?.mfa) {
+        return { sucesso: false, mensagem: "Autenticação em duas etapas não disponível." };
+      }
+      const code = String(codigoRaw || "").replace(/\D/g, "").slice(0, 8);
+      if (code.length < 6) {
+        return { sucesso: false, mensagem: "Informe o código de 6 dígitos do aplicativo autenticador." };
+      }
+      try {
+        const { data: factors, error: errF } = await client.auth.mfa.listFactors();
+        const totp = factors?.totp?.find((f) => f.status === "verified");
+        if (errF || !totp) {
+          return { sucesso: false, mensagem: "Nenhum fator TOTP verificado encontrado." };
+        }
+        const { error: errV } = await client.auth.mfa.challengeAndVerify({
+          factorId: totp.id,
+          code
+        });
+        if (errV) {
+          return { sucesso: false, mensagem: "Código inválido ou expirado. Tente novamente." };
+        }
+        return { sucesso: true };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Falha ao validar o código de verificação." };
+      }
     },
 
     // Cadastro de Novo Usuário (Cliente em /conta ou Funcionário em /admin)
@@ -1861,6 +1916,345 @@
     }
   };
 
+  // =========================================================================
+  // MÓDULO CALCULADORA 3D (SESSÃO ÚNICA + RLS + HISTÓRICO + PREFERÊNCIAS + LEADS)
+  // =========================================================================
+  const calculadora = {
+    obterAcesso: async function () {
+      const client = inicializarCliente();
+      if (!client) {
+        return { autenticado: false, autorizado: false, motivo: "no_client" };
+      }
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const user = sessData?.session?.user;
+        if (!user) {
+          return { autenticado: false, autorizado: false, motivo: "no_session" };
+        }
+
+        const mfaInfo = await auth.obterNivelMfa();
+        if (mfaInfo.requiresMfa) {
+          return {
+            autenticado: true,
+            autorizado: false,
+            motivo: "mfa_required",
+            user
+          };
+        }
+
+        const resRpc = await client.rpc("obter_meu_status_calculadora");
+        if (!resRpc.error && resRpc.data && typeof resRpc.data === "object") {
+          return {
+            ...resRpc.data,
+            user
+          };
+        }
+
+        // Fallback seguro caso Migration 009 ainda não tenha sido aplicada no banco
+        const { data: prof, error: profErr } = await client
+          .from("profiles")
+          .select("id, nome, email, role, status")
+          .eq("id", user.id)
+          .maybeSingle();
+
+        if (profErr || !prof) {
+          return { autenticado: true, autorizado: false, motivo: "no_profile", user };
+        }
+        if (prof.status === "blocked") {
+          return {
+            autenticado: true,
+            autorizado: false,
+            motivo: "blocked",
+            role: prof.role,
+            profile_status: prof.status,
+            nome: prof.nome,
+            email: prof.email,
+            user
+          };
+        }
+        if (prof.status !== "approved") {
+          return {
+            autenticado: true,
+            autorizado: false,
+            motivo: "pending",
+            role: prof.role,
+            profile_status: prof.status,
+            nome: prof.nome,
+            email: prof.email,
+            user
+          };
+        }
+        return {
+          autenticado: true,
+          autorizado: true,
+          motivo: "ok",
+          role: prof.role || "customer",
+          profile_status: prof.status,
+          nome: prof.nome || user.user_metadata?.nome || user.user_metadata?.name || user.email.split("@")[0],
+          email: prof.email || user.email,
+          user,
+          migracaoPendente: true
+        };
+      } catch (_) {
+        return { autenticado: false, autorizado: false, motivo: "error" };
+      }
+    },
+
+    listarHistorico: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], tabelaAusente: true };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, dados: [] };
+
+        const { data, error } = await client
+          .from("calc_history")
+          .select("id, client_item_id, name, marketplace_key, marketplace_name, sale_price, net_profit, net_margin, weight_grams, calc_date_label, state_json, created_at")
+          .eq("user_id", uid)
+          .order("created_at", { ascending: false });
+
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42P01" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente };
+        }
+
+        const mapped = (data || []).map((row) => ({
+          id: String(row.client_item_id || row.id),
+          dbId: row.id,
+          date: row.calc_date_label || (row.created_at ? new Date(row.created_at).toLocaleDateString("pt-BR") : ""),
+          name: row.name || "Peça Impressa 3D",
+          state: row.state_json && typeof row.state_json === "object" ? row.state_json : {},
+          salePrice: Number(row.sale_price || 0),
+          netProfit: Number(row.net_profit || 0),
+          netMargin: Number(row.net_margin || 0),
+          marketplaceName: row.marketplace_name || "Marketplace"
+        }));
+        return { sucesso: true, dados: mapped, tabelaAusente: false };
+      } catch (_) {
+        return { sucesso: false, dados: [] };
+      }
+    },
+
+    salvarCalculo: async function (item) {
+      const client = inicializarCliente();
+      if (!client || !item) return { sucesso: false };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false };
+
+        const row = {
+          user_id: uid,
+          client_item_id: String(item.id || Date.now()),
+          name: String(item.name || "Peça Impressa 3D").slice(0, 160),
+          marketplace_key: String(item.state?.marketplaceKey || "ml_premium").slice(0, 60),
+          marketplace_name: String(item.marketplaceName || "Marketplace").slice(0, 80),
+          sale_price: Number(item.salePrice || 0),
+          net_profit: Number(item.netProfit || 0),
+          net_margin: Number(item.netMargin || 0),
+          weight_grams: Number(item.state?.weightGrams || 0),
+          calc_date_label: String(item.date || "").slice(0, 40),
+          state_json: item.state && typeof item.state === "object" ? item.state : {}
+        };
+
+        const { error } = await client
+          .from("calc_history")
+          .upsert(row, { onConflict: "user_id,client_item_id" });
+
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42P01" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, tabelaAusente };
+        }
+        return { sucesso: true };
+      } catch (_) {
+        return { sucesso: false };
+      }
+    },
+
+    migrarHistoricoLocal: async function (itens) {
+      const client = inicializarCliente();
+      if (!client || !Array.isArray(itens) || itens.length === 0) return { sucesso: true, migrados: 0 };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, migrados: 0 };
+
+        const rows = itens
+          .filter((item) => item && (item.id || item.name || item.state))
+          .map((item, idx) => ({
+            user_id: uid,
+            client_item_id: String(item.id || `legacy_${idx}_${String(item.name || "peca").slice(0, 24)}`),
+            name: String(item.name || "Peça Impressa 3D").slice(0, 160),
+            marketplace_key: String(item.state?.marketplaceKey || "ml_premium").slice(0, 60),
+            marketplace_name: String(item.marketplaceName || "Marketplace").slice(0, 80),
+            sale_price: Number(item.salePrice || 0),
+            net_profit: Number(item.netProfit || 0),
+            net_margin: Number(item.netMargin || 0),
+            weight_grams: Number(item.state?.weightGrams || 0),
+            calc_date_label: String(item.date || "").slice(0, 40),
+            state_json: item.state && typeof item.state === "object" ? item.state : {}
+          }));
+
+        if (rows.length === 0) return { sucesso: true, migrados: 0 };
+
+        const { error } = await client
+          .from("calc_history")
+          .upsert(rows, { onConflict: "user_id,client_item_id", ignoreDuplicates: true });
+
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42P01" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, migrados: 0, tabelaAusente };
+        }
+        return { sucesso: true, migrados: rows.length };
+      } catch (_) {
+        return { sucesso: false, migrados: 0 };
+      }
+    },
+
+    excluirCalculo: async function (clientItemId) {
+      const client = inicializarCliente();
+      if (!client || !clientItemId) return { sucesso: false };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false };
+        const { error } = await client
+          .from("calc_history")
+          .delete()
+          .eq("user_id", uid)
+          .eq("client_item_id", String(clientItemId));
+        return { sucesso: !error };
+      } catch (_) {
+        return { sucesso: false };
+      }
+    },
+
+    obterPreferencias: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, prefs: null };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false, prefs: null };
+        const { data, error } = await client
+          .from("calc_preferences")
+          .select("prefs_json")
+          .eq("user_id", uid)
+          .maybeSingle();
+        if (error || !data) return { sucesso: !error, prefs: null };
+        return { sucesso: true, prefs: data.prefs_json || null };
+      } catch (_) {
+        return { sucesso: false, prefs: null };
+      }
+    },
+
+    salvarPreferencias: async function (prefs) {
+      const client = inicializarCliente();
+      if (!client || !prefs) return { sucesso: false };
+      try {
+        const { data: sessData } = await client.auth.getSession();
+        const uid = sessData?.session?.user?.id;
+        if (!uid) return { sucesso: false };
+        const { error } = await client
+          .from("calc_preferences")
+          .upsert({
+            user_id: uid,
+            prefs_json: prefs,
+            updated_at: new Date().toISOString()
+          }, { onConflict: "user_id" });
+        return { sucesso: !error };
+      } catch (_) {
+        return { sucesso: false };
+      }
+    },
+
+    // Gestão de Leads (protegida no banco via RLS para is_staff() apenas)
+    listarLeads: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [] };
+      try {
+        const { data, error } = await client
+          .from("calc_leads")
+          .select("id, legacy_id, user_id, nome, email, whatsapp, cidade, status, origem, created_at")
+          .order("created_at", { ascending: false });
+        if (error) return { sucesso: false, dados: [] };
+        return {
+          sucesso: true,
+          dados: (data || []).map((row) => ({
+            id: row.legacy_id || row.id,
+            dbId: row.id,
+            user_id: row.user_id,
+            nome: row.nome,
+            email: row.email,
+            whatsapp: row.whatsapp || "",
+            cidade: row.cidade || "",
+            status: row.status || "ativo",
+            origem: row.origem || "conta",
+            data: row.created_at
+          }))
+        };
+      } catch (_) {
+        return { sucesso: false, dados: [] };
+      }
+    },
+
+    adicionarLead: async function ({ nome, email, whatsapp = "", cidade = "" }) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, mensagem: "Supabase não conectado." };
+      const emailLimpo = String(email || "").trim().toLowerCase();
+      if (!nome || !emailLimpo) return { sucesso: false, mensagem: "Nome e e-mail são obrigatórios." };
+      try {
+        const { error } = await client
+          .from("calc_leads")
+          .upsert({
+            nome: String(nome).trim().slice(0, 120),
+            email: emailLimpo,
+            whatsapp: String(whatsapp || "").trim().slice(0, 40),
+            cidade: String(cidade || "").trim().slice(0, 100),
+            status: "ativo",
+            origem: "admin_manual"
+          }, { onConflict: "email" });
+        if (error) return { sucesso: false, mensagem: "Não foi possível salvar o lead." };
+        return { sucesso: true };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao salvar lead." };
+      }
+    },
+
+    atualizarStatusLead: async function (email, novoStatus) {
+      const client = inicializarCliente();
+      if (!client || !email) return { sucesso: false };
+      const statusLimpo = novoStatus === "revogado" ? "revogado" : "ativo";
+      try {
+        const { error } = await client
+          .from("calc_leads")
+          .update({ status: statusLimpo })
+          .eq("email", String(email).trim().toLowerCase());
+        return { sucesso: !error, mensagem: error ? error.message : "" };
+      } catch (_) {
+        return { sucesso: false };
+      }
+    },
+
+    excluirLead: async function (email) {
+      const client = inicializarCliente();
+      if (!client || !email) return { sucesso: false };
+      try {
+        const { error } = await client
+          .from("calc_leads")
+          .delete()
+          .eq("email", String(email).trim().toLowerCase());
+        return { sucesso: !error, mensagem: error ? error.message : "" };
+      } catch (_) {
+        return { sucesso: false };
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -1893,6 +2287,7 @@
     consentimentos,
     retencao,
     direitosTitular,
+    calculadora,
     guardiao
   };
 });

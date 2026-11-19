@@ -35,26 +35,21 @@ const state = {
   batchPackagingType: 'single'
 };
 
-// Histórico de cálculos salvos no localStorage (isolado por usuário logado)
+let calcSessionUser = null;
+
+// Histórico de cálculos salvos por usuário (chave local secundária; fonte oficial no Supabase)
 function getHistoryStorageKey() {
   try {
-    const match = document.cookie.match(/(?:^|;\s*)precificadora_uid=([^;]+)/);
-    const uid = match ? decodeURIComponent(match[1]).trim() : '';
-    return uid ? `precificadora3d_history:${uid}` : 'precificadora3d_history:anon';
+    if (calcSessionUser?.id) {
+      return `precificadora3d_history:uid:${calcSessionUser.id}`;
+    }
+    return 'precificadora3d_history:anon';
   } catch {
     return 'precificadora3d_history:anon';
   }
 }
 
 let savedCalculations = [];
-try {
-  // Remove chave antiga global para que novos usuários sempre iniciem com histórico zerado
-  localStorage.removeItem('precificadora3d_history');
-  const localHistory = localStorage.getItem(getHistoryStorageKey());
-  if (localHistory) savedCalculations = JSON.parse(localHistory);
-} catch (e) {
-  console.warn('Erro ao carregar histórico:', e);
-}
 
 // Elementos DOM
 const elements = {
@@ -1215,7 +1210,11 @@ function resetCalculation() {
 }
 
 // Histórico de Peças Salvas
-function saveCalculation() {
+async function saveCalculation() {
+  if (!calcSessionUser?.id) {
+    showToast('Entre na sua conta para salvar cálculos.', '🔒');
+    return;
+  }
   syncStateFromInputs();
   if (!hasActiveProduct(state)) {
     showToast('Suba um arquivo ou preencha os dados da peça antes de salvar.', '⚠️');
@@ -1237,8 +1236,14 @@ function saveCalculation() {
   savedCalculations.unshift(item);
   try {
     localStorage.setItem(getHistoryStorageKey(), JSON.stringify(savedCalculations));
-  } catch (e) {
-    console.warn(e);
+  } catch (_) {}
+
+  if (window.SJ_SUPABASE?.calculadora?.salvarCalculo) {
+    const resDb = await window.SJ_SUPABASE.calculadora.salvarCalculo(item);
+    if (!resDb?.sucesso && resDb?.tabelaAusente) {
+      showToast(`"${item.name}" salvo localmente. Execute a Migration 009 no Supabase para salvar na nuvem.`, '💾');
+      return;
+    }
   }
 
   showToast(`Cálculo de "${item.name}" salvo com sucesso!`, '💾');
@@ -1250,24 +1255,24 @@ function renderHistory() {
   if (savedCalculations.length === 0) {
     elements.historyList.innerHTML = `
       <div style="text-align: center; color: var(--text-dim); padding: 30px; font-size: 13px; line-height: 1.6;">
-        Nenhum cálculo salvo ainda.<br>Clique em "Salvar Peça" para manter seus orçamentos guardados!
+        Nenhum cálculo salvo ainda.<br>Clique em "Salvar" para manter seus orçamentos guardados na sua conta!
       </div>
     `;
     return;
   }
 
   elements.historyList.innerHTML = savedCalculations.map(item => `
-    <div class="history-item" data-load-id="${item.id}">
+    <div class="history-item" data-load-id="${escaparHtml(String(item.id))}">
       <div>
-        <div class="history-name">${item.name}</div>
-        <div class="history-meta">${item.marketplaceName} · ${item.state.weightGrams}g · ${item.date}</div>
+        <div class="history-name">${escaparHtml(String(item.name || 'Peça Impressa 3D'))}</div>
+        <div class="history-meta">${escaparHtml(String(item.marketplaceName || 'Marketplace'))} · ${Number(item.state?.weightGrams || 0)}g · ${escaparHtml(String(item.date || ''))}</div>
       </div>
       <div style="display:flex; align-items:center; gap: 14px;">
         <div>
           <div class="history-profit">${engine.formatCurrency(item.netProfit)}</div>
-          <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-align: right;">${item.netMargin.toFixed(1)}% margem</div>
+          <div style="font-size: 12px; font-weight: 700; color: var(--accent-green); text-align: right;">${Number(item.netMargin || 0).toFixed(1)}% margem</div>
         </div>
-        <button class="btn-ghost delete-hist-btn" data-delete-id="${item.id}" style="padding: 4px 8px; font-size: 12px; color: var(--accent-red);" title="Excluir">
+        <button class="btn-ghost delete-hist-btn" data-delete-id="${escaparHtml(String(item.id))}" style="padding: 4px 8px; font-size: 12px; color: var(--accent-red);" title="Excluir">
           ✕
         </button>
       </div>
@@ -1338,12 +1343,13 @@ function loadCalculation(id) {
   showToast(`Cálculo "${item.name}" carregado!`, '📂');
 }
 
-function deleteCalculation(id) {
-  savedCalculations = savedCalculations.filter(x => x.id !== id);
+async function deleteCalculation(id) {
+  savedCalculations = savedCalculations.filter(x => String(x.id) !== String(id));
   try {
     localStorage.setItem(getHistoryStorageKey(), JSON.stringify(savedCalculations));
-  } catch (e) {
-    console.warn(e);
+  } catch (_) {}
+  if (calcSessionUser?.id && window.SJ_SUPABASE?.calculadora?.excluirCalculo) {
+    await window.SJ_SUPABASE.calculadora.excluirCalculo(id);
   }
   renderHistory();
   showToast('Item removido do histórico', '🗑️');
@@ -1775,7 +1781,7 @@ function setupEventListeners() {
   }
 
   if (elements.savePrefsBtn && elements.prefsModal) {
-    elements.savePrefsBtn.addEventListener('click', () => {
+    elements.savePrefsBtn.addEventListener('click', async () => {
       const newPrefs = {
         defaultPrinterId: elements.prefPrinterSelect ? elements.prefPrinterSelect.value : 'bambu-p1s',
         defaultKwhCost: parseFloat(elements.prefKwhInput?.value) || 0.85,
@@ -1783,6 +1789,9 @@ function setupEventListeners() {
         defaultPackagingCost: parseFloat(elements.prefPackagingInput?.value) || 1.50
       };
       engine.savePreferences(newPrefs);
+      if (calcSessionUser?.id && window.SJ_SUPABASE?.calculadora?.salvarPreferencias) {
+        await window.SJ_SUPABASE.calculadora.salvarPreferencias(engine.preferences);
+      }
       elements.prefsModal.classList.remove('active');
       showToast('Preferências salvas!', '⚙️');
       initializeSelectors();
@@ -1798,1107 +1807,795 @@ function setupEventListeners() {
 }
 
 // =========================================================================
-// CAMADA DE ACESSO & GESTÃO DE LEADS — PRECIFICADOR LOJA SJ 3D
-// Auto-aprovação imediata no cadastro + Painel de CRM & Exportação de Leads
+// SESSÃO ÚNICA (SUPABASE AUTH + RLS) & BACKUP / MIGRAÇÃO SEGURA DE HISTÓRICO
 // =========================================================================
-const CALC_AUTH_STORAGE_KEY = 'sj_calc_auth_v1';
-const LEADS_STORAGE_KEY = 'sj_calc_leads_v1';
-const REVOGADOS_STORAGE_KEY = 'sj_calc_revogados_v1';
+const LOCAL_BACKUP_KEY = "sj_calc_local_backup_v1";
+const LEGACY_AUTH_KEY = "sj_calc_auth_v1";
+const LEGACY_LEADS_KEY = "sj_calc_leads_v1";
+const LEGACY_REVOGADOS_KEY = "sj_calc_revogados_v1";
 
-const ADMIN_EMAILS = [
-  'jt.designer21@gmail.com',
-  'ad.design2050@gmail.com',
-  'contato@gruposj.com.br'
-];
-
-const DEFAULT_INITIAL_LEADS = [
-  {
-    id: 'lead-master-1',
-    nome: 'José Thiago',
-    email: 'jt.designer21@gmail.com',
-    whatsapp: '(44) 99135-1318',
-    cidade: 'Umuarama/PR',
-    data: '2026-11-04T12:00:00.000Z',
-    status: 'ativo',
-    isMaster: true
-  },
-  {
-    id: 'lead-master-2',
-    nome: 'Loja SJ (Oficina)',
-    email: 'sjnovaisecia@gmail.com',
-    whatsapp: '(44) 99860-4639',
-    cidade: 'Umuarama/PR',
-    data: '2026-11-17T11:00:00.000Z',
-    status: 'ativo'
-  },
-  {
-    id: 'lead-master-3',
-    nome: 'Sheila Garcia',
-    email: 'sheilagarcia1606@gmail.com',
-    whatsapp: '(44) 99135-1318',
-    cidade: 'Umuarama/PR',
-    data: '2026-11-16T15:00:00.000Z',
-    status: 'ativo'
-  }
-];
+let calcLeadsCache = [];
+let filtroStatusAtual = "todos";
+let buscaTextoAtual = "";
 
 function escaparHtml(str) {
-  if (typeof str !== 'string') return '';
+  if (typeof str !== "string") return "";
   return str
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;')
-    .replace(/'/g, '&#039;');
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-function isAdminUser(user) {
-  if (!user || !user.email) return false;
-  const emailLower = String(user.email).toLowerCase().trim();
-  return ADMIN_EMAILS.includes(emailLower) || user.role === 'admin' || user.tipo === 'admin' || user.isMaster === true;
+function obterIniciaisCalc(nome, email) {
+  const base = String(nome || email || "SJ").trim();
+  const partes = base.split(/\s+/).filter(Boolean);
+  if (partes.length >= 2) {
+    return (partes[0][0] + partes[1][0]).toUpperCase();
+  }
+  return base.slice(0, 2).toUpperCase();
 }
 
-function getCalcLeadsLocal() {
+function ehEquipeAprovada(acesso) {
+  if (!acesso?.autorizado) return false;
+  const r = String(acesso.role || "").toLowerCase();
+  return r === "admin" || r === "staff";
+}
+
+function coletarSnapshotLocalStorageCalc() {
+  const snapshot = {
+    created_at: new Date().toISOString(),
+    history_keys: {},
+    preferences: null,
+    legacy_leads: null,
+    legacy_revogados: null
+  };
   try {
-    const raw = localStorage.getItem(LEADS_STORAGE_KEY);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr) && arr.length > 0) {
-        const mapa = new Map();
-        DEFAULT_INITIAL_LEADS.forEach(l => mapa.set(l.email.toLowerCase().trim(), l));
-        arr.forEach(l => {
-          const em = String(l.email || '').toLowerCase().trim();
-          if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
-        });
-        return Array.from(mapa.values());
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k === "precificadora3d_history" || k.startsWith("precificadora3d_history:")) {
+        try {
+          snapshot.history_keys[k] = JSON.parse(localStorage.getItem(k) || "[]");
+        } catch (_) {
+          snapshot.history_keys[k] = localStorage.getItem(k);
+        }
+      }
+    }
+    const rawPrefs = localStorage.getItem("precificadora3d_preferences");
+    if (rawPrefs) {
+      try { snapshot.preferences = JSON.parse(rawPrefs); } catch (_) {}
+    }
+    const rawLeads = localStorage.getItem(LEGACY_LEADS_KEY);
+    if (rawLeads) {
+      try { snapshot.legacy_leads = JSON.parse(rawLeads); } catch (_) {}
+    }
+    const rawRev = localStorage.getItem(LEGACY_REVOGADOS_KEY);
+    if (rawRev) {
+      try { snapshot.legacy_revogados = JSON.parse(rawRev); } catch (_) {}
+    }
+  } catch (_) {}
+  return snapshot;
+}
+
+function exportarBackupLocalStorageCalc() {
+  const snap = coletarSnapshotLocalStorageCalc();
+  const payload = {
+    ...snap,
+    exported_at: new Date().toISOString(),
+    active_user_email: calcSessionUser?.email || null,
+    saved_calculations_loaded: savedCalculations
+  };
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `backup-local-calculadora-sj3d-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+  showToast("Backup JSON dos dados locais baixado com sucesso!", "📥");
+}
+
+function coletarItensLocaisParaUsuario(acesso) {
+  const itens = [];
+  const seen = new Set();
+  const uid = String(acesso?.user?.id || acesso?.id || "").trim();
+  const emailLower = String(acesso?.email || "").toLowerCase().trim();
+  const isStaff = ehEquipeAprovada(acesso);
+
+  let oldAuthEmail = "";
+  let oldAuthId = "";
+  try {
+    const rawAuth = localStorage.getItem(LEGACY_AUTH_KEY);
+    if (rawAuth) {
+      const parsed = JSON.parse(rawAuth);
+      oldAuthEmail = String(parsed?.email || "").toLowerCase().trim();
+      oldAuthId = String(parsed?.id || "").trim();
+    }
+  } catch (_) {}
+
+  const leadIdsDoUsuario = new Set();
+  try {
+    const rawLeads = localStorage.getItem(LEGACY_LEADS_KEY);
+    const arr = rawLeads ? JSON.parse(rawLeads) : [];
+    if (Array.isArray(arr)) {
+      arr.forEach((l) => {
+        if (String(l?.email || "").toLowerCase().trim() === emailLower && l?.id) {
+          leadIdsDoUsuario.add(String(l.id));
+        }
+      });
+    }
+  } catch (_) {}
+
+  try {
+    for (let i = 0; i < localStorage.length; i += 1) {
+      const k = localStorage.key(i);
+      if (!k) continue;
+      if (k !== "precificadora3d_history" && !k.startsWith("precificadora3d_history:")) continue;
+
+      const suffix = k === "precificadora3d_history" ? "" : k.slice("precificadora3d_history:".length);
+      const pertence =
+        suffix === "" ||
+        suffix === "anon" ||
+        (uid && (suffix === uid || suffix === `uid:${uid}`)) ||
+        (emailLower && suffix.toLowerCase() === emailLower) ||
+        (oldAuthId && oldAuthEmail === emailLower && suffix === oldAuthId) ||
+        leadIdsDoUsuario.has(suffix) ||
+        (isStaff && suffix.startsWith("usr-admin-"));
+
+      if (!pertence) continue;
+
+      try {
+        const arr = JSON.parse(localStorage.getItem(k) || "[]");
+        if (Array.isArray(arr)) {
+          arr.forEach((item) => {
+            if (!item || typeof item !== "object") return;
+            const itemKey = String(item.id || `${item.name || "peca"}_${item.date || ""}`);
+            if (seen.has(itemKey)) return;
+            seen.add(itemKey);
+            itens.push({ ...item, id: itemKey });
+          });
+        }
+      } catch (_) {}
+    }
+  } catch (_) {}
+
+  return itens;
+}
+
+async function prepararBackupEMigrarDadosLocais(acesso) {
+  if (!acesso?.autorizado) return;
+  const uid = String(acesso.user?.id || acesso.id || "").trim();
+
+  // 1. Garante backup JSON intacto no próprio navegador antes de migrar (nunca apaga chaves locais)
+  try {
+    const snap = coletarSnapshotLocalStorageCalc();
+    const temHistoricoLocal = Object.values(snap.history_keys || {}).some((v) => Array.isArray(v) && v.length > 0);
+    if (temHistoricoLocal || snap.preferences) {
+      if (!localStorage.getItem(LOCAL_BACKUP_KEY)) {
+        localStorage.setItem(LOCAL_BACKUP_KEY, JSON.stringify(snap));
       }
     }
   } catch (_) {}
-  return [...DEFAULT_INITIAL_LEADS];
-}
 
-function saveCalcLeadsLocal(leads) {
-  try {
-    localStorage.setItem(LEADS_STORAGE_KEY, JSON.stringify(leads));
-  } catch (_) {}
-}
+  // 2. Migra cálculos locais pertencentes a este usuário de forma idempotente (sem duplicar)
+  const itensLocais = coletarItensLocaisParaUsuario(acesso);
+  const noticeEl = document.getElementById("calc-migrated-notice");
 
-function getCalcRevogadosLocal() {
-  try {
-    const raw = localStorage.getItem(REVOGADOS_STORAGE_KEY);
-    if (raw) {
-      const arr = JSON.parse(raw);
-      if (Array.isArray(arr)) return arr.map(e => String(e).toLowerCase().trim());
+  if (itensLocais.length > 0 && window.SJ_SUPABASE?.calculadora?.migrarHistoricoLocal) {
+    const resMig = await window.SJ_SUPABASE.calculadora.migrarHistoricoLocal(itensLocais);
+    if (resMig?.sucesso) {
+      if (noticeEl) {
+        noticeEl.style.display = "block";
+        noticeEl.textContent = `Histórico local (${itensLocais.length} cálculo(s)) sincronizado na sua conta sem apagar os dados deste navegador.`;
+      }
+    } else if (resMig?.tabelaAusente && noticeEl) {
+      noticeEl.style.display = "block";
+      noticeEl.textContent = "Seus cálculos locais continuam preservados neste navegador. Execute a Migration 009 no Supabase para ativar a nuvem.";
     }
-  } catch (_) {}
-  return [];
-}
+  }
 
-function saveCalcRevogadosLocal(list) {
-  try {
-    localStorage.setItem(REVOGADOS_STORAGE_KEY, JSON.stringify(list));
-  } catch (_) {}
-}
-
-function getCalcAuthUser() {
-  try {
-    const raw = localStorage.getItem(CALC_AUTH_STORAGE_KEY);
-    if (raw) return JSON.parse(raw);
-  } catch (_) {}
-  return null;
-}
-
-function setCalcAuthUser(user) {
-  try {
-    if (user) {
-      localStorage.setItem(CALC_AUTH_STORAGE_KEY, JSON.stringify(user));
-      document.cookie = `precificadora_uid=${encodeURIComponent(user.id || user.email)}; path=/; SameSite=Lax`;
+  // 3. Carrega histórico oficial do banco (com fallback para os itens locais enquanto Migration 009 não rodar)
+  if (window.SJ_SUPABASE?.calculadora?.listarHistorico) {
+    const resHist = await window.SJ_SUPABASE.calculadora.listarHistorico();
+    if (resHist?.sucesso) {
+      const mapa = new Map();
+      (resHist.dados || []).forEach((it) => mapa.set(String(it.id), it));
+      savedCalculations = Array.from(mapa.values());
+      try {
+        if (uid) localStorage.setItem(`precificadora3d_history:uid:${uid}`, JSON.stringify(savedCalculations));
+      } catch (_) {}
     } else {
-      localStorage.removeItem(CALC_AUTH_STORAGE_KEY);
-      document.cookie = 'precificadora_uid=; path=/; Max-Age=0; SameSite=Lax';
+      savedCalculations = itensLocais;
     }
-  } catch (_) {}
-}
-
-function isUserApprovedForCalc(user) {
-  if (!user) return false;
-  const emailLower = String(user.email || '').toLowerCase().trim();
-  const waNum = String(user.whatsapp || '').replace(/\D/g, '');
-
-  // Se estiver na lista de revogados/bloqueados pelo admin
-  const revogados = getCalcRevogadosLocal();
-  if (emailLower && revogados.includes(emailLower)) return false;
-
-  // Admins Master têm acesso permanente
-  if (ADMIN_EMAILS.includes(emailLower)) return true;
-  if (user.role === 'admin' || user.tipo === 'admin' || user.isMaster === true) return true;
-
-  // Se o usuário logado tem status ativo
-  if (user.status === 'ativo' || user.status === 'approved' || user.acesso_calculadora === true) {
-    return true;
+  } else {
+    savedCalculations = itensLocais;
   }
 
-  // Verifica na base de leads cadastrados
-  const leads = getCalcLeadsLocal();
-  const leadMatch = leads.find(l => {
-    const lEmail = String(l.email || '').toLowerCase().trim();
-    const lWa = String(l.whatsapp || '').replace(/\D/g, '');
-    return (emailLower && lEmail === emailLower) || (waNum && lWa && lWa === waNum);
-  });
-
-  if (leadMatch) {
-    return leadMatch.status !== 'revogado';
+  // 4. Carrega ou migra preferências globais da oficina do usuário
+  if (window.SJ_SUPABASE?.calculadora?.obterPreferencias) {
+    const resPrefs = await window.SJ_SUPABASE.calculadora.obterPreferencias();
+    if (resPrefs?.sucesso && resPrefs.prefs) {
+      engine.savePreferences(resPrefs.prefs);
+      initializeSelectors();
+      updateCalculations();
+    } else if (resPrefs?.sucesso && !resPrefs.prefs) {
+      try {
+        const rawPrefs = localStorage.getItem("precificadora3d_preferences");
+        if (rawPrefs) {
+          const parsedPrefs = JSON.parse(rawPrefs);
+          await window.SJ_SUPABASE.calculadora.salvarPreferencias(parsedPrefs);
+        }
+      } catch (_) {}
+    }
   }
-
-  return false;
 }
 
 // =========================================================================
-// SINCRONIZAÇÃO EM NUVEM DE LEADS (SUPABASE CLOUD & API)
+// GESTÃO DE LEADS (EXCLUSIVO STAFF APROVADO & ADMIN — PROTEGIDO POR RLS)
 // =========================================================================
 async function carregarListaLeadsCompleta() {
-  let leads = getCalcLeadsLocal();
-  let revogados = getCalcRevogadosLocal();
-
-  // 1. Tenta carregar do backend (/api/calc/acessos)
-  try {
-    const res = await fetch('/api/calc/acessos');
-    if (res.ok) {
-      const data = await res.json();
-      if (data && data.sucesso) {
-        if (Array.isArray(data.leads)) {
-          const mapa = new Map();
-          leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
-          data.leads.forEach(l => {
-            const em = l.email?.toLowerCase().trim();
-            if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
-          });
-          leads = Array.from(mapa.values());
-        }
-        if (Array.isArray(data.revogados)) {
-          revogados = [...new Set([...revogados, ...data.revogados.map(e => String(e).toLowerCase().trim())])];
-        }
-      }
+  if (!ehEquipeAprovada(calcSessionUser)) {
+    calcLeadsCache = [];
+    return { leads: [] };
+  }
+  if (window.SJ_SUPABASE?.calculadora?.listarLeads) {
+    const res = await window.SJ_SUPABASE.calculadora.listarLeads();
+    if (res?.sucesso) {
+      calcLeadsCache = res.dados || [];
     }
-  } catch (_) {}
-
-  // 2. Sincronização direta com Supabase Cloud
-  try {
-    const supa = window.SJ_SUPABASE?.getClient?.();
-    if (supa) {
-      // 2.1 Lê lista central de leads em configuracoes_site
-      const { data: cfgData, error: cfgErr } = await supa
-        .from('configuracoes_site')
-        .select('valor')
-        .eq('chave', 'calculadora_leads_v1')
-        .maybeSingle();
-
-      if (!cfgErr && cfgData && cfgData.valor) {
-        if (Array.isArray(cfgData.valor.leads)) {
-          const mapa = new Map();
-          leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
-          cfgData.valor.leads.forEach(l => {
-            const em = l.email?.toLowerCase().trim();
-            if (em) mapa.set(em, { ...(mapa.get(em) || {}), ...l });
-          });
-          leads = Array.from(mapa.values());
-        }
-        if (Array.isArray(cfgData.valor.revogados)) {
-          revogados = [...new Set([...revogados, ...cfgData.valor.revogados.map(e => String(e).toLowerCase().trim())])];
-        }
-      }
-
-      // 2.2 Lê consentimentos / leads registrados em termos_consentimento
-      const { data: termsData } = await supa
-        .from('termos_consentimento')
-        .select('id, titular_identificador, motivo_revogacao, concedido_em')
-        .in('finalidade', ['cadastro_lead_calculadora', 'solicitacao_acesso_calc'])
-        .order('concedido_em', { ascending: false });
-
-      if (Array.isArray(termsData) && termsData.length > 0) {
-        const mapa = new Map();
-        leads.forEach(l => mapa.set(l.email?.toLowerCase().trim(), l));
-        termsData.forEach(t => {
-          try {
-            const parsed = t.motivo_revogacao ? JSON.parse(t.motivo_revogacao) : null;
-            const em = (parsed?.email || t.titular_identificador || '').toLowerCase().trim();
-            if (em && !mapa.has(em)) {
-              mapa.set(em, {
-                id: parsed?.id || t.id,
-                nome: parsed?.nome || em.split('@')[0],
-                whatsapp: parsed?.whatsapp || '',
-                cidade: parsed?.cidade || '',
-                email: em,
-                data: parsed?.data || t.concedido_em,
-                status: revogados.includes(em) ? 'revogado' : 'ativo'
-              });
-            }
-          } catch (_) {}
-        });
-        leads = Array.from(mapa.values());
-      }
-    }
-  } catch (_) {}
-
-  // Atualiza caches locais consolidados
-  saveCalcLeadsLocal(leads);
-  saveCalcRevogadosLocal(revogados);
-
-  return { leads, revogados };
-}
-
-async function sincronizarLeadsNuvem(leads, revogados) {
-  try {
-    const supa = window.SJ_SUPABASE?.getClient?.();
-    if (supa) {
-      await supa.from('configuracoes_site').upsert(
-        {
-          chave: 'calculadora_leads_v1',
-          valor: { leads, revogados },
-          atualizado_em: new Date().toISOString()
-        },
-        { onConflict: 'chave' }
-      );
-    }
-  } catch (_) {}
+  }
+  return { leads: calcLeadsCache };
 }
 
 async function atualizarBadgeLeads() {
-  try {
-    const { leads } = await carregarListaLeadsCompleta();
-    const count = leads.length;
-    const badgeHeader = document.getElementById('calc-pending-count-badge');
-    if (badgeHeader) {
-      badgeHeader.textContent = count;
-      badgeHeader.style.display = count > 0 ? 'inline-flex' : 'none';
-    }
-  } catch (_) {}
+  const badgeHeader = document.getElementById("calc-pending-count-badge");
+  if (!ehEquipeAprovada(calcSessionUser)) {
+    if (badgeHeader) badgeHeader.style.display = "none";
+    return;
+  }
+  const { leads } = await carregarListaLeadsCompleta();
+  if (badgeHeader) {
+    badgeHeader.textContent = String(leads.length);
+    badgeHeader.style.display = leads.length > 0 ? "inline-flex" : "none";
+  }
 }
 
-// =========================================================================
-// AÇÕES ADMINISTRATIVAS (REVOGAR, REATIVAR, EXCLUIR, ADICIONAR LEAD)
-// =========================================================================
 async function revogarAcessoLead(email) {
-  if (!email) return;
+  if (!ehEquipeAprovada(calcSessionUser) || !email) return;
   const emailLower = String(email).toLowerCase().trim();
-
-  if (ADMIN_EMAILS.includes(emailLower)) {
-    alert('Não é permitido revogar um administrador mestre.');
+  if (!confirm(`Deseja revogar o acesso da calculadora para ${emailLower}?`)) return;
+  const res = await window.SJ_SUPABASE?.calculadora?.atualizarStatusLead?.(emailLower, "revogado");
+  if (!res?.sucesso) {
+    showToast(res?.mensagem || "Não foi possível revogar este acesso.", "⚠️");
     return;
   }
-
-  if (!confirm(`Deseja revogar o acesso da calculadora para o e-mail ${emailLower}?`)) {
-    return;
-  }
-
-  const { leads } = await carregarListaLeadsCompleta();
-  let revogados = getCalcRevogadosLocal();
-  if (!revogados.includes(emailLower)) {
-    revogados.push(emailLower);
-  }
-  saveCalcRevogadosLocal(revogados);
-
-  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
-  if (idx !== -1) {
-    leads[idx].status = 'revogado';
-    saveCalcLeadsLocal(leads);
-  }
-
-  await sincronizarLeadsNuvem(leads, revogados);
-
-  try {
-    await fetch('/api/calc/revogar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailLower })
-    });
-  } catch (_) {}
-
-  showToast(`Acesso revogado para ${emailLower}.`, '🚫');
+  showToast(`Acesso revogado para ${emailLower}.`, "🚫");
   await carregarERenderizarLeadsAdmin();
   await atualizarBadgeLeads();
 }
 
 async function reativarAcessoLead(email) {
-  if (!email) return;
+  if (!ehEquipeAprovada(calcSessionUser) || !email) return;
   const emailLower = String(email).toLowerCase().trim();
-
-  const { leads } = await carregarListaLeadsCompleta();
-  let revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
-  saveCalcRevogadosLocal(revogados);
-
-  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
-  if (idx !== -1) {
-    leads[idx].status = 'ativo';
-    saveCalcLeadsLocal(leads);
+  const res = await window.SJ_SUPABASE?.calculadora?.atualizarStatusLead?.(emailLower, "ativo");
+  if (!res?.sucesso) {
+    showToast(res?.mensagem || "Não foi possível reativar este acesso.", "⚠️");
+    return;
   }
-
-  await sincronizarLeadsNuvem(leads, revogados);
-
-  try {
-    await fetch('/api/calc/reativar', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailLower })
-    });
-  } catch (_) {}
-
-  showToast(`Acesso reativado com sucesso para ${emailLower}!`, '✅');
+  showToast(`Acesso reativado para ${emailLower}!`, "✅");
   await carregarERenderizarLeadsAdmin();
   await atualizarBadgeLeads();
 }
 
 async function excluirLead(email) {
-  if (!email) return;
+  if (!ehEquipeAprovada(calcSessionUser) || !email) return;
   const emailLower = String(email).toLowerCase().trim();
-
-  if (ADMIN_EMAILS.includes(emailLower)) {
-    alert('Não é permitido excluir um administrador mestre.');
+  if (!confirm(`Deseja excluir o lead ${emailLower} da lista?`)) return;
+  const res = await window.SJ_SUPABASE?.calculadora?.excluirLead?.(emailLower);
+  if (!res?.sucesso) {
+    showToast(res?.mensagem || "Não foi possível excluir este lead.", "⚠️");
     return;
   }
-
-  if (!confirm(`Deseja realmente excluir o lead com e-mail ${emailLower} do sistema?`)) {
-    return;
-  }
-
-  const { leads } = await carregarListaLeadsCompleta();
-  const filtrados = leads.filter(l => l.email?.toLowerCase().trim() !== emailLower);
-  const revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
-
-  saveCalcLeadsLocal(filtrados);
-  saveCalcRevogadosLocal(revogados);
-  await sincronizarLeadsNuvem(filtrados, revogados);
-
-  try {
-    await fetch('/api/calc/excluir', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: emailLower })
-    });
-  } catch (_) {}
-
-  showToast(`Lead ${emailLower} excluído com sucesso.`, '🗑️');
+  showToast(`Lead ${emailLower} excluído.`, "🗑️");
   await carregarERenderizarLeadsAdmin();
   await atualizarBadgeLeads();
 }
 
-async function cadastrarLeadAdmin(nome, whatsapp, email, cidade = '') {
-  if (!nome || !email) return;
-  const emailLower = String(email).toLowerCase().trim();
-
-  const { leads } = await carregarListaLeadsCompleta();
-  const revogados = getCalcRevogadosLocal().filter(e => e !== emailLower);
-  saveCalcRevogadosLocal(revogados);
-
-  const novoLead = {
-    id: 'lead-' + Date.now(),
-    nome: nome.trim(),
-    whatsapp: (whatsapp || '').trim(),
-    email: emailLower,
-    cidade: (cidade || '').trim(),
-    data: new Date().toISOString(),
-    status: 'ativo'
-  };
-
-  const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
-  if (idx !== -1) {
-    leads[idx] = { ...leads[idx], ...novoLead };
-  } else {
-    leads.unshift(novoLead);
+async function cadastrarLeadAdmin(nome, whatsapp, email, cidade = "") {
+  if (!ehEquipeAprovada(calcSessionUser) || !nome || !email) return false;
+  const res = await window.SJ_SUPABASE?.calculadora?.adicionarLead?.({ nome, whatsapp, email, cidade });
+  if (!res?.sucesso) {
+    showToast(res?.mensagem || "Não foi possível salvar o lead.", "⚠️");
+    return false;
   }
-
-  saveCalcLeadsLocal(leads);
-  await sincronizarLeadsNuvem(leads, revogados);
-
-  showToast(`Lead ${nome} adicionado com sucesso!`, '⚡');
+  showToast(`Lead ${nome} salvo com sucesso!`, "⚡");
   await carregarERenderizarLeadsAdmin();
   await atualizarBadgeLeads();
+  return true;
 }
 
-// =========================================================================
-// EXPORTAÇÃO DE CONTATOS (WHATSAPP .VCF & EXCEL .CSV)
-// =========================================================================
 function exportarContatosVcf() {
-  const leads = getCalcLeadsLocal();
-  if (!leads || leads.length === 0) {
-    alert('Nenhum lead disponível para exportação.');
+  if (!ehEquipeAprovada(calcSessionUser) || calcLeadsCache.length === 0) {
+    showToast("Nenhum lead disponível para exportação.", "⚠️");
     return;
   }
-
-  let vcf = '';
-  leads.forEach(l => {
-    const nome = (l.nome || 'Lead Calculadora').trim();
-    const numLimpo = String(l.whatsapp || '').replace(/\D/g, '');
-    const email = String(l.email || '').trim();
-    const dataCad = l.data ? new Date(l.data).toLocaleDateString('pt-BR') : '';
-
-    vcf += 'BEGIN:VCARD\r\n';
-    vcf += 'VERSION:3.0\r\n';
-    vcf += `FN:${nome} (Loja SJ 3D)\r\n`;
-    vcf += `N:;${nome} (Loja SJ 3D);;;\r\n`;
+  let vcf = "";
+  calcLeadsCache.forEach((l) => {
+    const nome = (l.nome || "Lead Calculadora").trim();
+    const numLimpo = String(l.whatsapp || "").replace(/\D/g, "");
+    const email = String(l.email || "").trim();
+    const dataCad = l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "";
+    vcf += "BEGIN:VCARD\r\nVERSION:3.0\r\n";
+    vcf += `FN:${nome} (Loja SJ 3D)\r\nN:;${nome} (Loja SJ 3D);;;\r\n`;
     if (numLimpo) {
-      const telFormatado = numLimpo.startsWith('55') ? `+${numLimpo}` : `+55${numLimpo}`;
-      vcf += `TEL;TYPE=CELL,VOICE:${telFormatado}\r\n`;
+      const telFmt = numLimpo.startsWith("55") ? `+${numLimpo}` : `+55${numLimpo}`;
+      vcf += `TEL;TYPE=CELL,VOICE:${telFmt}\r\n`;
     }
-    if (email) {
-      vcf += `EMAIL;TYPE=INTERNET:${email}\r\n`;
-    }
-    vcf += 'ORG:Loja SJ 3D - Precificador\r\n';
-    vcf += `NOTE:Lead capturado no Precificador 3D Loja SJ${dataCad ? ' em ' + dataCad : ''}.\r\n`;
-    vcf += 'END:VCARD\r\n';
+    if (email) vcf += `EMAIL;TYPE=INTERNET:${email}\r\n`;
+    vcf += `ORG:Loja SJ 3D - Precificador\r\nNOTE:Lead Loja SJ 3D${dataCad ? " em " + dataCad : ""}.\r\nEND:VCARD\r\n`;
   });
-
-  const blob = new Blob([vcf], { type: 'text/vcard;charset=utf-8;' });
+  const blob = new Blob([vcf], { type: "text/vcard;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = `contatos-leads-lojasj3d-${new Date().toISOString().slice(0, 10)}.vcf`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-
-  showToast('📲 Arquivo .vcf baixado! Abra no celular ou Google Contatos para importar no WhatsApp.', '✅');
+  showToast("Arquivo .vcf baixado com sucesso!", "✅");
 }
 
 function exportarPlanilhaCsv() {
-  const leads = getCalcLeadsLocal();
-  if (!leads || leads.length === 0) {
-    alert('Nenhum lead disponível para exportação.');
+  if (!ehEquipeAprovada(calcSessionUser) || calcLeadsCache.length === 0) {
+    showToast("Nenhum lead disponível para exportação.", "⚠️");
     return;
   }
-
-  const cabecalho = ['Nome', 'WhatsApp', 'WhatsApp_Numerico', 'Email', 'Cidade_UF', 'Data_Cadastro', 'Status'];
-  const linhas = leads.map(l => {
-    const numLimpo = String(l.whatsapp || '').replace(/\D/g, '');
-    const dataCad = l.data ? new Date(l.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : '';
+  const cabecalho = ["Nome", "WhatsApp", "WhatsApp_Numerico", "Email", "Cidade_UF", "Data_Cadastro", "Status"];
+  const linhas = calcLeadsCache.map((l) => {
+    const numLimpo = String(l.whatsapp || "").replace(/\D/g, "");
+    const dataCad = l.data ? new Date(l.data).toLocaleDateString("pt-BR") : "";
     return [
-      `"${(l.nome || '').replace(/"/g, '""')}"`,
-      `"${(l.whatsapp || '').replace(/"/g, '""')}"`,
+      `"${String(l.nome || "").replace(/"/g, "\"\"")}"`,
+      `"${String(l.whatsapp || "").replace(/"/g, "\"\"")}"`,
       `"${numLimpo}"`,
-      `"${(l.email || '').replace(/"/g, '""')}"`,
-      `"${(l.cidade || '').replace(/"/g, '""')}"`,
+      `"${String(l.email || "").replace(/"/g, "\"\"")}"`,
+      `"${String(l.cidade || "").replace(/"/g, "\"\"")}"`,
       `"${dataCad}"`,
-      `"${l.status || 'ativo'}"`
-    ].join(';');
+      `"${l.status || "ativo"}"`
+    ].join(";");
   });
-
-  // UTF-8 BOM (\uFEFF) para abrir com acentuação correta no Excel brasileiro
-  const csvContent = '\uFEFF' + [cabecalho.join(';'), ...linhas].join('\r\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+  const csvContent = "\uFEFF" + [cabecalho.join(";"), ...linhas].join("\r\n");
+  const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
   const url = URL.createObjectURL(blob);
-  const link = document.createElement('a');
+  const link = document.createElement("a");
   link.href = url;
   link.download = `leads-calculadora-lojasj3d-${new Date().toISOString().slice(0, 10)}.csv`;
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
-
-  showToast('📊 Planilha CSV exportada com sucesso!', '✅');
+  showToast("Planilha CSV exportada com sucesso!", "✅");
 }
 
 function copiarTelefonesLeads() {
-  const leads = getCalcLeadsLocal();
-  const telefones = leads
-    .map(l => String(l.whatsapp || '').replace(/\D/g, ''))
-    .filter(t => t.length >= 10);
-
+  if (!ehEquipeAprovada(calcSessionUser)) return;
+  const telefones = calcLeadsCache
+    .map((l) => String(l.whatsapp || "").replace(/\D/g, ""))
+    .filter((t) => t.length >= 10);
   if (telefones.length === 0) {
-    showToast('Nenhum número de WhatsApp encontrado.', '⚠️');
+    showToast("Nenhum número de WhatsApp encontrado.", "⚠️");
     return;
   }
-
-  const texto = telefones.join(', ');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(texto);
-    showToast(`📋 ${telefones.length} números copiados para a área de transferência!`, '✅');
-  } else {
-    prompt('Copie os números abaixo:', texto);
-  }
+  navigator.clipboard?.writeText(telefones.join(", ")).then(() => {
+    showToast(`${telefones.length} números copiados!`, "✅");
+  });
 }
 
 function copiarEmailsLeads() {
-  const leads = getCalcLeadsLocal();
-  const emails = leads
-    .map(l => String(l.email || '').toLowerCase().trim())
-    .filter(e => e.includes('@'));
-
+  if (!ehEquipeAprovada(calcSessionUser)) return;
+  const emails = calcLeadsCache
+    .map((l) => String(l.email || "").toLowerCase().trim())
+    .filter((e) => e.includes("@"));
   if (emails.length === 0) {
-    showToast('Nenhum e-mail encontrado.', '⚠️');
+    showToast("Nenhum e-mail encontrado.", "⚠️");
     return;
   }
-
-  const texto = emails.join(', ');
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(texto);
-    showToast(`✉️ ${emails.length} e-mails copiados para a área de transferência!`, '✅');
-  } else {
-    prompt('Copie os e-mails abaixo:', texto);
-  }
+  navigator.clipboard?.writeText(emails.join(", ")).then(() => {
+    showToast(`${emails.length} e-mails copiados!`, "✅");
+  });
 }
 
-// =========================================================================
-// RENDERIZAÇÃO DO PAINEL DO ADMINISTRADOR
-// =========================================================================
-let filtroStatusAtual = 'todos';
-let buscaTextoAtual = '';
-
 async function carregarERenderizarLeadsAdmin() {
-  const containerList = document.getElementById('calc-admin-leads-list');
-  const statTotal = document.getElementById('stat-leads-total');
-  const statAtivos = document.getElementById('stat-leads-ativos');
-  const statRevogados = document.getElementById('stat-leads-revogados');
-  const countTodos = document.getElementById('count-filter-todos');
-  const countAtivos = document.getElementById('count-filter-ativos');
-  const countRevogados = document.getElementById('count-filter-revogados');
+  if (!ehEquipeAprovada(calcSessionUser)) return;
+  const containerList = document.getElementById("calc-admin-leads-list");
+  const statTotal = document.getElementById("stat-leads-total");
+  const statAtivos = document.getElementById("stat-leads-ativos");
+  const statRevogados = document.getElementById("stat-leads-revogados");
+  const countTodos = document.getElementById("count-filter-todos");
+  const countAtivos = document.getElementById("count-filter-ativos");
+  const countRevogados = document.getElementById("count-filter-revogados");
 
   if (containerList) {
-    containerList.innerHTML = '<div style="color:#71717a; font-size:0.8rem; text-align:center; padding:12px;">Carregando leads da nuvem...</div>';
+    containerList.innerHTML = "<div style=\"color:#71717a; font-size:0.8rem; text-align:center; padding:12px;\">Carregando leads...</div>";
   }
 
-  const { leads, revogados } = await carregarListaLeadsCompleta();
-
-  // Atualiza Métricas
+  const { leads } = await carregarListaLeadsCompleta();
   const totalLeads = leads.length;
-  const totalRevogados = leads.filter(l => l.status === 'revogado' || revogados.includes(l.email?.toLowerCase().trim())).length;
+  const totalRevogados = leads.filter((l) => l.status === "revogado").length;
   const totalAtivos = totalLeads - totalRevogados;
 
-  if (statTotal) statTotal.textContent = totalLeads;
-  if (statAtivos) statAtivos.textContent = totalAtivos;
-  if (statRevogados) statRevogados.textContent = totalRevogados;
-  if (countTodos) countTodos.textContent = totalLeads;
-  if (countAtivos) countAtivos.textContent = totalAtivos;
-  if (countRevogados) countRevogados.textContent = totalRevogados;
+  if (statTotal) statTotal.textContent = String(totalLeads);
+  if (statAtivos) statAtivos.textContent = String(totalAtivos);
+  if (statRevogados) statRevogados.textContent = String(totalRevogados);
+  if (countTodos) countTodos.textContent = String(totalLeads);
+  if (countAtivos) countAtivos.textContent = String(totalAtivos);
+  if (countRevogados) countRevogados.textContent = String(totalRevogados);
 
-  // Filtragem
-  let filtrados = leads.filter(l => {
-    const isRev = l.status === 'revogado' || revogados.includes(l.email?.toLowerCase().trim());
-    if (filtroStatusAtual === 'ativos' && isRev) return false;
-    if (filtroStatusAtual === 'revogados' && !isRev) return false;
-
+  const filtrados = leads.filter((l) => {
+    const isRev = l.status === "revogado";
+    if (filtroStatusAtual === "ativos" && isRev) return false;
+    if (filtroStatusAtual === "revogados" && !isRev) return false;
     if (buscaTextoAtual) {
       const q = buscaTextoAtual.toLowerCase();
-      const matchNome = (l.nome || '').toLowerCase().includes(q);
-      const matchEmail = (l.email || '').toLowerCase().includes(q);
-      const matchWa = (l.whatsapp || '').includes(q);
-      const matchCidade = (l.cidade || '').toLowerCase().includes(q);
-      return matchNome || matchEmail || matchWa || matchCidade;
+      return (
+        String(l.nome || "").toLowerCase().includes(q) ||
+        String(l.email || "").toLowerCase().includes(q) ||
+        String(l.whatsapp || "").includes(q) ||
+        String(l.cidade || "").toLowerCase().includes(q)
+      );
     }
     return true;
   });
 
-  if (containerList) {
-    if (filtrados.length === 0) {
-      containerList.innerHTML = `
-        <div class="admin-empty-state">
-          Nenhum lead localizado para o filtro atual.
-        </div>
-      `;
-      return;
+  if (!containerList) return;
+  if (filtrados.length === 0) {
+    containerList.innerHTML = "<div class=\"admin-empty-state\">Nenhum lead localizado para o filtro atual.</div>";
+    return;
+  }
+
+  containerList.innerHTML = filtrados.map((lead) => {
+    const emailLower = String(lead.email || "").toLowerCase().trim();
+    const isAdminOrigem = lead.origem === "admin";
+    const isRev = lead.status === "revogado";
+    const numWa = String(lead.whatsapp || "").replace(/\D/g, "");
+    const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent("Olá " + (lead.nome || "") + "! Tudo bem?")}` : "";
+    const dataFmt = lead.data ? new Date(lead.data).toLocaleDateString("pt-BR") : "Recente";
+    const nomeEsc = escaparHtml(lead.nome || "Usuário");
+    const emailEsc = escaparHtml(emailLower);
+    const waEsc = escaparHtml(lead.whatsapp || "Não informado");
+    const cidadeEsc = escaparHtml(lead.cidade || "");
+
+    let badgeStatus = "<span style=\"color:#10b981; font-weight:800;\">🟢 Acesso Ativo</span>";
+    if (isAdminOrigem) {
+      badgeStatus = "<span style=\"color:#f59e0b; font-weight:800;\">👑 Administrador</span>";
+    } else if (isRev) {
+      badgeStatus = "<span style=\"color:#ef4444; font-weight:800;\">🔴 Acesso Revogado</span>";
     }
 
-    containerList.innerHTML = filtrados.map(lead => {
-      const emailLower = (lead.email || '').toLowerCase().trim();
-      const isAdmin = ADMIN_EMAILS.includes(emailLower) || lead.isMaster === true;
-      const isRev = lead.status === 'revogado' || revogados.includes(emailLower);
-      const numWa = String(lead.whatsapp || '').replace(/\D/g, '');
-      const linkWa = numWa ? `https://wa.me/55${numWa}?text=${encodeURIComponent('Olá ' + (lead.nome || '') + '! Vi seu cadastro no Precificador 3D da Loja SJ.')}` : '';
-      const dataFmt = lead.data ? new Date(lead.data).toLocaleDateString('pt-BR', { hour: '2-digit', minute: '2-digit' }) : 'Recente';
-
-      const nomeEsc = escaparHtml(lead.nome || 'Lead Sem Nome');
-      const emailEsc = escaparHtml(emailLower);
-      const waEsc = escaparHtml(lead.whatsapp || 'Não informado');
-      const cidadeEsc = escaparHtml(lead.cidade || '');
-
-      let badgeStatus = '';
-      if (isAdmin) {
-        badgeStatus = '<span style="color:#f59e0b; font-weight:800;">👑 Administrador Master</span>';
-      } else if (isRev) {
-        badgeStatus = '<span style="color:#ef4444; font-weight:800;">🔴 Acesso Revogado</span>';
-      } else {
-        badgeStatus = '<span style="color:#10b981; font-weight:800;">🟢 Acesso Ativo</span>';
-      }
-
-      return `
-        <div class="admin-item-row" style="${isRev ? 'opacity:0.75; border-color:rgba(239,68,68,0.25);' : ''}">
-          <div class="admin-item-info">
-            <div style="display:flex; align-items:center; gap:8px;">
-              <span class="admin-item-name">${nomeEsc}</span>
-              ${cidadeEsc ? `<span style="font-size:0.7rem; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:#a1a1aa;">📍 ${cidadeEsc}</span>` : ''}
-            </div>
-            <div class="admin-item-email">${emailEsc}</div>
-            <div class="admin-item-meta">
-              <span>📅 ${dataFmt}</span>
-              <span>• 📞 ${waEsc}</span>
-              <span>• ${badgeStatus}</span>
-            </div>
+    return `
+      <div class="admin-item-row" style="${isRev ? "opacity:0.75; border-color:rgba(239,68,68,0.25);" : ""}">
+        <div class="admin-item-info">
+          <div style="display:flex; align-items:center; gap:8px;">
+            <span class="admin-item-name">${nomeEsc}</span>
+            ${cidadeEsc ? `<span style="font-size:0.7rem; background:rgba(255,255,255,0.08); padding:1px 6px; border-radius:4px; color:#a1a1aa;">${cidadeEsc}</span>` : ""}
           </div>
-          <div class="admin-item-actions">
-            ${linkWa ? `<a href="${linkWa}" target="_blank" class="btn-admin-action wa" title="Abrir conversa no WhatsApp">💬 WhatsApp</a>` : ''}
-            ${isAdmin ? `
-              <span style="font-size:0.7rem; color:#71717a; font-weight:700;">Protegido</span>
-            ` : isRev ? `
-              <button type="button" class="btn-admin-action approve btn-reativar-lead" data-email="${emailEsc}" title="Reativar acesso do lead">
-                ✅ Reativar
-              </button>
-              <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir lead definitivamente">
-                🗑️
-              </button>
-            ` : `
-              <button type="button" class="btn-admin-action reject btn-revogar-lead" data-email="${emailEsc}" title="Suspender acesso">
-                🚫 Revogar
-              </button>
-              <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir lead definitivamente">
-                🗑️
-              </button>
-            `}
+          <div class="admin-item-email">${emailEsc}</div>
+          <div class="admin-item-meta">
+            <span>${dataFmt}</span>
+            <span>· ${waEsc}</span>
+            <span>· ${badgeStatus}</span>
           </div>
         </div>
-      `;
-    }).join('');
+        <div class="admin-item-actions">
+          ${linkWa ? `<a href="${linkWa}" target="_blank" rel="noopener noreferrer" class="btn-admin-action wa">WhatsApp</a>` : ""}
+          ${isAdminOrigem ? "<span style=\"font-size:0.7rem; color:#71717a; font-weight:700;\">Protegido</span>" : isRev ? `
+            <button type="button" class="btn-admin-action approve btn-reativar-lead" data-email="${emailEsc}">Reativar</button>
+            <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir">✕</button>
+          ` : `
+            <button type="button" class="btn-admin-action reject btn-revogar-lead" data-email="${emailEsc}">Revogar</button>
+            <button type="button" class="btn-admin-action reject btn-excluir-lead" data-email="${emailEsc}" title="Excluir">✕</button>
+          `}
+        </div>
+      </div>
+    `;
+  }).join("");
 
-    // Listeners de Ações
-    containerList.querySelectorAll('.btn-revogar-lead').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const email = btn.getAttribute('data-email');
-        revogarAcessoLead(email);
-      });
-    });
+  containerList.querySelectorAll(".btn-revogar-lead").forEach((btn) => {
+    btn.addEventListener("click", () => revogarAcessoLead(btn.getAttribute("data-email")));
+  });
+  containerList.querySelectorAll(".btn-reativar-lead").forEach((btn) => {
+    btn.addEventListener("click", () => reativarAcessoLead(btn.getAttribute("data-email")));
+  });
+  containerList.querySelectorAll(".btn-excluir-lead").forEach((btn) => {
+    btn.addEventListener("click", () => excluirLead(btn.getAttribute("data-email")));
+  });
+}
 
-    containerList.querySelectorAll('.btn-reativar-lead').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const email = btn.getAttribute('data-email');
-        reativarAcessoLead(email);
-      });
-    });
+// =========================================================================
+// CONTROLE DE ROTA, TELAS DE ESTADO & LOGOUT UNIFICADO
+// =========================================================================
+function renderizarTelaAcessoCalculadora({ titulo, desc, mode }) {
+  const gateEl = document.getElementById("calc-auth-gate");
+  const mainEl = document.getElementById("calc-app-main");
+  const titleEl = document.getElementById("calc-access-title");
+  const descEl = document.getElementById("calc-access-desc");
+  const actionsGuest = document.getElementById("calc-access-actions");
+  const actionsStatus = document.getElementById("calc-access-status-actions");
+  const btnPrimary = document.getElementById("btn-calc-status-primary");
+  const btnWa = document.getElementById("btn-calc-status-wa");
+  const acctAnchor = document.getElementById("calc-acct-anchor");
+  const btnAdmin = document.getElementById("btn-calc-admin-access");
 
-    containerList.querySelectorAll('.btn-excluir-lead').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const email = btn.getAttribute('data-email');
-        excluirLead(email);
-      });
-    });
+  if (mainEl) mainEl.style.display = "none";
+  if (gateEl) gateEl.style.display = "flex";
+  if (acctAnchor) acctAnchor.style.display = "none";
+  if (btnAdmin) btnAdmin.style.display = "none";
+
+  if (titleEl) titleEl.textContent = titulo;
+  if (descEl) descEl.textContent = desc;
+
+  if (mode === "guest") {
+    if (actionsGuest) actionsGuest.style.display = "flex";
+    if (actionsStatus) actionsStatus.style.display = "none";
+  } else {
+    if (actionsGuest) actionsGuest.style.display = "none";
+    if (actionsStatus) actionsStatus.style.display = "flex";
+    if (btnPrimary) {
+      btnPrimary.style.display = mode === "mfa" || mode === "pending" ? "inline-flex" : "none";
+      btnPrimary.href = mode === "mfa" ? "/conta?next=%2Fcalculadora" : "/conta";
+      btnPrimary.querySelector("span").textContent = mode === "mfa" ? "Verificar código" : "Ir para Minha conta";
+    }
+    if (btnWa) {
+      btnWa.style.display = mode === "blocked" ? "inline-flex" : "none";
+    }
   }
+}
+
+async function executarLogoutUnificadoCalculadora() {
+  try {
+    // Limpa apenas a sessão legada antiga sem tocar no histórico nem nas preferências salvas localmente
+    localStorage.removeItem(LEGACY_AUTH_KEY);
+    document.cookie = "precificadora_uid=; path=/; Max-Age=0; SameSite=Lax";
+  } catch (_) {}
+
+  if (window.SJ_SUPABASE?.auth?.logout) {
+    try { await window.SJ_SUPABASE.auth.logout(); } catch (_) {}
+  }
+
+  calcSessionUser = null;
+  calcLeadsCache = [];
+  savedCalculations = [];
+  const adminModal = document.getElementById("modal-calc-admin-access");
+  if (adminModal) adminModal.style.display = "none";
+  showToast("Sessão encerrada com sucesso.", "🚪");
+  await checkAuthAndRenderUI();
 }
 
 async function checkAuthAndRenderUI() {
-  const gateEl = document.getElementById('calc-auth-gate');
-  const mainEl = document.getElementById('calc-app-main');
-  const userPill = document.getElementById('calc-user-pill');
-  const userEmailEl = document.getElementById('calc-user-email');
-  const logoutBtn = document.getElementById('calc-btn-logout');
-  const btnAdminAccess = document.getElementById('btn-calc-admin-access');
-  const adminCurrentEmail = document.getElementById('calc-admin-current-email');
+  const gateEl = document.getElementById("calc-auth-gate");
+  const mainEl = document.getElementById("calc-app-main");
+  const acctAnchor = document.getElementById("calc-acct-anchor");
+  const avatarEl = document.getElementById("calc-user-avatar");
+  const shortNameEl = document.getElementById("calc-user-short-name");
+  const roleTagEl = document.getElementById("calc-user-role-tag");
+  const popNameEl = document.getElementById("calc-popover-user-name");
+  const popEmailEl = document.getElementById("calc-popover-user-email");
+  const popAdminLink = document.getElementById("calc-popover-admin-link");
+  const btnAdminAccess = document.getElementById("btn-calc-admin-access");
+  const adminCurrentEmail = document.getElementById("calc-admin-current-email");
 
-  // 1. Verifica se há sessão no Supabase Auth
-  let supaUser = null;
-  if (window.SJ_SUPABASE && typeof window.SJ_SUPABASE.obterUsuarioAtual === 'function') {
-    supaUser = window.SJ_SUPABASE.obterUsuarioAtual();
-  }
+  const acesso = await window.SJ_SUPABASE?.calculadora?.obterAcesso?.();
 
-  // 2. Se não houver no Supabase, verifica o storage local do precificador
-  const currentUser = supaUser || getCalcAuthUser();
+  if (acesso?.autorizado) {
+    calcSessionUser = acesso;
+    if (gateEl) gateEl.style.display = "none";
+    if (mainEl) mainEl.style.display = "block";
+    if (acctAnchor) acctAnchor.style.display = "inline-flex";
 
-  if (currentUser && isUserApprovedForCalc(currentUser)) {
-    // Acesso Autorizado e Liberado!
-    if (gateEl) gateEl.style.display = 'none';
-    if (mainEl) mainEl.style.display = 'block';
+    const isStaff = ehEquipeAprovada(acesso);
+    const isAdmin = String(acesso.role || "").toLowerCase() === "admin";
+    const nomeCompleto = acesso.nome || acesso.email?.split("@")[0] || "Conta";
+    const primeiroNome = nomeCompleto.split(/\s+/)[0] || "Conta";
 
-    const isAdm = isAdminUser(currentUser);
+    if (avatarEl) avatarEl.textContent = obterIniciaisCalc(acesso.nome, acesso.email);
+    if (shortNameEl) shortNameEl.textContent = primeiroNome;
+    if (popNameEl) popNameEl.textContent = nomeCompleto;
+    if (popEmailEl) popEmailEl.textContent = acesso.email || "—";
 
-    if (userPill) userPill.style.display = 'inline-flex';
-    if (userEmailEl) {
-      userEmailEl.textContent = isAdm ? `${currentUser.email} (Admin)` : (currentUser.nome ? `${currentUser.nome} (${currentUser.email})` : currentUser.email);
+    if (roleTagEl) {
+      if (isStaff) {
+        roleTagEl.textContent = isAdmin ? "Admin" : "Equipe";
+        roleTagEl.style.display = "inline-flex";
+      } else {
+        roleTagEl.style.display = "none";
+      }
     }
-    if (adminCurrentEmail && currentUser.email) {
-      adminCurrentEmail.textContent = currentUser.email;
+    if (popAdminLink) {
+      popAdminLink.style.display = isStaff ? "flex" : "none";
     }
 
-    // Exibe botão de Gestão de Leads exclusivamente para administradores
     if (btnAdminAccess) {
-      if (isAdm) {
-        btnAdminAccess.style.display = 'inline-flex';
+      if (isStaff) {
+        btnAdminAccess.style.display = "inline-flex";
         atualizarBadgeLeads();
       } else {
-        btnAdminAccess.style.display = 'none';
+        btnAdminAccess.style.display = "none";
       }
+    }
+    if (adminCurrentEmail && acesso.email) {
+      adminCurrentEmail.textContent = acesso.email;
     }
 
-    if (logoutBtn) {
-      logoutBtn.style.display = 'inline-flex';
-      logoutBtn.onclick = async () => {
-        setCalcAuthUser(null);
-        if (window.SJ_SUPABASE && typeof window.SJ_SUPABASE.fazerLogout === 'function') {
-          try { await window.SJ_SUPABASE.fazerLogout(); } catch (_) {}
-        }
-        showToast('Sessão encerrada com sucesso.', '🚪');
-        setTimeout(() => window.location.reload(), 500);
-      };
-    }
+    await prepararBackupEMigrarDadosLocais(acesso);
     return true;
-  } else if (currentUser && !isUserApprovedForCalc(currentUser)) {
-    // Usuário revogado pelo administrador
-    if (mainEl) mainEl.style.display = 'none';
-    if (gateEl) {
-      gateEl.style.display = 'flex';
-      const feedback = document.getElementById('calc-gate-feedback');
-      if (feedback) {
-        feedback.innerHTML = `
-          <div style="background:rgba(239,68,68,0.12); border:1px solid #ef4444; color:#fca5a5; padding:12px 14px; border-radius:8px; font-size:0.8rem; line-height:1.45; text-align:left; margin-bottom:14px;">
-            🚫 <strong>Acesso Suspenso (${escaparHtml(currentUser.email)})</strong><br>
-            Seu acesso ao Precificador 3D foi suspenso pelo administrador. Entre em contato para reativar seu cadastro:<br>
-            <div style="margin-top:8px; display:flex; gap:8px;">
-              <a href="https://wa.me/5544991351318?text=${encodeURIComponent('Olá Thiago, meu acesso à Calculadora 3D (' + currentUser.email + ') está suspenso. Pode me ajudar?')}" target="_blank" style="background:#22c55e; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:800; text-decoration:none; font-size:0.75rem;">📲 Falar no WhatsApp</a>
-              <button type="button" id="btn-gate-switch-user" style="background:transparent; border:1px solid #71717a; color:#ffffff; padding:6px 10px; border-radius:6px; font-weight:700; cursor:pointer; font-size:0.75rem;">Sair / Trocar E-mail</button>
-            </div>
-          </div>
-        `;
-        document.getElementById('btn-gate-switch-user')?.addEventListener('click', () => {
-          setCalcAuthUser(null);
-          window.location.reload();
-        });
-      }
-    }
-    return false;
-  } else {
-    // Não cadastrado/logado: Exibe o Gate de Cadastro & Login
-    if (mainEl) mainEl.style.display = 'none';
-    if (gateEl) gateEl.style.display = 'flex';
+  }
+
+  calcSessionUser = null;
+
+  if (acesso?.motivo === "mfa_required") {
+    renderizarTelaAcessoCalculadora({
+      titulo: "Verificação em duas etapas",
+      desc: "Sua conta exige verificação pelo aplicativo autenticador para abrir a calculadora.",
+      mode: "mfa"
+    });
     return false;
   }
+
+  if (acesso?.motivo === "pending") {
+    renderizarTelaAcessoCalculadora({
+      titulo: "Seu acesso ainda não está liberado",
+      desc: "Seu cadastro de equipe está aguardando aprovação do administrador para acessar a calculadora.",
+      mode: "pending"
+    });
+    return false;
+  }
+
+  if (acesso?.motivo === "blocked") {
+    renderizarTelaAcessoCalculadora({
+      titulo: "Acesso bloqueado",
+      desc: "O acesso desta conta está bloqueado ou suspenso pela administração da Loja SJ 3D.",
+      mode: "blocked"
+    });
+    return false;
+  }
+
+  renderizarTelaAcessoCalculadora({
+    titulo: "Você precisa ser cadastrado",
+    desc: "Crie sua conta gratuita ou entre para usar a calculadora de precificação.",
+    mode: "guest"
+  });
+  return false;
 }
 
-function setupAuthGateListeners() {
-  const tabs = document.querySelectorAll('.btn-calc-gate-tab');
-  const formLogin = document.getElementById('form-calc-gate-login');
-  const formRegister = document.getElementById('form-calc-gate-register');
-  const feedback = document.getElementById('calc-gate-feedback');
+function setupUnifiedCalcListeners() {
+  const menuBtn = document.getElementById("btn-calc-account-menu");
+  const menuPop = document.getElementById("calc-user-popover");
+  const fecharMenuConta = () => {
+    if (menuPop) menuPop.classList.remove("is-open");
+    if (menuBtn) menuBtn.setAttribute("aria-expanded", "false");
+  };
 
-  // Modal de Administração de Leads
-  const adminModal = document.getElementById('modal-calc-admin-access');
-  const btnOpenAdmin = document.getElementById('btn-calc-admin-access');
-  const btnCloseAdmin = document.getElementById('close-admin-modal');
-  const btnRefreshAcessos = document.getElementById('btn-refresh-acessos');
-  const formManual = document.getElementById('form-admin-add-lead');
+  menuBtn?.addEventListener("click", (ev) => {
+    ev.stopPropagation();
+    const aberto = !menuPop?.classList.contains("is-open");
+    if (menuPop) menuPop.classList.toggle("is-open", aberto);
+    menuBtn.setAttribute("aria-expanded", aberto ? "true" : "false");
+  });
 
-  // Botões de Exportação
-  const btnExportVcf = document.getElementById('btn-export-vcf');
-  const btnExportCsv = document.getElementById('btn-export-csv');
-  const btnCopyPhones = document.getElementById('btn-copy-phones');
-  const btnCopyEmails = document.getElementById('btn-copy-emails');
-  const inputSearch = document.getElementById('input-search-leads');
+  document.addEventListener("click", (ev) => {
+    if (menuPop?.classList.contains("is-open") && !ev.target.closest("#calc-acct-anchor")) {
+      fecharMenuConta();
+    }
+  });
 
-  if (btnExportVcf) btnExportVcf.addEventListener('click', exportarContatosVcf);
-  if (btnExportCsv) btnExportCsv.addEventListener('click', exportarPlanilhaCsv);
-  if (btnCopyPhones) btnCopyPhones.addEventListener('click', copiarTelefonesLeads);
-  if (btnCopyEmails) btnCopyEmails.addEventListener('click', copiarEmailsLeads);
+  document.addEventListener("keydown", (ev) => {
+    if (ev.key === "Escape" && menuPop?.classList.contains("is-open")) {
+      fecharMenuConta();
+      menuBtn?.focus();
+    }
+  });
+
+  document.getElementById("calc-btn-logout")?.addEventListener("click", () => {
+    fecharMenuConta();
+    executarLogoutUnificadoCalculadora();
+  });
+  document.getElementById("btn-calc-gate-logout")?.addEventListener("click", executarLogoutUnificadoCalculadora);
+  document.getElementById("btn-export-local-history-backup")?.addEventListener("click", exportarBackupLocalStorageCalc);
+
+  const adminModal = document.getElementById("modal-calc-admin-access");
+  const btnOpenAdmin = document.getElementById("btn-calc-admin-access");
+  const btnCloseAdmin = document.getElementById("close-admin-modal");
+  const btnRefreshAcessos = document.getElementById("btn-refresh-acessos");
+  const formManual = document.getElementById("form-admin-add-lead");
+  const inputSearch = document.getElementById("input-search-leads");
+
+  document.getElementById("btn-export-vcf")?.addEventListener("click", exportarContatosVcf);
+  document.getElementById("btn-export-csv")?.addEventListener("click", exportarPlanilhaCsv);
+  document.getElementById("btn-copy-phones")?.addEventListener("click", copiarTelefonesLeads);
+  document.getElementById("btn-copy-emails")?.addEventListener("click", copiarEmailsLeads);
 
   if (inputSearch) {
-    inputSearch.addEventListener('input', (e) => {
+    inputSearch.addEventListener("input", (e) => {
       buscaTextoAtual = e.target.value.trim();
       carregarERenderizarLeadsAdmin();
     });
   }
 
-  // Abas de Filtro de Leads (Todos, Ativos, Revogados)
-  document.querySelectorAll('[data-lead-filter]').forEach(tab => {
-    tab.addEventListener('click', () => {
-      document.querySelectorAll('[data-lead-filter]').forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-      filtroStatusAtual = tab.getAttribute('data-lead-filter') || 'todos';
+  document.querySelectorAll("[data-lead-filter]").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll("[data-lead-filter]").forEach((t) => t.classList.remove("active"));
+      tab.classList.add("active");
+      filtroStatusAtual = tab.getAttribute("data-lead-filter") || "todos";
       carregarERenderizarLeadsAdmin();
     });
   });
 
   if (btnOpenAdmin && adminModal) {
-    btnOpenAdmin.addEventListener('click', () => {
-      adminModal.style.display = 'flex';
+    btnOpenAdmin.addEventListener("click", () => {
+      if (!ehEquipeAprovada(calcSessionUser)) return;
+      adminModal.style.display = "flex";
       carregarERenderizarLeadsAdmin();
     });
   }
+  btnCloseAdmin?.addEventListener("click", () => {
+    if (adminModal) adminModal.style.display = "none";
+  });
+  adminModal?.addEventListener("click", (e) => {
+    if (e.target === adminModal) adminModal.style.display = "none";
+  });
 
-  if (btnCloseAdmin && adminModal) {
-    btnCloseAdmin.addEventListener('click', () => {
-      adminModal.style.display = 'none';
-    });
-  }
+  btnRefreshAcessos?.addEventListener("click", async () => {
+    await carregarERenderizarLeadsAdmin();
+    await atualizarBadgeLeads();
+    showToast("Leads atualizados com sucesso.", "🔄");
+  });
 
-  if (adminModal) {
-    adminModal.addEventListener('click', (e) => {
-      if (e.target === adminModal) {
-        adminModal.style.display = 'none';
-      }
-    });
-  }
-
-  if (btnRefreshAcessos) {
-    btnRefreshAcessos.addEventListener('click', async () => {
-      await carregarERenderizarLeadsAdmin();
-      await atualizarBadgeLeads();
-      showToast('Leads e acessos atualizados com sucesso.', '🔄');
-    });
-  }
-
-  // Formulário: Cadastrar Lead Manualmente pelo Admin
   if (formManual) {
-    formManual.addEventListener('submit', async (e) => {
+    formManual.addEventListener("submit", async (e) => {
       e.preventDefault();
-      const nomeInput = document.getElementById('input-admin-lead-nome');
-      const waInput = document.getElementById('input-admin-lead-whatsapp');
-      const emailInput = document.getElementById('input-admin-lead-email');
-      const fb = document.getElementById('feedback-admin-manual');
+      const nomeInput = document.getElementById("input-admin-lead-nome");
+      const waInput = document.getElementById("input-admin-lead-whatsapp");
+      const emailInput = document.getElementById("input-admin-lead-email");
+      const fb = document.getElementById("feedback-admin-manual");
 
       const nome = nomeInput?.value?.trim();
       const wa = waInput?.value?.trim();
       const email = emailInput?.value?.trim();
-
       if (!nome || !email) return;
 
-      await cadastrarLeadAdmin(nome, wa, email);
+      const ok = await cadastrarLeadAdmin(nome, wa, email);
+      if (!ok) return;
 
-      if (nomeInput) nomeInput.value = '';
-      if (waInput) waInput.value = '';
-      if (emailInput) emailInput.value = '';
-
+      if (nomeInput) nomeInput.value = "";
+      if (waInput) waInput.value = "";
+      if (emailInput) emailInput.value = "";
       if (fb) {
-        fb.innerHTML = `<span style="color:#10b981; font-size:0.78rem; font-weight:700;">✅ Lead ${nome} cadastrado com sucesso!</span>`;
-        setTimeout(() => { if (fb) fb.innerHTML = ''; }, 4000);
+        fb.innerHTML = `<span style="color:#10b981; font-size:0.78rem; font-weight:700;">Lead ${escaparHtml(nome)} salvo com sucesso!</span>`;
+        setTimeout(() => { if (fb) fb.innerHTML = ""; }, 4000);
       }
     });
   }
 
-  // Alternância das abas no Gate
-  tabs.forEach(tab => {
-    tab.addEventListener('click', () => {
-      const mode = tab.getAttribute('data-calc-gate-tab');
-      tabs.forEach(t => t.classList.remove('active'));
-      tab.classList.add('active');
-
-      if (mode === 'login') {
-        if (formLogin) formLogin.style.display = 'block';
-        if (formRegister) formRegister.style.display = 'none';
-      } else {
-        if (formLogin) formLogin.style.display = 'none';
-        if (formRegister) formRegister.style.display = 'block';
-      }
-      if (feedback) feedback.innerHTML = '';
-    });
+  // Sincronização em tempo real caso o usuário faça login ou logout em outra aba (/conta, /admin ou loja)
+  window.addEventListener("sj-auth-state-changed", () => {
+    checkAuthAndRenderUI();
   });
-
-  // SUBMIT 1: CADASTRO COM LIBERAÇÃO IMEDIATA (AUTO-APROVAÇÃO)
-  if (formRegister) {
-    formRegister.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const nome = document.getElementById('calc-reg-nome')?.value.trim();
-      const whatsapp = document.getElementById('calc-reg-whatsapp')?.value.trim();
-      const email = document.getElementById('calc-reg-email')?.value.trim();
-      const cidade = document.getElementById('calc-reg-cidade')?.value.trim() || '';
-      const btn = document.getElementById('btn-calc-gate-register');
-
-      if (!nome || !email) return;
-
-      const emailLower = email.toLowerCase().trim();
-
-      // Verifica se o e-mail está na lista de revogados
-      const revogados = getCalcRevogadosLocal();
-      if (revogados.includes(emailLower)) {
-        if (feedback) {
-          feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Este e-mail teve o acesso suspenso anteriormente. Entre em contato no WhatsApp da oficina (44) 99135-1318 para reativar.</div>';
-        }
-        return;
-      }
-
-      if (btn) btn.disabled = true;
-
-      const novoLead = {
-        id: 'lead-' + Date.now(),
-        nome,
-        whatsapp,
-        email: emailLower,
-        cidade,
-        data: new Date().toISOString(),
-        status: 'ativo'
-      };
-
-      // 1. Salva localmente de imediato
-      const leads = getCalcLeadsLocal();
-      const idx = leads.findIndex(l => l.email?.toLowerCase().trim() === emailLower);
-      if (idx !== -1) {
-        leads[idx] = { ...leads[idx], ...novoLead, status: 'ativo' };
-      } else {
-        leads.unshift(novoLead);
-      }
-      saveCalcLeadsLocal(leads);
-
-      // 2. Define o usuário logado com ACESSO IMEDIATO
-      const userData = {
-        id: novoLead.id,
-        nome: novoLead.nome,
-        email: novoLead.email,
-        whatsapp: novoLead.whatsapp,
-        cidade: novoLead.cidade,
-        role: 'operador',
-        tipo: 'operador',
-        status: 'ativo',
-        acesso_calculadora: true
-      };
-      setCalcAuthUser(userData);
-
-      showToast(`🎉 Bem-vindo(a), ${nome}! Seu acesso ao Precificador 3D está liberado.`, '⚡');
+  window.addEventListener("storage", (ev) => {
+    if (ev.key && ev.key.includes("auth-token")) {
       checkAuthAndRenderUI();
-
-      // 3. Sincronização em segundo plano (nuvem e backend)
-      (async () => {
-        try {
-          const supa = window.SJ_SUPABASE?.getClient?.();
-          if (supa) {
-            await supa.from('termos_consentimento').insert({
-              titular_identificador: emailLower,
-              titular_tipo: 'visitante',
-              canal: 'calculadora',
-              finalidade: 'cadastro_lead_calculadora',
-              consentimento_concedido: true,
-              motivo_revogacao: JSON.stringify(novoLead)
-            });
-            await sincronizarLeadsNuvem(leads, revogados);
-          }
-        } catch (_) {}
-
-        try {
-          await fetch('/api/calc/solicitar', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(novoLead)
-          });
-        } catch (_) {}
-      })();
-    });
-  }
-
-  // SUBMIT 2: LOGIN DE USUÁRIO JÁ CADASTRADO OU ADMINISTRADOR
-  if (formLogin) {
-    formLogin.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const emailOrWa = document.getElementById('calc-gate-email')?.value.trim();
-      const senha = document.getElementById('calc-gate-senha')?.value;
-      const btn = document.getElementById('btn-calc-gate-login');
-
-      if (!emailOrWa) return;
-      if (btn) btn.disabled = true;
-      if (feedback) feedback.innerHTML = '<span style="color:#f59e0b; font-size:0.8rem;">Verificando credenciais...</span>';
-
-      try {
-        const termo = emailOrWa.toLowerCase().trim();
-        const termoNum = termo.replace(/\D/g, '');
-
-        // 1. Verifica se é e-mail revogado
-        const revogados = getCalcRevogadosLocal();
-        if (revogados.includes(termo)) {
-          if (feedback) {
-            feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Seu acesso foi suspenso pelo administrador. Fale conosco no WhatsApp (44) 99135-1318 para reativar.</div>';
-          }
-          return;
-        }
-
-        let authSuccess = false;
-        let userData = null;
-
-        // 2. Se for Admin Master
-        if (ADMIN_EMAILS.includes(termo)) {
-          // Tenta Supabase Auth se houver senha
-          if (senha && window.SJ_SUPABASE?.auth && typeof window.SJ_SUPABASE.auth.loginEmail === 'function') {
-            try {
-              const res = await window.SJ_SUPABASE.auth.loginEmail(termo, senha);
-              if (res && res.sucesso && res.usuario) {
-                authSuccess = true;
-                userData = res.usuario;
-              }
-            } catch (_) {}
-          }
-          // Login direto de Administrador Master
-          if (!authSuccess) {
-            authSuccess = true;
-            userData = {
-              id: 'usr-admin-' + Date.now(),
-              email: termo,
-              nome: 'Administrador Oficial Loja SJ',
-              role: 'admin',
-              tipo: 'admin',
-              isMaster: true,
-              status: 'approved'
-            };
-          }
-        }
-
-        // 3. Se for usuário/lead já cadastrado na ferramenta
-        if (!authSuccess) {
-          const leads = getCalcLeadsLocal();
-          const leadMatch = leads.find(l => {
-            const lEmail = String(l.email || '').toLowerCase().trim();
-            const lWa = String(l.whatsapp || '').replace(/\D/g, '');
-            return (lEmail && lEmail === termo) || (termoNum && lWa && lWa === termoNum);
-          });
-
-          if (leadMatch) {
-            if (leadMatch.status === 'revogado' || revogados.includes(leadMatch.email?.toLowerCase().trim())) {
-              if (feedback) {
-                feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">🚫 Seu acesso está suspenso. Entre em contato no WhatsApp da Loja SJ (44) 99135-1318.</div>';
-              }
-              return;
-            }
-
-            authSuccess = true;
-            userData = {
-              id: leadMatch.id,
-              nome: leadMatch.nome,
-              email: leadMatch.email,
-              whatsapp: leadMatch.whatsapp,
-              cidade: leadMatch.cidade,
-              role: 'operador',
-              tipo: 'operador',
-              status: 'ativo',
-              acesso_calculadora: true
-            };
-          }
-        }
-
-        if (authSuccess && userData) {
-          setCalcAuthUser(userData);
-          showToast(`⚡ Bem-vindo(a) de volta, ${userData.nome || userData.email}!`, '👋');
-          checkAuthAndRenderUI();
-        } else {
-          if (feedback) {
-            feedback.innerHTML = `
-              <div style="color:#f87171; font-size:0.8rem; background:rgba(239,68,68,0.1); padding:10px 12px; border-radius:6px; margin-bottom:12px;">
-                Não encontramos cadastro ativo para este e-mail/WhatsApp.<br>
-                <a href="javascript:void(0)" id="link-goto-register" style="color:#FF5500; font-weight:800; text-decoration:underline; display:inline-block; margin-top:4px;">Clique aqui para fazer seu cadastro gratuito (é rápido e imediato) →</a>
-              </div>
-            `;
-            document.getElementById('link-goto-register')?.addEventListener('click', () => {
-              const tabReg = document.querySelector('[data-calc-gate-tab="register"]');
-              if (tabReg) tabReg.click();
-            });
-          }
-        }
-      } catch (err) {
-        console.error('Erro de login:', err);
-        if (feedback) {
-          feedback.innerHTML = '<div style="color:#f87171; font-size:0.8rem; margin-bottom:12px;">Erro ao autenticar. Tente novamente mais tarde.</div>';
-        }
-      } finally {
-        if (btn) btn.disabled = false;
-      }
-    });
-  }
+    }
+  });
 }
 
-// Inicialização da Aplicação
-window.addEventListener('DOMContentLoaded', async () => {
-  setupAuthGateListeners();
-  checkAuthAndRenderUI();
+window.addEventListener("DOMContentLoaded", async () => {
+  setupUnifiedCalcListeners();
+  await checkAuthAndRenderUI();
   initializeSelectors();
   setupEventListeners();
   updateCalculations();
 });
-
