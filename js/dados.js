@@ -26,6 +26,7 @@ window.SITE_DATA = {
     instagramUrl: "https://www.instagram.com/lojasj3d/",
     facebookUrl: "https://www.facebook.com/lojasj3d",
     googleMeuNegocioUrl: "https://share.google/0WwPhjFx69b3V9sU1",
+    comunidadeVipUrl: "https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea",
     grupoMarcas: ["LOJA SJ 3D", "MAXIMPER", "BLINDAMIX", "VUMORA"],
     timbradoCabecalhoImg: "assets/orcamento/timbrado_cabecalho.png",
     timbradoRodapeImg: "assets/orcamento/timbrado_rodape.png"
@@ -51,6 +52,15 @@ window.SITE_DATA = {
     btn1Url: "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20do%20site%20e%20quero%20mais%20informa%C3%A7%C3%B5es%20sobre%20o%20Sorteio%20da%20Bambu%20Lab%20A1%20Mini!",
     btn2Texto: "Regulamento do Sorteio",
     btn2Url: "",
+    vipBannerAtivo: true,
+    vipBannerDesktopImg: "assets/banners/desktop/comunidade-vip.png",
+    vipBannerDesktopWebp: "assets/banners/desktop/comunidade-vip.webp",
+    vipBannerMobileImg: "assets/banners/mobile/comunidade-vip.png",
+    vipBannerMobileWebp: "assets/banners/mobile/comunidade-vip.webp",
+    vipBannerBadge: "Comunidade Loja SJ",
+    vipBannerTitulo: "Comunidade Loja SJ — Sua conexão com o universo 3D",
+    vipBannerSubtitulo: "Tudo em um só lugar: suporte e dúvidas, promoções da loja, novidades e lançamentos",
+    vipBannerBtnTexto: "Entrar na Comunidade",
     regrasCards: [
       {
         tag: "CUPONS GRÁTIS",

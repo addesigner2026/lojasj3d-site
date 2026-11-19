@@ -25,7 +25,11 @@
   <link rel="icon" type="image/png" sizes="192x192" href="/favicon-192x192.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <link rel="manifest" href="/site.webmanifest" />
-  <link rel="stylesheet" href="css/styles.css?v=20261110_01" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_07" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119_07" />
   <style>
     .legal-page-wrap {
       max-width: 920px;
@@ -152,20 +156,8 @@
 
 <body style="background: #FAFAFA; margin:0; padding:0;">
 
-  <!-- Barra de Navegação Superior -->
-  <header class="legal-nav-bar">
-    <a href="index.html" style="display:flex; align-items:center; gap:10px; text-decoration:none;">
-      <span style="font-weight:900; font-size:1.15rem; color:#0F172A; letter-spacing:-0.5px;">
-        LOJA <span style="color:#F04E23;">SJ 3D</span>
-      </span>
-      <span style="font-size:0.75rem; background:#F1F5F9; color:#475569; padding:2px 8px; border-radius:6px; font-weight:700;">
-        Portal de Privacidade
-      </span>
-    </a>
-    <a href="index.html" class="btn-back-store">
-      ← Voltar para o Catálogo
-    </a>
-  </header>
+  <!-- Cabeçalho Unificado Loja SJ 3D -->
+  <div id="sj-site-header-slot"></div>
 
   <main class="legal-page-wrap">
 
@@ -554,16 +546,14 @@
 
   </main>
 
-  <!-- Rodapé Simples -->
-  <footer style="background:#0F172A; color:#94A3B8; padding:24px 20px; text-align:center; font-size:0.8rem;">
-    <div style="max-width:920px; margin:0 auto; display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:12px;">
-      <span>© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10 • Umuarama - PR</span>
-      <a href="index.html" style="color:#F04E23; text-decoration:underline; font-weight:700;">Voltar ao Catálogo da Loja</a>
-    </div>
-  </footer>
+  <!-- Barra Fixa Mobile & Rodapé Unificados Loja SJ 3D -->
+  <div id="sj-mobile-bottom-slot"></div>
+  <div id="sj-site-footer-slot"></div>
 
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261119_01"></script>
+  <script src="js/supabase-client.js?v=20261119_07"></script>
+  <script src="js/dados.js?v=20261119_07"></script>
+  <script src="js/site-chrome.js?v=20261119_07"></script>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
       const form = document.getElementById("priv-page-lgpd-form");

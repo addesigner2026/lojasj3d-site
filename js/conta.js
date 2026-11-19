@@ -1546,7 +1546,17 @@
     });
 
     window.open(urlWhatsApp, "_blank", "noopener");
-    mostrarToast(`✅ Orçamento nº ${escaparHtml(orc.quote_number)} criado! Abrindo WhatsApp...`, "success");
+    const vipUrl = window.SJ_SITE_CHROME?.obterLinkComunidadeVip?.() || window.SITE_DATA?.loja?.comunidadeVipUrl;
+    mostrarToast(
+      `✅ Orçamento nº ${escaparHtml(orc.quote_number)} criado! Receba novidades e cupons no grupo VIP.`,
+      "success",
+      vipUrl
+        ? {
+            acaoTexto: "Entrar no grupo →",
+            onClick: () => window.open(vipUrl, "_blank", "noopener")
+          }
+        : undefined
+    );
     await Promise.all([carregarMeuCarrinho(), carregarMeusOrcamentos()]);
     ativarAbaConta("orcamentos");
   }

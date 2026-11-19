@@ -23,7 +23,21 @@
     hubFilamentoMarcaAtiva: "MaxPrint", // "MaxPrint" ou "Bambu Lab"
     hubFilamentoMaterialMaxPrint: "fil-pla-maxprint", // "fil-pla-maxprint", "fil-silk-maxprint", "fil-petg-maxprint", "fil-tpu-maxprint", "fil-abs-especiais", "todos"
     hubFilamentoFiltroBambu: "todos", // "todos", "carretel", "refil"
+    hubFilamentoFamiliaCor: "todas", // "todas", "neutros", "quentes", "frios", "verdes", "especiais"
+    hubFilamentoOrdenacao: "padrao", // "padrao", "menor-preco", "maior-preco", "az"
+    hubFilamentoSomenteDisponiveis: true,
+    hubFilamentoLimiteVisivel: 24,
     hubFilamentoAbertoHome: false, // Na Home começa com os 2 grandes portais e abre a extensão ao clicar
+    // Filtros das páginas internas de Impressoras & Peças
+    impressoraGrupoFiltro: "todas",
+    impressoraOrdenacao: "padrao",
+    pecasFiltroModelo: "todos",
+    pecasFiltroArea: "todas",
+    pecasOrdenacao: "padrao",
+    pecasLimiteVisivel: 24,
+    pdpTabAtiva: "descricao",
+    // Mapa reativo do carrinho (Supabase Auth) para steppers inline "- Qtd +"
+    supabaseCartMap: {},
     // Sistema de Orçamento Timbrado Oficial Grupo SJ & Login Google
     usuarioGoogle: null,
     itensOrcamento: [],
@@ -133,11 +147,12 @@
     return state.itensCaixa.reduce((acc, item) => acc + item.qtd, 0);
   }
 
-  // 1. Controla a barra de busca do catálogo (mantém limpa, sem repetir filtro de marca)
+  // 1. Controla a barra de busca do catálogo (oculta nas categorias que já possuem toolbar integrada)
   function atualizarControlesTopo() {
     const topControls = document.getElementById("filament-top-controls");
     if (!topControls) return;
-    topControls.style.display = "flex";
+    const usarToolbarPropria = ["filamentos", "impressoras", "pecas", "manutencao"].includes(state.categoriaMenu);
+    topControls.style.display = usarToolbarPropria ? "none" : "flex";
     topControls.classList.add("only-search");
     const brandLeft = topControls.querySelector(".brand-selector-left");
     if (brandLeft) {
@@ -769,7 +784,11 @@
 
     window.open(`https://wa.me/${whatsapp}?text=${msg}`, "_blank");
     fecharGavetaPedido();
-    mostrarToast("🚀 Pedido enviado para o WhatsApp da Loja SJ 3D!", "success");
+    const vipUrl = window.SJ_SITE_CHROME?.obterLinkComunidadeVip?.() || window.SITE_DATA?.loja?.comunidadeVipUrl;
+    mostrarToast("🚀 Pedido enviado para o WhatsApp! Receba novidades e cupons no grupo VIP.", "success", vipUrl ? {
+      acaoTexto: "Entrar no grupo →",
+      onClick: () => window.open(vipUrl, "_blank", "noopener")
+    } : undefined);
   }
 
   // Retorna a configuração atualizada do Banner Promocional (editável via /admin)
@@ -791,6 +810,15 @@
         "https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Vi%20o%20banner%20no%20site%20e%20quero%20garantir%20meus%20cupons%20para%20o%20Sorteio%20A1%20Mini%20do%20dia%2020%20de%20Dezembro!",
       btn2Texto: "Seguir @lojasj3d",
       btn2Url: "https://www.instagram.com/lojasj3d/",
+      vipBannerAtivo: true,
+      vipBannerDesktopImg: "assets/banners/desktop/comunidade-vip.png",
+      vipBannerDesktopWebp: "assets/banners/desktop/comunidade-vip.webp",
+      vipBannerMobileImg: "assets/banners/mobile/comunidade-vip.png",
+      vipBannerMobileWebp: "assets/banners/mobile/comunidade-vip.webp",
+      vipBannerBadge: "Comunidade Loja SJ",
+      vipBannerTitulo: "Comunidade Loja SJ — Sua conexão com o universo 3D",
+      vipBannerSubtitulo: "Tudo em um só lugar: suporte e dúvidas, promoções da loja, novidades e lançamentos",
+      vipBannerBtnTexto: "Entrar na Comunidade",
       regrasCards: [
         {
           tag: "CUPONS GRÁTIS",
@@ -1069,15 +1097,11 @@
       if (!sessao?.user) {
         state.supabaseStoreUser = null;
         state.favoritos = [];
+        state.supabaseCartMap = {};
         atualizarBadgeFavoritos();
         atualizarBotaoHeaderConta();
-        const topBagBadge = document.getElementById("cart-count-badge");
-        if (topBagBadge) topBagBadge.textContent = "0";
-        const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
-        if (mbCartBadge) {
-          mbCartBadge.textContent = "0";
-          mbCartBadge.style.display = "none";
-        }
+        sincronizarContadoresCarrinhoUI(0);
+        atualizarSteppersInlineNoDom();
         sincronizarCoracoesNaTela();
         return;
       }
@@ -1106,14 +1130,18 @@
       if (window.SJ_SUPABASE.cart) {
         const resCart = await window.SJ_SUPABASE.cart.listarMeu();
         if (resCart?.sucesso) {
-          const totalQtd = (resCart.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
-          const topBagBadge = document.getElementById("cart-count-badge");
-          if (topBagBadge) topBagBadge.textContent = String(totalQtd);
-          const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
-          if (mbCartBadge) {
-            mbCartBadge.textContent = String(totalQtd);
-            mbCartBadge.style.display = totalQtd > 0 ? "inline-flex" : "none";
-          }
+          const mapa = {};
+          let totalQtd = 0;
+          (resCart.dados || []).forEach((it) => {
+            const q = Number(it.quantity) || 1;
+            totalQtd += q;
+            if (it.product_id) {
+              mapa[it.product_id] = { quantity: q, itemId: it.id };
+            }
+          });
+          state.supabaseCartMap = mapa;
+          sincronizarContadoresCarrinhoUI(totalQtd);
+          atualizarSteppersInlineNoDom();
         }
       }
 
@@ -1124,6 +1152,152 @@
         window.SJ_SUPABASE?.cart?.assinarRealtime?.(() => sincronizarClienteLojaSupabase());
       }
     } catch (_) { }
+  }
+
+  function sincronizarContadoresCarrinhoUI(totalUnidades) {
+    const qtd = Math.max(0, Number(totalUnidades) || 0);
+    const topBagBadge = document.getElementById("cart-count-badge");
+    if (topBagBadge) topBagBadge.textContent = String(qtd);
+
+    const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
+    if (mbCartBadge) {
+      mbCartBadge.textContent = String(qtd);
+      mbCartBadge.style.display = qtd > 0 ? "inline-flex" : "none";
+    }
+
+    const miniCart = document.getElementById("sj-mobile-mini-cart");
+    const miniCartText = document.getElementById("sj-mobile-mini-cart-text");
+    if (miniCart && miniCartText) {
+      const emLojaPublica = !ehPaginaAdminAtual();
+      miniCart.style.display = emLojaPublica && qtd > 0 ? "inline-flex" : "none";
+      miniCartText.textContent = `${qtd} ${qtd === 1 ? "item" : "itens"}`;
+    }
+  }
+
+  function obterQtdNoCarrinhoProduto(dbProductId) {
+    if (!dbProductId) return 0;
+    if (!ehPaginaAdminAtual() && window.SJ_SUPABASE?.cart) {
+      return Number(state.supabaseCartMap?.[dbProductId]?.quantity || 0);
+    }
+    return state.itensCaixa
+      .filter((i) => i.id === dbProductId || i.dbProductId === dbProductId)
+      .reduce((acc, i) => acc + (Number(i.qtd) || 0), 0);
+  }
+
+  function atualizarSteppersInlineNoDom() {
+    document.querySelectorAll("[data-cart-action-wrap]").forEach((wrap) => {
+      const dbId = wrap.dataset.cartActionWrap || "";
+      const esgotado = wrap.dataset.isEsgotado === "1";
+      const sobConsulta = wrap.dataset.isConsulta === "1";
+      if (esgotado || sobConsulta) return;
+
+      const qtd = obterQtdNoCarrinhoProduto(dbId);
+      const addBtn = wrap.querySelector("[data-action-role='add']");
+      const stepper = wrap.querySelector("[data-action-role='stepper']");
+      const qtySpan = wrap.querySelector("[data-stepper-qty]");
+      if (addBtn && stepper && qtySpan) {
+        if (qtd > 0) {
+          addBtn.style.display = "none";
+          stepper.style.display = "inline-flex";
+          qtySpan.textContent = String(qtd);
+        } else {
+          addBtn.style.display = "inline-flex";
+          stepper.style.display = "none";
+          qtySpan.textContent = "0";
+        }
+      }
+    });
+  }
+
+  async function alterarQuantidadeStepperProduto(dbProductId, delta, itemId, corIdx, marca) {
+    if (!dbProductId || !delta) return;
+    if (!ehPaginaAdminAtual() && window.SJ_SUPABASE?.auth && window.SJ_SUPABASE?.cart) {
+      const sessao = await window.SJ_SUPABASE.auth.obterSessao();
+      if (!sessao?.user) {
+        mostrarToast("🔐 Entre ou crie sua conta para gerenciar seu carrinho!", "info");
+        setTimeout(() => redirecionarParaLoginComAcao("cart", dbProductId), 350);
+        return;
+      }
+
+      const atual = Number(state.supabaseCartMap?.[dbProductId]?.quantity || 0);
+      const novaQtd = atual + delta;
+      const res = novaQtd <= 0
+        ? await window.SJ_SUPABASE.cart.remover(dbProductId)
+        : atual === 0 && delta > 0
+          ? await window.SJ_SUPABASE.cart.adicionar(dbProductId, delta)
+          : await window.SJ_SUPABASE.cart.atualizarQuantidade(dbProductId, novaQtd);
+
+      if (!res?.sucesso) {
+        mostrarToast(`⚠️ ${escaparHtml(res?.mensagem || "Não foi possível atualizar a quantidade.")}`, "warning");
+        return;
+      }
+
+      const listaAtual = await window.SJ_SUPABASE.cart.listarMeu();
+      if (listaAtual?.sucesso) {
+        const mapa = {};
+        let totalUnidades = 0;
+        (listaAtual.dados || []).forEach((it) => {
+          const q = Number(it.quantity) || 1;
+          totalUnidades += q;
+          if (it.product_id) mapa[it.product_id] = { quantity: q, itemId: it.id };
+        });
+        state.supabaseCartMap = mapa;
+        sincronizarContadoresCarrinhoUI(totalUnidades);
+        atualizarSteppersInlineNoDom();
+      }
+      return;
+    }
+
+    // Fallback modo vendedor/local
+    const item = window.SITE_DATA.catalogo.find((i) => i.id === (itemId || dbProductId));
+    if (!item) return;
+    if (delta > 0) {
+      const isBambu = marca === "Bambu Lab";
+      let corObj = null;
+      if (item.tipoFilamento && typeof corIdx === "number" && corIdx >= 0) {
+        const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
+        corObj = paleta[corIdx] || null;
+      }
+      const apresentacao = item.tipoFilamento
+        ? (isBambu ? ((corObj?.nome || "").toLowerCase().includes("refil") ? "1KG Refil RFID" : "1KG Carretel RFID") : "1KG")
+        : (item.select1Opcoes?.[0] || "Padrão");
+      adicionarItemNaCaixa(item.id, null, { marca: marca || item.marca, detalhe1: apresentacao, corObj, qtd: delta, dbProductId });
+    }
+  }
+
+  function abrirDialogoNativo(dialogId, htmlConteudo, onBind) {
+    const dlg = document.getElementById(dialogId);
+    if (!dlg || typeof dlg.showModal !== "function") return;
+    dlg.innerHTML = htmlConteudo;
+
+    if (!dlg.dataset.lightDismissWired) {
+      dlg.dataset.lightDismissWired = "1";
+      // Fallback para navegadores sem suporte a <dialog closedby="any">
+      if (!("closedBy" in HTMLDialogElement.prototype)) {
+        let downOutside = false;
+        dlg.addEventListener("pointerdown", (e) => {
+          if (e.target !== dlg) {
+            downOutside = false;
+            return;
+          }
+          const rect = dlg.getBoundingClientRect();
+          downOutside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+        });
+        dlg.addEventListener("pointerup", (e) => {
+          if (!downOutside || e.target !== dlg) return;
+          const rect = dlg.getBoundingClientRect();
+          const upOutside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+          downOutside = false;
+          if (upOutside) dlg.close();
+        });
+      }
+    }
+
+    dlg.querySelectorAll("[data-close-native-dialog]").forEach((btn) => {
+      btn.addEventListener("click", () => dlg.close());
+    });
+    if (typeof onBind === "function") onBind(dlg);
+    if (!dlg.open) dlg.showModal();
   }
 
   function sincronizarCoracoesNaTela() {
@@ -4255,9 +4429,9 @@
 
     bodyEl.innerHTML = `
       <div class="raffle-modal-hero-summary">
-        <span class="raffle-modal-kicker">GUIA RÁPIDO DE ESCOLHA • PRONTA ENTREGA EM UMUARAMA</span>
-        <h2 id="printer-compare-title" class="raffle-modal-main-title">Compare nossas Impressoras 3D Lado a Lado</h2>
-        <p class="raffle-modal-subtitle">Todas dão direito a 🎟️ 10 cupons imediatos no Sorteio de Natal + suporte técnico Loja SJ 3D</p>
+        <span class="raffle-modal-kicker">Guia rápido de escolha • Pronta entrega em Umuarama</span>
+        <h2 id="printer-compare-title" class="raffle-modal-main-title">Compare nossas Impressoras 3D lado a lado</h2>
+        <p class="raffle-modal-subtitle">Nota fiscal, garantia oficial e suporte técnico especializado da Loja SJ 3D.</p>
       </div>
 
       <div class="printer-compare-table-wrap">
@@ -4671,332 +4845,614 @@
     return n || nomeBruto || "Cor";
   }
 
-  // 2.5 STUDIO CLEAN DE FILAMENTOS (BARRA UNIFICADA + GRADE DIRETA E SEM REPETIÇÕES)
+  function classificarFamiliaCorHex(hex, nome) {
+    const n = String(nome || "").toLowerCase();
+    if (/(dual|tri|arco|rainbow|glitter|galaxy|chameleon|camale|m[aá]rmore|madeira|wood|silk|neon|fosco|transparente|cristal|natural|skin|pele)/.test(n)) {
+      if (/(preto|branco|cinza|prata|chumbo|grafite)/.test(n) && !/(dual|tri|glitter|galaxy)/.test(n)) {
+        return "neutros";
+      }
+      if (/(dual|tri|rainbow|glitter|galaxy|chameleon|camale|m[aá]rmore|madeira|transparente|cristal|neon|silk)/.test(n)) {
+        return "especiais";
+      }
+    }
+    const clean = String(hex || "").replace("#", "").trim();
+    if (!/^[0-9a-f]{6}$/i.test(clean)) return "neutros";
+    const r = parseInt(clean.slice(0, 2), 16) / 255;
+    const g = parseInt(clean.slice(2, 4), 16) / 255;
+    const b = parseInt(clean.slice(4, 6), 16) / 255;
+    const max = Math.max(r, g, b);
+    const min = Math.min(r, g, b);
+    const d = max - min;
+    const l = (max + min) / 2;
+    const s = d === 0 ? 0 : d / (1 - Math.abs(2 * l - 1));
+    if (s < 0.16 || l < 0.11 || l > 0.92) return "neutros";
+    let h = 0;
+    if (d !== 0) {
+      if (max === r) h = ((g - b) / d) % 6;
+      else if (max === g) h = (b - r) / d + 2;
+      else h = (r - g) / d + 4;
+      h = Math.round(h * 60);
+      if (h < 0) h += 360;
+    }
+    if (h >= 72 && h <= 168) return "verdes";
+    if (h > 168 && h <= 272) return "frios";
+    return "quentes";
+  }
+
+  function renderInlineActionControlHtml(opts) {
+    const dbId = escaparHtml(opts.dbProductId || "");
+    const itemId = escaparHtml(opts.itemId || "");
+    const corIdx = Number.isFinite(Number(opts.corIdx)) ? Number(opts.corIdx) : -1;
+    const marca = escaparHtml(opts.marca || "MaxPrint");
+    const isEsg = Boolean(opts.isEsgotado);
+    const isConsulta = Boolean(opts.isConsulta);
+    const fullWidth = Boolean(opts.fullWidth);
+    const qtdNoCarrinho = isEsg || isConsulta ? 0 : obterQtdNoCarrinhoProduto(opts.dbProductId);
+
+    if (isEsg) {
+      return `
+        <button type="button" class="sj-fil-add-btn is-full btn-out-of-stock" disabled>
+          Esgotado
+        </button>
+      `;
+    }
+
+    if (isConsulta) {
+      const msgWa = encodeURIComponent(`Olá Loja SJ 3D! Gostaria de consultar o valor e disponibilidade de "${opts.itemNome || "produto"}".`);
+      return `
+        <a href="https://wa.me/5544991351318?text=${msgWa}" target="_blank" rel="noopener" class="sj-fil-consult-btn">
+          Consultar
+        </a>
+      `;
+    }
+
+    const clsBtn = fullWidth ? "sj-fil-add-btn is-full" : "sj-fil-add-btn";
+    return `
+      <div class="sj-card-action-wrap ${fullWidth ? "is-full" : ""}"
+        data-cart-action-wrap="${dbId}"
+        data-item-id="${itemId}"
+        data-cor-idx="${corIdx}"
+        data-marca="${marca}"
+        data-is-esgotado="0"
+        data-is-consulta="0">
+        <button
+          type="button"
+          class="${clsBtn}"
+          data-action-role="add"
+          ${opts.isQuickFilament ? `data-hub-quick-add="${itemId}" data-hub-color-idx="${corIdx}" data-hub-brand="${marca}"` : `data-add-item="${itemId}"`}
+          style="display: ${qtdNoCarrinho > 0 ? "none" : "inline-flex"};"
+        >
+          Adicionar
+        </button>
+        <div
+          class="sj-qty-stepper-inline ${fullWidth ? "is-full" : ""}"
+          data-action-role="stepper"
+          aria-label="Quantidade no carrinho"
+          style="display: ${qtdNoCarrinho > 0 ? "inline-flex" : "none"};"
+        >
+          <button type="button" data-stepper-delta="-1" aria-label="Remover 1 unidade">−</button>
+          <span data-stepper-qty>${qtdNoCarrinho}</span>
+          <button type="button" data-stepper-delta="1" aria-label="Adicionar 1 unidade">+</button>
+        </div>
+      </div>
+    `;
+  }
+
+  function abrirModalFichaTecnicaFilamento(itemId) {
+    const item = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
+    if (!item) return;
+    const ft = item.fichaTecnica || {};
+    const specsEntries = Object.entries(ft);
+    const html = `
+      <div class="sj-dialog-card">
+        <div class="sj-dialog-head">
+          <div>
+            <span class="sj-dialog-kicker">Ficha técnica • 1,75 mm (1 kg)</span>
+            <h2 id="sj-spec-title">${escaparHtml(item.nome)}</h2>
+          </div>
+          <button type="button" class="sj-dialog-close" data-close-native-dialog aria-label="Fechar ficha técnica">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+        <p class="sj-dialog-lead">${escaparHtml(item.subtitulo || "Filamento lacrado a vácuo com controle rigoroso de diâmetro.")}</p>
+        <div class="sj-dialog-spec-grid">
+          ${specsEntries.map(([k, v]) => `
+            <div class="sj-dialog-spec-item">
+              <span>${escaparHtml(k)}</span>
+              <strong>${escaparHtml(v)}</strong>
+            </div>
+          `).join("")}
+        </div>
+        <div class="sj-dialog-foot">
+          <button type="button" class="sj-btn-outline" data-close-native-dialog>Fechar</button>
+          <button type="button" class="sj-btn-primary" data-spec-open-pdp="${escaparHtml(item.id)}">Ver página completa →</button>
+        </div>
+      </div>
+    `;
+    abrirDialogoNativo("sj-fil-spec-dialog", html, (dlg) => {
+      dlg.querySelector("[data-spec-open-pdp]")?.addEventListener("click", (e) => {
+        const id = e.currentTarget.getAttribute("data-spec-open-pdp");
+        dlg.close();
+        if (id) abrirPaginaProduto(id);
+      });
+    });
+  }
+
+  function abrirQuickViewFilamento(itemId, corIdx, marcaOverride) {
+    const item = window.SITE_DATA.catalogo.find((i) => i.id === itemId);
+    if (!item) return;
+    const isBambu = (marcaOverride || item.marca) === "Bambu Lab";
+    const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
+    const cor = paleta[corIdx] || paleta[0];
+    if (!cor) return;
+
+    const chavePaleta = obterChavePaletaPorChave(item.usaCoresDinamicas, isBambu);
+    const dbProductId = resolverIdCorBanco(cor, chavePaleta, corIdx);
+    const imgSrc = cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : item.imagem;
+    const filtro = cor.usaFotoCatalogoDireta ? "none" : (cor.filtroCss || "none");
+    const stCor = cor.estoqueStatus || item.estoqueStatus || "disponivel";
+    const isEsg = stCor === "esgotado";
+    const preco = Number(cor.valor || 0) > 0 ? (cor.preco || formatarMoedaBR(cor.valor)) : "Sob consulta";
+    const tempBico = item.fichaTecnica?.["Temperatura do Bico"] || "190–225 °C";
+    const tempMesa = item.fichaTecnica?.["Temperatura da Mesa"] || "50–65 °C";
+    const ehFav = isFavorito(dbProductId);
+
+    const html = `
+      <div class="sj-dialog-card sj-qv-card">
+        <div class="sj-dialog-head">
+          <div>
+            <span class="sj-dialog-kicker">${isBambu ? "Bambu Lab RFID" : "Masterprint"} • Cód. #${escaparHtml(cor.cod || "—")}</span>
+            <h2 id="sj-qv-title">${escaparHtml(cor.nome)}</h2>
+          </div>
+          <button type="button" class="sj-dialog-close" data-close-native-dialog aria-label="Fechar visualização rápida">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+          </button>
+        </div>
+
+        <div class="sj-qv-body">
+          <div class="sj-qv-media" style="--fil-tint: ${escaparHtml(cor.hex || "#e2e8f0")};">
+            <img src="${escaparHtml(imgSrc)}" alt="${escaparHtml(cor.nome)}" style="filter: ${escaparHtml(filtro)};" />
+          </div>
+          <div class="sj-qv-info">
+            <div class="sj-qv-swatch-row">
+              <span class="sj-fil-dot lg" style="background: ${escaparHtml(cor.hex || "#94a3b8")};"></span>
+              <strong>${escaparHtml(item.nome)}</strong>
+            </div>
+            <div class="sj-qv-price-row">
+              <strong>${escaparHtml(preco)}</strong>
+              <span>1 kg • 1,75 mm</span>
+            </div>
+            <div class="sj-qv-specs-mini">
+              <span>Bico: <strong>${escaparHtml(tempBico)}</strong></span>
+              <span>Mesa: <strong>${escaparHtml(tempMesa)}</strong></span>
+            </div>
+
+            <div class="sj-qv-actions">
+              ${renderInlineActionControlHtml({
+      dbProductId,
+      itemId: item.id,
+      corIdx,
+      marca: isBambu ? "Bambu Lab" : "MaxPrint",
+      isEsgotado: isEsg,
+      isConsulta: Number(cor.valor || 0) <= 0,
+      isQuickFilament: true,
+      itemNome: cor.nome,
+      fullWidth: true
+    })}
+              <button type="button" class="sj-btn-outline ${ehFav ? "active" : ""}" data-toggle-fav="${escaparHtml(dbProductId)}" aria-label="Favoritar ${escaparHtml(cor.nome)}">
+                ${ehFav ? "♥ Favoritado" : "♡ Favoritar"}
+              </button>
+            </div>
+            <button type="button" class="sj-qv-pdp-link" data-qv-open-pdp="1">
+              Ver página completa do produto →
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    abrirDialogoNativo("sj-fil-quickview-dialog", html, (dlg) => {
+      dlg.querySelectorAll("[data-hub-quick-add]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const apresentacao = isBambu
+            ? ((cor.nome || "").toLowerCase().includes("refil") ? "1KG Refil RFID" : "1KG Carretel RFID")
+            : "1KG";
+          adicionarItemNaCaixa(item.id, btn, {
+            marca: isBambu ? "Bambu Lab" : "MaxPrint",
+            detalhe1: apresentacao,
+            corObj: cor,
+            qtd: 1
+          });
+        });
+      });
+      dlg.querySelectorAll("[data-stepper-delta]").forEach((stepBtn) => {
+        stepBtn.addEventListener("click", () => {
+          const delta = Number(stepBtn.getAttribute("data-stepper-delta") || 0);
+          alterarQuantidadeStepperProduto(dbProductId, delta, item.id, corIdx, isBambu ? "Bambu Lab" : "MaxPrint");
+        });
+      });
+      dlg.querySelector("[data-toggle-fav]")?.addEventListener("click", (e) => {
+        toggleFavorito(e.currentTarget.getAttribute("data-toggle-fav"));
+      });
+      dlg.querySelector("[data-qv-open-pdp]")?.addEventListener("click", () => {
+        dlg.close();
+        abrirPaginaProduto(item.id, { corIdxInicial: corIdx });
+      });
+    });
+  }
+
+  // 2.5 PÁGINA REDESENHADA DE FILAMENTOS 3D (CLEAN, FILTROS STICKY, FAMÍLIAS DE COR, PAGINAÇÃO)
   function gerarHubFilamentosHtml(contexto = "catalogo") {
     const marcaAtiva = state.hubFilamentoMarcaAtiva || "MaxPrint";
     const isBambuAtivo = marcaAtiva === "Bambu Lab";
 
     const materiaisMaxPrint = [
-      {
-        id: "fil-pla-maxprint",
-        curto: "PLA",
-        qtdCores: (window.SITE_DATA.coresMaxPrint || []).length
-      },
-      {
-        id: "fil-silk-maxprint",
-        curto: "PLA Silk",
-        qtdCores: (window.SITE_DATA.coresPlaSilk || []).length
-      },
-      {
-        id: "fil-petg-maxprint",
-        curto: "PETG",
-        qtdCores: (window.SITE_DATA.coresPetg || []).length
-      },
-      {
-        id: "fil-tpu-maxprint",
-        curto: "TPU Flex",
-        qtdCores: (window.SITE_DATA.coresTpu || []).length
-      },
-      {
-        id: "fil-abs-especiais",
-        curto: "ABS & Glitter",
-        qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length
-      }
+      { id: "fil-pla-maxprint", curto: "PLA", qtdCores: (window.SITE_DATA.coresMaxPrint || []).length },
+      { id: "fil-silk-maxprint", curto: "PLA Silk", qtdCores: (window.SITE_DATA.coresPlaSilk || []).length },
+      { id: "fil-petg-maxprint", curto: "PETG", qtdCores: (window.SITE_DATA.coresPetg || []).length },
+      { id: "fil-tpu-maxprint", curto: "TPU Flex", qtdCores: (window.SITE_DATA.coresTpu || []).length },
+      { id: "fil-abs-especiais", curto: "ABS & Glitter", qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length }
     ];
 
+    const paletaBambuFull = window.SITE_DATA.coresBambuLab || [];
     const totalCoresMaxPrint = materiaisMaxPrint.reduce((acc, m) => acc + m.qtdCores, 0);
-    const totalCoresBambu = (window.SITE_DATA.coresBambuLab || []).length;
+    const totalCoresBambu = paletaBambuFull.length;
+    const qtdBambuRefil = paletaBambuFull.filter((c) => ((c.nome || "") + " " + (c.tipo || "")).toLowerCase().includes("refil")).length;
+    const qtdBambuBobina = Math.max(0, totalCoresBambu - qtdBambuRefil);
 
     const opcoesBambu = [
       { id: "todos", curto: "Todos", qtd: totalCoresBambu },
-      { id: "carretel", curto: "Com Bobina RFID", qtd: 10 },
-      { id: "refil", curto: "Refil s/ Bobina", qtd: 3 }
+      { id: "carretel", curto: "Bobina RFID", qtd: qtdBambuBobina },
+      { id: "refil", curto: "Refil s/ Bobina", qtd: qtdBambuRefil }
     ];
 
+    const familiasCor = [
+      { id: "todas", label: "Todas", hex: "conic-gradient(#ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444)" },
+      { id: "neutros", label: "Neutros", hex: "#64748b" },
+      { id: "quentes", label: "Quentes", hex: "#ea580c" },
+      { id: "frios", label: "Frios", hex: "#2563eb" },
+      { id: "verdes", label: "Verdes", hex: "#16a34a" },
+      { id: "especiais", label: "Especiais", hex: "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6)" }
+    ];
+
+    const familiaAtiva = state.hubFilamentoFamiliaCor || "todas";
+    const ordenacaoAtiva = state.hubFilamentoOrdenacao || "padrao";
+    const somenteDisp = state.hubFilamentoSomenteDisponiveis !== false;
+    const limiteVisivel = Number(state.hubFilamentoLimiteVisivel || 24);
+    const termoBusca = (state.busca || "").trim().toLowerCase();
+
+    let itemAtivo = null;
+    let chavePaletaAtiva = "coresMaxPrint";
+    let coresListaBase = [];
     let barraMateriaisHtml = "";
-    let gradeCoresHtml = "";
-    let idFichaTecnicaAtiva = "fil-pla-maxprint";
+    let materialNomeBreadcrumb = "";
 
     if (!isBambuAtivo) {
       const matAtivoId =
         state.hubFilamentoMaterialMaxPrint && state.hubFilamentoMaterialMaxPrint !== "todos"
           ? state.hubFilamentoMaterialMaxPrint
           : "fil-pla-maxprint";
-      idFichaTecnicaAtiva = matAtivoId;
 
-      const itemAtivo =
+      itemAtivo =
         window.SITE_DATA.catalogo.find((i) => i.id === matAtivoId) ||
         window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-maxprint");
-
+      chavePaletaAtiva = itemAtivo
+        ? obterChavePaletaPorChave(itemAtivo.usaCoresDinamicas, false)
+        : "coresMaxPrint";
       const paletaAtiva = itemAtivo
         ? obterPaletaPorChave(itemAtivo.usaCoresDinamicas, false) || []
         : [];
-      const termoBusca = (state.busca || "").trim().toLowerCase();
-      const coresFiltradas = paletaAtiva
-        .map((cor, originalIdx) => ({ ...cor, originalIdx }))
-        .filter((cor) => {
-          if (!termoBusca) return true;
-          return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod}`
-            .toLowerCase()
-            .includes(termoBusca);
-        });
+      coresListaBase = paletaAtiva.map((cor, originalIdx) => ({ ...cor, originalIdx }));
+      const matInfo = materiaisMaxPrint.find((m) => m.id === matAtivoId);
+      materialNomeBreadcrumb = matInfo ? `Masterprint ${matInfo.curto}` : "Masterprint";
 
       barraMateriaisHtml = `
-        <div class="sj-fil-line-pills" role="tablist" aria-label="Linha de filamento Masterprint">
-          ${materiaisMaxPrint
-          .map(
-            (m) => `
+        <div class="sj-fil-line-pills" role="tablist" aria-label="Material Masterprint">
+          ${materiaisMaxPrint.map((m) => `
             <button
               type="button"
+              role="tab"
+              aria-selected="${matAtivoId === m.id ? "true" : "false"}"
               class="sj-fil-line-pill ${matAtivoId === m.id ? "active" : ""}"
               data-hub-max-mat="${m.id}"
             >
               <span class="pill-name">${m.curto}</span>
               <span class="pill-count">${m.qtdCores}</span>
             </button>
-          `
-          )
-          .join("")}
-        </div>
-      `;
-
-      const chavePaletaAtiva = itemAtivo
-        ? obterChavePaletaPorChave(itemAtivo.usaCoresDinamicas, false)
-        : "coresMaxPrint";
-
-      gradeCoresHtml = `
-        <div class="sj-fil-clean-grid">
-          ${coresFiltradas
-          .map((cor) => {
-            const stCor =
-              cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
-            const isEsg = stCor === "esgotado";
-            const isPouc = stCor === "poucas_unidades";
-            const nomeLimpo = formatarNomeCorClean(cor.nome, matAtivoId);
-            const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
-            const ehFavCor = isFavorito(corDbId);
-            return `
-                <article class="filament-color-tile sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
-                  <div
-                    class="filament-color-tile-img sj-fil-card-media"
-                    data-hub-open-color-pdp="${itemAtivo.id}"
-                    data-hub-color-idx="${cor.originalIdx}"
-                    title="Ver detalhes de ${cor.nome} (#${cor.cod})"
-                  >
-                    <span class="sj-fil-code-tag">#${cor.cod}</span>
-                    <button
-                      type="button"
-                      class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
-                      data-toggle-fav="${escaparHtml(corDbId)}"
-                      aria-label="Favoritar ${escaparHtml(cor.nome)}"
-                      title="Favoritar esta cor"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </button>
-                    ${isEsg
-                ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
-                : isPouc
-                  ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
-                  : ""
-              }
-                    <img
-                      src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem}"
-                      alt="${cor.nome}"
-                      style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div class="filament-color-tile-body sj-fil-card-body">
-                    <div
-                      class="sj-fil-name-row"
-                      data-hub-open-color-pdp="${itemAtivo.id}"
-                      data-hub-color-idx="${cor.originalIdx}"
-                    >
-                      <span class="sj-fil-dot" style="background: ${cor.hex};"></span>
-                      <strong class="tile-color-name sj-fil-name">${nomeLimpo}</strong>
-                    </div>
-                    <div class="sj-fil-card-footer">
-                      <strong class="tile-price-val sj-fil-price">${cor.preco}</strong>
-                      <button
-                        type="button"
-                        class="tile-add-btn sj-fil-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
-                        data-hub-quick-add="${itemAtivo.id}"
-                        data-hub-color-idx="${cor.originalIdx}"
-                        data-hub-brand="MaxPrint"
-                        ${isEsg ? "disabled" : ""}
-                      >
-                        ${isEsg ? "Esgotado" : "+ Adicionar"}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              `;
-          })
-          .join("")}
+          `).join("")}
         </div>
       `;
     } else {
-      idFichaTecnicaAtiva = "fil-pla-bambulab";
-      const itemBambu =
+      itemAtivo =
         window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
         window.SITE_DATA.catalogo[0];
-      const paletaBambu = window.SITE_DATA.coresBambuLab || [];
+      chavePaletaAtiva = "coresBambuLab";
       const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
-      const termoBusca = (state.busca || "").trim().toLowerCase();
-
-      const coresBambuFiltradas = paletaBambu
+      coresListaBase = paletaBambuFull
         .map((cor, originalIdx) => ({ ...cor, originalIdx }))
         .filter((cor) => {
-          const ehRefil =
-            (cor.nome || "").toLowerCase().includes("refil") ||
-            (cor.tipo || "").toLowerCase().includes("refil");
+          const ehRefil = ((cor.nome || "") + " " + (cor.tipo || "")).toLowerCase().includes("refil");
           if (filtroBambu === "carretel" && ehRefil) return false;
           if (filtroBambu === "refil" && !ehRefil) return false;
-          if (termoBusca) {
-            return `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} bambu`
-              .toLowerCase()
-              .includes(termoBusca);
-          }
           return true;
         });
+      materialNomeBreadcrumb = "Bambu Lab RFID";
 
       barraMateriaisHtml = `
         <div class="sj-fil-line-pills" role="tablist" aria-label="Apresentação Bambu Lab">
-          ${opcoesBambu
-          .map(
-            (op) => `
+          ${opcoesBambu.map((op) => `
             <button
               type="button"
+              role="tab"
+              aria-selected="${filtroBambu === op.id ? "true" : "false"}"
               class="sj-fil-line-pill ${filtroBambu === op.id ? "active" : ""}"
               data-hub-bambu-filter="${op.id}"
             >
               <span class="pill-name">${op.curto}</span>
               <span class="pill-count">${op.qtd}</span>
             </button>
-          `
-          )
-          .join("")}
-        </div>
-      `;
-
-      gradeCoresHtml = `
-        <div class="sj-fil-clean-grid">
-          ${coresBambuFiltradas
-          .map((cor) => {
-            const ehRefil =
-              (cor.nome || "").toLowerCase().includes("refil") ||
-              (cor.tipo || "").toLowerCase().includes("refil");
-            const stCor =
-              cor.estoqueStatus || (itemBambu && itemBambu.estoqueStatus) || "disponivel";
-            const isEsg = stCor === "esgotado";
-            const isPouc = stCor === "poucas_unidades";
-            const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
-            const corDbId = resolverIdCorBanco(cor, "coresBambuLab", cor.originalIdx);
-            const ehFavCor = isFavorito(corDbId);
-            return `
-                <article class="filament-color-tile sj-fil-card bambu-tile ${isEsg ? "tile-is-esgotado" : ""}">
-                  <div
-                    class="filament-color-tile-img sj-fil-card-media"
-                    data-hub-open-color-pdp="fil-pla-bambulab"
-                    data-hub-color-idx="${cor.originalIdx}"
-                    title="Ver detalhes de ${cor.nome} (#${cor.cod})"
-                  >
-                    <span class="sj-fil-code-tag">#${cor.cod}</span>
-                    <span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${ehRefil ? "Refil" : "Bobina RFID"
-              }</span>
-                    <button
-                      type="button"
-                      class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
-                      data-toggle-fav="${escaparHtml(corDbId)}"
-                      aria-label="Favoritar ${escaparHtml(cor.nome)}"
-                      title="Favoritar este filamento"
-                    >
-                      <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#71717a"}" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-                      </svg>
-                    </button>
-                    ${isEsg
-                ? `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`
-                : isPouc
-                  ? `<span class="sj-fil-stock-pill is-poucas">Últimas unid.</span>`
-                  : ""
-              }
-                    <img
-                      src="${cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem}"
-                      alt="${cor.nome}"
-                      style="filter: ${cor.usaFotoCatalogoDireta ? "none" : cor.filtroCss || "none"};"
-                      loading="lazy"
-                    />
-                  </div>
-                  <div class="filament-color-tile-body sj-fil-card-body">
-                    <div
-                      class="sj-fil-name-row"
-                      data-hub-open-color-pdp="fil-pla-bambulab"
-                      data-hub-color-idx="${cor.originalIdx}"
-                    >
-                      <span class="sj-fil-dot" style="background: ${cor.hex};"></span>
-                      <strong class="tile-color-name sj-fil-name">${nomeLimpo}</strong>
-                    </div>
-                    <div class="sj-fil-card-footer">
-                      <strong class="tile-price-val sj-fil-price">${cor.preco}</strong>
-                      <button
-                        type="button"
-                        class="tile-add-btn sj-fil-add-btn ${isEsg ? "btn-out-of-stock" : ""}"
-                        data-hub-quick-add="fil-pla-bambulab"
-                        data-hub-color-idx="${cor.originalIdx}"
-                        data-hub-brand="Bambu Lab"
-                        ${isEsg ? "disabled" : ""}
-                      >
-                        ${isEsg ? "Esgotado" : "+ Adicionar"}
-                      </button>
-                    </div>
-                  </div>
-                </article>
-              `;
-          })
-          .join("")}
+          `).join("")}
         </div>
       `;
     }
 
-    return `
-      <div class="filament-brand-hub-wrapper sj-fil-studio" data-filament-hub="${contexto}" id="filament-ext-box-${contexto}">
-        <div class="sj-fil-studio-bar">
-          <div class="sj-fil-bar-top">
-            <div class="sj-fil-brand-segmented" role="tablist" aria-label="Marca de filamento">
-              <button
-                type="button"
-                class="sj-fil-brand-btn ${!isBambuAtivo ? "active" : ""}"
-                data-hub-select-brand="MaxPrint"
-              >
-                <strong>Masterprint</strong>
-                <span>${totalCoresMaxPrint} cores</span>
-              </button>
-              <button
-                type="button"
-                class="sj-fil-brand-btn is-bambu ${isBambuAtivo ? "active" : ""}"
-                data-hub-select-brand="Bambu Lab"
-              >
-                <span class="sj-rfid-tag">RFID</span>
-                <strong>Bambu Lab</strong>
-                <span>${totalCoresBambu} cores</span>
-              </button>
-            </div>
+    const idFichaTecnicaAtiva = itemAtivo?.id || (isBambuAtivo ? "fil-pla-bambulab" : "fil-pla-maxprint");
 
-            <div class="sj-fil-bar-meta">
-              <span class="sj-fil-spec-pill">Bobina 1 kg • 1.75 mm</span>
-              <button type="button" class="sj-fil-pdp-link" data-hub-open-pdp="${idFichaTecnicaAtiva}">
-                📄 Ficha Técnica →
-              </button>
-            </div>
+    let coresFiltradas = coresListaBase.filter((cor) => {
+      const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
+      if (somenteDisp && stCor === "esgotado") return false;
+      if (familiaAtiva !== "todas") {
+        if (classificarFamiliaCorHex(cor.hex, cor.nome) !== familiaAtiva) return false;
+      }
+      if (termoBusca) {
+        const alvo = `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} ${isBambuAtivo ? "bambu rfid" : "masterprint maxprint"}`.toLowerCase();
+        if (!alvo.includes(termoBusca)) return false;
+      }
+      return true;
+    });
+
+    // Ordenação + empurra esgotados para o fim quando "Somente disponíveis" estiver desligado
+    coresFiltradas.sort((a, b) => {
+      const stA = (a.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel") === "esgotado" ? 1 : 0;
+      const stB = (b.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel") === "esgotado" ? 1 : 0;
+      if (stA !== stB) return stA - stB;
+      if (ordenacaoAtiva === "menor-preco") return Number(a.valor || 0) - Number(b.valor || 0);
+      if (ordenacaoAtiva === "maior-preco") return Number(b.valor || 0) - Number(a.valor || 0);
+      if (ordenacaoAtiva === "az") return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
+      return a.originalIdx - b.originalIdx;
+    });
+
+    const totalResultados = coresFiltradas.length;
+    const coresVisiveis = coresFiltradas.slice(0, limiteVisivel);
+    const restantes = Math.max(0, totalResultados - coresVisiveis.length);
+    const proximoLote = Math.min(24, restantes);
+
+    const topoPaginaHtml = `
+      <nav class="sj-breadcrumb" aria-label="Você está em">
+        <button type="button" data-breadcrumb-go="home">Início</button>
+        <span aria-hidden="true">›</span>
+        <span class="sj-bc-node">Filamentos 3D</span>
+        <span aria-hidden="true">›</span>
+        <strong aria-current="page">${escaparHtml(materialNomeBreadcrumb)}</strong>
+      </nav>
+
+      <header class="sj-catalog-page-head">
+        <div class="sj-catalog-head-copy">
+          <h1>Filamentos 3D</h1>
+          <p>Bobinas de 1 kg, 1,75 mm. Masterprint (universal) ou Bambu Lab (chip RFID).</p>
+        </div>
+        <div class="sj-catalog-head-actions">
+          <button type="button" class="sj-spec-trigger-btn" data-hub-open-spec="${escaparHtml(idFichaTecnicaAtiva)}">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
+            <span>Ficha técnica</span>
+          </button>
+        </div>
+      </header>
+
+      <div class="sj-fil-brand-tabs" role="tablist" aria-label="Escolher marca de filamento">
+        <button
+          type="button"
+          role="tab"
+          aria-selected="${!isBambuAtivo ? "true" : "false"}"
+          class="sj-fil-brand-tab ${!isBambuAtivo ? "active" : ""}"
+          data-hub-select-brand="MaxPrint"
+        >
+          <div class="sj-fil-brand-tab-head">
+            <strong>Masterprint</strong>
+            <span class="sj-fil-brand-count">${totalCoresMaxPrint} cores</span>
           </div>
+          <span class="sj-fil-brand-tab-desc">Universal, funciona em qualquer impressora 3D</span>
+        </button>
 
-          ${barraMateriaisHtml}
+        <button
+          type="button"
+          role="tab"
+          aria-selected="${isBambuAtivo ? "true" : "false"}"
+          class="sj-fil-brand-tab is-bambu ${isBambuAtivo ? "active" : ""}"
+          data-hub-select-brand="Bambu Lab"
+        >
+          <div class="sj-fil-brand-tab-head">
+            <strong>Bambu Lab RFID</strong>
+            <span class="sj-fil-brand-count">${totalCoresBambu} cores</span>
+          </div>
+          <span class="sj-fil-brand-tab-desc">Leitura automática no AMS e AMS Lite</span>
+        </button>
+      </div>
+
+      ${barraMateriaisHtml}
+
+      <div class="sj-catalog-toolbar" role="region" aria-label="Filtros de filamentos">
+        <div class="sj-toolbar-search">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          <input
+            type="search"
+            id="sj-fil-search-input"
+            value="${escaparHtml(state.busca || "")}"
+            placeholder="Buscar cor, material ou código (#34)..."
+            aria-label="Buscar cor, material ou código"
+            autocomplete="off"
+          />
+          ${termoBusca ? `<button type="button" class="sj-toolbar-clear" id="sj-fil-search-clear" aria-label="Limpar busca">×</button>` : ""}
         </div>
 
+        <div class="sj-color-family-pills" role="group" aria-label="Família de cor">
+          ${familiasCor.map((fam) => `
+            <button
+              type="button"
+              class="sj-color-family-btn ${familiaAtiva === fam.id ? "active" : ""}"
+              data-hub-color-family="${fam.id}"
+              aria-pressed="${familiaAtiva === fam.id ? "true" : "false"}"
+            >
+              <span class="sj-cf-dot" style="background: ${fam.hex};" aria-hidden="true"></span>
+              <span>${fam.label}</span>
+            </button>
+          `).join("")}
+        </div>
+
+        <div class="sj-toolbar-right">
+          <label class="sj-avail-toggle">
+            <input type="checkbox" id="sj-fil-avail-toggle" ${somenteDisp ? "checked" : ""} />
+            <span>Somente disponíveis</span>
+          </label>
+
+          <select id="sj-fil-sort-select" class="sj-toolbar-select" aria-label="Ordenar cores">
+            <option value="padrao" ${ordenacaoAtiva === "padrao" ? "selected" : ""}>Ordem padrão</option>
+            <option value="menor-preco" ${ordenacaoAtiva === "menor-preco" ? "selected" : ""}>Menor preço</option>
+            <option value="maior-preco" ${ordenacaoAtiva === "maior-preco" ? "selected" : ""}>Maior preço</option>
+            <option value="az" ${ordenacaoAtiva === "az" ? "selected" : ""}>A–Z</option>
+          </select>
+
+          <button type="button" class="sj-mobile-filter-btn" id="sj-fil-open-sheet-btn">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
+            <span>Filtrar</span>
+          </button>
+        </div>
+      </div>
+
+      <div class="sj-catalog-results-meta">
+        <span>Mostrando <strong>${coresVisiveis.length}</strong> de <strong>${totalResultados}</strong> ${totalResultados === 1 ? "cor" : "cores"}</span>
+        ${(familiaAtiva !== "todas" || termoBusca || !somenteDisp)
+        ? `<button type="button" class="sj-inline-reset-link" data-hub-reset-filters="1">Limpar filtros</button>`
+        : ""}
+      </div>
+    `;
+
+    let gradeCoresHtml = "";
+    if (coresVisiveis.length === 0) {
+      gradeCoresHtml = `
+        <div class="sj-empty-state">
+          <div class="sj-empty-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <h3>Nenhuma cor encontrada</h3>
+          <p>Nenhuma cor corresponde aos filtros selecionados nesta linha.</p>
+          <button type="button" class="sj-btn-primary" data-hub-reset-filters="1">Limpar filtros</button>
+        </div>
+      `;
+    } else {
+      gradeCoresHtml = `
+        <div class="sj-fil-clean-grid">
+          ${coresVisiveis.map((cor) => {
+        const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
+        const isEsg = stCor === "esgotado";
+        const isPouc = stCor === "poucas_unidades";
+        const isNovo = Boolean(cor.isNovo || cor.novo);
+        const nomeLimpo = formatarNomeCorClean(cor.nome, isBambuAtivo ? "bambu" : (itemAtivo?.id || "fil-pla-maxprint"));
+        const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
+        const ehFavCor = isFavorito(corDbId);
+        const precoExibir = Number(cor.valor || 0) > 0 ? (cor.preco || formatarMoedaBR(cor.valor)) : "Sob consulta";
+        const ehRefil = isBambuAtivo && ((cor.nome || "") + " " + (cor.tipo || "")).toLowerCase().includes("refil");
+        const imgUrl = cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem;
+        const imgFilter = cor.usaFotoCatalogoDireta ? "none" : (cor.filtroCss || "none");
+
+        let badgeEspecialHtml = "";
+        if (isEsg) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`;
+        else if (isPouc) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-poucas">Poucas unidades</span>`;
+        else if (isNovo) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-novo">Novo</span>`;
+        else if (isBambuAtivo) badgeEspecialHtml = `<span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${ehRefil ? "Refil" : "Bobina"}</span>`;
+
+        return `
+              <article class="sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
+                <div
+                  class="sj-fil-card-media"
+                  style="--fil-tint: ${escaparHtml(cor.hex || "#e2e8f0")};"
+                  data-hub-open-qv="${escaparHtml(itemAtivo.id)}"
+                  data-hub-color-idx="${cor.originalIdx}"
+                  data-hub-brand="${isBambuAtivo ? "Bambu Lab" : "MaxPrint"}"
+                  role="button"
+                  tabindex="0"
+                  aria-label="Visualizar ${escaparHtml(nomeLimpo)}"
+                >
+                  ${badgeEspecialHtml}
+                  <button
+                    type="button"
+                    class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
+                    data-toggle-fav="${escaparHtml(corDbId)}"
+                    aria-label="Favoritar ${escaparHtml(nomeLimpo)}"
+                    title="Favoritar esta cor"
+                  >
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#64748b"}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                      <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
+                    </svg>
+                  </button>
+                  <img
+                    src="${escaparHtml(imgUrl)}"
+                    alt="${escaparHtml(nomeLimpo)}"
+                    style="filter: ${escaparHtml(imgFilter)};"
+                    loading="lazy"
+                    width="240"
+                    height="240"
+                  />
+                </div>
+
+                <div class="sj-fil-card-body">
+                  <button
+                    type="button"
+                    class="sj-fil-name-row"
+                    data-hub-open-qv="${escaparHtml(itemAtivo.id)}"
+                    data-hub-color-idx="${cor.originalIdx}"
+                    data-hub-brand="${isBambuAtivo ? "Bambu Lab" : "MaxPrint"}"
+                  >
+                    <span class="sj-fil-dot" style="background: ${escaparHtml(cor.hex || "#94a3b8")};" aria-hidden="true"></span>
+                    <strong class="sj-fil-name">${escaparHtml(nomeLimpo)}</strong>
+                  </button>
+
+                  <div class="sj-fil-card-bottom">
+                    <strong class="sj-fil-price ${Number(cor.valor || 0) <= 0 ? "is-consulta" : ""}">${escaparHtml(precoExibir)}</strong>
+                    ${renderInlineActionControlHtml({
+          dbProductId: corDbId,
+          itemId: itemAtivo.id,
+          corIdx: cor.originalIdx,
+          marca: isBambuAtivo ? "Bambu Lab" : "MaxPrint",
+          isEsgotado: isEsg,
+          isConsulta: Number(cor.valor || 0) <= 0,
+          isQuickFilament: true,
+          itemNome: cor.nome,
+          fullWidth: true
+        })}
+                  </div>
+                </div>
+              </article>
+            `;
+      }).join("")}
+        </div>
+        ${restantes > 0 ? `
+          <div class="sj-load-more-wrap">
+            <button type="button" class="sj-btn-load-more" id="sj-fil-load-more-btn">
+              Carregar mais ${proximoLote} (${restantes} restantes)
+            </button>
+          </div>
+        ` : ""}
+      `;
+    }
+
+    const bannerVipHtml = window.SJ_SITE_CHROME?.renderizarBannerVipInternoHtml?.() || "";
+
+    return `
+      <div class="filament-brand-hub-wrapper sj-fil-studio" data-filament-hub="${contexto}" id="filament-ext-box-${contexto}">
+        ${topoPaginaHtml}
         ${gradeCoresHtml}
+        ${bannerVipHtml}
       </div>
     `;
   }
@@ -5004,102 +5460,228 @@
   function vincularEventosHubFilamentos(rootEl, contexto = "catalogo") {
     if (!rootEl) return;
 
-    const reRenderizarHub = (focarExtensao = false) => {
+    const reRenderizarHub = (preservarFocoBusca = false) => {
       const wrapper = rootEl.querySelector(`[data-filament-hub="${contexto}"]`);
-      if (wrapper) {
-        wrapper.outerHTML = gerarHubFilamentosHtml(contexto);
-        vincularEventosHubFilamentos(rootEl, contexto);
-        const cardsGrid = rootEl.querySelector("[data-hub-cards-grid]");
-        if (cardsGrid) vincularEventosDosCards(cardsGrid);
-        if (focarExtensao) {
-          const extBox = document.getElementById(`filament-ext-box-${contexto}`);
-          extBox?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+      if (!wrapper) return;
+      wrapper.outerHTML = gerarHubFilamentosHtml(contexto);
+      vincularEventosHubFilamentos(rootEl, contexto);
+      window.SJ_SITE_CHROME?.vincularBannerVipInterno?.(rootEl);
+      if (preservarFocoBusca) {
+        const inp = document.getElementById("sj-fil-search-input");
+        if (inp) {
+          inp.focus();
+          const len = inp.value.length;
+          inp.setSelectionRange?.(len, len);
         }
       }
     };
 
-    // Clique em um dos 2 grandes cards de marca ou nos botões de trocar marca (MaxPrint <-> Bambu Lab)
+    window.SJ_SITE_CHROME?.vincularBannerVipInterno?.(rootEl);
+
+    rootEl.querySelectorAll("[data-breadcrumb-go]").forEach((btn) => {
+      btn.addEventListener("click", () => navegarParaCategoria(btn.getAttribute("data-breadcrumb-go") || "home"));
+    });
+
     rootEl.querySelectorAll("[data-hub-select-brand]").forEach((el) => {
-      el.addEventListener("click", (e) => {
-        if (e.target.closest("[data-hub-jump-max]") || e.target.closest("[data-hub-jump-bambu]")) {
-          return;
-        }
-        const novaMarca = el.getAttribute("data-hub-select-brand");
-        state.hubFilamentoMarcaAtiva = novaMarca;
-        if (contexto === "home") {
-          state.hubFilamentoAbertoHome = true;
-        }
-        reRenderizarHub(true);
+      el.addEventListener("click", () => {
+        state.hubFilamentoMarcaAtiva = el.getAttribute("data-hub-select-brand") || "MaxPrint";
+        state.hubFilamentoLimiteVisivel = 24;
+        reRenderizarHub(false);
       });
     });
 
-    // Clique direto em uma pílula de material MaxPrint dentro do card (ex: PLA, PLA Silk, PETG, TPU, ABS)
-    rootEl.querySelectorAll("[data-hub-jump-max]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        state.hubFilamentoMarcaAtiva = "MaxPrint";
-        state.hubFilamentoMaterialMaxPrint = btn.getAttribute("data-hub-jump-max");
-        if (contexto === "home") {
-          state.hubFilamentoAbertoHome = true;
-        }
-        reRenderizarHub(true);
-      });
-    });
-
-    // Clique direto em uma pílula Bambu Lab dentro do card (Todos, Carretel RFID, Refil RFID)
-    rootEl.querySelectorAll("[data-hub-jump-bambu]").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.stopPropagation();
-        state.hubFilamentoMarcaAtiva = "Bambu Lab";
-        state.hubFilamentoFiltroBambu = btn.getAttribute("data-hub-jump-bambu");
-        if (contexto === "home") {
-          state.hubFilamentoAbertoHome = true;
-        }
-        reRenderizarHub(true);
-      });
-    });
-
-    // Troca de aba de material dentro da extensão MaxPrint (PLA, Silk, PETG, TPU, ABS, Resumo)
     rootEl.querySelectorAll("[data-hub-max-mat]").forEach((tabBtn) => {
       tabBtn.addEventListener("click", () => {
         state.hubFilamentoMaterialMaxPrint = tabBtn.getAttribute("data-hub-max-mat");
+        state.hubFilamentoLimiteVisivel = 24;
         reRenderizarHub(false);
       });
     });
 
-    // Troca de aba de filtro dentro da extensão Bambu Lab (Todos, Carretel, Refil)
     rootEl.querySelectorAll("[data-hub-bambu-filter]").forEach((tabBtn) => {
       tabBtn.addEventListener("click", () => {
         state.hubFilamentoFiltroBambu = tabBtn.getAttribute("data-hub-bambu-filter");
+        state.hubFilamentoLimiteVisivel = 24;
         reRenderizarHub(false);
       });
     });
 
-    // Botão recolher extensão na Home
-    rootEl.querySelectorAll("[data-hub-collapse-home]").forEach((btn) => {
+    rootEl.querySelectorAll("[data-hub-color-family]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.hubFilamentoAbertoHome = false;
+        state.hubFilamentoFamiliaCor = btn.getAttribute("data-hub-color-family") || "todas";
+        state.hubFilamentoLimiteVisivel = 24;
         reRenderizarHub(false);
       });
     });
 
-    // Abrir página completa (PDP) do filamento
-    rootEl.querySelectorAll("[data-hub-open-pdp]").forEach((btn) => {
+    rootEl.querySelector("#sj-fil-avail-toggle")?.addEventListener("change", (e) => {
+      state.hubFilamentoSomenteDisponiveis = Boolean(e.target.checked);
+      state.hubFilamentoLimiteVisivel = 24;
+      reRenderizarHub(false);
+    });
+
+    rootEl.querySelector("#sj-fil-sort-select")?.addEventListener("change", (e) => {
+      state.hubFilamentoOrdenacao = e.target.value || "padrao";
+      reRenderizarHub(false);
+    });
+
+    const searchInp = rootEl.querySelector("#sj-fil-search-input");
+    if (searchInp) {
+      let timerBusca = null;
+      searchInp.addEventListener("input", () => {
+        clearTimeout(timerBusca);
+        timerBusca = setTimeout(() => {
+          state.busca = searchInp.value || "";
+          state.hubFilamentoLimiteVisivel = 24;
+          const sGlobal = document.getElementById("global-search-input");
+          const sInline = document.getElementById("inline-search-input");
+          if (sGlobal && sGlobal.value !== state.busca) sGlobal.value = state.busca;
+          if (sInline && sInline.value !== state.busca) sInline.value = state.busca;
+          reRenderizarHub(true);
+        }, 160);
+      });
+    }
+
+    rootEl.querySelector("#sj-fil-search-clear")?.addEventListener("click", () => {
+      state.busca = "";
+      state.hubFilamentoLimiteVisivel = 24;
+      const sGlobal = document.getElementById("global-search-input");
+      const sInline = document.getElementById("inline-search-input");
+      if (sGlobal) sGlobal.value = "";
+      if (sInline) sInline.value = "";
+      reRenderizarHub(true);
+    });
+
+    rootEl.querySelectorAll("[data-hub-reset-filters]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        abrirPaginaProduto(btn.getAttribute("data-hub-open-pdp"));
+        state.busca = "";
+        state.hubFilamentoFamiliaCor = "todas";
+        state.hubFilamentoOrdenacao = "padrao";
+        state.hubFilamentoSomenteDisponiveis = true;
+        state.hubFilamentoLimiteVisivel = 24;
+        const sGlobal = document.getElementById("global-search-input");
+        const sInline = document.getElementById("inline-search-input");
+        if (sGlobal) sGlobal.value = "";
+        if (sInline) sInline.value = "";
+        reRenderizarHub(false);
       });
     });
 
-    // Clicar na foto ou nome de uma cor na grade da extensão -> abre a página daquele filamento já naquela cor!
-    rootEl.querySelectorAll("[data-hub-open-color-pdp]").forEach((el) => {
-      el.addEventListener("click", () => {
-        const itemId = el.getAttribute("data-hub-open-color-pdp");
+    rootEl.querySelector("#sj-fil-load-more-btn")?.addEventListener("click", () => {
+      state.hubFilamentoLimiteVisivel = Number(state.hubFilamentoLimiteVisivel || 24) + 24;
+      reRenderizarHub(false);
+    });
+
+    rootEl.querySelectorAll("[data-hub-open-spec]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        abrirModalFichaTecnicaFilamento(btn.getAttribute("data-hub-open-spec"));
+      });
+    });
+
+    // Bottom sheet mobile de filtros (<dialog closedby="any">)
+    rootEl.querySelector("#sj-fil-open-sheet-btn")?.addEventListener("click", () => {
+      const sheetHtml = `
+        <div class="sj-sheet-panel">
+          <div class="sj-sheet-head">
+            <h2 id="sj-filter-sheet-title">Filtrar filamentos</h2>
+            <button type="button" class="sj-dialog-close" data-close-native-dialog aria-label="Fechar filtros">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+            </button>
+          </div>
+
+          <div class="sj-sheet-body">
+            <label class="sj-sheet-field">
+              <span>Marca</span>
+              <select id="sj-sheet-brand">
+                <option value="MaxPrint" ${state.hubFilamentoMarcaAtiva === "MaxPrint" ? "selected" : ""}>Masterprint (Universal)</option>
+                <option value="Bambu Lab" ${state.hubFilamentoMarcaAtiva === "Bambu Lab" ? "selected" : ""}>Bambu Lab (Chip RFID)</option>
+              </select>
+            </label>
+
+            <label class="sj-sheet-field">
+              <span>Família de cor</span>
+              <select id="sj-sheet-color">
+                <option value="todas" ${state.hubFilamentoFamiliaCor === "todas" ? "selected" : ""}>Todas</option>
+                <option value="neutros" ${state.hubFilamentoFamiliaCor === "neutros" ? "selected" : ""}>Neutros (Branco, Preto, Cinza)</option>
+                <option value="quentes" ${state.hubFilamentoFamiliaCor === "quentes" ? "selected" : ""}>Quentes (Vermelho, Laranja, Amarelo)</option>
+                <option value="frios" ${state.hubFilamentoFamiliaCor === "frios" ? "selected" : ""}>Frios (Azul, Roxo, Ciano)</option>
+                <option value="verdes" ${state.hubFilamentoFamiliaCor === "verdes" ? "selected" : ""}>Verdes</option>
+                <option value="especiais" ${state.hubFilamentoFamiliaCor === "especiais" ? "selected" : ""}>Especiais (Silk, Dual, Glitter)</option>
+              </select>
+            </label>
+
+            <label class="sj-sheet-field">
+              <span>Ordenar por</span>
+              <select id="sj-sheet-sort">
+                <option value="padrao" ${state.hubFilamentoOrdenacao === "padrao" ? "selected" : ""}>Ordem padrão</option>
+                <option value="menor-preco" ${state.hubFilamentoOrdenacao === "menor-preco" ? "selected" : ""}>Menor preço</option>
+                <option value="maior-preco" ${state.hubFilamentoOrdenacao === "maior-preco" ? "selected" : ""}>Maior preço</option>
+                <option value="az" ${state.hubFilamentoOrdenacao === "az" ? "selected" : ""}>A–Z</option>
+              </select>
+            </label>
+
+            <label class="sj-avail-toggle sj-sheet-toggle">
+              <input type="checkbox" id="sj-sheet-avail" ${state.hubFilamentoSomenteDisponiveis !== false ? "checked" : ""} />
+              <span>Somente disponíveis</span>
+            </label>
+          </div>
+
+          <div class="sj-sheet-foot">
+            <button type="button" class="sj-btn-outline" id="sj-sheet-reset">Limpar</button>
+            <button type="button" class="sj-btn-primary" id="sj-sheet-apply">Aplicar filtros</button>
+          </div>
+        </div>
+      `;
+      abrirDialogoNativo("sj-fil-filter-sheet", sheetHtml, (dlg) => {
+        dlg.querySelector("#sj-sheet-reset")?.addEventListener("click", () => {
+          state.hubFilamentoFamiliaCor = "todas";
+          state.hubFilamentoOrdenacao = "padrao";
+          state.hubFilamentoSomenteDisponiveis = true;
+          state.hubFilamentoLimiteVisivel = 24;
+          dlg.close();
+          reRenderizarHub(false);
+        });
+        dlg.querySelector("#sj-sheet-apply")?.addEventListener("click", () => {
+          state.hubFilamentoMarcaAtiva = dlg.querySelector("#sj-sheet-brand")?.value || "MaxPrint";
+          state.hubFilamentoFamiliaCor = dlg.querySelector("#sj-sheet-color")?.value || "todas";
+          state.hubFilamentoOrdenacao = dlg.querySelector("#sj-sheet-sort")?.value || "padrao";
+          state.hubFilamentoSomenteDisponiveis = Boolean(dlg.querySelector("#sj-sheet-avail")?.checked);
+          state.hubFilamentoLimiteVisivel = 24;
+          dlg.close();
+          reRenderizarHub(false);
+        });
+      });
+    });
+
+    // Favoritar cor
+    rootEl.querySelectorAll(".fil-fav-btn[data-toggle-fav]").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        toggleFavorito(btn.getAttribute("data-toggle-fav"));
+      });
+    });
+
+    // Abrir visualização rápida (Quick View) ao clicar na foto ou no nome da cor
+    rootEl.querySelectorAll("[data-hub-open-qv]").forEach((el) => {
+      const handler = (e) => {
+        if (e.target.closest("[data-toggle-fav]")) return;
+        const itemId = el.getAttribute("data-hub-open-qv");
         const corIdx = Number(el.getAttribute("data-hub-color-idx") || 0);
-        abrirPaginaProduto(itemId, { corIdxInicial: corIdx });
-      });
+        const marca = el.getAttribute("data-hub-brand") || "MaxPrint";
+        abrirQuickViewFilamento(itemId, corIdx, marca);
+      };
+      el.addEventListener("click", handler);
+      if (el.getAttribute("role") === "button") {
+        el.addEventListener("keydown", (e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handler(e);
+          }
+        });
+      }
     });
 
-    // Botão "+ Adicionar ao Pedido" direto em qualquer cor da extensão!
+    // Adicionar / Stepper "- Qtd +" direto no cartão
     rootEl.querySelectorAll("[data-hub-quick-add]").forEach((btn) => {
       btn.addEventListener("click", () => {
         const itemId = btn.getAttribute("data-hub-quick-add");
@@ -5113,9 +5695,7 @@
         if (!corObj) return;
 
         const apresentacao = isBambu
-          ? (corObj.nome || "").toLowerCase().includes("refil")
-            ? "1KG Refil RFID"
-            : "1KG Carretel RFID"
+          ? ((corObj.nome || "").toLowerCase().includes("refil") ? "1KG Refil RFID" : "1KG Carretel RFID")
           : "1KG";
 
         adicionarItemNaCaixa(item.id, btn, {
@@ -5126,24 +5706,393 @@
         });
       });
     });
+
+    rootEl.querySelectorAll(".sj-card-action-wrap [data-stepper-delta]").forEach((stepBtn) => {
+      stepBtn.addEventListener("click", () => {
+        const wrap = stepBtn.closest("[data-cart-action-wrap]");
+        if (!wrap) return;
+        const dbId = wrap.dataset.cartActionWrap;
+        const itemId = wrap.dataset.itemId;
+        const corIdx = Number(wrap.dataset.corIdx ?? -1);
+        const marca = wrap.dataset.marca || "MaxPrint";
+        const delta = Number(stepBtn.getAttribute("data-stepper-delta") || 0);
+        alterarQuantidadeStepperProduto(dbId, delta, itemId, corIdx, marca);
+      });
+    });
   }
 
-  // 3. Renderiza todas as seções do catálogo
+  function obterSvgServico(itemId) {
+    if (String(itemId).includes("revisao")) {
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>`;
+    }
+    if (String(itemId).includes("upgrade")) {
+      return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon></svg>`;
+    }
+    return `<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>`;
+  }
+
+  function detectarCompatibilidadePeca(item, filtro) {
+    if (filtro === "todos") return true;
+    const texto = `${item.compatibilidade || ""} ${(item.select2Opcoes || []).join(" ")} ${item.nome || ""}`.toLowerCase();
+    if (filtro === "A1") return /\ba1\b/.test(texto) || texto.includes("série a1") || texto.includes("a1 / a1 mini");
+    if (filtro === "A1 Mini") return texto.includes("a1 mini") || texto.includes("série a1");
+    if (filtro === "P1/X1/P2S") return /(p1s|p1p|x1c|p2s|corexy|ams|h2d|x1)/.test(texto);
+    if (filtro === "Universal") return /(universal|fmd|fdm|qualquer|snapmaker|geral|spray|lubrificante|adesivo)/.test(texto);
+    return true;
+  }
+
+  // 3. Renderiza as páginas internas (Filamentos, Impressoras, Peças, Serviços e Catálogo Completo)
   function renderizarCatalogoCompleto() {
     const container = document.getElementById("catalog-sections-container");
     if (!container) return;
 
-    const secoesParaExibir =
-      state.categoriaMenu === "todos"
-        ? secoesDefinicao
-        : secoesDefinicao.filter((s) => s.id === state.categoriaMenu);
+    const catAtiva = state.categoriaMenu || "todos";
+    const vipBannerHtml = window.SJ_SITE_CHROME?.renderizarBannerVipInternoHtml?.() || "";
 
+    // PÁGINA INTERNA EXCLUSIVA: FILAMENTOS 3D
+    if (catAtiva === "filamentos") {
+      container.innerHTML = gerarHubFilamentosHtml("catalogo");
+      vincularEventosHubFilamentos(container, "catalogo");
+      return;
+    }
+
+    // PÁGINA INTERNA EXCLUSIVA: IMPRESSORAS 3D
+    if (catAtiva === "impressoras") {
+      const perfis = [
+        { id: "todas", label: "Todas" },
+        { id: "COMECE A CRIAR", label: "Iniciantes" },
+        { id: "EVOLUA SUA PRODUÇÃO", label: "Produção" },
+        { id: "ALTA PERFORMANCE", label: "Alta performance" }
+      ];
+      const grupoAtivo = state.impressoraGrupoFiltro || "todas";
+      const ordAtiva = state.impressoraOrdenacao || "padrao";
+      const termo = (state.busca || "").trim().toLowerCase();
+
+      let lista = (window.SITE_DATA.catalogo || []).filter((i) => i.categoria === "impressoras");
+      if (grupoAtivo !== "todas") {
+        lista = lista.filter((i) => i.grupoCatalogo === grupoAtivo);
+      }
+      if (termo) {
+        lista = lista.filter((i) => `${i.nome} ${i.subtitulo} ${i.marca}`.toLowerCase().includes(termo));
+      }
+      lista.sort((a, b) => {
+        const esgA = (a.estoqueStatus || "disponivel") === "esgotado" ? 1 : 0;
+        const esgB = (b.estoqueStatus || "disponivel") === "esgotado" ? 1 : 0;
+        if (esgA !== esgB) return esgA - esgB;
+        if (ordAtiva === "menor-preco") return Number(a.precoVistaValor || 0) - Number(b.precoVistaValor || 0);
+        if (ordAtiva === "maior-preco") return Number(b.precoVistaValor || 0) - Number(a.precoVistaValor || 0);
+        return 0;
+      });
+
+      container.innerHTML = `
+        <section class="sj-internal-page" id="sec-impressoras">
+          <nav class="sj-breadcrumb" aria-label="Você está em">
+            <button type="button" data-breadcrumb-go="home">Início</button>
+            <span aria-hidden="true">›</span>
+            <strong aria-current="page">Impressoras 3D</strong>
+          </nav>
+
+          <header class="sj-catalog-page-head">
+            <div class="sj-catalog-head-copy">
+              <h1>Impressoras 3D</h1>
+              <p>Bambu Lab e Snapmaker com nota fiscal, garantia oficial e suporte técnico em Umuarama.</p>
+            </div>
+            <div class="sj-catalog-head-actions">
+              <button type="button" class="sj-spec-trigger-btn" data-open-printer-compare="1">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+                <span>Comparar modelos</span>
+              </button>
+            </div>
+          </header>
+
+          <div class="sj-catalog-toolbar" role="region" aria-label="Filtros de impressoras">
+            <div class="sj-toolbar-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="search" id="sj-imp-search-input" value="${escaparHtml(state.busca || "")}" placeholder="Buscar modelo (ex: A1 Mini, P2S, Snapmaker)..." aria-label="Buscar impressora" autocomplete="off" />
+              ${termo ? `<button type="button" class="sj-toolbar-clear" id="sj-imp-search-clear" aria-label="Limpar busca">×</button>` : ""}
+            </div>
+
+            <div class="sj-color-family-pills" role="tablist" aria-label="Perfil de uso">
+              ${perfis.map((p) => `
+                <button type="button" role="tab" aria-selected="${grupoAtivo === p.id ? "true" : "false"}" class="sj-color-family-btn ${grupoAtivo === p.id ? "active" : ""}" data-imp-filter-group="${escaparHtml(p.id)}">
+                  <span>${escaparHtml(p.label)}</span>
+                </button>
+              `).join("")}
+            </div>
+
+            <div class="sj-toolbar-right">
+              <select id="sj-imp-sort-select" class="sj-toolbar-select" aria-label="Ordenar impressoras">
+                <option value="padrao" ${ordAtiva === "padrao" ? "selected" : ""}>Ordem padrão</option>
+                <option value="menor-preco" ${ordAtiva === "menor-preco" ? "selected" : ""}>Menor preço</option>
+                <option value="maior-preco" ${ordAtiva === "maior-preco" ? "selected" : ""}>Maior preço</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="sj-catalog-results-meta">
+            <span>Mostrando <strong>${lista.length}</strong> ${lista.length === 1 ? "modelo" : "modelos"}</span>
+            ${(grupoAtivo !== "todas" || termo) ? `<button type="button" class="sj-inline-reset-link" id="sj-imp-reset-btn">Limpar filtros</button>` : ""}
+          </div>
+
+          ${lista.length === 0 ? `
+            <div class="sj-empty-state">
+              <div class="sj-empty-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
+              <h3>Nenhuma impressora encontrada</h3>
+              <p>Tente outro filtro ou fale com nossos consultores pelo WhatsApp.</p>
+              <button type="button" class="sj-btn-primary" id="sj-imp-reset-empty-btn">Limpar filtros</button>
+            </div>
+          ` : `
+            <div class="combo-products-row sj-internal-cards-grid">
+              ${lista.map((imp) => gerarCardHTML(imp)).join("")}
+            </div>
+          `}
+
+          ${vipBannerHtml}
+        </section>
+      `;
+
+      container.querySelectorAll("[data-breadcrumb-go]").forEach((b) => b.addEventListener("click", () => navegarParaCategoria("home")));
+      container.querySelectorAll("[data-imp-filter-group]").forEach((b) => {
+        b.addEventListener("click", () => {
+          state.impressoraGrupoFiltro = b.getAttribute("data-imp-filter-group") || "todas";
+          renderizarCatalogoCompleto();
+        });
+      });
+      container.querySelector("#sj-imp-sort-select")?.addEventListener("change", (e) => {
+        state.impressoraOrdenacao = e.target.value || "padrao";
+        renderizarCatalogoCompleto();
+      });
+      const impInp = container.querySelector("#sj-imp-search-input");
+      if (impInp) {
+        let t = null;
+        impInp.addEventListener("input", () => {
+          clearTimeout(t);
+          t = setTimeout(() => {
+            state.busca = impInp.value || "";
+            renderizarCatalogoCompleto();
+            const restored = document.getElementById("sj-imp-search-input");
+            restored?.focus();
+          }, 160);
+        });
+      }
+      const resetImp = () => {
+        state.busca = "";
+        state.impressoraGrupoFiltro = "todas";
+        state.impressoraOrdenacao = "padrao";
+        renderizarCatalogoCompleto();
+      };
+      container.querySelector("#sj-imp-search-clear")?.addEventListener("click", resetImp);
+      container.querySelector("#sj-imp-reset-btn")?.addEventListener("click", resetImp);
+      container.querySelector("#sj-imp-reset-empty-btn")?.addEventListener("click", resetImp);
+      window.SJ_SITE_CHROME?.vincularBannerVipInterno?.(container);
+      vincularEventosDosCards(container);
+      return;
+    }
+
+    // PÁGINA INTERNA EXCLUSIVA: PEÇAS E UPGRADES
+    if (catAtiva === "pecas") {
+      const todasPecas = (window.SITE_DATA.catalogo || []).filter((i) => i.categoria === "pecas");
+      const areas = Array.from(new Set(todasPecas.map((i) => i.area).filter(Boolean)));
+      const compatOpts = [
+        { id: "todos", label: "Todas" },
+        { id: "A1", label: "Bambu A1" },
+        { id: "A1 Mini", label: "A1 Mini" },
+        { id: "P1/X1/P2S", label: "P1 / X1 / P2S" },
+        { id: "Universal", label: "Universal" }
+      ];
+      const modAtivo = state.pecasFiltroModelo || "todos";
+      const areaAtiva = state.pecasFiltroArea || "todas";
+      const termo = (state.busca || "").trim().toLowerCase();
+      const limite = Number(state.pecasLimiteVisivel || 24);
+
+      let filtradas = todasPecas.filter((p) => {
+        if (!detectarCompatibilidadePeca(p, modAtivo)) return false;
+        if (areaAtiva !== "todas" && (p.area || "") !== areaAtiva) return false;
+        if (termo) {
+          const alvo = `${p.nome} ${p.subtitulo} ${p.compatibilidade || ""} ${p.area || ""} ${p.paraQueServe || ""}`.toLowerCase();
+          if (!alvo.includes(termo)) return false;
+        }
+        return true;
+      });
+
+      const visiveis = filtradas.slice(0, limite);
+      const restantes = Math.max(0, filtradas.length - visiveis.length);
+
+      container.innerHTML = `
+        <section class="sj-internal-page" id="sec-pecas">
+          <nav class="sj-breadcrumb" aria-label="Você está em">
+            <button type="button" data-breadcrumb-go="home">Início</button>
+            <span aria-hidden="true">›</span>
+            <strong aria-current="page">Peças e Upgrades</strong>
+          </nav>
+
+          <header class="sj-catalog-page-head">
+            <div class="sj-catalog-head-copy">
+              <h1>Peças e Upgrades</h1>
+              <p>Hotends, extrusoras, placas PEI e componentes originais com suporte técnico.</p>
+            </div>
+          </header>
+
+          <div class="sj-catalog-toolbar" role="region" aria-label="Filtros de peças">
+            <div class="sj-toolbar-search">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <input type="search" id="sj-pecas-search-input" value="${escaparHtml(state.busca || "")}" placeholder="Buscar bico, hotend, placa PEI, extrusora..." aria-label="Buscar peça" autocomplete="off" />
+              ${termo ? `<button type="button" class="sj-toolbar-clear" id="sj-pecas-search-clear" aria-label="Limpar busca">×</button>` : ""}
+            </div>
+
+            <div class="sj-color-family-pills" role="group" aria-label="Compatibilidade por impressora">
+              ${compatOpts.map((c) => `
+                <button type="button" class="sj-color-family-btn ${modAtivo === c.id ? "active" : ""}" data-pecas-compat="${escaparHtml(c.id)}" aria-pressed="${modAtivo === c.id ? "true" : "false"}">
+                  <span>${escaparHtml(c.label)}</span>
+                </button>
+              `).join("")}
+            </div>
+
+            <div class="sj-toolbar-right">
+              <select id="sj-pecas-area-select" class="sj-toolbar-select" aria-label="Filtrar por área">
+                <option value="todas" ${areaAtiva === "todas" ? "selected" : ""}>Todas as áreas</option>
+                ${areas.map((a) => `<option value="${escaparHtml(a)}" ${areaAtiva === a ? "selected" : ""}>${escaparHtml(a)}</option>`).join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="sj-catalog-results-meta">
+            <span>Mostrando <strong>${visiveis.length}</strong> de <strong>${filtradas.length}</strong> ${filtradas.length === 1 ? "peça" : "peças"}</span>
+            ${(modAtivo !== "todos" || areaAtiva !== "todas" || termo) ? `<button type="button" class="sj-inline-reset-link" id="sj-pecas-reset-btn">Limpar filtros</button>` : ""}
+          </div>
+
+          ${visiveis.length === 0 ? `
+            <div class="sj-empty-state">
+              <div class="sj-empty-icon" aria-hidden="true">
+                <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              </div>
+              <h3>Nenhuma peça encontrada</h3>
+              <p>Experimente remover o filtro de modelo ou consultar nossa equipe para peças sob encomenda.</p>
+              <button type="button" class="sj-btn-primary" id="sj-pecas-reset-empty-btn">Limpar filtros</button>
+            </div>
+          ` : `
+            <div class="combo-products-row sj-internal-cards-grid">
+              ${visiveis.map((p) => gerarCardHTML(p)).join("")}
+            </div>
+            ${restantes > 0 ? `
+              <div class="sj-load-more-wrap">
+                <button type="button" class="sj-btn-load-more" id="sj-pecas-load-more-btn">
+                  Carregar mais ${Math.min(24, restantes)} (${restantes} restantes)
+                </button>
+              </div>
+            ` : ""}
+          `}
+        </section>
+      `;
+
+      container.querySelectorAll("[data-breadcrumb-go]").forEach((b) => b.addEventListener("click", () => navegarParaCategoria("home")));
+      container.querySelectorAll("[data-pecas-compat]").forEach((b) => {
+        b.addEventListener("click", () => {
+          state.pecasFiltroModelo = b.getAttribute("data-pecas-compat") || "todos";
+          state.pecasLimiteVisivel = 24;
+          renderizarCatalogoCompleto();
+        });
+      });
+      container.querySelector("#sj-pecas-area-select")?.addEventListener("change", (e) => {
+        state.pecasFiltroArea = e.target.value || "todas";
+        state.pecasLimiteVisivel = 24;
+        renderizarCatalogoCompleto();
+      });
+      container.querySelector("#sj-pecas-load-more-btn")?.addEventListener("click", () => {
+        state.pecasLimiteVisivel = Number(state.pecasLimiteVisivel || 24) + 24;
+        renderizarCatalogoCompleto();
+      });
+      const pecasInp = container.querySelector("#sj-pecas-search-input");
+      if (pecasInp) {
+        let t = null;
+        pecasInp.addEventListener("input", () => {
+          clearTimeout(t);
+          t = setTimeout(() => {
+            state.busca = pecasInp.value || "";
+            state.pecasLimiteVisivel = 24;
+            renderizarCatalogoCompleto();
+            document.getElementById("sj-pecas-search-input")?.focus();
+          }, 160);
+        });
+      }
+      const resetPecas = () => {
+        state.busca = "";
+        state.pecasFiltroModelo = "todos";
+        state.pecasFiltroArea = "todas";
+        state.pecasLimiteVisivel = 24;
+        renderizarCatalogoCompleto();
+      };
+      container.querySelector("#sj-pecas-search-clear")?.addEventListener("click", resetPecas);
+      container.querySelector("#sj-pecas-reset-btn")?.addEventListener("click", resetPecas);
+      container.querySelector("#sj-pecas-reset-empty-btn")?.addEventListener("click", resetPecas);
+      vincularEventosDosCards(container);
+      return;
+    }
+
+    // PÁGINA INTERNA EXCLUSIVA: SERVIÇOS E MANUTENÇÃO 3D
+    if (catAtiva === "manutencao") {
+      const servicos = (window.SITE_DATA.catalogo || []).filter((i) => i.categoria === "manutencao");
+      container.innerHTML = `
+        <section class="sj-internal-page" id="sec-manutencao">
+          <nav class="sj-breadcrumb" aria-label="Você está em">
+            <button type="button" data-breadcrumb-go="home">Início</button>
+            <span aria-hidden="true">›</span>
+            <strong aria-current="page">Serviços e Manutenção</strong>
+          </nav>
+
+          <header class="sj-catalog-page-head">
+            <div class="sj-catalog-head-copy">
+              <h1>Serviços e Manutenção 3D</h1>
+              <p>Assistência técnica especializada em Umuarama para revisão, reparos e upgrades com garantia.</p>
+            </div>
+          </header>
+
+          <div class="sj-services-grid">
+            ${servicos.map((srv) => {
+        const ft = srv.fichaTecnica || {};
+        const prazo = ft["Prazo Médio"] || ft["Diagnóstico"] || "Diagnóstico técnico na bancada";
+        const msgWa = encodeURIComponent(`Olá Loja SJ 3D! Gostaria de solicitar um orçamento de serviço para "${srv.nome}".`);
+        return `
+                <article class="sj-service-card">
+                  <div class="sj-service-card-top">
+                    <span class="sj-service-icon-wrap">${obterSvgServico(srv.id)}</span>
+                    <span class="sj-service-tag">${escaparHtml(srv.marca || "Oficina SJ 3D")}</span>
+                  </div>
+                  <h3>${escaparHtml(srv.nome)}</h3>
+                  <p class="sj-service-desc">${escaparHtml(srv.subtitulo || "")}</p>
+                  <ul class="sj-service-specs">
+                    ${Object.entries(ft).slice(0, 4).map(([k, v]) => `<li><strong>${escaparHtml(k)}:</strong> ${escaparHtml(v)}</li>`).join("")}
+                  </ul>
+                  <div class="sj-service-foot">
+                    <span class="sj-service-time">${escaparHtml(prazo)}</span>
+                    <div class="sj-service-btns">
+                      <button type="button" class="sj-btn-outline" data-open-modal="${escaparHtml(srv.id)}">Detalhes</button>
+                      <a href="https://wa.me/5544991351318?text=${msgWa}" target="_blank" rel="noopener" class="sj-btn-primary">Pedir orçamento →</a>
+                    </div>
+                  </div>
+                </article>
+              `;
+      }).join("")}
+          </div>
+        </section>
+      `;
+
+      container.querySelectorAll("[data-breadcrumb-go]").forEach((b) => b.addEventListener("click", () => navegarParaCategoria("home")));
+      container.querySelectorAll("[data-open-modal]").forEach((b) => {
+        b.addEventListener("click", () => abrirPaginaProduto(b.getAttribute("data-open-modal")));
+      });
+      return;
+    }
+
+    // CATÁLOGO COMPLETO / BUSCA GLOBAL ("todos")
+    const secoesParaExibir = secoesDefinicao;
     const htmlSecoes = secoesParaExibir
       .map((sec) => {
-        let itensSecao = window.SITE_DATA.catalogo.filter((item) => {
+        const itensSecao = window.SITE_DATA.catalogo.filter((item) => {
           if (item.categoria !== sec.id) return false;
 
-          // Se for a seção de filamentos e houver filtro de marca ativo (Bambu Lab ou MaxPrint)
           if (
             sec.id === "filamentos" &&
             state.marcaFilamentoFiltro !== "todos" &&
@@ -5153,7 +6102,6 @@
             return false;
           }
 
-          // Filtro de busca (busca no nome, subtítulo, marca e também nas cores/códigos da paleta)
           if (state.busca.trim() !== "") {
             const termo = state.busca.toLowerCase();
             let textoCores = "";
@@ -5164,18 +6112,16 @@
             const alvo = `${item.nome} ${item.subtitulo} ${item.marca} ${textoCores}`.toLowerCase();
             if (!alvo.includes(termo)) return false;
           }
-
           return true;
         });
 
         if (itensSecao.length === 0) return "";
 
-        // Se for a seção de Filamentos, renderiza o Studio Clean de Filamentos
         if (sec.id === "filamentos") {
           return `
             <section class="category-section-block" id="sec-filamentos">
               <div class="category-section-header">
-                <h2>${sec.titulo}</h2>
+                <h2>Filamentos 3D</h2>
               </div>
               ${gerarHubFilamentosHtml("catalogo")}
             </section>
@@ -5185,7 +6131,7 @@
         let itensParaRenderizar = itensSecao;
         let rodapeSecaoHtml = "";
 
-        if (sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "") {
+        if (sec.id === "pecas" && state.busca.trim() === "") {
           const idsDestaque = [
             "peca-kit-hotend-bambu-a1",
             "peca-extrusora-original-a1",
@@ -5194,9 +6140,9 @@
           const filtradas = idsDestaque.map((id) => itensSecao.find((i) => i.id === id)).filter(Boolean);
           itensParaRenderizar = filtradas.length > 0 ? filtradas : itensSecao.slice(0, 3);
           rodapeSecaoHtml = `
-            <div style="text-align: center; width: 100%; margin-top: 24px;">
-              <button type="button" class="btn-ver-todas-pecas-home" data-navegar-cat="pecas">
-                ⚙️ Ver Todas as ${itensSecao.length} Peças &amp; Acessórios →
+            <div style="text-align: center; width: 100%; margin-top: 20px;">
+              <button type="button" class="sj-btn-load-more" data-navegar-cat="pecas">
+                Ver todas as ${itensSecao.length} peças e upgrades →
               </button>
             </div>
           `;
@@ -5204,18 +6150,18 @@
 
         const btnCompararHtml =
           sec.id === "impressoras"
-            ? `<button type="button" class="btn-compare-printers-pill" data-open-printer-compare="1">⚖️ Comparar Impressoras</button>`
-            : sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === ""
-              ? `<button type="button" class="pdp-back-btn" data-navegar-cat="pecas">Ver Todas (${itensSecao.length}) →</button>`
+            ? `<button type="button" class="sj-spec-trigger-btn" data-open-printer-compare="1">Comparar modelos →</button>`
+            : sec.id === "pecas" && state.busca.trim() === ""
+              ? `<button type="button" class="pdp-back-btn" data-navegar-cat="pecas">Ver todas (${itensSecao.length}) →</button>`
               : "";
 
         return `
           <section class="category-section-block" id="sec-${sec.id}">
             <div class="category-section-header">
-              <h2>${sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "" ? "Peças de Reposição em Destaque" : sec.titulo}</h2>
+              <h2>${sec.id === "pecas" && state.busca.trim() === "" ? "Peças de reposição em destaque" : sec.titulo}</h2>
               <div class="category-header-right">
                 ${btnCompararHtml}
-                <span>${itensParaRenderizar.length} ${itensParaRenderizar.length === 1 ? "opção" : "opções"} ${sec.id === "pecas" && state.categoriaMenu === "todos" && state.busca.trim() === "" ? `de ${itensSecao.length}` : ""}</span>
+                <span>${itensParaRenderizar.length} ${itensParaRenderizar.length === 1 ? "opção" : "opções"}</span>
               </div>
             </div>
             <div class="combo-products-row">
@@ -5232,24 +6178,37 @@
       `Olá Loja SJ 3D! Procurei por "${termoBuscado || "um produto"}" no site e gostaria de saber se vocês têm disponível em Umuarama!`
     )}`;
 
+    const cabecalhoTodosHtml = `
+      <nav class="sj-breadcrumb" aria-label="Você está em">
+        <button type="button" data-breadcrumb-go="home">Início</button>
+        <span aria-hidden="true">›</span>
+        <strong aria-current="page">Catálogo completo</strong>
+      </nav>
+      <div class="sj-catalog-jump-pills" role="navigation" aria-label="Ir direto para categoria">
+        <button type="button" class="sj-color-family-btn" data-navegar-cat="impressoras">Impressoras 3D</button>
+        <button type="button" class="sj-color-family-btn" data-navegar-cat="filamentos">Filamentos 3D</button>
+        <button type="button" class="sj-color-family-btn" data-navegar-cat="pecas">Peças e upgrades</button>
+        <button type="button" class="sj-color-family-btn" data-navegar-cat="manutencao">Serviços e manutenção</button>
+      </div>
+    `;
+
     container.innerHTML =
-      htmlSecoes ||
+      (htmlSecoes ? `${cabecalhoTodosHtml}${htmlSecoes}` : "") ||
       `
-        <div class="catalog-empty-state">
-          <div class="catalog-empty-icon">🔍</div>
-          <h3>Nenhum produto encontrado${termoBuscado ? ` para "${termoBuscado}"` : ""}</h3>
-          <p>Tente buscar por outro nome, código de cor (ex: <strong>CÓD. 34</strong>, <strong>Silk</strong>, <strong>A1 Mini</strong>) ou fale com nossa equipe em Umuarama.</p>
+        <div class="sj-empty-state">
+          <div class="sj-empty-icon" aria-hidden="true">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </div>
+          <h3>Nenhum produto encontrado${termoBuscado ? ` para "${escaparHtml(termoBuscado)}"` : ""}</h3>
+          <p>Tente buscar por outro nome, código de cor (ex: <strong>34</strong>, <strong>Silk</strong>, <strong>A1 Mini</strong>) ou fale com nossa equipe.</p>
           <div class="catalog-empty-actions">
-            <button type="button" class="btn-empty-reset" id="btn-empty-reset-search">
-              ↺ Limpar Busca e Ver Todo o Catálogo
-            </button>
-            <a href="${waConsultaUrl}" target="_blank" rel="noopener" class="btn-empty-whatsapp">
-              💬 Consultar no WhatsApp (44) 99135-1318
-            </a>
+            <button type="button" class="sj-btn-primary" id="btn-empty-reset-search">Limpar filtros</button>
+            <a href="${waConsultaUrl}" target="_blank" rel="noopener" class="sj-btn-outline">Consultar no WhatsApp</a>
           </div>
         </div>
       `;
 
+    container.querySelectorAll("[data-breadcrumb-go]").forEach((b) => b.addEventListener("click", () => navegarParaCategoria("home")));
     container.querySelector("#btn-empty-reset-search")?.addEventListener("click", () => {
       state.busca = "";
       state.marcaFilamentoFiltro = "todos";
@@ -5590,17 +6549,19 @@
         return;
       }
 
-      // Atualiza badge do carrinho no header e na barra mobile com o total real do banco
+      // Atualiza badge do carrinho no header, barra mobile, mini-cart e steppers inline com o total real do banco
       const listaAtual = await window.SJ_SUPABASE.cart.listarMeu();
       if (listaAtual?.sucesso) {
-        const totalUnidades = (listaAtual.dados || []).reduce((acc, it) => acc + (Number(it.quantity) || 1), 0);
-        const topBagBadge = document.getElementById("cart-count-badge");
-        if (topBagBadge) topBagBadge.textContent = String(totalUnidades);
-        const mbCartBadge = document.getElementById("mobile-bottom-cart-badge");
-        if (mbCartBadge) {
-          mbCartBadge.textContent = String(totalUnidades);
-          mbCartBadge.style.display = totalUnidades > 0 ? "inline-flex" : "none";
-        }
+        const mapa = {};
+        let totalUnidades = 0;
+        (listaAtual.dados || []).forEach((it) => {
+          const q = Number(it.quantity) || 1;
+          totalUnidades += q;
+          if (it.product_id) mapa[it.product_id] = { quantity: q, itemId: it.id };
+        });
+        state.supabaseCartMap = mapa;
+        sincronizarContadoresCarrinhoUI(totalUnidades);
+        atualizarSteppersInlineNoDom();
       }
 
       if (btnEl) {
@@ -5752,8 +6713,11 @@
     );
     const resumoCupons = calcularCuponsSorteio();
 
-    if (topBagBadge && ehPaginaAdminAtual()) {
-      topBagBadge.textContent = totalItens;
+    if (ehPaginaAdminAtual()) {
+      sincronizarContadoresCarrinhoUI(totalItens);
+      atualizarSteppersInlineNoDom();
+    } else if (topBagBadge && !window.SJ_SUPABASE?.cart) {
+      topBagBadge.textContent = String(totalItens);
     }
 
     if (clearBtn) {
@@ -5981,7 +6945,10 @@
     if (!homeEl) return;
 
     const bannersHero = window.SITE_DATA.bannersBlackSJ || [];
-    if (state.heroSlideAtivo >= bannersHero.length) {
+    const cfgBanner = obterConfigBannerPromocao();
+    const vipSlideAtivo = cfgBanner.vipBannerAtivo !== false;
+    const totalSlidesHero = bannersHero.length + (vipSlideAtivo ? 1 : 0);
+    if (state.heroSlideAtivo >= totalSlidesHero) {
       state.heroSlideAtivo = 0;
     }
 
@@ -6162,6 +7129,38 @@
             `
         )
         .join("")}
+          ${vipSlideAtivo ? (() => {
+        const vipUrl = window.SJ_SITE_CHROME?.obterLinkComunidadeVip?.() || window.SITE_DATA?.loja?.comunidadeVipUrl || "https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea";
+        const vipIdx = bannersHero.length;
+        const vipDeskImg = cfgBanner.vipBannerDesktopImg || "assets/banners/desktop/comunidade-vip.png";
+        const vipDeskWebp = cfgBanner.vipBannerDesktopWebp !== undefined
+          ? cfgBanner.vipBannerDesktopWebp
+          : (vipDeskImg === "assets/banners/desktop/comunidade-vip.png" ? "assets/banners/desktop/comunidade-vip.webp" : "");
+        const vipMobImg = cfgBanner.vipBannerMobileImg || "assets/banners/mobile/comunidade-vip.png";
+        const vipMobWebp = cfgBanner.vipBannerMobileWebp !== undefined
+          ? cfgBanner.vipBannerMobileWebp
+          : (vipMobImg === "assets/banners/mobile/comunidade-vip.png" ? "assets/banners/mobile/comunidade-vip.webp" : "");
+        const vipAlt = `${cfgBanner.vipBannerTitulo || "Comunidade Loja SJ"} — ${cfgBanner.vipBannerSubtitulo || "Entrar na Comunidade"}`;
+        return `
+              <div class="hero-slide-item graphic-banner-slide sj-hero-vip-slide ${vipIdx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${vipIdx}">
+                <a href="${escaparHtml(vipUrl)}" target="_blank" rel="noopener noreferrer" class="hero-graphic-link sj-hero-vip-link" aria-label="${escaparHtml(vipAlt)}">
+                  <picture class="hero-graphic-picture">
+                    ${vipMobWebp ? `<source media="(max-width: 768px)" srcset="${escaparHtml(vipMobWebp)}" type="image/webp" />` : ""}
+                    <source media="(max-width: 768px)" srcset="${escaparHtml(vipMobImg)}" />
+                    ${vipDeskWebp ? `<source srcset="${escaparHtml(vipDeskWebp)}" type="image/webp" />` : ""}
+                    <img
+                      src="${escaparHtml(vipDeskImg)}"
+                      alt="${escaparHtml(vipAlt)}"
+                      width="1920"
+                      height="640"
+                      class="hero-graphic-img"
+                      loading="lazy"
+                    />
+                  </picture>
+                </a>
+              </div>
+            `;
+      })() : ""}
         </div>
 
         <!-- Setas Laterais Glassmorphism (Desktop) -->
@@ -6170,7 +7169,7 @@
 
         <!-- Barra de Indicadores (Dots / Pills) -->
         <div class="hero-dots-bar" id="hero-dots-bar" role="tablist" aria-label="Navegação de ofertas">
-          ${bannersHero
+          ${Array.from({ length: totalSlidesHero })
         .map(
           (_, idx) => `
               <button
@@ -6179,7 +7178,7 @@
                 data-hero-dot="${idx}"
                 role="tab"
                 aria-selected="${idx === state.heroSlideAtivo ? "true" : "false"}"
-                aria-label="Ir para a oferta ${idx + 1}"
+                aria-label="Ir para o slide ${idx + 1}"
               ></button>
             `
         )
@@ -6352,7 +7351,7 @@
 
     // Lógica de troca de slide do Hero Carousel
     function irParaSlideHero(novoIdx) {
-      const total = bannersHero.length;
+      const total = totalSlidesHero;
       if (!total) return;
       state.heroSlideAtivo = (novoIdx + total) % total;
       homeEl.querySelectorAll(".hero-slide-item").forEach((el, i) => {
@@ -6453,6 +7452,16 @@
     homeEl.querySelectorAll("[data-home-go-cat]").forEach((el) => {
       el.addEventListener("click", () => {
         navegarParaCategoria(el.dataset.homeGoCat);
+      });
+    });
+
+    // Impede abrir link do slide VIP durante gesto de arrastar (swipe) no celular
+    homeEl.querySelectorAll(".sj-hero-vip-link").forEach((lnk) => {
+      lnk.addEventListener("click", (e) => {
+        if (isSwiping) {
+          e.preventDefault();
+          e.stopPropagation();
+        }
       });
     });
 
@@ -7306,49 +8315,73 @@
         </button>
       </div>
 
-      <!-- ABAIXO DA DOBRA: PARÂMETROS DE IMPRESSÃO & FICHA TÉCNICA CLEAN -->
-      <div class="pdp-specs-section">
-        <h2 class="pdp-section-heading">Parâmetros Recomendados & Especificações</h2>
-
-        <div class="pdp-metrics-grid">
-          ${metricasRapidas
-        .map(
-          (m) => `
-              <div class="pdp-metric-box">
-                <span>${m.label}</span>
-                <strong>${m.val}</strong>
-              </div>
-            `
-        )
-        .join("")}
+      <!-- ABAIXO DA DOBRA: ABAS ACESSÍVEIS (DESCRIÇÃO / ESPECIFICAÇÕES / COMPATIBILIDADE) -->
+      <section class="pdp-specs-section sj-pdp-tabs-section" aria-label="Informações detalhadas do produto">
+        <div class="sj-pdp-tablist" role="tablist" aria-label="Detalhes do produto">
+          <button type="button" class="sj-pdp-tab-btn active" role="tab" id="pdp-tab-btn-desc" data-tab-panel="pdp-panel-desc" aria-selected="true" tabindex="0">Descrição</button>
+          <button type="button" class="sj-pdp-tab-btn" role="tab" id="pdp-tab-btn-spec" data-tab-panel="pdp-panel-spec" aria-selected="false" tabindex="-1">Especificações</button>
+          <button type="button" class="sj-pdp-tab-btn" role="tab" id="pdp-tab-btn-comp" data-tab-panel="pdp-panel-comp" aria-selected="false" tabindex="-1">Compatibilidade</button>
         </div>
 
-        <div class="pdp-spec-table-wrap">
-          <table class="pdp-spec-table">
-            <tbody>
-              ${fichasEntries
-        .map(([k, v]) => `<tr><th>${k}</th><td>${v}</td></tr>`)
-        .join("")}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      ${relacionados.length > 0
-        ? `
-            <div class="pdp-related-section">
-              <div class="category-section-header">
-                <h2>Outras opções em ${item.categoria === "filamentos" ? "Filamentos 3D" : "nosso Catálogo"
-        }</h2>
-                <button type="button" class="pdp-back-btn" id="pdp-see-all-btn">Ver todos →</button>
-              </div>
-              <div class="combo-products-row">
-                ${relacionados.map((rel) => gerarCardHTML(rel)).join("")}
-              </div>
+        <div class="sj-pdp-tabpanel" role="tabpanel" id="pdp-panel-desc" aria-labelledby="pdp-tab-btn-desc">
+          <div class="sj-pdp-tab-inner">
+            <p class="sj-pdp-desc-lead">${escaparHtml(item.paraQueServe || item.subtitulo || "Produto original com garantia e suporte técnico da Loja SJ 3D em Umuarama.")}</p>
+            <div class="pdp-metrics-grid">
+              ${metricasRapidas.map((m) => `
+                <div class="pdp-metric-box">
+                  <span>${escaparHtml(m.label)}</span>
+                  <strong>${escaparHtml(m.val)}</strong>
+                </div>
+              `).join("")}
             </div>
-          `
-        : ""
-      }
+          </div>
+        </div>
+
+        <div class="sj-pdp-tabpanel" role="tabpanel" id="pdp-panel-spec" aria-labelledby="pdp-tab-btn-spec" hidden>
+          <div class="sj-pdp-tab-inner">
+            <div class="pdp-spec-table-wrap">
+              <table class="pdp-spec-table">
+                <tbody>
+                  ${fichasEntries.map(([k, v]) => `<tr><th>${escaparHtml(k)}</th><td>${escaparHtml(v)}</td></tr>`).join("")}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="sj-pdp-tabpanel" role="tabpanel" id="pdp-panel-comp" aria-labelledby="pdp-tab-btn-comp" hidden>
+          <div class="sj-pdp-tab-inner">
+            <div class="sj-pdp-compat-box">
+              <strong>Compatibilidade e Suporte</strong>
+              <p>${item.tipoFilamento
+        ? (isBambu
+          ? "Compatível nativamente com Bambu Lab AMS, AMS Lite e AMS 2 Pro via leitura RFID automática (1,75 mm), além de funcionar normalmente em outras impressoras FDM."
+          : "Diâmetro universal de 1,75 mm compatível com Bambu Lab A1 / A1 Mini / P1 / X1 / P2S, Creality, Anycubic, Prusa, Flashforge, Snapmaker e demais impressoras FDM.")
+        : escaparHtml(item.compatibilidade || item.fichaTecnica?.["Compatibilidade"] || "Atendimento técnico em Umuarama — PR (Av. Portugal, 6759) e envio para todo o Brasil.")}</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      ${(() => {
+        const relacionadosExibir = relacionados.length > 0
+          ? relacionados
+          : (window.SITE_DATA.catalogo || [])
+            .filter((i) => i.id !== item.id && (i.categoria === item.categoria || i.categoria === "pecas"))
+            .slice(0, 3);
+        if (relacionadosExibir.length === 0) return "";
+        return `
+          <div class="pdp-related-section">
+            <div class="category-section-header">
+              <h2>Você também pode gostar</h2>
+              <button type="button" class="pdp-back-btn" id="pdp-see-all-btn">Ver todos →</button>
+            </div>
+            <div class="combo-products-row">
+              ${relacionadosExibir.map((rel) => gerarCardHTML(rel)).join("")}
+            </div>
+          </div>
+        `;
+      })()}
     `;
 
     // Exibe a Página do Produto e oculta a Capa e a Grade Principal
@@ -7800,7 +8833,34 @@
       abrirPainelAdminCms("produtos", item.id);
     });
 
-    // Vincula também os cards da seção "Outras opções" no rodapé da PDP
+    // Abas acessíveis abaixo da dobra (Descrição / Especificações / Compatibilidade)
+    const pdpTabBtns = Array.from(pdpView.querySelectorAll(".sj-pdp-tab-btn[role='tab']"));
+    function ativarPdpTab(tabEl, focusTab) {
+      pdpTabBtns.forEach((b) => {
+        const ativo = b === tabEl;
+        b.classList.toggle("active", ativo);
+        b.setAttribute("aria-selected", ativo ? "true" : "false");
+        b.setAttribute("tabindex", ativo ? "0" : "-1");
+        const panelId = b.getAttribute("data-tab-panel");
+        const panel = panelId ? document.getElementById(panelId) : null;
+        if (panel) panel.hidden = !ativo;
+      });
+      if (focusTab && tabEl) tabEl.focus();
+    }
+    pdpTabBtns.forEach((btn, idx) => {
+      btn.addEventListener("click", () => ativarPdpTab(btn, false));
+      btn.addEventListener("keydown", (e) => {
+        if (e.key === "ArrowRight") {
+          e.preventDefault();
+          ativarPdpTab(pdpTabBtns[(idx + 1) % pdpTabBtns.length], true);
+        } else if (e.key === "ArrowLeft") {
+          e.preventDefault();
+          ativarPdpTab(pdpTabBtns[(idx - 1 + pdpTabBtns.length) % pdpTabBtns.length], true);
+        }
+      });
+    });
+
+    // Vincula também os cards da seção "Você também pode gostar" no rodapé da PDP
     const relatedContainer = pdpView.querySelector(".pdp-related-section");
     if (relatedContainer) {
       vincularEventosDosCards(relatedContainer);
@@ -14872,6 +15932,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     setVal("cms-ban-btn1-url", b.btn1Url);
     setVal("cms-ban-btn2-txt", b.btn2Texto);
     setVal("cms-ban-btn2-url", b.btn2Url);
+    setCheck("cms-ban-vip-ativo", b.vipBannerAtivo !== false);
+    setVal("cms-ban-vip-desktop-img", b.vipBannerDesktopImg || "assets/banners/desktop/comunidade-vip.png");
+    setVal("cms-ban-vip-mobile-img", b.vipBannerMobileImg || "assets/banners/mobile/comunidade-vip.png");
+    setVal("cms-ban-vip-titulo", b.vipBannerTitulo || "Comunidade Loja SJ — Sua conexão com o universo 3D");
+    setVal("cms-ban-vip-subtitulo", b.vipBannerSubtitulo || "Tudo em um só lugar: suporte e dúvidas, promoções da loja, novidades e lançamentos");
 
     const cards = Array.isArray(b.regrasCards) ? b.regrasCards : [];
     [0, 1, 2].forEach((i) => {
@@ -16738,6 +17803,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         btn1Url: getVal("cms-ban-btn1-url"),
         btn2Texto: getVal("cms-ban-btn2-txt"),
         btn2Url: getVal("cms-ban-btn2-url"),
+        vipBannerAtivo: getCheck("cms-ban-vip-ativo"),
+        vipBannerDesktopImg: getVal("cms-ban-vip-desktop-img") || "assets/banners/desktop/comunidade-vip.png",
+        vipBannerDesktopWebp: (getVal("cms-ban-vip-desktop-img") || "").endsWith("comunidade-vip.png") ? "assets/banners/desktop/comunidade-vip.webp" : "",
+        vipBannerMobileImg: getVal("cms-ban-vip-mobile-img") || "assets/banners/mobile/comunidade-vip.png",
+        vipBannerMobileWebp: (getVal("cms-ban-vip-mobile-img") || "").endsWith("comunidade-vip.png") ? "assets/banners/mobile/comunidade-vip.webp" : "",
+        vipBannerTitulo: getVal("cms-ban-vip-titulo") || "Comunidade Loja SJ — Sua conexão com o universo 3D",
+        vipBannerSubtitulo: getVal("cms-ban-vip-subtitulo") || "Tudo em um só lugar: suporte e dúvidas, promoções da loja, novidades e lançamentos",
         regrasCards: [
           {
             tag: getVal("cms-rule1-tag"),

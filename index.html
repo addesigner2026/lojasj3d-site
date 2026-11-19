@@ -65,9 +65,11 @@
   <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_03" />
-  <link rel="stylesheet" href="css/styles.css?v=20261119_03" />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_07" />
+  <link rel="stylesheet" href="css/styles.css?v=20261119_07" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -208,348 +210,9 @@
   </div>
 
   <!-- ====================================================================
-       1. CABEÇALHO PRINCIPAL LOJA SJ 3D (LIMPO, ENXUTO E CONSISTENTE)
+       1. CABEÇALHO UNIFICADO & MENU MOBILE (INJETADO VIA js/site-chrome.js)
        ==================================================================== -->
-  <header class="site-header">
-    <!-- Barra de Avisos Discreta (1 aviso por vez em rotação suave + fechar) -->
-    <div class="top-promo-marquee-bar sj-announcement-bar" id="top-promo-marquee-bar" role="region"
-      aria-label="Avisos da Loja SJ 3D">
-      <div class="container sj-announcement-inner">
-        <button type="button" class="sj-announcement-rotator" id="top-promo-rotator-btn" data-nav-cat="filamentos"
-          aria-live="polite">
-          <span class="sj-announcement-dot" aria-hidden="true"></span>
-          <span class="sj-announcement-text" id="top-promo-rotator-text">Filamento PLA a partir de <strong>R$ 79,90</strong></span>
-        </button>
-        <button type="button" class="sj-announcement-close" id="top-promo-close-btn" aria-label="Fechar aviso"
-          title="Fechar aviso">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="18" y1="6" x2="6" y2="18"></line>
-            <line x1="6" y1="6" x2="18" y2="18"></line>
-          </svg>
-        </button>
-      </div>
-    </div>
-
-    <div class="container header-inner">
-      <!-- Botão Menu Mobile -->
-      <button type="button" class="mobile-menu-toggle-btn" id="mobile-menu-toggle-btn"
-        aria-label="Abrir Menu de Navegação" aria-expanded="false" aria-controls="mobile-nav-drawer">
-        <svg class="hamburger-icon-open" width="21" height="21" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-          stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="3" y1="6" x2="21" y2="6"></line>
-          <line x1="3" y1="12" x2="21" y2="12"></line>
-          <line x1="3" y1="18" x2="21" y2="18"></line>
-        </svg>
-        <span class="mobile-menu-toggle-text">Menu</span>
-      </button>
-
-      <a href="#home" class="header-logo" data-nav-cat="home" aria-label="Loja SJ 3D — Ir para o início">
-        <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="128" height="35" class="header-logo-img" />
-      </a>
-
-      <nav class="header-nav sj-nav-dock" aria-label="Navegação Principal">
-        <button type="button" class="header-nav-link" data-nav-cat="impressoras">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-          </svg>
-          <span>Impressoras</span>
-        </button>
-
-        <button type="button" class="header-nav-link" data-nav-cat="filamentos">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="12" cy="12" r="9"></circle>
-            <circle cx="12" cy="12" r="3"></circle>
-            <line x1="12" y1="3" x2="12" y2="9"></line>
-          </svg>
-          <span>Filamentos</span>
-        </button>
-
-        <button type="button" class="header-nav-link" data-nav-cat="pecas">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="4" y="4" width="16" height="16" rx="2"></rect>
-            <rect x="9" y="9" width="6" height="6"></rect>
-            <line x1="9" y1="1" x2="9" y2="4"></line>
-            <line x1="15" y1="1" x2="15" y2="4"></line>
-            <line x1="9" y1="20" x2="9" y2="23"></line>
-            <line x1="15" y1="20" x2="15" y2="23"></line>
-          </svg>
-          <span>Peças</span>
-        </button>
-
-        <button type="button" class="header-nav-link" data-nav-cat="manutencao">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
-          </svg>
-          <span>Serviços</span>
-        </button>
-
-        <a href="/calculadora" class="header-nav-link header-nav-calc"
-          title="Calculadora de Precificação 3D — Loja SJ 3D">
-          <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <rect x="4" y="2" width="16" height="20" rx="2"></rect>
-            <line x1="8" y1="6" x2="16" y2="6"></line>
-            <line x1="16" y1="14" x2="16" y2="18"></line>
-            <path d="M16 10h.01"></path>
-            <path d="M12 10h.01"></path>
-            <path d="M8 10h.01"></path>
-            <path d="M12 14h.01"></path>
-            <path d="M8 14h.01"></path>
-            <path d="M12 18h.01"></path>
-            <path d="M8 18h.01"></path>
-          </svg>
-          <span>Calculadora</span>
-          <span class="nav-calc-badge">Novo</span>
-        </a>
-      </nav>
-
-      <div class="header-icons">
-        <button type="button" class="icon-btn sj-header-circle-btn" id="toggle-search-btn" aria-label="Buscar no catálogo"
-          title="Buscar no catálogo">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-        </button>
-
-        <button type="button" class="icon-btn sj-header-circle-btn header-fav-btn-wrap" id="header-fav-btn"
-          aria-label="Meus Favoritos" title="Ver meus produtos favoritados">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path>
-          </svg>
-          <span class="bag-badge" id="fav-count-badge" style="display: none;">0</span>
-        </button>
-
-        <div class="sj-acct-anchor" id="store-acct-anchor">
-          <button type="button" class="header-account-pill-btn" id="header-account-btn" aria-label="Área do Cliente"
-            aria-haspopup="menu" aria-expanded="false" aria-controls="store-user-popover" title="Acessar Minha Conta / Cadastrar">
-            <span class="account-pill-avatar" aria-hidden="true">
-              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1"
-                stroke-linecap="round" stroke-linejoin="round">
-                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                <circle cx="12" cy="7" r="4"></circle>
-              </svg>
-            </span>
-            <span id="header-account-btn-text">Entrar</span>
-          </button>
-          <div id="store-user-popover" class="sj-acct-popover" role="menu" aria-labelledby="header-account-btn">
-            <div class="sj-acct-popover-head">
-              <div class="sj-acct-popover-title" id="store-popover-user-name">Minha Conta</div>
-              <div class="sj-acct-popover-email" id="store-popover-user-email">—</div>
-            </div>
-            <a href="/conta" class="sj-acct-menu-item" role="menuitem">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-              <span>Minha conta</span>
-            </a>
-            <a href="/calculadora" class="sj-acct-menu-item" role="menuitem">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line></svg>
-              <span>Calculadora 3D</span>
-            </a>
-            <a href="/admin" id="store-popover-admin-link" class="sj-acct-menu-item" role="menuitem" style="display: none;">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
-              <span>Painel Admin</span>
-            </a>
-            <hr class="sj-acct-sep" />
-            <button type="button" id="btn-store-menu-logout" class="sj-acct-menu-item is-danger" role="menuitem">
-              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
-              <span>Sair</span>
-            </button>
-          </div>
-        </div>
-
-        <button type="button" class="icon-btn bag-btn-wrap sj-header-cart-pill" id="header-bag-btn" aria-label="Ver Seu Pedido"
-          title="Abrir Carrinho / Seu Pedido">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
-            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path>
-            <line x1="3" y1="6" x2="21" y2="6"></line>
-            <path d="M16 10a4 4 0 0 1-8 0"></path>
-          </svg>
-          <span class="bag-badge" id="cart-count-badge">0</span>
-        </button>
-      </div>
-    </div>
-
-    <!-- Barra de Busca Expansível com Sugestões Visuais ao Vivo -->
-    <div class="search-bar-Drop" id="search-bar-drop">
-      <div class="container">
-        <div class="search-bar-inner">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#71717a" stroke-width="2"
-            aria-hidden="true">
-            <circle cx="11" cy="11" r="8"></circle>
-            <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-          </svg>
-          <input type="search" id="global-search-input" autocomplete="off"
-            placeholder="Buscar por cor, código (ex: CÓD. 103), Bambu Lab, Masterprint, A1 Mini, P2S, Snapmaker U1..." />
-          <button type="button" id="global-search-clear-btn" class="inline-search-clear-btn" aria-label="Limpar busca"
-            title="Limpar busca" style="display: none;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
-              stroke-linecap="round" stroke-linejoin="round">
-              <line x1="18" y1="6" x2="6" y2="18"></line>
-              <line x1="6" y1="6" x2="18" y2="18"></line>
-            </svg>
-          </button>
-        </div>
-        <div class="search-live-dropdown" id="search-live-dropdown" style="display: none;" role="region"
-          aria-label="Sugestões rápidas de produtos e cores"></div>
-      </div>
-    </div>
-  </header>
-
-  <!-- ====================================================================
-       MENU MOBILE (GAVETA LIMPA FULLSCREEN / LATERAL — SEM EMOJIS)
-       ==================================================================== -->
-  <div class="mobile-nav-overlay" id="mobile-nav-overlay" aria-hidden="true"></div>
-  <aside class="mobile-nav-drawer" id="mobile-nav-drawer" role="dialog" aria-modal="true"
-    aria-label="Menu de Navegação Principal" aria-hidden="true">
-    <div class="mobile-drawer-header">
-      <div class="mobile-drawer-brand">
-        <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="110" height="28" class="mobile-drawer-logo" />
-        <span class="mobile-drawer-badge">Revenda Oficial • Umuarama PR</span>
-      </div>
-      <button type="button" class="mobile-drawer-close-btn" id="mobile-drawer-close-btn" aria-label="Fechar menu"
-        title="Fechar menu">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
-          stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-    </div>
-
-    <div class="mobile-drawer-body">
-      <div class="mobile-drawer-section-title">Departamentos</div>
-      <nav class="mobile-drawer-nav" aria-label="Categorias Mobile">
-        <button type="button" class="mobile-drawer-nav-item active" data-nav-cat="home">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-          </span>
-          <span class="drawer-nav-title">Início</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="impressoras">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
-          </span>
-          <span class="drawer-nav-title">Impressoras 3D</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="filamentos">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"></circle><circle cx="12" cy="12" r="3"></circle><line x1="12" y1="3" x2="12" y2="9"></line></svg>
-          </span>
-          <span class="drawer-nav-title">Filamentos</span>
-          <span class="drawer-nav-badge">80+ cores</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="pecas">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line></svg>
-          </span>
-          <span class="drawer-nav-title">Peças e upgrades</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="manutencao">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
-          </span>
-          <span class="drawer-nav-title">Serviços e manutenção</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-
-        <button type="button" class="mobile-drawer-nav-item" data-nav-cat="todos">
-          <span class="drawer-nav-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="3" width="7" height="7" rx="1"></rect><rect x="14" y="14" width="7" height="7" rx="1"></rect><rect x="3" y="14" width="7" height="7" rx="1"></rect></svg>
-          </span>
-          <span class="drawer-nav-title">Catálogo completo</span>
-          <span class="drawer-nav-arrow" aria-hidden="true">›</span>
-        </button>
-      </nav>
-
-      <div class="mobile-drawer-section-title">Ferramenta</div>
-      <div class="mobile-drawer-tools">
-        <a href="/calculadora" class="mobile-drawer-tool-card"
-          title="Calculadora de Precificação 3D — Loja SJ 3D">
-          <div class="tool-icon-box" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"></rect><line x1="8" y1="6" x2="16" y2="6"></line><line x1="16" y1="14" x2="16" y2="18"></line></svg>
-          </div>
-          <div class="tool-info-box">
-            <div class="tool-title-row">
-              <strong>Calculadora 3D</strong>
-              <span class="tool-badge-new">Novo</span>
-            </div>
-            <small>Custos, taxas e margem de impressão 3D</small>
-          </div>
-          <span class="tool-arrow" aria-hidden="true">→</span>
-        </a>
-      </div>
-
-      <div class="mobile-drawer-section-title">Atendimento</div>
-      <div class="mobile-drawer-contact-list">
-        <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
-          class="drawer-contact-item community-highlight" title="Entrar na Comunidade VIP no WhatsApp">
-          <span class="contact-icon wa" aria-hidden="true">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-          </span>
-          <div class="contact-info">
-            <strong>Comunidade VIP no WhatsApp</strong>
-            <small>Ofertas e novidades em primeira mão</small>
-          </div>
-          <span class="contact-action-badge">Entrar</span>
-        </a>
-
-        <a href="https://wa.me/5544991351318" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"></path></svg>
-          </span>
-          <div class="contact-info">
-            <strong>WhatsApp: (44) 99135-1318</strong>
-            <small>Atendimento direto e suporte técnico</small>
-          </div>
-        </a>
-
-        <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"></rect><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"></line></svg>
-          </span>
-          <div class="contact-info">
-            <strong>Instagram: @lojasj3d</strong>
-            <small>Novidades, impressões e sorteios</small>
-          </div>
-        </a>
-
-        <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener" class="drawer-contact-item">
-          <span class="contact-icon" aria-hidden="true">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"></path><circle cx="12" cy="10" r="3"></circle></svg>
-          </span>
-          <div class="contact-info">
-            <strong>Showroom em Umuarama</strong>
-            <small>Av. Portugal, 6759 — Pronta Entrega</small>
-          </div>
-        </a>
-      </div>
-    </div>
-
-    <div class="mobile-drawer-footer">
-      <div class="drawer-footer-text">
-        <span>© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10</span>
-        <small>Revenda Autorizada Bambu Lab &amp; Masterprint</small>
-      </div>
-    </div>
-  </aside>
+  <div id="sj-site-header-slot"></div>
 
   <!-- ====================================================================
        2. CONTEÚDO PRINCIPAL (CAPA ESTILO ANYCUBIC + CATÁLOGO + PÁGINA INTERNA)
@@ -859,39 +522,20 @@
     </aside>
   </div>
 
-  <!-- Barra Fixa Inferior Mobile (Início, Buscar, Favoritos, Carrinho, Conta) -->
-  <nav class="sj-mobile-bottom-nav" id="sj-mobile-bottom-nav" aria-label="Atalhos mobile">
-    <button type="button" class="sj-mbnav-item active" data-mbnav="home">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
-      <span>Início</span>
-    </button>
-    <button type="button" class="sj-mbnav-item" data-mbnav="search">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-      <span>Buscar</span>
-    </button>
-    <a href="/conta?aba=favoritos" class="sj-mbnav-item" data-mbnav="favoritos">
-      <span class="sj-mbnav-icon-wrap">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"></path></svg>
-        <span class="sj-mbnav-badge" id="mobile-bottom-fav-badge" style="display: none;">0</span>
-      </span>
-      <span>Favoritos</span>
-    </a>
-    <a href="/conta?aba=carrinho" class="sj-mbnav-item" data-mbnav="carrinho" id="mobile-bottom-cart-link">
-      <span class="sj-mbnav-icon-wrap">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 2L3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"></path><line x1="3" y1="6" x2="21" y2="6"></line><path d="M16 10a4 4 0 0 1-8 0"></path></svg>
-        <span class="sj-mbnav-badge" id="mobile-bottom-cart-badge" style="display: none;">0</span>
-      </span>
-      <span>Carrinho</span>
-    </a>
-    <a href="/conta" class="sj-mbnav-item" data-mbnav="conta">
-      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
-      <span>Conta</span>
-    </a>
-  </nav>
+  <!-- Mini-carrinho discreto no celular (quando houver itens) -->
+  <a href="/conta?aba=carrinho" class="sj-mobile-mini-cart" id="sj-mobile-mini-cart" style="display: none;"
+    aria-label="Ver pedido no carrinho">
+    <span class="sj-mmc-dot" aria-hidden="true"></span>
+    <span id="sj-mobile-mini-cart-text">0 itens</span>
+    <strong class="sj-mmc-cta">Ver pedido →</strong>
+  </a>
 
-  <!-- Botão Flutuante Rápido de WhatsApp (Canto Inferior Direito) -->
+  <!-- Barra Fixa Inferior Mobile (Início, Buscar, Favoritos, Carrinho, Conta) -->
+  <div id="sj-mobile-bottom-slot"></div>
+
+  <!-- Botão Flutuante Rápido de WhatsApp (Canto Inferior Direito — Somente Ícone) -->
   <a href="https://wa.me/5544991351318?text=Ol%C3%A1%20Loja%20SJ%203D!%20Estou%20no%20site%20e%20gostaria%20de%20tirar%20uma%20d%C3%BAvida."
-    target="_blank" rel="noopener" class="floating-whatsapp-fab" id="floating-whatsapp-btn"
+    target="_blank" rel="noopener noreferrer" class="floating-whatsapp-fab" id="floating-whatsapp-btn"
     aria-label="Falar com a Loja SJ 3D no WhatsApp" title="Atendimento Rápido no WhatsApp (44) 99135-1318">
     <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
       <path
@@ -943,118 +587,16 @@
     </div>
   </div>
 
-  <!-- ====================================================================
-       FAIXA CURTA COMUNIDADE VIP WHATSAPP (ACIMA DO RODAPÉ)
-       ==================================================================== -->
-  <section class="sj-vip-pre-footer" aria-label="Comunidade VIP no WhatsApp">
-    <div class="container sj-vip-pre-footer-inner">
-      <div class="sj-vip-pre-left">
-        <span class="sj-vip-icon-circle" aria-hidden="true">
-          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
-        </span>
-        <div>
-          <strong>Comunidade VIP no WhatsApp</strong>
-          <p>Ofertas, cupons e novidades de impressão 3D em primeira mão.</p>
-        </div>
-      </div>
-      <a href="https://chat.whatsapp.com/B5XUuxuVaY59cUdVUvd5ea" target="_blank" rel="noopener"
-        class="sj-vip-pre-btn" title="Entrar na Comunidade VIP da Loja SJ 3D no WhatsApp">
-        <span>Entrar no grupo</span>
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"></line><polyline points="12 5 19 12 12 19"></polyline></svg>
-      </a>
-    </div>
-  </section>
+  <!-- Diálogos Nativos (<dialog>): Visualização Rápida, Ficha Técnica e Bottom Sheet de Filtros -->
+  <dialog id="sj-fil-quickview-dialog" class="sj-native-dialog" closedby="any" aria-labelledby="sj-qv-title"></dialog>
+  <dialog id="sj-fil-spec-dialog" class="sj-native-dialog" closedby="any" aria-labelledby="sj-spec-title"></dialog>
+  <dialog id="sj-fil-filter-sheet" class="sj-native-dialog sj-bottom-sheet-dialog" closedby="any"
+    aria-labelledby="sj-filter-sheet-title"></dialog>
 
   <!-- ====================================================================
-       3. RODAPÉ ENXUTO LOJA SJ 3D (3 COLUNAS: LOJA, ATENDIMENTO, INSTITUCIONAL)
+       3. RODAPÉ UNIFICADO (INJETADO VIA js/site-chrome.js)
        ==================================================================== -->
-  <footer class="site-footer" id="rodape-ajuda">
-    <div class="container footer-container">
-      <div class="footer-main-grid is-3col">
-        <!-- Coluna 1: Loja -->
-        <div class="footer-nav-col footer-col-loja">
-          <div class="footer-logo-row">
-            <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="120" height="32" class="footer-logo-img" />
-          </div>
-          <p class="footer-desc-text">
-            Revenda autorizada oficial Bambu Lab &amp; Masterprint em Umuarama - PR.
-          </p>
-          <h4 class="footer-col-title">Loja</h4>
-          <ul class="footer-nav-links">
-            <li><a href="#impressoras" data-nav-cat="impressoras">Impressoras 3D</a></li>
-            <li><a href="#filamentos" data-nav-cat="filamentos">Filamentos 1.75 mm</a></li>
-            <li><a href="#pecas" data-nav-cat="pecas">Peças e upgrades</a></li>
-            <li><a href="#manutencao" data-nav-cat="manutencao">Serviços e manutenção</a></li>
-            <li><a href="#todos" data-nav-cat="todos">Catálogo completo</a></li>
-            <li><a href="/calculadora" class="footer-calc-link">Calculadora 3D <span class="footer-mini-tag">Novo</span></a></li>
-          </ul>
-          <div class="footer-models-sub" aria-label="Impressoras em linha">
-            <span>Em linha:</span>
-            <a href="#impressoras" data-nav-cat="impressoras">A1 Mini</a> ·
-            <a href="#impressoras" data-nav-cat="impressoras">A1 Mini Combo</a> ·
-            <a href="#impressoras" data-nav-cat="impressoras">A1 &amp; Combo</a> ·
-            <a href="#impressoras" data-nav-cat="impressoras">P2S Combo</a> ·
-            <a href="#impressoras" data-nav-cat="impressoras">Snapmaker U1</a>
-          </div>
-        </div>
-
-        <!-- Coluna 2: Atendimento -->
-        <div class="footer-nav-col">
-          <h4 class="footer-col-title">Atendimento</h4>
-          <ul class="footer-nav-links">
-            <li>
-              <a href="https://wa.me/5544991351318" target="_blank" rel="noopener">
-                WhatsApp: (44) 99135-1318
-              </a>
-            </li>
-            <li>
-              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener">
-                Av. Portugal, 6759 — Zona I-A, Umuarama - PR
-              </a>
-            </li>
-            <li>
-              <a href="https://share.google/0WwPhjFx69b3V9sU1" target="_blank" rel="noopener">
-                Ver rota no Google Maps
-              </a>
-            </li>
-            <li>
-              <a href="https://www.instagram.com/lojasj3d/" target="_blank" rel="noopener">
-                Instagram: @lojasj3d
-              </a>
-            </li>
-            <li>
-              <a href="/conta">Minha conta e pedidos</a>
-            </li>
-          </ul>
-        </div>
-
-        <!-- Coluna 3: Institucional -->
-        <div class="footer-nav-col">
-          <h4 class="footer-col-title">Institucional</h4>
-          <ul class="footer-nav-links">
-            <li>
-              <a href="#modal-privacy-policy" id="footer-privacy-link"
-                title="Política de Privacidade e Proteção de Dados LGPD">Privacidade &amp; LGPD</a>
-            </li>
-            <li>
-              <a href="#modal-lgpd-titular-request" id="footer-lgpd-request-link"
-                title="Solicitar ou Apagar Meus Dados (LGPD Art. 18)">Direitos do titular (LGPD)</a>
-            </li>
-            <li>
-              <a href="#modal-cookie-preferences" id="btn-footer-cookie-pref"
-                title="Gerenciar preferências de cookies e privacidade">Preferências de cookies</a>
-            </li>
-            <li><span class="footer-meta-line">CNPJ: 66.275.129/0001-10</span></li>
-            <li><span class="footer-meta-line">Retirada presencial e envio rápido</span></li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="footer-bottom-bar">
-        <span class="footer-copy-text">© 2026 Loja SJ 3D • CNPJ: 66.275.129/0001-10 • Umuarama / PR • Todos os direitos reservados.</span>
-      </div>
-    </div>
-  </footer>
+  <div id="sj-site-footer-slot"></div>
 
   <!-- BANNER FLUTUANTE DE COOKIES LGPD -->
   <aside class="cookie-banner-wrap" id="cookie-consent-banner" role="region"
@@ -1310,7 +852,8 @@
           </div>
         </div>
         <button type="button" class="lgpd-close-btn" id="close-lgpd-request-btn" aria-label="Fechar janela">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
+            stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <line x1="18" y1="6" x2="6" y2="18"></line>
             <line x1="6" y1="6" x2="18" y2="18"></line>
           </svg>
@@ -1321,14 +864,17 @@
         <summary>Saiba mais</summary>
         <p>
           Atendimento gratuito conforme a Lei Geral de Proteção de Dados (Lei nº 13.709/2018, Arts. 18 e 19).
-          Pedidos de exclusão passam por revisão manual porque notas fiscais e dados de compras faturadas precisam ser preservados por obrigação legal.
+          Pedidos de exclusão passam por revisão manual porque notas fiscais e dados de compras faturadas precisam ser
+          preservados por obrigação legal.
         </p>
       </details>
 
       <!-- Abas discretas -->
       <div class="lgpd-segmented-tabs" id="lgpd-modal-tabs" role="tablist" aria-label="Opções do canal LGPD">
-        <button type="button" class="lgpd-seg-btn active" id="tab-lgpd-nova-solic" role="tab" aria-selected="true">Nova solicitação</button>
-        <button type="button" class="lgpd-seg-btn" id="tab-lgpd-consultar-solic" role="tab" aria-selected="false">Consultar protocolo</button>
+        <button type="button" class="lgpd-seg-btn active" id="tab-lgpd-nova-solic" role="tab" aria-selected="true">Nova
+          solicitação</button>
+        <button type="button" class="lgpd-seg-btn" id="tab-lgpd-consultar-solic" role="tab"
+          aria-selected="false">Consultar protocolo</button>
       </div>
 
       <!-- Formulário: Nova solicitação -->
@@ -1339,7 +885,11 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="acesso_dados" checked />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                  <circle cx="12" cy="12" r="3"></circle>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Ver meus dados</strong>
@@ -1350,7 +900,11 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="correcao_dados" />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path>
+                  <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Corrigir meus dados</strong>
@@ -1361,7 +915,11 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="eliminacao_dados" />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <polyline points="3 6 5 6 21 6"></polyline>
+                  <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Excluir meus dados</strong>
@@ -1372,7 +930,12 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="portabilidade_dados" />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Levar meus dados</strong>
@@ -1383,7 +946,11 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="revogacao_consentimento" />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                  <line x1="1" y1="1" x2="23" y2="23"></line>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Parar de receber comunicações</strong>
@@ -1394,7 +961,10 @@
             <label class="lgpd-type-card">
               <input type="radio" name="tipo_solicitacao" value="outro" />
               <span class="lgpd-type-icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                  stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
               </span>
               <span class="lgpd-type-text">
                 <strong>Outro assunto</strong>
@@ -1412,24 +982,28 @@
         <div class="lgpd-fields-row">
           <div class="lgpd-field">
             <label for="lgpd-input-nome">Nome *</label>
-            <input type="text" id="lgpd-input-nome" name="titular_nome" required maxlength="120" autocomplete="name" placeholder="Seu nome completo" />
+            <input type="text" id="lgpd-input-nome" name="titular_nome" required maxlength="120" autocomplete="name"
+              placeholder="Seu nome completo" />
           </div>
           <div class="lgpd-field">
             <label for="lgpd-input-email">E-mail *</label>
-            <input type="email" id="lgpd-input-email" name="titular_email" required maxlength="160" autocomplete="email" placeholder="seuemail@exemplo.com" />
+            <input type="email" id="lgpd-input-email" name="titular_email" required maxlength="160" autocomplete="email"
+              placeholder="seuemail@exemplo.com" />
           </div>
         </div>
 
         <div class="lgpd-field">
           <label for="lgpd-input-detalhes">Detalhes <span class="lgpd-optional-hint">(opcional)</span></label>
-          <textarea id="lgpd-input-detalhes" name="detalhes_solicitacao" rows="2" maxlength="2000" placeholder="Se quiser, explique o que precisa..."></textarea>
+          <textarea id="lgpd-input-detalhes" name="detalhes_solicitacao" rows="2" maxlength="2000"
+            placeholder="Se quiser, explique o que precisa..."></textarea>
         </div>
 
         <details id="lgpd-cpf-details" class="lgpd-cpf-toggle">
           <summary>Adicionar CPF/CNPJ para agilizar a identificação</summary>
           <div class="lgpd-field" style="margin-top:10px;">
             <label for="lgpd-input-cpf">CPF ou CNPJ <span class="lgpd-optional-hint">(opcional)</span></label>
-            <input type="text" id="lgpd-input-cpf" name="titular_cpf" maxlength="18" inputmode="numeric" placeholder="000.000.000-00 ou 00.000.000/0000-00" />
+            <input type="text" id="lgpd-input-cpf" name="titular_cpf" maxlength="18" inputmode="numeric"
+              placeholder="000.000.000-00 ou 00.000.000/0000-00" />
           </div>
         </details>
 
@@ -1461,7 +1035,10 @@
       <!-- Tela de confirmação limpa -->
       <div id="lgpd-confirm-screen" class="lgpd-confirm-screen" hidden>
         <div class="lgpd-confirm-icon" aria-hidden="true">
-          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4"
+            stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"></polyline>
+          </svg>
         </div>
         <h3 class="lgpd-confirm-title">Solicitação enviada</h3>
         <div class="lgpd-protocol-box">
@@ -1480,7 +1057,8 @@
       <form id="pane-lgpd-consultar" class="lgpd-clean-form" hidden novalidate>
         <div class="lgpd-field">
           <label for="input-lgpd-busca-protocolo">Número do protocolo *</label>
-          <input type="text" id="input-lgpd-busca-protocolo" required maxlength="40" placeholder="Ex: LGPD-2026-A1B2C3" style="text-transform:uppercase;" />
+          <input type="text" id="input-lgpd-busca-protocolo" required maxlength="40" placeholder="Ex: LGPD-2026-A1B2C3"
+            style="text-transform:uppercase;" />
         </div>
         <div class="lgpd-field">
           <label for="input-lgpd-busca-email">E-mail usado na solicitação *</label>
@@ -3700,6 +3278,38 @@
                 </div>
               </div>
 
+              <!-- BANNER DA COMUNIDADE VIP (SLIDE DO CARROSSEL PRINCIPAL) -->
+              <div class="cms-block-card" id="cms-ban-vip-card">
+                <h4>💬 Arte da Comunidade Loja SJ no Carrossel do Topo</h4>
+                <p style="font-size:0.8rem; color:var(--text-muted); margin-bottom:12px;">Troque as imagens (desktop / mobile) ou desative o slide da Comunidade no carrossel principal.</p>
+                <div class="cms-toggles-grid" style="margin-bottom:12px;">
+                  <label class="cms-toggle-item">
+                    <input type="checkbox" id="cms-ban-vip-ativo" checked />
+                    <span><strong>Exibir slide da Comunidade no carrossel do topo</strong></span>
+                  </label>
+                </div>
+                <div class="cms-field-row-2">
+                  <div class="cms-field">
+                    <label for="cms-ban-vip-desktop-img">Imagem Desktop (1920×640 / 3:1)</label>
+                    <input type="text" id="cms-ban-vip-desktop-img" placeholder="assets/banners/desktop/comunidade-vip.png" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-ban-vip-mobile-img">Imagem Mobile (1080×1350 / 4:5)</label>
+                    <input type="text" id="cms-ban-vip-mobile-img" placeholder="assets/banners/mobile/comunidade-vip.png" />
+                  </div>
+                </div>
+                <div class="cms-field-row-2">
+                  <div class="cms-field">
+                    <label for="cms-ban-vip-titulo">Descrição acessível (Alt Text)</label>
+                    <input type="text" id="cms-ban-vip-titulo" placeholder="Comunidade Loja SJ — Entre no grupo no WhatsApp" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-ban-vip-subtitulo">Observação / Promoção ativa</label>
+                    <input type="text" id="cms-ban-vip-subtitulo" placeholder="Suporte e dúvidas, promoções da loja e novidades" />
+                  </div>
+                </div>
+              </div>
+
               <div class="cms-editor-footer-actions">
                 <button type="submit" class="btn-cms-save">
                   💾 Salvar & Publicar Banner de Promoções
@@ -3964,10 +3574,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261119_03"></script>
-  <script src="js/dados.js?v=20261119_03"></script>
-  <script src="js/database.js?v=20261119_03"></script>
-  <script src="js/app.js?v=20261119_03"></script>
+  <script src="js/supabase-client.js?v=20261119_07"></script>
+  <script src="js/dados.js?v=20261119_07"></script>
+  <script src="js/site-chrome.js?v=20261119_07"></script>
+  <script src="js/database.js?v=20261119_07"></script>
+  <script src="js/app.js?v=20261119_07"></script>
 </body>
 
 </html>
