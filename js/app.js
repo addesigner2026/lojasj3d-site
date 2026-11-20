@@ -3929,10 +3929,14 @@
     });
 
     // Evento de Logout do Cliente
-    container.querySelector("#btn-cliente-sair")?.addEventListener("click", () => {
+    container.querySelector("#btn-cliente-sair")?.addEventListener("click", async () => {
+      try {
+        await window.SJ_SUPABASE?.auth?.logout?.();
+      } catch (_) { }
+      state.supabaseStoreUser = null;
       salvarClienteLocal(null);
-      if (window.SJ_SUPABASE?.auth?.logout) window.SJ_SUPABASE.auth.logout();
-      mostrarToastNotificacao("Você saiu da sua conta.", "info");
+      await sincronizarClienteLojaSupabase();
+      mostrarToast("Você saiu da sua conta.", "info");
       navegarParaCategoria("home");
     });
 
@@ -4269,12 +4273,18 @@
       e.preventDefault();
       if (storePop) storePop.classList.remove("is-open");
       document.getElementById("header-account-btn")?.setAttribute("aria-expanded", "false");
-      window.SJ_SUPABASE?.auth?.logout?.().then(() => {
+      (async () => {
+        try {
+          await window.SJ_SUPABASE?.auth?.logout?.();
+        } catch (_) { }
         state.supabaseStoreUser = null;
-        atualizarEstadoCliente(null);
-        sincronizarClienteLojaSupabase();
+        salvarClienteLocal(null);
+        await sincronizarClienteLojaSupabase();
+        if (state.categoriaMenu === "minha-conta") {
+          navegarParaCategoria("home");
+        }
         mostrarToast("Você saiu da sua conta.", "info");
-      });
+      })();
       return;
     }
 

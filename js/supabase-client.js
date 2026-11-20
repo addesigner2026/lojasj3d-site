@@ -372,7 +372,11 @@
       if (client) {
         try {
           await client.auth.signOut();
-        } catch (_) { }
+        } catch (_) {
+          try {
+            await client.auth.signOut({ scope: "local" });
+          } catch (_) { }
+        }
       }
       return true;
     }
