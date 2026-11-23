@@ -42,8 +42,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_01" />
-  <link rel="stylesheet" href="css/styles.css?v=20261123_01" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_02" />
+  <link rel="stylesheet" href="css/styles.css?v=20261123_02" />
 </head>
 
 <body class="admin-standalone-body">
@@ -903,98 +903,223 @@
           <div id="cms-qr-lookup-grid" class="sj-qr-lookup-grid"></div>
         </div>
 
-        <!-- ABA 3: CLIENTES & LEADS (CRM) -->
+        <!-- ABA 3: CLIENTES (CADASTRADOS DO BANCO + LEADS) -->
         <div class="admin-cms-pane" id="cms-pane-clientes" style="display: none;">
-          <div class="cms-lean-toolbar">
-            <div class="cms-lean-toolbar-main">
-              <div class="cms-search-box-wrap">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                <input type="text" id="cms-clients-search-input" class="cms-search-input-lean" placeholder="Buscar cliente por nome, telefone, CPF/CNPJ ou e-mail..." aria-label="Buscar cliente" />
-              </div>
 
-              <select id="cms-clients-filter-select" class="cms-select-clean" aria-label="Filtrar clientes">
-                <option value="todos">Todos os clientes</option>
-                <option value="whatsapp">Com WhatsApp</option>
-                <option value="cpf">Com CPF / CNPJ</option>
-                <option value="site">Cadastro no site</option>
-              </select>
-            </div>
-
-            <div class="cms-lean-toolbar-actions">
-              <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients-csv">Exportar CSV</button>
-              <button type="button" class="btn-cms-secondary" id="btn-cms-new-quote">Orçamento timbrado</button>
-              <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-client">+ Novo cliente</button>
-            </div>
-          </div>
-
-          <!-- Formulário Rápido para Cadastrar ou Editar Cliente / Lead -->
-          <div id="cms-client-form-box" class="cms-block-card" style="display: none; border:1.5px solid #F04E23; background:#fffaf8; margin-bottom:16px;">
-            <div class="cms-block-header">
+          <!-- Cabeçalho com Abas: Cadastrados | Leads -->
+          <div class="cust-page-header">
+            <div style="display:flex; align-items:center; justify-content:space-between; gap:12px; flex-wrap:wrap; padding-bottom:12px;">
               <div>
-                <h4 id="cms-client-form-title">Novo Cliente / Lead</h4>
-                <p>Registre ou atualize os dados para contato e orçamentos.</p>
+                <h2 style="margin:0; font-size:1.25rem; font-weight:800; color:#0f172a;">Clientes</h2>
+                <p style="margin:2px 0 0; font-size:0.8rem; color:#64748b;">Contas cadastradas no site com status de preenchimento e leads manuais.</p>
               </div>
-              <button type="button" class="btn-cms-cancel" id="btn-cms-close-client-form">Fechar</button>
+              <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                <button type="button" class="btn-cms-secondary" id="btn-cust-dir-export" data-admin-only="true" title="Exporta arquivo CSV com dados pessoais (LGPD)">Exportar lista (CSV)</button>
+                <button type="button" class="btn-cms-secondary" id="btn-cust-dir-refresh">Atualizar</button>
+              </div>
             </div>
 
-            <form id="form-cms-client-lead" class="cms-editor-form">
-              <input type="hidden" id="cms-cli-id" />
-              <div class="cms-field-row-3">
-                <div class="cms-field">
-                  <label for="cms-cli-nome">Nome completo / Razão social *</label>
-                  <input type="text" id="cms-cli-nome" placeholder="Ex: Carlos Eduardo Silva" required />
-                </div>
-                <div class="cms-field">
-                  <label for="cms-cli-whatsapp">Telefone / WhatsApp *</label>
-                  <input type="text" id="cms-cli-whatsapp" placeholder="(44) 99999-9999" required />
-                </div>
-                <div class="cms-field">
-                  <label for="cms-cli-cpf">CPF ou CNPJ</label>
-                  <input type="text" id="cms-cli-cpf" placeholder="000.000.000-00" />
-                </div>
-              </div>
-
-              <div class="cms-field-row-3">
-                <div class="cms-field">
-                  <label for="cms-cli-email">E-mail</label>
-                  <input type="email" id="cms-cli-email" placeholder="cliente@email.com" />
-                </div>
-                <div class="cms-field">
-                  <label for="cms-cli-cidade">Cidade / UF</label>
-                  <input type="text" id="cms-cli-cidade" placeholder="Umuarama / PR" value="Umuarama / PR" />
-                </div>
-                <div class="cms-field">
-                  <label for="cms-cli-origem">Origem</label>
-                  <select id="cms-cli-origem">
-                    <option value="Cadastro no Site">Cadastro no Site</option>
-                    <option value="Lead WhatsApp / Balcão">Lead WhatsApp / Balcão</option>
-                    <option value="Orçamento Comercial">Orçamento Comercial</option>
-                    <option value="Clube SJ / Sorteio">Clube SJ / Sorteio</option>
-                  </select>
-                </div>
-              </div>
-
-              <div class="cms-field-row-2">
-                <div class="cms-field">
-                  <label for="cms-cli-endereco">Endereço</label>
-                  <input type="text" id="cms-cli-endereco" placeholder="Rua, número, bairro, CEP" />
-                </div>
-                <div class="cms-field">
-                  <label for="cms-cli-obs">Observação</label>
-                  <input type="text" id="cms-cli-obs" placeholder="Anotações sobre atendimento" />
-                </div>
-              </div>
-
-              <div class="cms-editor-footer-actions" style="margin-top:10px;">
-                <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-client-lead">Cancelar</button>
-                <button type="submit" class="btn-cms-save">Salvar cliente</button>
-              </div>
-            </form>
+            <div class="iq-tablist" focusgroup="tablist nomemory" aria-label="Visualização de clientes">
+              <button type="button" id="cust-tab-cadastrados" role="tab" aria-selected="true" focusgroupstart class="iq-tab-btn" data-cust-subtab="cadastrados">
+                <span>Cadastrados</span>
+                <span id="cust-tab-count-reg" class="iq-tab-count">0</span>
+              </button>
+              <button type="button" id="cust-tab-leads" role="tab" aria-selected="false" class="iq-tab-btn" data-cust-subtab="leads">
+                <span>Leads</span>
+                <span id="cust-tab-count-leads" class="iq-tab-count">0</span>
+              </button>
+            </div>
           </div>
 
-          <div class="cms-section-card is-flush">
-            <div id="cms-clients-list" class="cms-clean-list"></div>
+          <!-- SUB-ABA 1: CLIENTES CADASTRADOS NO BANCO -->
+          <div id="cust-panel-cadastrados" role="tabpanel" aria-labelledby="cust-tab-cadastrados" tabindex="0">
+            <!-- Contadores no topo -->
+            <div class="cust-kpi-grid">
+              <div class="cust-kpi-card">
+                <span class="cust-kpi-lbl">Total de clientes</span>
+                <strong class="cust-kpi-val" id="cust-kpi-total">0</strong>
+              </div>
+              <div class="cust-kpi-card">
+                <span class="cust-kpi-lbl">Cadastro completo</span>
+                <strong class="cust-kpi-val" id="cust-kpi-complete" style="color:#15803d;">0</strong>
+              </div>
+              <div class="cust-kpi-card">
+                <span class="cust-kpi-lbl">Incompletos</span>
+                <strong class="cust-kpi-val" id="cust-kpi-incomplete" style="color:#b45309;">0</strong>
+              </div>
+              <div class="cust-kpi-card">
+                <span class="cust-kpi-lbl">Via Google</span>
+                <strong class="cust-kpi-val" id="cust-kpi-google" style="color:#1d4ed8;">0</strong>
+              </div>
+              <div class="cust-kpi-card">
+                <span class="cust-kpi-lbl">Via E-mail e senha</span>
+                <strong class="cust-kpi-val" id="cust-kpi-email" style="color:#334155;">0</strong>
+              </div>
+            </div>
+
+            <!-- Barra de busca e ordenação -->
+            <div class="cms-lean-toolbar">
+              <div class="cms-lean-toolbar-main">
+                <div class="cms-search-box-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="search" id="cust-dir-search" class="cms-search-input-lean" placeholder="Buscar por nome, razão social, CPF/CNPJ, telefone ou e-mail..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+                </div>
+
+                <select id="cust-dir-sort" class="cms-select-clean" aria-label="Ordenar clientes">
+                  <option value="created_desc">Mais recentes</option>
+                  <option value="name_asc">Nome (A–Z)</option>
+                  <option value="last_sign_in_desc">Último acesso</option>
+                  <option value="quotes_desc">Mais orçamentos</option>
+                  <option value="completeness_asc">Mais incompletos</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Filtros rápidos em chips -->
+            <div class="cust-chips-bar" role="group" aria-label="Filtros rápidos de clientes">
+              <button type="button" class="cust-chip-btn is-active" data-cust-filter="todos">Todos</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="completos">Completos</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="incompletos">Incompletos</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="google">Google</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="email">E-mail e senha</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="pf">PF</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="pj">PJ</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="nao_confirmado">E-mail não confirmado</button>
+              <button type="button" class="cust-chip-btn" data-cust-filter="novos_7d">Novos (últimos 7 dias)</button>
+            </div>
+
+            <!-- Tabela compacta (cartões no celular) -->
+            <div class="cms-section-card is-flush">
+              <div id="cust-dir-region" class="cust-table-region" tabindex="0" role="region" aria-label="Lista de clientes cadastrados">
+                <table class="cust-dir-table">
+                  <thead>
+                    <tr>
+                      <th>Cliente</th>
+                      <th>Contato</th>
+                      <th>Forma de cadastro</th>
+                      <th>E-mail conf.</th>
+                      <th>Situação do cadastro</th>
+                      <th>Datas</th>
+                      <th>Orçamentos</th>
+                      <th style="text-align:right;">Ação</th>
+                    </tr>
+                  </thead>
+                  <tbody id="cust-dir-tbody">
+                    <tr><td colspan="8" style="padding:18px;"><div class="cms-skeleton-row"></div></td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <div id="cust-dir-pagination" class="cust-pagination-bar"></div>
+            </div>
+
+            <p class="cust-lgpd-footer">Dados pessoais usados apenas para atendimento, orçamentos e notas fiscais (LGPD).</p>
           </div>
+
+          <!-- SUB-ABA 2: LEADS (CADASTROS LOCAIS EXISTENTES MANTIDOS) -->
+          <div id="cust-panel-leads" role="tabpanel" aria-labelledby="cust-tab-leads" hidden="until-found">
+            <div class="cms-lean-toolbar">
+              <div class="cms-lean-toolbar-main">
+                <div class="cms-search-box-wrap">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="text" id="cms-clients-search-input" class="cms-search-input-lean" placeholder="Buscar lead por nome, telefone, CPF/CNPJ ou e-mail..." aria-label="Buscar cliente" />
+                </div>
+
+                <select id="cms-clients-filter-select" class="cms-select-clean" aria-label="Filtrar clientes">
+                  <option value="todos">Todos os leads</option>
+                  <option value="whatsapp">Com WhatsApp</option>
+                  <option value="cpf">Com CPF / CNPJ</option>
+                  <option value="site">Cadastro no site</option>
+                </select>
+              </div>
+
+              <div class="cms-lean-toolbar-actions">
+                <button type="button" class="btn-cms-secondary" id="btn-cms-export-clients-csv">Exportar CSV</button>
+                <button type="button" class="btn-cms-secondary" id="btn-cms-new-quote">Orçamento timbrado</button>
+                <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-client">+ Novo cliente</button>
+              </div>
+            </div>
+
+            <!-- Formulário Rápido para Cadastrar ou Editar Cliente / Lead -->
+            <div id="cms-client-form-box" class="cms-block-card" style="display: none; border:1.5px solid #F04E23; background:#fffaf8; margin-bottom:16px;">
+              <div class="cms-block-header">
+                <div>
+                  <h4 id="cms-client-form-title">Novo Cliente / Lead</h4>
+                  <p>Registre ou atualize os dados para contato e orçamentos.</p>
+                </div>
+                <button type="button" class="btn-cms-cancel" id="btn-cms-close-client-form">Fechar</button>
+              </div>
+
+              <form id="form-cms-client-lead" class="cms-editor-form">
+                <input type="hidden" id="cms-cli-id" />
+                <div class="cms-field-row-3">
+                  <div class="cms-field">
+                    <label for="cms-cli-nome">Nome completo / Razão social *</label>
+                    <input type="text" id="cms-cli-nome" placeholder="Ex: Carlos Eduardo Silva" required />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-cli-whatsapp">Telefone / WhatsApp *</label>
+                    <input type="text" id="cms-cli-whatsapp" placeholder="(44) 99999-9999" required />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-cli-cpf">CPF ou CNPJ</label>
+                    <input type="text" id="cms-cli-cpf" placeholder="000.000.000-00" />
+                  </div>
+                </div>
+
+                <div class="cms-field-row-3">
+                  <div class="cms-field">
+                    <label for="cms-cli-email">E-mail</label>
+                    <input type="email" id="cms-cli-email" placeholder="cliente@email.com" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-cli-cidade">Cidade / UF</label>
+                    <input type="text" id="cms-cli-cidade" placeholder="Umuarama / PR" value="Umuarama / PR" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-cli-origem">Origem</label>
+                    <select id="cms-cli-origem">
+                      <option value="Cadastro no Site">Cadastro no Site</option>
+                      <option value="Lead WhatsApp / Balcão">Lead WhatsApp / Balcão</option>
+                      <option value="Orçamento Comercial">Orçamento Comercial</option>
+                      <option value="Clube SJ / Sorteio">Clube SJ / Sorteio</option>
+                    </select>
+                  </div>
+                </div>
+
+                <div class="cms-field-row-2">
+                  <div class="cms-field">
+                    <label for="cms-cli-endereco">Endereço</label>
+                    <input type="text" id="cms-cli-endereco" placeholder="Rua, número, bairro, CEP" />
+                  </div>
+                  <div class="cms-field">
+                    <label for="cms-cli-obs">Observação</label>
+                    <input type="text" id="cms-cli-obs" placeholder="Anotações sobre atendimento" />
+                  </div>
+                </div>
+
+                <div class="cms-editor-footer-actions" style="margin-top:10px;">
+                  <button type="button" class="btn-cms-cancel" id="btn-cms-cancel-client-lead">Cancelar</button>
+                  <button type="submit" class="btn-cms-save">Salvar cliente</button>
+                </div>
+              </form>
+            </div>
+
+            <div class="cms-section-card is-flush">
+              <div id="cms-clients-list" class="cms-clean-list"></div>
+            </div>
+          </div>
+
+          <!-- GAVETA LATERAL: DETALHES COMPLETOS DO CLIENTE CADASTRADO -->
+          <dialog id="cms-customer-detail-drawer" class="cms-side-drawer" closedby="any" aria-labelledby="cust-drawer-title">
+            <div class="cms-drawer-header">
+              <div>
+                <h2 id="cust-drawer-title" class="cms-drawer-title">Detalhes do Cliente</h2>
+                <p id="cust-drawer-sub" class="cms-drawer-sub"></p>
+              </div>
+              <button type="button" class="cms-drawer-close" id="btn-cust-drawer-close" aria-label="Fechar detalhes do cliente">✕</button>
+            </div>
+            <div id="cust-drawer-body" class="cms-drawer-body"></div>
+          </dialog>
         </div>
 
         <!-- ABA 4: BANNER & PROMOÇÕES -->
@@ -1398,11 +1523,24 @@
                       <button type="button" id="btn-iq-import-request" class="btn-cms-secondary" style="border-color:#fed7aa; color:#c2410c; background:#fff7ed;">
                         Importar de solicitação do cliente
                       </button>
+                      <button type="button" id="btn-iq-sync-back-customer" class="btn-cms-secondary" style="display:none; border-color:#bbf7d0; color:#15803d; background:#f0fdf4;">
+                        Atualizar cadastro do cliente com estes dados
+                      </button>
                     </div>
 
                     <div id="iq-imported-request-banner" class="iq-source-banner" style="display:none;">
                       <span id="iq-imported-request-text"></span>
                       <button type="button" id="btn-iq-detach-request" class="btn-cms-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;">Desvincular</button>
+                    </div>
+
+                    <div id="iq-client-open-req-banner" class="iq-client-open-req-banner" style="display:none;">
+                      <span id="iq-client-open-req-text"></span>
+                      <button type="button" id="btn-iq-open-req-import" class="btn-cms-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem; background:#ffffff; border-color:#7dd3fc; color:#0369a1;">Importar solicitação</button>
+                    </div>
+
+                    <div id="iq-client-warning-banner" class="iq-client-warning-banner" style="display:none;">
+                      <span id="iq-client-warning-text"></span>
+                      <button type="button" id="btn-iq-complete-profile-link" class="btn-cms-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem; background:#ffffff; border-color:#f59e0b; color:#92400e;">Completar cadastro do cliente</button>
                     </div>
 
                     <div id="iq-invoice-rule-hint" style="font-size:0.78rem; color:#475569; margin-bottom:12px;">
@@ -2060,11 +2198,12 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261123_01"></script>
-  <script src="js/dados.js?v=20261123_01"></script>
-  <script src="js/database.js?v=20261123_01"></script>
-  <script src="js/app.js?v=20261123_01"></script>
-  <script src="js/issued-quotes.js?v=20261123_01"></script>
+  <script src="js/supabase-client.js?v=20261123_02"></script>
+  <script src="js/dados.js?v=20261123_02"></script>
+  <script src="js/database.js?v=20261123_02"></script>
+  <script src="js/app.js?v=20261123_02"></script>
+  <script src="js/customers-directory.js?v=20261123_02"></script>
+  <script src="js/issued-quotes.js?v=20261123_02"></script>
 
 </body>
 

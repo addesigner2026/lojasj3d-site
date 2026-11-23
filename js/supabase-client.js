@@ -2396,6 +2396,136 @@
     }
   };
 
+  // =========================================================================
+  // MÓDULO DIRETÓRIO DE CLIENTES CADASTRADOS (ADMIN & STAFF — VIA RPC)
+  // =========================================================================
+  const customers = {
+    buscarParaOrcamento: async function (query = "", limit = 12) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], tabelaAusente: false };
+      try {
+        const { data, error } = await client.rpc("admin_search_customers_for_quote", {
+          p_query: String(query || "").trim(),
+          p_limit: Math.min(30, Math.max(1, parseInt(limit, 10) || 12))
+        });
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42883" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: "Não foi possível consultar clientes." };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [], tabelaAusente: false };
+      } catch (_) {
+        return { sucesso: false, dados: [], tabelaAusente: false, mensagem: "Erro ao consultar clientes." };
+      }
+    },
+
+    listarCadastrados: async function ({ query = "", filter = "todos", sort = "created_desc", limit = 25, offset = 0 } = {}) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, items: [], kpis: {}, totalFiltered: 0, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client.rpc("admin_list_registered_customers", {
+          p_query: String(query || "").trim(),
+          p_filter: String(filter || "todos"),
+          p_sort: String(sort || "created_desc"),
+          p_limit: Math.min(100, Math.max(1, parseInt(limit, 10) || 25)),
+          p_offset: Math.max(0, parseInt(offset, 10) || 0)
+        });
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42883" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, items: [], kpis: {}, totalFiltered: 0, tabelaAusente, mensagem: tabelaAusente ? "Execute a Migration 011 no SQL Editor do Supabase." : "Erro ao carregar clientes cadastrados." };
+        }
+        return {
+          sucesso: true,
+          kpis: data?.kpis || {},
+          totalFiltered: Number(data?.total_filtered) || 0,
+          items: Array.isArray(data?.items) ? data.items : [],
+          tabelaAusente: false
+        };
+      } catch (_) {
+        return { sucesso: false, items: [], kpis: {}, totalFiltered: 0, mensagem: "Erro ao carregar clientes." };
+      }
+    },
+
+    obterDetalhe: async function (customerId) {
+      const client = inicializarCliente();
+      if (!client || !customerId) return { sucesso: false, mensagem: "Cliente inválido." };
+      try {
+        const { data, error } = await client.rpc("admin_get_customer_detail", {
+          p_customer_id: customerId
+        });
+        if (error) return { sucesso: false, mensagem: "Não foi possível carregar os detalhes do cliente." };
+        return { sucesso: true, dados: data };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao carregar detalhes." };
+      }
+    },
+
+    revelarDocumento: async function (customerId) {
+      const client = inicializarCliente();
+      if (!client || !customerId) return { sucesso: false, mensagem: "Cliente inválido." };
+      try {
+        const { data, error } = await client.rpc("admin_reveal_customer_doc", {
+          p_customer_id: customerId
+        });
+        if (error) return { sucesso: false, mensagem: "Sem permissão para revelar documento." };
+        return { sucesso: true, dados: data };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao revelar documento." };
+      }
+    },
+
+    atualizarCadastro: async function (customerId, dados) {
+      const client = inicializarCliente();
+      if (!client || !customerId) return { sucesso: false, mensagem: "Cliente inválido." };
+      try {
+        const { data, error } = await client.rpc("admin_update_customer_profile", {
+          p_customer_id: customerId,
+          p_dados: dados || {}
+        });
+        if (error) {
+          const raw = String(error.message || "");
+          if (raw.includes("CPF inválido")) return { sucesso: false, mensagem: "CPF inválido. Confira os 11 dígitos." };
+          if (raw.includes("CNPJ inválido")) return { sucesso: false, mensagem: "CNPJ inválido. Confira os 14 dígitos." };
+          if (raw.includes("idx_profiles_cpf_unique") || raw.includes("idx_profiles_cnpj_unique") || String(error.code || "") === "23505") {
+            return { sucesso: false, mensagem: "Este documento já pertence a outra conta cadastrada." };
+          }
+          return { sucesso: false, mensagem: "Não foi possível atualizar o cadastro do cliente." };
+        }
+        return { sucesso: true, dados: data };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao salvar cadastro." };
+      }
+    },
+
+    definirBloqueio: async function (customerId, blocked) {
+      const client = inicializarCliente();
+      if (!client || !customerId) return { sucesso: false, mensagem: "Cliente inválido." };
+      try {
+        const { data, error } = await client.rpc("admin_set_customer_block", {
+          p_customer_id: customerId,
+          p_blocked: Boolean(blocked)
+        });
+        if (error) return { sucesso: false, mensagem: error.message || "Ação permitida apenas para administrador." };
+        return { sucesso: true, dados: data };
+      } catch (_) {
+        return { sucesso: false, mensagem: "Erro ao alterar status de acesso." };
+      }
+    },
+
+    exportarCsv: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client.rpc("admin_export_customers_csv");
+        if (error) return { sucesso: false, dados: [], mensagem: "Exportação restrita ao administrador." };
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (_) {
+        return { sucesso: false, dados: [], mensagem: "Erro ao exportar clientes." };
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -2423,6 +2553,7 @@
     cart,
     quotes,
     issuedQuotes,
+    customers,
     whatsapp,
     fiscal,
     clientes,

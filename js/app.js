@@ -12972,6 +12972,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
     if (aba === "clientes") {
       renderizarListaClientesCms();
+      window.SJ_CUSTOMERS?.abrir?.(opts);
     }
     if (aba === "supabase") {
       atualizarStatusSupabaseNoCms();
@@ -16710,7 +16711,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
         if (editId) abrirEditorProdutoCms(editId);
 
-        // Realtime em public.profiles: atualiza pedidos pendentes para admin e revoga acesso na hora se funcionário for bloqueado
+        // Realtime em public.profiles: atualiza pedidos pendentes, clientes cadastrados e revoga acesso na hora se bloqueado
         if (!profilesRealtimeSub && window.SJ_SUPABASE?.profiles?.assinarRealtime) {
           profilesRealtimeSub = window.SJ_SUPABASE.profiles.assinarRealtime(async () => {
             const aindaAutorizado = await verificarSessaoAdminSupabase(false);
@@ -16718,6 +16719,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
               await renderizarPainelEquipeCms(true);
               if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
             }
+            window.SJ_CUSTOMERS?.onProfilesRealtime?.();
           });
         }
         // Realtime em quotes para equipe ver novos orçamentos e alterações ao vivo
@@ -16725,6 +16727,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           quotesRealtimeSub = window.SJ_SUPABASE.quotes.assinarRealtime(async () => {
             await renderizarOrcamentosPortalCms();
             if (cmsState.abaAtiva === "inicio") renderizarPainelInicioCms();
+            window.SJ_CUSTOMERS?.onProfilesRealtime?.();
           });
         }
         // Realtime em solicitacoes_titular (LGPD) para equipe ver novos pedidos na hora

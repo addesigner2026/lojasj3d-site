@@ -443,6 +443,73 @@
     applyLockedStateToControls();
     renderItemsTable();
     updateFinancialSummaryUI();
+    updateClientCompletenessHighlight();
+  }
+
+  function updateClientCompletenessHighlight() {
+    const d = iqState.doc;
+    if (!d) return;
+
+    document.querySelectorAll("#iq-panel-novo .iq-field-missing").forEach((el) => {
+      el.classList.remove("iq-field-missing");
+    });
+
+    const warnBanner = document.getElementById("iq-client-warning-banner");
+    const warnText = document.getElementById("iq-client-warning-text");
+    const completeLink = document.getElementById("btn-iq-complete-profile-link");
+    const openReqBanner = document.getElementById("iq-client-open-req-banner");
+    const openReqText = document.getElementById("iq-client-open-req-text");
+    const syncBtn = document.getElementById("btn-iq-sync-back-customer");
+
+    if (syncBtn) {
+      syncBtn.style.display = (d.customerProfileId && !d.isLocked) ? "inline-flex" : "none";
+    }
+
+    if (openReqBanner && openReqText) {
+      const openQ = Number(d.selectedCustomerOpenQuotes) || 0;
+      if (d.customerProfileId && openQ > 0 && !d.sourceCustomerQuoteId) {
+        openReqBanner.style.display = "flex";
+        openReqText.innerHTML = `Este cliente possui <strong>${openQ} ${openQ === 1 ? "solicitação em aberto" : "solicitações em aberto"}</strong> no site.`;
+      } else {
+        openReqBanner.style.display = "none";
+      }
+    }
+
+    const rules = root.SJ_CUSTOMER_RULES;
+    const c = d.customer || {};
+    const hasAnyClient = Boolean(c.nome || c.razaoSocial || c.email || c.telefone || c.cpf || c.cnpj || d.customerProfileId);
+    if (!rules || !hasAnyClient) {
+      if (warnBanner) warnBanner.style.display = "none";
+      return;
+    }
+
+    const fullEval = rules.evaluateCompleteness({
+      personType: d.customerType,
+      ...c
+    });
+    const activeEval = d.needsInvoice
+      ? fullEval
+      : rules.evaluateCompleteness({ personType: d.customerType, ...c }, { forNoInvoiceOnly: true });
+
+    const missingToHighlight = d.needsInvoice ? fullEval.missingInputIds : activeEval.missingInputIds;
+    missingToHighlight.forEach((inputId) => {
+      const inp = document.getElementById(inputId);
+      if (inp) inp.classList.add("iq-field-missing");
+    });
+
+    if (warnBanner && warnText) {
+      if (fullEval.missingFields.length > 0) {
+        warnBanner.style.display = "flex";
+        warnText.innerHTML = d.needsInvoice
+          ? `<strong>Para emitir COM nota fiscal, faltam:</strong> ${esc(fullEval.missingFields.join(", "))}.`
+          : `<strong>Faltam no cadastro:</strong> ${esc(fullEval.missingFields.join(", "))}.`;
+        if (completeLink) {
+          completeLink.style.display = d.customerProfileId ? "inline-flex" : "none";
+        }
+      } else {
+        warnBanner.style.display = "none";
+      }
+    }
   }
 
   function applyLockedStateToControls() {
@@ -836,7 +903,16 @@
       return fail("iq-cli-telefone", "Informe o telefone / WhatsApp do cliente.");
     }
 
-    if (d.needsInvoice) {
+    if (d.needsInvoice && root.SJ_CUSTOMER_RULES?.evaluateCompleteness) {
+      const comp = root.SJ_CUSTOMER_RULES.evaluateCompleteness({
+        personType: d.customerType,
+        ...c
+      });
+      if (!comp.isComplete) {
+        updateClientCompletenessHighlight();
+        return fail(comp.missingInputIds[0] || "iq-cli-logradouro", `Para emitir COM nota fiscal, faltam: ${comp.missingFields.join(", ")}.`);
+      }
+    } else if (d.needsInvoice) {
       if (!c.logradouro) return fail("iq-cli-logradouro", "Orçamento COM nota fiscal exige logradouro / endereço.");
       if (!c.cidade || !c.uf) return fail("iq-cli-cidade", "Orçamento COM nota fiscal exige cidade e UF.");
     }
@@ -1142,95 +1218,172 @@
   // =========================================================================
   // BUSCA DE CLIENTES, CNPJ/CEP SERVER-SIDE E IMPORTAÇÃO DE SOLICITAÇÃO
   // =========================================================================
+  function normSearchStr(s) {
+    return root.SJ_CUSTOMER_RULES?.normText
+      ? root.SJ_CUSTOMER_RULES.normText(s)
+      : String(s || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+  }
+
+  function mapProfileRowToCandidate(p) {
+    const pType = p.person_type === "pj" ? "pj" : "pf";
+    const cnpjDig = onlyDigits(p.cnpj);
+    const cpfDig = onlyDigits(p.cpf);
+    const comp = p.completeness || root.SJ_CUSTOMER_RULES?.evaluateCompleteness?.({
+      personType: pType,
+      nome: p.nome,
+      razaoSocial: p.razao_social,
+      inscricaoEstadual: p.inscricao_estadual,
+      ieTipo: p.ie_tipo,
+      contatoNome: p.contato_nome,
+      cpf: cpfDig,
+      cnpj: cnpjDig,
+      telefone: p.telefone,
+      email: p.email,
+      cep: p.cep,
+      logradouro: p.logradouro,
+      numero: p.numero,
+      bairro: p.bairro,
+      cidade: p.cidade,
+      uf: p.uf
+    }) || { isComplete: false, missingFields: [] };
+
+    const missingArr = comp.missing_fields || comp.missingFields || [];
+    const isComplete = Boolean(comp.is_complete !== undefined ? comp.is_complete : comp.isComplete);
+    const docMasked = p.doc_masked || root.SJ_CUSTOMER_RULES?.maskDoc?.(pType === "pj" ? cnpjDig : cpfDig) || "";
+
+    return {
+      source: "Cadastro do Site",
+      customerProfileId: p.id,
+      customerType: pType,
+      nome: p.nome || "",
+      razaoSocial: p.razao_social || "",
+      nomeFantasia: p.nome_fantasia || "",
+      ieTipo: p.ie_tipo || "contribuinte",
+      inscricaoEstadual: p.inscricao_estadual || "",
+      contatoNome: p.contato_nome || "",
+      cpf: cpfDig,
+      cnpj: cnpjDig,
+      docMasked,
+      telefone: p.telefone || "",
+      email: p.email || "",
+      cep: onlyDigits(p.cep || ""),
+      logradouro: p.logradouro || "",
+      numero: p.numero || "",
+      complemento: p.complemento || "",
+      bairro: p.bairro || "",
+      cidade: p.cidade || "Umuarama",
+      uf: p.uf || "PR",
+      isComplete,
+      missingFields: Array.isArray(missingArr) ? missingArr : [],
+      openQuotesCount: Number(p.open_quotes_count) || 0
+    };
+  }
+
   async function searchClientsCombined(query) {
-    const q = String(query || "").trim().toLowerCase();
+    const q = normSearchStr(query);
     const digits = onlyDigits(query);
     const results = [];
     const seenKeys = new Set();
 
     const pushCandidate = (cand) => {
-      const key = `${onlyDigits(cand.cnpj || cand.cpf)}|${String(cand.nome || cand.razaoSocial || "").toLowerCase()}|${onlyDigits(cand.telefone)}`;
+      const key = cand.customerProfileId
+        ? `prof:${cand.customerProfileId}`
+        : `${onlyDigits(cand.cnpj || cand.cpf)}|${normSearchStr(cand.nome || cand.razaoSocial)}|${onlyDigits(cand.telefone)}`;
       if (seenKeys.has(key)) return;
       seenKeys.add(key);
       results.push(cand);
     };
 
-    if (root.SJ_SUPABASE?.issuedQuotes?.buscarClientes) {
-      const res = await root.SJ_SUPABASE.issuedQuotes.buscarClientes(query);
+    // 1) Busca oficial completa no banco (admin_search_customers_for_quote -> profiles + completude + quotes abertos)
+    let fetchedFromCustomersRpc = false;
+    if (root.SJ_SUPABASE?.customers?.buscarParaOrcamento) {
+      const res = await root.SJ_SUPABASE.customers.buscarParaOrcamento(query, 15);
       if (res?.sucesso && Array.isArray(res.dados)) {
-        res.dados.forEach((p) => {
-          pushCandidate({
-            source: "Site (/conta)",
-            customerProfileId: p.id,
-            customerType: p.person_type === "pj" ? "pj" : "pf",
-            nome: p.nome || "",
-            razaoSocial: p.razao_social || "",
-            nomeFantasia: p.nome_fantasia || "",
-            ieTipo: p.ie_tipo || "contribuinte",
-            inscricaoEstadual: p.inscricao_estadual || "",
-            contatoNome: p.contato_nome || "",
-            cpf: p.cpf || "",
-            cnpj: p.cnpj || "",
-            telefone: p.telefone || "",
-            email: p.email || "",
-            cep: p.cep || "",
-            logradouro: p.logradouro || "",
-            numero: p.numero || "",
-            complemento: p.complemento || "",
-            bairro: p.bairro || "",
-            cidade: p.cidade || "Umuarama",
-            uf: p.uf || "PR"
-          });
-        });
+        fetchedFromCustomersRpc = true;
+        res.dados.forEach((p) => pushCandidate(mapProfileRowToCandidate(p)));
       }
     }
 
+    // Fallback para RPC 010 caso 011 ainda não tenha sido aplicada
+    if (!fetchedFromCustomersRpc && root.SJ_SUPABASE?.issuedQuotes?.buscarClientes) {
+      const res = await root.SJ_SUPABASE.issuedQuotes.buscarClientes(query);
+      if (res?.sucesso && Array.isArray(res.dados)) {
+        res.dados.forEach((p) => pushCandidate(mapProfileRowToCandidate(p)));
+      }
+    }
+
+    // 2) Complementa com leads locais (SJ_DB.clientes)
     const localClients = root.SJ_DB?.clientes?.listar?.() || [];
     localClients.forEach((cli) => {
       const docDig = onlyDigits(cli.cnpjCpf || cli.cpf || "");
       const phoneDig = onlyDigits(cli.whatsapp || cli.cepTelefone || "");
-      const hay = `${cli.nome || ""} ${cli.email || ""}`.toLowerCase();
+      const hay = normSearchStr(`${cli.nome || ""} ${cli.razaoSocial || ""} ${cli.nomeFantasia || ""} ${cli.email || ""}`);
       const match = !q
         || hay.includes(q)
-        || (digits.length >= 3 && (docDig.includes(digits) || phoneDig.includes(digits)));
+        || (digits.length >= 2 && (docDig.includes(digits) || phoneDig.includes(digits)));
       if (match) {
+        const emailLow = String(cli.email || "").trim().toLowerCase();
+        if (emailLow && results.some((r) => String(r.email || "").trim().toLowerCase() === emailLow)) {
+          return;
+        }
         const isPj = docDig.length === 14;
-        pushCandidate({
-          source: "Local / CRM",
-          customerProfileId: null,
-          customerType: isPj ? "pj" : "pf",
+        const comp = root.SJ_CUSTOMER_RULES?.evaluateCompleteness?.({
+          personType: isPj ? "pj" : "pf",
           nome: isPj ? "" : (cli.nome || ""),
           razaoSocial: isPj ? (cli.nome || "") : "",
-          nomeFantasia: "",
-          ieTipo: "contribuinte",
-          inscricaoEstadual: "",
-          contatoNome: "",
           cpf: isPj ? "" : docDig,
           cnpj: isPj ? docDig : "",
           telefone: cli.whatsapp || cli.cepTelefone || "",
           email: cli.email || "",
-          cep: "",
-          logradouro: cli.endereco || "",
-          numero: "",
-          complemento: "",
-          bairro: "",
-          cidade: String(cli.bairroCidadeUf || "Umuarama / PR").split("/")[0]?.trim() || "Umuarama",
-          uf: String(cli.bairroCidadeUf || "Umuarama / PR").split("/")[1]?.trim() || "PR"
+          cep: cli.cep || "",
+          logradouro: cli.logradouro || cli.endereco || "",
+          numero: cli.numero || "",
+          bairro: cli.bairro || "",
+          cidade: String(cli.cidade || cli.bairroCidadeUf || "").split("/")[0]?.trim() || "",
+          uf: cli.uf || ""
+        }) || { isComplete: false, missingFields: [] };
+
+        pushCandidate({
+          source: "Lead local",
+          customerProfileId: null,
+          customerType: isPj ? "pj" : "pf",
+          nome: isPj ? "" : (cli.nome || ""),
+          razaoSocial: isPj ? (cli.nome || "") : "",
+          nomeFantasia: cli.nomeFantasia || "",
+          ieTipo: "contribuinte",
+          inscricaoEstadual: cli.inscricaoEstadual || "",
+          contatoNome: cli.contatoNome || "",
+          cpf: isPj ? "" : docDig,
+          cnpj: isPj ? docDig : "",
+          docMasked: root.SJ_CUSTOMER_RULES?.maskDoc?.(docDig) || "",
+          telefone: cli.whatsapp || cli.cepTelefone || "",
+          email: cli.email || "",
+          cep: onlyDigits(cli.cep || ""),
+          logradouro: cli.logradouro || cli.endereco || "",
+          numero: cli.numero || "",
+          complemento: cli.complemento || "",
+          bairro: cli.bairro || "",
+          cidade: String(cli.cidade || cli.bairroCidadeUf || "Umuarama / PR").split("/")[0]?.trim() || "Umuarama",
+          uf: cli.uf || String(cli.bairroCidadeUf || "Umuarama / PR").split("/")[1]?.trim() || "PR",
+          isComplete: comp.isComplete,
+          missingFields: comp.missingFields || [],
+          openQuotesCount: 0
         });
       }
     });
 
-    return results.slice(0, 12);
+    return results.slice(0, 15);
   }
 
   function applySelectedClientToDoc(cand) {
     if (!iqState.doc || !cand) return;
     iqState.doc.customerType = cand.customerType === "pj" ? "pj" : "pf";
     iqState.doc.customerProfileId = cand.customerProfileId || null;
+    iqState.doc.selectedCustomerOpenQuotes = Number(cand.openQuotesCount) || 0;
     iqState.doc.customer = {
-      nome: cand.nome || cand.razaoSocial || "",
-      cpf: cand.cpf || "",
-      cnpj: cand.cnpj || "",
+      nome: cand.nome || (cand.customerType === "pj" ? (cand.razaoSocial || "") : ""),
+      cpf: onlyDigits(cand.cpf),
+      cnpj: onlyDigits(cand.cnpj),
       razaoSocial: cand.razaoSocial || cand.nome || "",
       nomeFantasia: cand.nomeFantasia || "",
       ieTipo: cand.ieTipo || "contribuinte",
@@ -1238,7 +1391,7 @@
       contatoNome: cand.contatoNome || "",
       telefone: cand.telefone || "",
       email: cand.email || "",
-      cep: cand.cep || "",
+      cep: onlyDigits(cand.cep),
       logradouro: cand.logradouro || "",
       numero: cand.numero || "",
       complemento: cand.complemento || "",
@@ -2072,15 +2225,28 @@
         iqState.customerSearchTimer = setTimeout(async () => {
           const matches = await searchClientsCombined(val);
           if (matches.length === 0) {
-            clientDropdown.innerHTML = `<div style="padding:10px 12px; font-size:0.8rem; color:#64748b;">Nenhum cliente encontrado. Preencha os campos abaixo para cliente avulso.</div>`;
+            clientDropdown.innerHTML = `
+              <div style="padding:12px; font-size:0.82rem; color:#475569; text-align:center;">
+                <p style="margin:0 0 8px;">Nenhum cliente encontrado com "<strong>${esc(val)}</strong>".</p>
+                <button type="button" id="btn-iq-empty-search-avulso" class="btn-cms-secondary" style="width:100%;">Cliente avulso / novo</button>
+              </div>
+            `;
+            document.getElementById("btn-iq-empty-search-avulso")?.addEventListener("click", () => {
+              clientDropdown.style.display = "none";
+              document.getElementById("btn-iq-client-avulso")?.click();
+            });
           } else {
             clientDropdown.innerHTML = matches.map((m, i) => `
               <button type="button" class="iq-autocomplete-item" data-cand-idx="${i}">
                 <div style="min-width:0;">
-                  <strong style="display:block; font-size:0.84rem; color:#0f172a;">${esc(m.customerType === "pj" ? (m.razaoSocial || m.nome) : m.nome)}</strong>
-                  <span style="font-size:0.74rem; color:#64748b;">${m.customerType.toUpperCase()} • ${esc(m.telefone || "Sem tel")} • ${esc(m.cnpj ? formatCnpj(m.cnpj) : (m.cpf ? formatCpf(m.cpf) : "Sem doc"))}</span>
+                  <strong style="display:block; font-size:0.85rem; color:#0f172a;">${esc(m.customerType === "pj" ? (m.razaoSocial || m.nome) : m.nome)}</strong>
+                  <span style="font-size:0.74rem; color:#64748b;">
+                    ${m.customerType.toUpperCase()} • ${esc(m.docMasked || "Sem doc")} • ${esc(m.telefone || "Sem tel")}
+                  </span>
                 </div>
-                <span class="cms-status-pill is-neutral" style="font-size:0.68rem;">${esc(m.source)}</span>
+                <span class="cust-badge ${m.isComplete ? "is-complete" : "is-incomplete"}" title="${esc(m.isComplete ? "Cadastro completo" : "Faltam: " + (m.missingFields || []).join(", "))}">
+                  ${m.isComplete ? "Cadastro completo" : "Incompleto"}
+                </span>
               </button>
             `).join("");
             clientDropdown.querySelectorAll("[data-cand-idx]").forEach((b) => {
@@ -2104,6 +2270,7 @@
     document.getElementById("btn-iq-client-avulso")?.addEventListener("click", () => {
       if (iqState.doc.isLocked) return;
       iqState.doc.customerProfileId = null;
+      iqState.doc.selectedCustomerOpenQuotes = 0;
       iqState.doc.customer = createEmptyDoc().customer;
       syncDomFromDoc();
       markDirty();
@@ -2111,12 +2278,57 @@
     });
 
     document.getElementById("btn-iq-import-request")?.addEventListener("click", openImportCustomerQuoteModal);
+    document.getElementById("btn-iq-open-req-import")?.addEventListener("click", openImportCustomerQuoteModal);
     document.getElementById("btn-iq-import-close")?.addEventListener("click", () => document.getElementById("iq-import-dialog")?.close?.());
     document.getElementById("btn-iq-detach-request")?.addEventListener("click", () => {
       iqState.doc.sourceCustomerQuoteId = null;
       iqState.doc.sourceCustomerQuoteNumber = null;
       syncDomFromDoc();
       markDirty();
+    });
+
+    document.getElementById("btn-iq-complete-profile-link")?.addEventListener("click", () => {
+      if (iqState.doc?.customerProfileId && root.SJ_CUSTOMERS?.abrirDetalhesCliente) {
+        root.SJ_CUSTOMERS.abrirDetalhesCliente(iqState.doc.customerProfileId, true);
+      }
+    });
+
+    document.getElementById("btn-iq-sync-back-customer")?.addEventListener("click", async () => {
+      const pid = iqState.doc?.customerProfileId;
+      if (!pid || !root.SJ_SUPABASE?.customers?.atualizarCadastro) return;
+      readFormFieldsIntoDoc();
+      const c = iqState.doc.customer;
+      const nomeExib = iqState.doc.customerType === "pj" ? (c.razaoSocial || c.nome) : c.nome;
+      if (!root.confirm(`Deseja atualizar o cadastro do cliente "${nomeExib || "selecionado"}" no banco de dados com estes dados?`)) {
+        return;
+      }
+      const res = await root.SJ_SUPABASE.customers.atualizarCadastro(pid, {
+        person_type: iqState.doc.customerType,
+        nome: c.nome,
+        razao_social: c.razaoSocial,
+        nome_fantasia: c.nomeFantasia,
+        ie_tipo: c.ieTipo,
+        inscricao_estadual: c.inscricaoEstadual,
+        contato_nome: c.contatoNome,
+        cpf: c.cpf,
+        cnpj: c.cnpj,
+        telefone: c.telefone,
+        cep: c.cep,
+        logradouro: c.logradouro,
+        numero: c.numero,
+        complemento: c.complemento,
+        bairro: c.bairro,
+        cidade: c.cidade,
+        uf: c.uf,
+        source: "issued_quote_sync"
+      });
+      if (res?.sucesso) {
+        toast("Cadastro do cliente atualizado no banco!", "success");
+        updateClientCompletenessHighlight();
+        root.SJ_CUSTOMERS?.onProfilesRealtime?.();
+      } else {
+        toast(res?.mensagem || "Não foi possível atualizar o cadastro do cliente.", "warning");
+      }
     });
 
     // Máscaras, validação on blur (sem interromper digitação) & CNPJ/CEP lookup
@@ -2126,6 +2338,9 @@
       cpfInp.removeAttribute("aria-invalid");
       const fb = document.getElementById("iq-cpf-feedback");
       if (fb) fb.textContent = "";
+      readFormFieldsIntoDoc();
+      updateClientCompletenessHighlight();
+      markDirty();
     });
     cpfInp?.addEventListener("blur", () => {
       const dig = onlyDigits(cpfInp.value);
@@ -2138,6 +2353,7 @@
       } else if (fb) {
         fb.textContent = "Válido ✓"; fb.className = "iq-field-feedback is-ok";
       }
+      updateClientCompletenessHighlight();
     });
 
     const cnpjInp = document.getElementById("iq-cli-cnpj");
@@ -2146,6 +2362,9 @@
       cnpjInp.removeAttribute("aria-invalid");
       const fb = document.getElementById("iq-cnpj-feedback");
       if (fb) fb.textContent = "";
+      readFormFieldsIntoDoc();
+      updateClientCompletenessHighlight();
+      markDirty();
     });
     cnpjInp?.addEventListener("blur", () => {
       if (onlyDigits(cnpjInp.value).length === 14) lookupCnpjServer();
@@ -2155,6 +2374,9 @@
     const cepInp = document.getElementById("iq-cli-cep");
     cepInp?.addEventListener("input", () => {
       cepInp.value = formatCep(cepInp.value);
+      readFormFieldsIntoDoc();
+      updateClientCompletenessHighlight();
+      markDirty();
     });
     cepInp?.addEventListener("blur", () => {
       if (onlyDigits(cepInp.value).length === 8) lookupCepServer();
@@ -2165,6 +2387,7 @@
       const wrap = document.getElementById("iq-cli-ie-wrap");
       if (wrap) wrap.style.display = e.target.value === "contribuinte" ? "flex" : "none";
       readFormFieldsIntoDoc();
+      updateClientCompletenessHighlight();
       markDirty();
     });
 
@@ -2173,6 +2396,7 @@
       document.getElementById(id)?.addEventListener("input", () => {
         readFormFieldsIntoDoc();
         updateFinancialSummaryUI();
+        updateClientCompletenessHighlight();
         markDirty();
       });
     });
@@ -2357,6 +2581,14 @@
     confirmarSaida: function () {
       if (!iqState.dirty) return true;
       return root.confirm("Você tem alterações não salvas neste orçamento. Deseja sair mesmo assim?");
+    },
+
+    selecionarClienteDoBanco: function (picked) {
+      if (!picked) return;
+      if (!iqState.doc) iqState.doc = createEmptyDoc();
+      const cand = mapProfileRowToCandidate(picked);
+      applySelectedClientToDoc(cand);
+      switchSubtab("novo", true);
     },
 
     obterParamsTimbradoParaTeste: function (doc) {
