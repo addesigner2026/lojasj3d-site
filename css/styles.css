@@ -23502,6 +23502,559 @@ dialog.iq-dialog::backdrop {
   text-align: center;
 }
 
+/* ============================================================================
+   MODAL COMPACTO "ADICIONAR DO CATÁLOGO" + ALERTA "SEM PREÇO" NA TABELA
+   ============================================================================ */
+dialog.iq-dialog.is-catalog-picker {
+  max-width: 920px;
+  width: min(96vw, 920px);
+}
+
+.iq-cat-sticky-head {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  padding: 12px 20px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.iq-cat-search-box {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.iq-cat-search-ico {
+  position: absolute;
+  left: 12px;
+  font-size: 0.9rem;
+  pointer-events: none;
+  opacity: 0.7;
+}
+
+.iq-cat-search-inp {
+  width: 100%;
+  min-height: 44px;
+  padding: 9px 38px 9px 36px;
+  border: 1.5px solid #cbd5e1;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #f8fafc;
+}
+
+.iq-cat-search-inp:focus {
+  outline: none;
+  border-color: #f04e23;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(240, 78, 35, 0.14);
+}
+
+.iq-cat-clear-btn {
+  position: absolute;
+  right: 8px;
+  width: 30px;
+  height: 30px;
+  border-radius: 999px;
+  border: none;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.8rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iq-cat-clear-btn:hover {
+  background: #cbd5e1;
+}
+
+.iq-cat-chips-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
+.iq-cat-subfilters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.iq-chip {
+  min-height: 32px;
+  padding: 4px 11px;
+  border-radius: 999px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.iq-cat-chips-group.is-compact .iq-chip {
+  min-height: 28px;
+  padding: 3px 9px;
+  font-size: 0.74rem;
+}
+
+.iq-chip:hover {
+  border-color: #fdba74;
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.iq-chip.active {
+  background: #f04e23;
+  border-color: #f04e23;
+  color: #ffffff;
+}
+
+.iq-cat-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+  padding-top: 2px;
+}
+
+.iq-cat-meta-txt {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.iq-mini-text-btn {
+  border: none;
+  background: #fff7ed;
+  color: #c2410c;
+  font-size: 0.78rem;
+  font-weight: 700;
+  padding: 5px 10px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.iq-mini-text-btn:hover:not(:disabled) {
+  background: #ffedd5;
+}
+
+.iq-mini-text-btn.is-muted {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.iq-mini-text-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.iq-cat-body-scroll {
+  padding: 10px 20px 16px;
+}
+
+.iq-cat-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.iq-cat-row {
+  display: grid;
+  grid-template-columns: 44px 46px minmax(0, 1fr) auto auto;
+  gap: 10px;
+  align-items: center;
+  border: 1.5px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 8px 10px;
+  background: #ffffff;
+  transition: border-color 0.14s ease, background-color 0.14s ease;
+}
+
+.iq-cat-row:hover {
+  border-color: #fdba74;
+  background: #fffaf7;
+}
+
+.iq-cat-row.is-selected {
+  border-color: #f04e23;
+  background: #fff7ed;
+}
+
+.iq-cat-check-wrap {
+  width: 44px;
+  height: 44px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border-radius: 8px;
+}
+
+.iq-cat-check-wrap:hover {
+  background: rgba(240, 78, 35, 0.08);
+}
+
+.iq-cat-check-wrap input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  accent-color: #f04e23;
+  cursor: pointer;
+}
+
+.iq-cat-thumb {
+  width: 44px;
+  height: 44px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #f1f5f9;
+  border: 1px solid #e2e8f0;
+}
+
+.iq-cat-info {
+  min-width: 0;
+  cursor: pointer;
+}
+
+.iq-cat-title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.iq-cat-name {
+  font-size: 0.87rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.iq-cat-subline {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 3px;
+  font-size: 0.74rem;
+  color: #475569;
+}
+
+.iq-cat-color-dot {
+  width: 11px;
+  height: 11px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.25);
+  display: inline-block;
+  flex-shrink: 0;
+}
+
+.iq-cat-code-tag {
+  background: #f1f5f9;
+  color: #334155;
+  padding: 1px 6px;
+  border-radius: 6px;
+  font-weight: 700;
+  font-size: 0.71rem;
+}
+
+.iq-cat-inquote-pill {
+  background: #eff6ff;
+  color: #1d4ed8;
+  border: 1px solid #bfdbfe;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.iq-cat-price-col {
+  text-align: right;
+  min-width: 96px;
+}
+
+.iq-cat-price-val {
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #9a3412;
+  font-variant-numeric: tabular-nums;
+}
+
+.iq-cat-noprice-pill {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #fcd34d;
+  font-size: 0.71rem;
+  font-weight: 800;
+  padding: 2px 7px;
+  border-radius: 999px;
+}
+
+.iq-cat-stepper {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #ffffff;
+  overflow: hidden;
+}
+
+.iq-cat-step-btn {
+  width: 34px;
+  height: 36px;
+  border: none;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 1rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.iq-cat-step-btn:hover {
+  background: #ffedd5;
+  color: #9a3412;
+}
+
+.iq-cat-step-inp {
+  width: 42px;
+  height: 36px;
+  border: none;
+  border-left: 1px solid #e2e8f0;
+  border-right: 1px solid #e2e8f0;
+  text-align: center;
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #0f172a;
+  font-variant-numeric: tabular-nums;
+}
+
+.iq-cat-selected-tray {
+  border-top: 1px solid #fed7aa;
+  background: #fffaf5;
+  padding: 10px 20px;
+  max-height: 185px;
+  overflow-y: auto;
+}
+
+.iq-cat-tray-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #9a3412;
+  margin-bottom: 6px;
+}
+
+.iq-cat-tray-list {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+
+.iq-cat-tray-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  background: #ffffff;
+  border: 1px solid #fed7aa;
+  border-radius: 8px;
+  padding: 5px 10px;
+  font-size: 0.78rem;
+}
+
+.iq-cat-footer {
+  justify-content: space-between;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.iq-cat-tray-toggle {
+  min-height: 44px;
+  padding: 6px 12px;
+  border-radius: 10px;
+  border: 1px solid #cbd5e1;
+  background: #f8fafc;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 700;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iq-cat-tray-toggle:disabled {
+  opacity: 0.65;
+  cursor: default;
+}
+
+.iq-cat-footer-actions {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+#btn-iq-catalog-confirm:disabled {
+  background: #cbd5e1 !important;
+  border-color: #cbd5e1 !important;
+  color: #475569 !important;
+  cursor: not-allowed;
+  box-shadow: none !important;
+}
+
+/* Skeleton / Empty / Error */
+.iq-cat-skeleton-row {
+  height: 62px;
+  border-radius: 12px;
+  background: linear-gradient(90deg, #f1f5f9 25%, #e2e8f0 50%, #f1f5f9 75%);
+  background-size: 200% 100%;
+  animation: iqSkelPulse 1.2s infinite linear;
+}
+
+@keyframes iqSkelPulse {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.iq-cat-empty-state {
+  text-align: center;
+  padding: 32px 16px;
+  color: #475569;
+  border: 1.5px dashed #cbd5e1;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+/* Overlay interno de conflito de preço */
+.iq-cat-conflict-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.56);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 20;
+}
+
+.iq-cat-conflict-overlay[hidden] {
+  display: none;
+}
+
+.iq-cat-conflict-card {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 18px;
+  max-width: 560px;
+  width: 100%;
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.3);
+}
+
+.iq-cat-conflict-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-bottom: 14px;
+}
+
+.iq-cat-conflict-row {
+  padding: 8px 10px;
+  border-radius: 8px;
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  font-size: 0.8rem;
+  color: #0f172a;
+}
+
+.iq-cat-conflict-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+/* Tabela de itens do orçamento: destaque Sem preço e linhas recém-adicionadas */
+.iq-price-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+}
+
+.iq-num-input.is-missing-price {
+  background: #fef9c3 !important;
+  border-color: #eab308 !important;
+  color: #713f12 !important;
+}
+
+.iq-item-no-price-badge {
+  display: inline-block;
+  background: #fef3c7;
+  color: #92400e;
+  border: 1px solid #f59e0b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  padding: 1px 6px;
+  border-radius: 999px;
+}
+
+.iq-item-catref-hint {
+  font-size: 0.68rem;
+  color: #64748b;
+  white-space: nowrap;
+}
+
+tr.is-just-added {
+  animation: iqRowJustAdded 2.4s ease forwards;
+}
+
+@keyframes iqRowJustAdded {
+  0% { background-color: #ffedd5; }
+  45% { background-color: #fff7ed; }
+  100% { background-color: transparent; }
+}
+
+@media (max-width: 720px) {
+  .iq-cat-row {
+    grid-template-columns: 44px 44px minmax(0, 1fr);
+    grid-template-rows: auto auto;
+  }
+  .iq-cat-price-col {
+    grid-column: 1 / 3;
+    text-align: left;
+    min-width: 0;
+  }
+  .iq-cat-stepper {
+    grid-column: 3 / 4;
+    justify-self: end;
+  }
+  .iq-cat-step-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .iq-cat-step-inp {
+    height: 44px;
+  }
+  .iq-chip {
+    min-height: 40px;
+  }
+}
+
 /* Checklist no painel lateral */
 .cust-checklist-grid {
   display: grid;

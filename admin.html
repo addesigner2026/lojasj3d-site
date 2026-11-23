@@ -42,8 +42,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_02" />
-  <link rel="stylesheet" href="css/styles.css?v=20261123_02" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_03" />
+  <link rel="stylesheet" href="css/styles.css?v=20261123_03" />
 </head>
 
 <body class="admin-standalone-body">
@@ -1885,34 +1885,101 @@
             </div>
           </div>
 
-          <!-- DIALOG: ADICIONAR PRODUTOS DO CATÁLOGO (MULTI-SELEÇÃO) -->
-          <dialog id="iq-catalog-dialog" class="iq-dialog" closedby="any" aria-labelledby="iq-catalog-dlg-title">
-            <div class="iq-dialog-inner">
+          <!-- DIALOG: ADICIONAR PRODUTOS DO CATÁLOGO (MULTI-SELEÇÃO COMPACTA & DB PAGINADA) -->
+          <dialog id="iq-catalog-dialog" class="iq-dialog is-catalog-picker" closedby="any" aria-labelledby="iq-catalog-dlg-title" aria-modal="true">
+            <div class="iq-dialog-inner" style="position:relative;">
               <div class="cms-drawer-header">
                 <div>
                   <h2 id="iq-catalog-dlg-title" class="cms-drawer-title">Adicionar do catálogo</h2>
-                  <p class="cms-drawer-sub">Busque por nome, cor ou código e marque um ou vários itens de uma vez.</p>
+                  <p class="cms-drawer-sub">Busque por nome, cor, código ou linha. Atalhos: <kbd>/</kbd> buscar, <kbd>Enter</kbd> marcar 1º, <kbd>Ctrl/⌘+Enter</kbd> adicionar.</p>
                 </div>
-                <button type="button" class="cms-drawer-close" id="btn-iq-catalog-close" aria-label="Fechar">✕</button>
+                <button type="button" class="cms-drawer-close" id="btn-iq-catalog-close" aria-label="Fechar modal do catálogo">✕</button>
               </div>
-              <div class="iq-dialog-body">
-                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
-                  <input type="search" id="iq-catalog-search" class="cms-search-input-lean" style="flex:1; min-width:220px; border:1px solid #cbd5e1; border-radius:10px; padding:9px 12px;" placeholder="Buscar por nome, cor ou código (ex: 34, 137, A1)..." />
-                  <select id="iq-catalog-cat" class="cms-select-clean">
-                    <option value="todos">Todas as categorias</option>
-                    <option value="filamentos">Filamentos</option>
-                    <option value="impressoras">Impressoras 3D</option>
-                    <option value="pecas">Peças &amp; Acessórios</option>
-                    <option value="manutencao">Manutenção</option>
-                  </select>
+
+              <!-- TOPO FIXO: BUSCA + CHIPS DE FILTRO + AÇÕES RÁPIDAS -->
+              <div class="iq-cat-sticky-head">
+                <div class="iq-cat-search-row">
+                  <div class="iq-cat-search-box">
+                    <span class="iq-cat-search-ico" aria-hidden="true">🔍</span>
+                    <input type="search" id="iq-catalog-search" class="iq-cat-search-inp" placeholder="Buscar produto, cor, código (ex: 34, Silk, Glitter, A1 Mini)..." aria-label="Buscar produtos no catálogo" autocomplete="off" />
+                    <button type="button" id="btn-iq-cat-clear-search" class="iq-cat-clear-btn" aria-label="Limpar busca" style="display:none;">✕</button>
+                  </div>
                 </div>
-                <div id="iq-catalog-grid" class="iq-catalog-grid"></div>
+
+                <div class="iq-cat-chips-group" role="group" aria-label="Filtrar por categoria">
+                  <button type="button" class="iq-chip active" data-cat-chip="todos">Todos</button>
+                  <button type="button" class="iq-chip" data-cat-chip="filamentos">Filamentos</button>
+                  <button type="button" class="iq-chip" data-cat-chip="impressoras">Impressoras</button>
+                  <button type="button" class="iq-chip" data-cat-chip="pecas">Peças</button>
+                  <button type="button" class="iq-chip" data-cat-chip="manutencao">Serviços</button>
+                </div>
+
+                <div class="iq-cat-subfilters">
+                  <div id="iq-cat-brand-chips" class="iq-cat-chips-group is-compact" role="group" aria-label="Filtrar por marca">
+                    <button type="button" class="iq-chip active" data-brand-chip="todas">Todas as marcas</button>
+                    <button type="button" class="iq-chip" data-brand-chip="Masterprint">Masterprint</button>
+                    <button type="button" class="iq-chip" data-brand-chip="Bambu Lab">Bambu Lab</button>
+                  </div>
+                  <div class="iq-cat-chips-group is-compact" role="group" aria-label="Filtrar por estoque">
+                    <button type="button" class="iq-chip active" data-stock-chip="todos">Qualquer status</button>
+                    <button type="button" class="iq-chip" data-stock-chip="disponivel">Disponível</button>
+                    <button type="button" class="iq-chip" data-stock-chip="poucas_unidades">Poucas un.</button>
+                    <button type="button" class="iq-chip" data-stock-chip="esgotado">Esgotado</button>
+                  </div>
+                </div>
+
+                <div class="iq-cat-toolbar">
+                  <span id="iq-catalog-results-meta" class="iq-cat-meta-txt" aria-live="polite">Carregando catálogo...</span>
+                  <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                    <button type="button" class="iq-mini-text-btn" id="btn-iq-cat-select-visible">Selecionar visíveis</button>
+                    <button type="button" class="iq-mini-text-btn is-muted" id="btn-iq-cat-clear-sel" disabled>Limpar seleção</button>
+                  </div>
+                </div>
               </div>
-              <div class="cms-drawer-footer" style="justify-content:space-between;">
-                <span id="iq-catalog-selected-count" style="font-size:0.84rem; font-weight:700; color:#475569;">0 itens selecionados</span>
-                <div style="display:flex; gap:8px;">
-                  <button type="button" class="btn-cms-cancel" id="btn-iq-catalog-cancel">Cancelar</button>
-                  <button type="button" class="btn-cms-save" id="btn-iq-catalog-confirm">Adicionar selecionados</button>
+
+              <!-- CORPO ROLÁVEL: LISTA COMPACTA (1 LINHA POR PRODUTO) -->
+              <div class="iq-dialog-body iq-cat-body-scroll" id="iq-catalog-scroll-body">
+                <div id="iq-catalog-list" class="iq-cat-list" role="list"></div>
+                <div id="iq-catalog-load-more-wrap" style="display:none; text-align:center; padding:12px 0 4px;">
+                  <button type="button" class="btn-cms-cancel" id="btn-iq-cat-load-more" style="min-height:42px; padding:0 18px;">Carregar mais produtos</button>
+                </div>
+              </div>
+
+              <!-- RESUMO RECOLHÍVEL DE SELECIONADOS -->
+              <div id="iq-catalog-selected-tray" class="iq-cat-selected-tray" hidden>
+                <div class="iq-cat-tray-head">
+                  <strong>Itens selecionados</strong>
+                  <button type="button" class="iq-mini-text-btn is-muted" id="btn-iq-cat-close-tray">Ocultar</button>
+                </div>
+                <div id="iq-catalog-selected-tray-list" class="iq-cat-tray-list"></div>
+              </div>
+
+              <!-- RODAPÉ -->
+              <div class="cms-drawer-footer iq-cat-footer">
+                <div class="iq-cat-footer-left">
+                  <button type="button" id="btn-iq-cat-toggle-tray" class="iq-cat-tray-toggle" aria-expanded="false" aria-controls="iq-catalog-selected-tray" disabled>
+                    <span id="iq-catalog-selected-count">0 itens selecionados</span>
+                    <span id="iq-cat-tray-arrow" class="iq-cat-tray-arrow" aria-hidden="true">· ver ▾</span>
+                  </button>
+                </div>
+                <div class="iq-cat-footer-actions">
+                  <button type="button" class="btn-cms-cancel" id="btn-iq-catalog-cancel" style="min-height:44px;">Cancelar</button>
+                  <button type="button" class="btn-cms-save" id="btn-iq-catalog-confirm" style="min-height:44px;" disabled title="Marque pelo menos um item">Adicionar selecionados</button>
+                </div>
+              </div>
+
+              <!-- OVERLAY INTERNO DE CONFLITO DE PREÇO (QUANDO JÁ EXISTE NA TABELA COM OUTRO PREÇO) -->
+              <div id="iq-catalog-conflict-overlay" class="iq-cat-conflict-overlay" hidden role="alertdialog" aria-modal="true" aria-labelledby="iq-conflict-title">
+                <div class="iq-cat-conflict-card">
+                  <h3 id="iq-conflict-title" style="margin:0 0 6px; font-size:1rem; font-weight:800; color:#0f172a;">Preço diferente do que já está no orçamento</h3>
+                  <p id="iq-conflict-desc" style="margin:0 0 12px; font-size:0.84rem; color:#475569; line-height:1.45;"></p>
+                  <div id="iq-conflict-list" class="iq-cat-conflict-list"></div>
+                  <div class="iq-cat-conflict-actions">
+                    <button type="button" class="btn-cms-cancel" id="btn-iq-conflict-back" style="min-height:42px;">Voltar</button>
+                    <button type="button" class="btn-cms-cancel" id="btn-iq-conflict-separate" style="min-height:42px;">Adicionar como nova linha</button>
+                    <button type="button" class="btn-cms-cancel" id="btn-iq-conflict-keep-table" style="min-height:42px;">Somar mantendo preço da tabela</button>
+                    <button type="button" class="btn-cms-save" id="btn-iq-conflict-use-catalog" style="min-height:42px;">Somar atualizando para catálogo</button>
+                  </div>
                 </div>
               </div>
             </div>
@@ -2198,12 +2265,12 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261123_02"></script>
-  <script src="js/dados.js?v=20261123_02"></script>
-  <script src="js/database.js?v=20261123_02"></script>
-  <script src="js/app.js?v=20261123_02"></script>
-  <script src="js/customers-directory.js?v=20261123_02"></script>
-  <script src="js/issued-quotes.js?v=20261123_02"></script>
+  <script src="js/supabase-client.js?v=20261123_03"></script>
+  <script src="js/dados.js?v=20261123_03"></script>
+  <script src="js/database.js?v=20261123_03"></script>
+  <script src="js/app.js?v=20261123_03"></script>
+  <script src="js/customers-directory.js?v=20261123_03"></script>
+  <script src="js/issued-quotes.js?v=20261123_03"></script>
 
 </body>
 

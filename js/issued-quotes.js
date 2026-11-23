@@ -42,9 +42,9 @@
     return Number(val || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   }
 
-  function toast(msg, type = "success") {
+  function toast(msg, type = "success", opcoes = {}) {
     if (typeof bridge().mostrarToast === "function") {
-      bridge().mostrarToast(msg, type);
+      bridge().mostrarToast(msg, type, opcoes);
     }
   }
 
@@ -117,7 +117,28 @@
     saving: false,
     defaults: { ...DEFAULT_TEXTS },
     historyIssued: [],
-    catalogSelectedIds: new Set(),
+    justAddedKeys: new Set(),
+    catalogPicker: {
+      selected: new Map(),
+      visibleItems: [],
+      totalCount: 0,
+      offset: 0,
+      pageSize: 24,
+      loading: false,
+      error: null,
+      query: "",
+      category: "todos",
+      brand: "todas",
+      stock: "todos",
+      brands: ["Masterprint", "Bambu Lab", "Snapmaker", "Oficina SJ 3D"],
+      trayOpen: false,
+      submitting: false,
+      searchTimer: null,
+      fetchSeq: 0,
+      openerEl: null,
+      pendingConflicts: null,
+      eventsBound: false
+    },
     dragIndex: null,
     autosaveTimer: null,
     customerSearchTimer: null,
@@ -175,6 +196,9 @@
   }
 
   function createBlankItem(overrides = {}) {
+    const catPrice = overrides.catalogPrice !== undefined && overrides.catalogPrice !== null && Number(overrides.catalogPrice) > 0
+      ? roundMoney(overrides.catalogPrice)
+      : null;
     return {
       localKey: "row-" + Date.now() + "-" + Math.random().toString(36).slice(2, 7),
       productId: overrides.productId || null,
@@ -183,6 +207,7 @@
       description: overrides.description || "",
       quantity: Math.max(0.01, Number(overrides.quantity) || 1),
       unitPrice: Math.max(0, Number(overrides.unitPrice) || 0),
+      catalogPrice: catPrice,
       discountType: overrides.discountType === "percent" ? "percent" : "fixed",
       discountValue: Math.max(0, Number(overrides.discountValue) || 0),
       isCustom: Boolean(overrides.isCustom)
@@ -633,8 +658,11 @@
 
     tbody.innerHTML = items.map((it, idx) => {
       const calc = computeLineTotals(it);
+      const isZeroPrice = Number(it.unitPrice || 0) <= 0;
+      const hasCatDiff = Number(it.catalogPrice || 0) > 0 && Math.abs(Number(it.unitPrice || 0) - Number(it.catalogPrice)) >= 0.01;
+      const isJustAdded = iqState.justAddedKeys?.has(it.localKey);
       return `
-        <tr data-item-idx="${idx}" draggable="${locked ? "false" : "true"}">
+        <tr data-item-idx="${idx}" data-local-key="${esc(it.localKey || "")}" class="${isJustAdded ? "is-just-added" : ""}" draggable="${locked ? "false" : "true"}">
           <td data-label="Ordem" style="text-align:center;">
             <div class="iq-item-order-col">
               <span class="iq-drag-handle" title="Arrastar para reordenar" aria-hidden="true">⋮⋮</span>
@@ -656,7 +684,11 @@
             <input type="number" class="iq-num-input" data-iq-item-field="quantity" data-idx="${idx}" min="0.01" step="1" value="${esc(it.quantity)}" ${locked ? "disabled" : ""} />
           </td>
           <td data-label="Valor unitário (R$)">
-            <input type="number" class="iq-num-input" data-iq-item-field="unitPrice" data-idx="${idx}" min="0" step="0.01" value="${Number(it.unitPrice || 0).toFixed(2)}" ${locked ? "disabled" : ""} />
+            <div class="iq-price-cell">
+              <input type="number" class="iq-num-input ${isZeroPrice ? "is-missing-price" : ""}" data-iq-item-field="unitPrice" data-idx="${idx}" min="0" step="0.01" value="${Number(it.unitPrice || 0).toFixed(2)}" aria-label="Valor unitário do item ${idx + 1}" ${locked ? "disabled" : ""} />
+              <span class="iq-item-no-price-badge" id="iq-row-noprice-${idx}" style="${isZeroPrice ? "" : "display:none;"}">Sem preço</span>
+              <span class="iq-item-catref-hint" id="iq-row-catref-${idx}" style="${hasCatDiff ? "" : "display:none;"}">${hasCatDiff ? `Catálogo: ${fmtBRL(it.catalogPrice)}` : ""}</span>
+            </div>
           </td>
           <td data-label="Desconto na linha">
             <div class="iq-line-disc-wrap">
@@ -686,7 +718,20 @@
         const item = iqState.doc.items[idx];
         if (!item) return;
         if (field === "quantity") item.quantity = Math.max(0.01, Number(el.value) || 0.01);
-        else if (field === "unitPrice") item.unitPrice = Math.max(0, Number(el.value) || 0);
+        else if (field === "unitPrice") {
+          item.unitPrice = Math.max(0, Number(el.value) || 0);
+          el.removeAttribute("aria-invalid");
+          const zeroNow = item.unitPrice <= 0;
+          el.classList.toggle("is-missing-price", zeroNow);
+          const noPriceEl = document.getElementById(`iq-row-noprice-${idx}`);
+          if (noPriceEl) noPriceEl.style.display = zeroNow ? "" : "none";
+          const catRefEl = document.getElementById(`iq-row-catref-${idx}`);
+          if (catRefEl) {
+            const diffNow = Number(item.catalogPrice || 0) > 0 && Math.abs(item.unitPrice - Number(item.catalogPrice)) >= 0.01;
+            catRefEl.style.display = diffNow ? "" : "none";
+            if (diffNow) catRefEl.textContent = `Catálogo: ${fmtBRL(item.catalogPrice)}`;
+          }
+        }
         else if (field === "discountValue") item.discountValue = Math.max(0, Number(el.value) || 0);
         else if (field === "discountType") item.discountType = el.value === "percent" ? "percent" : "fixed";
         else item[field] = el.value;
@@ -881,6 +926,19 @@
     const emptyTitleIdx = d.items.findIndex((it) => !String(it.title || "").trim());
     if (emptyTitleIdx >= 0) {
       return fail(null, `Informe o nome do item #${emptyTitleIdx + 1}.`);
+    }
+
+    const zeroPriceIdx = d.items.findIndex((it) => Number(it.unitPrice || 0) <= 0);
+    if (zeroPriceIdx >= 0) {
+      const zeroIt = d.items[zeroPriceIdx];
+      const priceInp = document.querySelector(`#iq-items-tbody [data-iq-item-field="unitPrice"][data-idx="${zeroPriceIdx}"]`);
+      if (priceInp) {
+        priceInp.setAttribute("aria-invalid", "true");
+        priceInp.scrollIntoView({ behavior: "smooth", block: "center" });
+        priceInp.focus();
+      }
+      toast(`O item "${zeroIt.title || `#${zeroPriceIdx + 1}`}" está sem preço (R$ 0,00). Preencha o valor unitário antes de emitir.`, "warning");
+      return false;
     }
 
     if (d.customerType === "pf") {
@@ -1589,113 +1647,835 @@
   }
 
   // =========================================================================
-  // PICKER DE CATÁLOGO (MULTI-SELEÇÃO)
+  // PICKER DE CATÁLOGO (ESTADO ÚNICO, BUSCA NO BANCO, PAGINAÇÃO & MULTI-SELEÇÃO)
   // =========================================================================
-  function openCatalogPickerModal() {
-    const dlg = document.getElementById("iq-catalog-dialog");
-    const grid = document.getElementById("iq-catalog-grid");
-    const searchInp = document.getElementById("iq-catalog-search");
-    const catSel = document.getElementById("iq-catalog-cat");
-    const countEl = document.getElementById("iq-catalog-selected-count");
-    if (!dlg || !grid) return;
+  function parseBrPriceFallback(textoPreco) {
+    if (typeof bridge().extrairNumeroDePrecoBR === "function") {
+      return Number(bridge().extrairNumeroDePrecoBR(textoPreco)) || 0;
+    }
+    if (!textoPreco) return 0;
+    const limpo = String(textoPreco).replace(/[^\d.,]/g, "");
+    if (!limpo) return 0;
+    if (limpo.includes(",")) return Number(limpo.replace(/\./g, "").replace(",", ".")) || 0;
+    return Number(limpo) || 0;
+  }
 
-    iqState.catalogSelectedIds.clear();
-    const skus = bridge().gerarListaSkusCms?.() || [];
+  function resolveSkuUnitPrice(raw) {
+    const direct = Number(raw?.preco_num ?? raw?.precoNum ?? raw?.valor ?? raw?.precoVistaValor);
+    if (Number.isFinite(direct) && direct > 0) return roundMoney(direct);
+    const parsed = parseBrPriceFallback(raw?.preco_texto ?? raw?.preco ?? raw?.precoVista ?? "");
+    return Number.isFinite(parsed) && parsed > 0 ? roundMoney(parsed) : 0;
+  }
 
-    const updateSelectedCount = () => {
-      if (countEl) {
-        const n = iqState.catalogSelectedIds.size;
-        countEl.textContent = `${n} ${n === 1 ? "item selecionado" : "itens selecionados"}`;
-      }
+  function normalizeBrandLabel(marca) {
+    const m = String(marca || "").trim();
+    if (!m) return "Loja SJ 3D";
+    if (m.toLowerCase() === "maxprint") return "Masterprint";
+    return m;
+  }
+
+  function normSearchStr(txt) {
+    return String(txt || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .trim();
+  }
+
+  function cleanCatalogCode(rawCode) {
+    return String(rawCode || "").replace(/^C[ÓO]D\.\s*/i, "").trim();
+  }
+
+  function normalizePickerSku(raw) {
+    const idStr = String(raw?.id ?? raw?.product_id ?? raw?.dbId ?? "");
+    const precoNum = resolveSkuUnitPrice(raw);
+    const codigo = String(raw?.codigo || (raw?.cod ? `CÓD. ${raw.cod}` : (raw?.codNumero ? `CÓD. ${raw.codNumero}` : "")) || "");
+    return {
+      id: idStr,
+      productId: String(raw?.product_id ?? raw?.dbId ?? idStr),
+      nome: String(raw?.nome || "Produto"),
+      familia: String(raw?.familia || raw?.modeloNome || ""),
+      corNome: String(raw?.corNome || raw?.nome_curto || ""),
+      codigo,
+      codNumero: String(raw?.cod || raw?.codNumero || cleanCatalogCode(codigo)),
+      corHex: String(raw?.hex || raw?.corHex || ""),
+      marca: normalizeBrandLabel(raw?.marca),
+      categoria: String(raw?.categoria || "pecas"),
+      stockStatus: String(raw?.stock_status || raw?.estoqueStatus || "disponivel"),
+      imagem: String(raw?.imagem || "assets/img/icone-laranja.png"),
+      subtitulo: String(raw?.subtitulo || ""),
+      precoNum,
+      semPreco: precoNum <= 0
     };
+  }
 
-    const renderGrid = () => {
-      const q = (searchInp?.value || "").trim().toLowerCase();
-      const cat = catSel?.value || "todos";
-      const filtered = skus.filter((s) => {
-        if (cat !== "todos" && s.categoria !== cat) return false;
-        if (!q) return true;
-        const txt = `${s.nome || ""} ${s.subtitulo || ""} ${s.marca || ""} ${s.codigo || ""} ${s.corNome || ""}`.toLowerCase();
-        return txt.includes(q);
-      });
-
-      if (filtered.length === 0) {
-        grid.innerHTML = `<div style="grid-column:1 / -1; text-align:center; padding:24px; color:#64748b;">Nenhum produto encontrado no catálogo.</div>`;
+  function findExistingDocItemIndicesForSku(sku) {
+    const items = iqState.doc?.items || [];
+    const skuCodeClean = cleanCatalogCode(sku.codNumero || sku.codigo);
+    const skuNameNorm = normSearchStr(sku.nome);
+    const indices = [];
+    items.forEach((it, idx) => {
+      const itPid = String(it.productId || "");
+      if (itPid && (itPid === sku.productId || itPid === sku.id)) {
+        indices.push(idx);
         return;
       }
+      if (!it.isCustom && skuCodeClean && String(it.productCode || "").trim() === skuCodeClean && normSearchStr(it.title) === skuNameNorm) {
+        indices.push(idx);
+      }
+    });
+    return indices;
+  }
 
-      grid.innerHTML = filtered.slice(0, 80).map((s) => {
-        const sel = iqState.catalogSelectedIds.has(s.key);
-        const stock = s.estoqueStatus || "disponivel";
-        const stockLabel = stock === "esgotado" ? "Esgotado" : stock === "poucas_unidades" ? "Poucas un." : "Disponível";
-        const stockClass = stock === "esgotado" ? "is-red" : stock === "poucas_unidades" ? "is-amber" : "is-green";
-        return `
-          <label class="iq-catalog-pick-card ${sel ? "is-selected" : ""}" data-pick-key="${esc(s.key)}">
-            <input type="checkbox" ${sel ? "checked" : ""} style="width:18px; height:18px; accent-color:#f04e23;" />
-            <img src="${esc(s.imagem || "assets/img/icone-laranja.png")}" alt="" loading="lazy" />
-            <div style="min-width:0; flex:1;">
-              <div style="font-size:0.82rem; font-weight:700; color:#0f172a; line-height:1.25;">${esc(s.nome)}</div>
-              <div style="display:flex; gap:6px; align-items:center; flex-wrap:wrap; margin-top:4px;">
-                <strong style="font-size:0.82rem; color:#c2410c;">${fmtBRL(s.precoNum)}</strong>
-                ${s.codigo ? `<span style="font-size:0.7rem; color:#64748b;">${esc(s.codigo)}</span>` : ""}
-                <span class="cms-status-pill ${stockClass}" style="font-size:0.66rem; padding:1px 6px;">${stockLabel}</span>
-              </div>
-            </div>
-          </label>
-        `;
-      }).join("");
+  function searchLocalCatalogFallback({ query, category, brand, stock, limit, offset }) {
+    const rawList = bridge().gerarListaSkusCms?.() || [];
+    const allNormalized = rawList.map(normalizePickerSku);
+    const tokens = normSearchStr(query).split(/\s+/).filter(Boolean);
+    const brandNorm = normSearchStr(brand);
 
-      grid.querySelectorAll("[data-pick-key]").forEach((card) => {
-        const chk = card.querySelector("input[type='checkbox']");
-        chk?.addEventListener("change", () => {
-          const k = card.dataset.pickKey;
-          if (chk.checked) iqState.catalogSelectedIds.add(k);
-          else iqState.catalogSelectedIds.delete(k);
-          card.classList.toggle("is-selected", chk.checked);
-          updateSelectedCount();
-        });
-      });
+    const filtered = allNormalized.filter((item) => {
+      if (category && category !== "todos" && item.categoria !== category) return false;
+      if (brandNorm && !["todas", "todos"].includes(brandNorm)) {
+        const ib = normSearchStr(item.marca);
+        if (brandNorm === "masterprint" || brandNorm === "maxprint") {
+          if (ib !== "masterprint" && ib !== "maxprint") return false;
+        } else if (ib !== brandNorm) {
+          return false;
+        }
+      }
+      if (stock && stock !== "todos" && item.stockStatus !== stock) return false;
+      if (tokens.length > 0) {
+        const blob = normSearchStr(`${item.nome} ${item.familia} ${item.subtitulo} ${item.marca} ${item.codigo} ${item.codNumero} ${item.corNome} ${item.id}`);
+        if (!tokens.every((t) => blob.includes(t))) return false;
+      }
+      return true;
+    });
+
+    const brandsSet = [...new Set(allNormalized.map((x) => x.marca).filter(Boolean))].sort();
+    return {
+      totalCount: filtered.length,
+      items: filtered.slice(offset, offset + limit),
+      brands: brandsSet
     };
+  }
 
-    if (searchInp) {
-      searchInp.value = "";
-      searchInp.oninput = renderGrid;
-    }
-    if (catSel) {
-      catSel.value = "todos";
-      catSel.onchange = renderGrid;
+  function updateCatalogSelectionUI() {
+    const pk = iqState.catalogPicker;
+    const n = pk.selected.size;
+    let totalUnits = 0;
+    pk.selected.forEach((entry) => { totalUnits += Number(entry.qty) || 1; });
+
+    const countEl = document.getElementById("iq-catalog-selected-count");
+    if (countEl) {
+      countEl.textContent = n === 0
+        ? "0 itens selecionados"
+        : `${n} ${n === 1 ? "item selecionado" : "itens selecionados"} (${totalUnits} un.)`;
     }
 
     const btnConfirm = document.getElementById("btn-iq-catalog-confirm");
     if (btnConfirm) {
-      btnConfirm.onclick = () => {
-        const chosen = skus.filter((s) => iqState.catalogSelectedIds.has(s.key));
-        if (chosen.length === 0) {
-          toast("Selecione pelo menos 1 item do catálogo.", "warning");
-          return;
-        }
-        chosen.forEach((s) => {
-          iqState.doc.items.push(createBlankItem({
-            productId: s.id || null,
-            productCode: s.codigo ? String(s.codigo).replace(/^C[ÓO]D\.\s*/i, "") : "",
-            title: s.nome,
-            description: s.subtitulo || "",
-            quantity: 1,
-            unitPrice: Number(s.precoNum) || 0,
-            isCustom: false
-          }));
+      btnConfirm.disabled = n === 0 || pk.submitting;
+      btnConfirm.title = n === 0 ? "Marque pelo menos um item" : `Adicionar ${n} ${n === 1 ? "item" : "itens"} ao orçamento`;
+      if (!pk.submitting) {
+        btnConfirm.textContent = n === 0
+          ? "Adicionar selecionados"
+          : `Adicionar ${n} ${n === 1 ? "item" : "itens"}`;
+      }
+    }
+
+    const btnClear = document.getElementById("btn-iq-cat-clear-sel");
+    if (btnClear) btnClear.disabled = n === 0;
+
+    const btnToggleTray = document.getElementById("btn-iq-cat-toggle-tray");
+    const arrowEl = document.getElementById("iq-cat-tray-arrow");
+    if (btnToggleTray) {
+      btnToggleTray.disabled = n === 0;
+      if (n === 0) pk.trayOpen = false;
+      btnToggleTray.setAttribute("aria-expanded", pk.trayOpen ? "true" : "false");
+    }
+    if (arrowEl) {
+      arrowEl.textContent = n === 0 ? "" : (pk.trayOpen ? "· ocultar ▴" : "· ver ▾");
+    }
+
+    const tray = document.getElementById("iq-catalog-selected-tray");
+    const trayList = document.getElementById("iq-catalog-selected-tray-list");
+    if (tray && trayList) {
+      tray.hidden = !(pk.trayOpen && n > 0);
+      if (!tray.hidden) {
+        trayList.innerHTML = Array.from(pk.selected.values()).map(({ item, qty }) => `
+          <div class="iq-cat-tray-item">
+            <div style="min-width:0; flex:1; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">
+              <strong>${qty}×</strong> ${esc(item.nome)}
+              <span style="color:#64748b;">(${item.semPreco ? "Sem preço" : fmtBRL(item.precoNum)})</span>
+            </div>
+            <button type="button" class="iq-mini-icon-btn is-danger" data-tray-remove-id="${esc(item.id)}" aria-label="Remover ${esc(item.nome)} da seleção" style="width:28px; height:28px;">✕</button>
+          </div>
+        `).join("");
+        trayList.querySelectorAll("[data-tray-remove-id]").forEach((btn) => {
+          btn.addEventListener("click", () => {
+            pk.selected.delete(String(btn.dataset.trayRemoveId || ""));
+            syncVisibleRowSelectionDom();
+            updateCatalogSelectionUI();
+          });
         });
-        dlg.close?.();
+      }
+    }
+  }
+
+  function syncVisibleRowSelectionDom() {
+    const pk = iqState.catalogPicker;
+    const listEl = document.getElementById("iq-catalog-list");
+    if (!listEl) return;
+    listEl.querySelectorAll("[data-pick-id]").forEach((row) => {
+      const id = String(row.dataset.pickId || "");
+      const entry = pk.selected.get(id);
+      const isSel = Boolean(entry);
+      row.classList.toggle("is-selected", isSel);
+      const chk = row.querySelector("input[type='checkbox']");
+      if (chk && chk.checked !== isSel) chk.checked = isSel;
+      const qtyInp = row.querySelector("[data-cat-qty-inp]");
+      if (qtyInp && isSel) qtyInp.value = String(entry.qty);
+    });
+  }
+
+  function renderBrandChips() {
+    const wrap = document.getElementById("iq-cat-brand-chips");
+    if (!wrap) return;
+    const pk = iqState.catalogPicker;
+    const brands = Array.isArray(pk.brands) && pk.brands.length > 0
+      ? pk.brands
+      : ["Masterprint", "Bambu Lab", "Snapmaker", "Oficina SJ 3D"];
+
+    wrap.innerHTML = [
+      `<button type="button" class="iq-chip ${pk.brand === "todas" ? "active" : ""}" data-brand-chip="todas">Todas as marcas</button>`,
+      ...brands.map((b) => `<button type="button" class="iq-chip ${normSearchStr(pk.brand) === normSearchStr(b) ? "active" : ""}" data-brand-chip="${esc(b)}">${esc(b)}</button>`)
+    ].join("");
+
+    wrap.querySelectorAll("[data-brand-chip]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pk.brand = btn.dataset.brandChip || "todas";
+        renderBrandChips();
+        fetchCatalogPickerPage(true);
+      });
+    });
+  }
+
+  function renderCatalogPickerRows() {
+    const pk = iqState.catalogPicker;
+    const listEl = document.getElementById("iq-catalog-list");
+    const metaEl = document.getElementById("iq-catalog-results-meta");
+    const loadMoreWrap = document.getElementById("iq-catalog-load-more-wrap");
+    const loadMoreBtn = document.getElementById("btn-iq-cat-load-more");
+    if (!listEl) return;
+
+    if (pk.loading && pk.visibleItems.length === 0) {
+      if (metaEl) metaEl.textContent = "Buscando no catálogo...";
+      if (loadMoreWrap) loadMoreWrap.style.display = "none";
+      listEl.innerHTML = Array.from({ length: 6 }, () => `<div class="iq-cat-skeleton-row" aria-hidden="true"></div>`).join("");
+      return;
+    }
+
+    if (pk.error && pk.visibleItems.length === 0) {
+      if (metaEl) metaEl.textContent = "Erro ao carregar";
+      if (loadMoreWrap) loadMoreWrap.style.display = "none";
+      listEl.innerHTML = `
+        <div class="iq-cat-empty-state">
+          <div style="font-weight:800; color:#b91c1c; margin-bottom:6px;">Não foi possível carregar os produtos.</div>
+          <div style="font-size:0.82rem; margin-bottom:12px;">${esc(pk.error)}</div>
+          <button type="button" class="btn-cms-save" id="btn-iq-cat-retry" style="min-height:42px;">Tentar de novo</button>
+        </div>
+      `;
+      document.getElementById("btn-iq-cat-retry")?.addEventListener("click", () => fetchCatalogPickerPage(true));
+      return;
+    }
+
+    if (pk.visibleItems.length === 0) {
+      if (metaEl) metaEl.textContent = "0 itens encontrados";
+      if (loadMoreWrap) loadMoreWrap.style.display = "none";
+      listEl.innerHTML = `
+        <div class="iq-cat-empty-state">
+          <div style="font-weight:800; color:#0f172a; margin-bottom:6px;">Nenhum produto encontrado com esses filtros.</div>
+          <div style="font-size:0.82rem; margin-bottom:12px;">Tente outro termo ou limpe os filtros ativos.</div>
+          <button type="button" class="btn-cms-cancel" id="btn-iq-cat-reset-filters" style="min-height:42px;">Limpar filtros</button>
+        </div>
+      `;
+      document.getElementById("btn-iq-cat-reset-filters")?.addEventListener("click", () => {
+        resetCatalogFilters();
+        fetchCatalogPickerPage(true);
+      });
+      return;
+    }
+
+    if (metaEl) {
+      metaEl.textContent = `Mostrando ${pk.visibleItems.length} de ${pk.totalCount} ${pk.totalCount === 1 ? "produto" : "produtos"}`;
+    }
+
+    listEl.innerHTML = pk.visibleItems.map((s) => {
+      const selEntry = pk.selected.get(s.id);
+      const isSel = Boolean(selEntry);
+      const qty = isSel ? selEntry.qty : 1;
+      const inQuote = findExistingDocItemIndicesForSku(s).length > 0;
+      const stock = s.stockStatus || "disponivel";
+      const stockLabel = stock === "esgotado" ? "Esgotado" : stock === "poucas_unidades" ? "Poucas un." : "Disponível";
+      const stockClass = stock === "esgotado" ? "is-red" : stock === "poucas_unidades" ? "is-amber" : "is-green";
+
+      return `
+        <div class="iq-cat-row ${isSel ? "is-selected" : ""}" data-pick-id="${esc(s.id)}" role="listitem">
+          <label class="iq-cat-check-wrap" aria-label="Selecionar ${esc(s.nome)}">
+            <input type="checkbox" ${isSel ? "checked" : ""} />
+          </label>
+          <img class="iq-cat-thumb" src="${esc(s.imagem)}" alt="" loading="lazy" />
+          <div class="iq-cat-info" data-cat-row-toggle="${esc(s.id)}">
+            <div class="iq-cat-title-line">
+              ${s.corHex ? `<span class="iq-cat-color-dot" style="background:${esc(s.corHex)};" aria-hidden="true"></span>` : ""}
+              <span class="iq-cat-name">${esc(s.nome)}</span>
+              ${inQuote ? `<span class="iq-cat-inquote-pill">Já no orçamento</span>` : ""}
+            </div>
+            <div class="iq-cat-subline">
+              ${s.codigo ? `<span class="iq-cat-code-tag">${esc(s.codigo)}</span>` : ""}
+              <span>${esc(s.marca)}</span>
+              ${s.familia && s.familia !== s.nome ? `<span>• ${esc(s.familia)}</span>` : ""}
+              <span class="cms-status-pill ${stockClass}" style="font-size:0.66rem; padding:1px 6px;">${stockLabel}</span>
+            </div>
+          </div>
+          <div class="iq-cat-price-col">
+            ${s.semPreco
+              ? `<span class="iq-cat-noprice-pill">Sem preço</span>`
+              : `<strong class="iq-cat-price-val">${fmtBRL(s.precoNum)}</strong>`}
+          </div>
+          <div class="iq-cat-stepper" aria-label="Quantidade de ${esc(s.nome)}">
+            <button type="button" class="iq-cat-step-btn" data-cat-qty-dec="${esc(s.id)}" aria-label="Diminuir quantidade">−</button>
+            <input type="number" class="iq-cat-step-inp" data-cat-qty-inp="${esc(s.id)}" min="1" max="9999" step="1" value="${qty}" aria-label="Quantidade" />
+            <button type="button" class="iq-cat-step-btn" data-cat-qty-inc="${esc(s.id)}" aria-label="Aumentar quantidade">+</button>
+          </div>
+        </div>
+      `;
+    }).join("");
+
+    // Bind row controls strictly against Map (single source of truth)
+    listEl.querySelectorAll("[data-pick-id]").forEach((row) => {
+      const id = String(row.dataset.pickId || "");
+      const sku = pk.visibleItems.find((x) => x.id === id);
+      if (!sku) return;
+
+      const chk = row.querySelector("input[type='checkbox']");
+      const qtyInp = row.querySelector("[data-cat-qty-inp]");
+      const btnDec = row.querySelector("[data-cat-qty-dec]");
+      const btnInc = row.querySelector("[data-cat-qty-inc]");
+      const infoEl = row.querySelector("[data-cat-row-toggle]");
+
+      const getCurrentRowQty = () => Math.max(1, parseInt(qtyInp?.value, 10) || 1);
+
+      const setSelectedState = (checked, forcedQty = null) => {
+        const q = forcedQty !== null ? Math.max(1, forcedQty) : getCurrentRowQty();
+        if (checked) {
+          pk.selected.set(id, { item: sku, qty: q });
+          if (qtyInp) qtyInp.value = String(q);
+        } else {
+          pk.selected.delete(id);
+        }
+        row.classList.toggle("is-selected", checked);
+        if (chk) chk.checked = checked;
+        updateCatalogSelectionUI();
+      };
+
+      chk?.addEventListener("change", () => {
+        setSelectedState(Boolean(chk.checked));
+      });
+
+      infoEl?.addEventListener("click", () => {
+        setSelectedState(!pk.selected.has(id));
+      });
+
+      btnDec?.addEventListener("click", () => {
+        const nextQty = Math.max(1, getCurrentRowQty() - 1);
+        if (qtyInp) qtyInp.value = String(nextQty);
+        if (pk.selected.has(id)) setSelectedState(true, nextQty);
+      });
+
+      btnInc?.addEventListener("click", () => {
+        const nextQty = Math.min(9999, getCurrentRowQty() + 1);
+        if (qtyInp) qtyInp.value = String(nextQty);
+        setSelectedState(true, nextQty);
+      });
+
+      qtyInp?.addEventListener("input", () => {
+        const rawVal = parseInt(qtyInp.value, 10);
+        if (!Number.isFinite(rawVal) || rawVal < 1) return;
+        const clamped = Math.min(9999, rawVal);
+        if (pk.selected.has(id) || clamped > 1) {
+          setSelectedState(true, clamped);
+        }
+      });
+
+      qtyInp?.addEventListener("blur", () => {
+        const clamped = Math.max(1, Math.min(9999, parseInt(qtyInp.value, 10) || 1));
+        qtyInp.value = String(clamped);
+        if (pk.selected.has(id)) setSelectedState(true, clamped);
+      });
+    });
+
+    if (loadMoreWrap && loadMoreBtn) {
+      const remaining = Math.max(0, pk.totalCount - pk.visibleItems.length);
+      loadMoreWrap.style.display = remaining > 0 ? "block" : "none";
+      loadMoreBtn.disabled = pk.loading;
+      loadMoreBtn.textContent = pk.loading
+        ? "Carregando..."
+        : `Carregar mais (${remaining} restantes)`;
+    }
+  }
+
+  async function fetchCatalogPickerPage(reset = true) {
+    const pk = iqState.catalogPicker;
+    const seq = ++pk.fetchSeq;
+    pk.error = null;
+    if (reset) {
+      pk.offset = 0;
+      pk.visibleItems = [];
+    }
+    pk.loading = true;
+    renderCatalogPickerRows();
+
+    let fetched = null;
+    try {
+      if (root.SJ_SUPABASE?.products?.buscarPicker) {
+        const res = await root.SJ_SUPABASE.products.buscarPicker({
+          query: pk.query,
+          category: pk.category,
+          brand: pk.brand,
+          stock: pk.stock,
+          limit: pk.pageSize,
+          offset: pk.offset
+        });
+        if (res?.sucesso) {
+          fetched = {
+            totalCount: res.totalCount,
+            items: (res.items || []).map(normalizePickerSku),
+            brands: res.brands || []
+          };
+        } else if (!res?.tabelaAusente) {
+          // Erro real no Supabase -> tenta fallback apenas se tabelaAusente; caso contrário exibe erro com Tentar de novo ou fallback?
+          // Se offline/rede falhou, oferecemos botão "Tentar de novo", mas se migration 012 ainda não foi executada usamos fallback transparente!
+          if (!String(res?.mensagem || "").toLowerCase().includes("não conectado")) {
+            pk.error = res?.mensagem || "Falha ao buscar catálogo no servidor.";
+          }
+        }
+      }
+
+      if (!fetched && !pk.error) {
+        fetched = searchLocalCatalogFallback({
+          query: pk.query,
+          category: pk.category,
+          brand: pk.brand,
+          stock: pk.stock,
+          limit: pk.pageSize,
+          offset: pk.offset
+        });
+      }
+    } catch (err) {
+      pk.error = err?.message || "Erro inesperado ao carregar catálogo.";
+    }
+
+    if (seq !== pk.fetchSeq) return;
+    pk.loading = false;
+
+    if (fetched) {
+      pk.error = null;
+      pk.totalCount = fetched.totalCount;
+      if (reset) {
+        pk.visibleItems = fetched.items;
+      } else {
+        const seen = new Set(pk.visibleItems.map((x) => x.id));
+        fetched.items.forEach((x) => {
+          if (!seen.has(x.id)) {
+            seen.add(x.id);
+            pk.visibleItems.push(x);
+          }
+        });
+      }
+      pk.offset = pk.visibleItems.length;
+      if (Array.isArray(fetched.brands) && fetched.brands.length > 0 && pk.brand === "todas" && !pk.query && pk.category === "todos" && pk.stock === "todos") {
+        pk.brands = fetched.brands;
+        renderBrandChips();
+      }
+    }
+
+    if (pk.error && pk.visibleItems.length > 0) {
+      toast(pk.error, "warning");
+    }
+
+    renderCatalogPickerRows();
+    updateCatalogSelectionUI();
+  }
+
+  function resetCatalogFilters() {
+    const pk = iqState.catalogPicker;
+    pk.query = "";
+    pk.category = "todos";
+    pk.brand = "todas";
+    pk.stock = "todos";
+
+    const searchInp = document.getElementById("iq-catalog-search");
+    const clearSearchBtn = document.getElementById("btn-iq-cat-clear-search");
+    if (searchInp) searchInp.value = "";
+    if (clearSearchBtn) clearSearchBtn.style.display = "none";
+
+    document.querySelectorAll("#iq-catalog-dialog [data-cat-chip]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.catChip === "todos");
+    });
+    document.querySelectorAll("#iq-catalog-dialog [data-stock-chip]").forEach((b) => {
+      b.classList.toggle("active", b.dataset.stockChip === "todos");
+    });
+    renderBrandChips();
+  }
+
+  function applyCatalogAdditionsWithUndo(chosenEntries, conflictPolicy = "keep_table") {
+    const dlg = document.getElementById("iq-catalog-dialog");
+    const pk = iqState.catalogPicker;
+    const undoSnapshot = JSON.parse(JSON.stringify(iqState.doc.items || []));
+    const touchedKeys = new Set();
+    let addedLines = 0;
+    let mergedLines = 0;
+
+    chosenEntries.forEach(({ item, qty }) => {
+      const existingIndices = findExistingDocItemIndicesForSku(item);
+      const exactIdx = existingIndices.find((idx) => {
+        const row = iqState.doc.items[idx];
+        return Math.abs(Number(row.unitPrice || 0) - Number(item.precoNum || 0)) < 0.01;
+      });
+      const fallbackIdx = exactIdx !== undefined ? exactIdx : existingIndices[0];
+
+      if (exactIdx !== undefined) {
+        const row = iqState.doc.items[exactIdx];
+        row.quantity = roundMoney((Number(row.quantity) || 1) + qty);
+        if (!row.catalogPrice && item.precoNum > 0) row.catalogPrice = item.precoNum;
+        touchedKeys.add(row.localKey);
+        mergedLines++;
+      } else if (fallbackIdx !== undefined && conflictPolicy !== "separate") {
+        const row = iqState.doc.items[fallbackIdx];
+        row.quantity = roundMoney((Number(row.quantity) || 1) + qty);
+        if (conflictPolicy === "use_catalog") {
+          row.unitPrice = Number(item.precoNum) || 0;
+        }
+        if (item.precoNum > 0) row.catalogPrice = item.precoNum;
+        touchedKeys.add(row.localKey);
+        mergedLines++;
+      } else {
+        const created = createBlankItem({
+          productId: item.productId || item.id || null,
+          productCode: cleanCatalogCode(item.codNumero || item.codigo),
+          title: item.nome,
+          description: item.subtitulo || "",
+          quantity: qty,
+          unitPrice: Number(item.precoNum) || 0,
+          catalogPrice: item.precoNum > 0 ? item.precoNum : null,
+          isCustom: false
+        });
+        iqState.doc.items.push(created);
+        touchedKeys.add(created.localKey);
+        addedLines++;
+      }
+    });
+
+    pk.selected.clear();
+    pk.pendingConflicts = null;
+    pk.submitting = false;
+    const conflictOverlay = document.getElementById("iq-catalog-conflict-overlay");
+    if (conflictOverlay) conflictOverlay.hidden = true;
+
+    dlg?.close?.();
+
+    iqState.justAddedKeys = touchedKeys;
+    renderItemsTable();
+    updateFinancialSummaryUI();
+    markDirty();
+
+    const firstKey = Array.from(touchedKeys)[0];
+    const safeEsc = typeof root.CSS?.escape === "function" ? root.CSS.escape(firstKey || "") : (firstKey || "");
+    const targetRow = firstKey
+      ? document.querySelector(`#iq-items-tbody tr[data-local-key="${safeEsc}"]`)
+      : document.getElementById("iq-items-tbody");
+    targetRow?.scrollIntoView?.({ behavior: "smooth", block: "center" });
+
+    setTimeout(() => {
+      iqState.justAddedKeys = new Set();
+      document.querySelectorAll("#iq-items-tbody tr.is-just-added").forEach((tr) => tr.classList.remove("is-just-added"));
+    }, 2600);
+
+    const n = chosenEntries.length;
+    const labelSummary = addedLines > 0 && mergedLines > 0
+      ? `${addedLines} adicionado(s) e ${mergedLines} somado(s)`
+      : mergedLines > 0 && addedLines === 0
+        ? `Quantidade somada em ${mergedLines} ${mergedLines === 1 ? "item" : "itens"}`
+        : `${n} ${n === 1 ? "item adicionado" : "itens adicionados"}`;
+
+    toast(labelSummary + "!", "success", {
+      duracao: 8500,
+      acaoTexto: "Desfazer",
+      onClick: () => {
+        if (!iqState.doc || iqState.doc.isLocked) return;
+        iqState.doc.items = undoSnapshot;
+        iqState.justAddedKeys = new Set();
         renderItemsTable();
         updateFinancialSummaryUI();
         markDirty();
-        toast(`${chosen.length} ${chosen.length === 1 ? "item adicionado" : "itens adicionados"}!`, "success");
-      };
+        toast("Adição desfeita.", "info");
+      }
+    });
+  }
+
+  function confirmCatalogPickerAdd() {
+    const pk = iqState.catalogPicker;
+    if (pk.submitting || pk.selected.size === 0) return;
+
+    pk.submitting = true;
+    const btnConfirm = document.getElementById("btn-iq-catalog-confirm");
+    if (btnConfirm) {
+      btnConfirm.disabled = true;
+      btnConfirm.setAttribute("aria-busy", "true");
+      btnConfirm.textContent = "Adicionando...";
     }
 
-    updateSelectedCount();
-    renderGrid();
-    if (typeof dlg.showModal === "function") dlg.showModal();
+    const chosenEntries = Array.from(pk.selected.values());
+    const conflicts = [];
+
+    chosenEntries.forEach(({ item }) => {
+      const existingIndices = findExistingDocItemIndicesForSku(item);
+      if (existingIndices.length === 0) return;
+      const hasSamePrice = existingIndices.some((idx) => Math.abs(Number(iqState.doc.items[idx].unitPrice || 0) - Number(item.precoNum || 0)) < 0.01);
+      if (!hasSamePrice) {
+        const firstRow = iqState.doc.items[existingIndices[0]];
+        conflicts.push({
+          nome: item.nome,
+          tablePrice: Number(firstRow.unitPrice || 0),
+          catalogPrice: Number(item.precoNum || 0)
+        });
+      }
+    });
+
+    if (conflicts.length > 0) {
+      pk.submitting = false;
+      if (btnConfirm) btnConfirm.removeAttribute("aria-busy");
+      updateCatalogSelectionUI();
+
+      pk.pendingConflicts = chosenEntries;
+      const overlay = document.getElementById("iq-catalog-conflict-overlay");
+      const descEl = document.getElementById("iq-conflict-desc");
+      const listEl = document.getElementById("iq-conflict-list");
+      if (overlay && descEl && listEl) {
+        descEl.textContent = `${conflicts.length === 1 ? "Este item já está" : `${conflicts.length} itens já estão`} na tabela do orçamento com outro valor unitário. Escolha como deseja somar:`;
+        listEl.innerHTML = conflicts.map((c) => `
+          <div class="iq-cat-conflict-row">
+            <strong>${esc(c.nome)}</strong><br />
+            <span>Na tabela: <strong>${fmtBRL(c.tablePrice)}</strong> • No catálogo: <strong>${c.catalogPrice > 0 ? fmtBRL(c.catalogPrice) : "Sem preço"}</strong></span>
+          </div>
+        `).join("");
+        overlay.hidden = false;
+        document.getElementById("btn-iq-conflict-keep-table")?.focus();
+      } else {
+        applyCatalogAdditionsWithUndo(chosenEntries, "keep_table");
+      }
+      return;
+    }
+
+    applyCatalogAdditionsWithUndo(chosenEntries, "keep_table");
+    if (btnConfirm) btnConfirm.removeAttribute("aria-busy");
+  }
+
+  function bindCatalogPickerEventsOnce() {
+    const pk = iqState.catalogPicker;
+    if (pk.eventsBound) return;
+    pk.eventsBound = true;
+
+    const dlg = document.getElementById("iq-catalog-dialog");
+    const searchInp = document.getElementById("iq-catalog-search");
+    const clearSearchBtn = document.getElementById("btn-iq-cat-clear-search");
+    const btnClose = document.getElementById("btn-iq-catalog-close");
+    const btnCancel = document.getElementById("btn-iq-catalog-cancel");
+    const btnConfirm = document.getElementById("btn-iq-catalog-confirm");
+    const btnSelectVisible = document.getElementById("btn-iq-cat-select-visible");
+    const btnClearSel = document.getElementById("btn-iq-cat-clear-sel");
+    const btnToggleTray = document.getElementById("btn-iq-cat-toggle-tray");
+    const btnCloseTray = document.getElementById("btn-iq-cat-close-tray");
+    const btnLoadMore = document.getElementById("btn-iq-cat-load-more");
+    const conflictOverlay = document.getElementById("iq-catalog-conflict-overlay");
+
+    const closeModal = () => {
+      if (conflictOverlay) conflictOverlay.hidden = true;
+      pk.pendingConflicts = null;
+      dlg?.close?.();
+    };
+
+    btnClose?.addEventListener("click", closeModal);
+    btnCancel?.addEventListener("click", closeModal);
+
+    dlg?.addEventListener("close", () => {
+      if (conflictOverlay) conflictOverlay.hidden = true;
+      pk.pendingConflicts = null;
+      pk.submitting = false;
+      pk.openerEl?.focus?.();
+    });
+
+    dlg?.addEventListener("cancel", (e) => {
+      if (conflictOverlay && !conflictOverlay.hidden) {
+        e.preventDefault();
+        conflictOverlay.hidden = true;
+        pk.pendingConflicts = null;
+      }
+    });
+
+    searchInp?.addEventListener("input", () => {
+      pk.query = searchInp.value || "";
+      if (clearSearchBtn) clearSearchBtn.style.display = pk.query ? "inline-flex" : "none";
+      clearTimeout(pk.searchTimer);
+      pk.searchTimer = setTimeout(() => fetchCatalogPickerPage(true), 220);
+    });
+
+    searchInp?.addEventListener("keydown", (e) => {
+      if (e.key === "Enter" && !e.ctrlKey && !e.metaKey && !e.shiftKey) {
+        e.preventDefault();
+        const first = pk.visibleItems[0];
+        if (!first) return;
+        if (pk.selected.has(first.id)) pk.selected.delete(first.id);
+        else pk.selected.set(first.id, { item: first, qty: 1 });
+        syncVisibleRowSelectionDom();
+        updateCatalogSelectionUI();
+      }
+    });
+
+    clearSearchBtn?.addEventListener("click", () => {
+      pk.query = "";
+      if (searchInp) searchInp.value = "";
+      clearSearchBtn.style.display = "none";
+      searchInp?.focus();
+      fetchCatalogPickerPage(true);
+    });
+
+    document.querySelectorAll("#iq-catalog-dialog [data-cat-chip]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pk.category = btn.dataset.catChip || "todos";
+        document.querySelectorAll("#iq-catalog-dialog [data-cat-chip]").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+        fetchCatalogPickerPage(true);
+      });
+    });
+
+    document.querySelectorAll("#iq-catalog-dialog [data-stock-chip]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        pk.stock = btn.dataset.stockChip || "todos";
+        document.querySelectorAll("#iq-catalog-dialog [data-stock-chip]").forEach((b) => {
+          b.classList.toggle("active", b === btn);
+        });
+        fetchCatalogPickerPage(true);
+      });
+    });
+
+    btnSelectVisible?.addEventListener("click", () => {
+      pk.visibleItems.forEach((sku) => {
+        if (!pk.selected.has(sku.id)) {
+          pk.selected.set(sku.id, { item: sku, qty: 1 });
+        }
+      });
+      syncVisibleRowSelectionDom();
+      updateCatalogSelectionUI();
+    });
+
+    btnClearSel?.addEventListener("click", () => {
+      pk.selected.clear();
+      pk.trayOpen = false;
+      syncVisibleRowSelectionDom();
+      updateCatalogSelectionUI();
+    });
+
+    btnToggleTray?.addEventListener("click", () => {
+      if (pk.selected.size === 0) return;
+      pk.trayOpen = !pk.trayOpen;
+      updateCatalogSelectionUI();
+    });
+
+    btnCloseTray?.addEventListener("click", () => {
+      pk.trayOpen = false;
+      updateCatalogSelectionUI();
+    });
+
+    btnLoadMore?.addEventListener("click", () => {
+      if (!pk.loading) fetchCatalogPickerPage(false);
+    });
+
+    btnConfirm?.addEventListener("click", confirmCatalogPickerAdd);
+
+    // Botões do overlay de conflito de preço
+    document.getElementById("btn-iq-conflict-back")?.addEventListener("click", () => {
+      if (conflictOverlay) conflictOverlay.hidden = true;
+      pk.pendingConflicts = null;
+    });
+    document.getElementById("btn-iq-conflict-separate")?.addEventListener("click", () => {
+      if (pk.pendingConflicts) applyCatalogAdditionsWithUndo(pk.pendingConflicts, "separate");
+    });
+    document.getElementById("btn-iq-conflict-keep-table")?.addEventListener("click", () => {
+      if (pk.pendingConflicts) applyCatalogAdditionsWithUndo(pk.pendingConflicts, "keep_table");
+    });
+    document.getElementById("btn-iq-conflict-use-catalog")?.addEventListener("click", () => {
+      if (pk.pendingConflicts) applyCatalogAdditionsWithUndo(pk.pendingConflicts, "use_catalog");
+    });
+
+    // Atalhos de teclado & focus trap dentro do modal
+    dlg?.addEventListener("keydown", (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === "Enter") {
+        if (pk.selected.size > 0 && (!conflictOverlay || conflictOverlay.hidden)) {
+          e.preventDefault();
+          confirmCatalogPickerAdd();
+        }
+        return;
+      }
+
+      if (e.key === "/" && !e.ctrlKey && !e.metaKey && !e.altKey) {
+        const tag = String(document.activeElement?.tagName || "").toUpperCase();
+        if (tag !== "INPUT" && tag !== "TEXTAREA" && tag !== "SELECT") {
+          e.preventDefault();
+          searchInp?.focus();
+          searchInp?.select?.();
+        }
+        return;
+      }
+
+      if (e.key === "Tab") {
+        const focusables = Array.from(dlg.querySelectorAll("button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex='-1'])"))
+          .filter((el) => el.offsetParent !== null && !el.closest("[hidden]"));
+        if (focusables.length === 0) return;
+        const firstEl = focusables[0];
+        const lastEl = focusables[focusables.length - 1];
+        if (e.shiftKey && document.activeElement === firstEl) {
+          e.preventDefault();
+          lastEl.focus();
+        } else if (!e.shiftKey && document.activeElement === lastEl) {
+          e.preventDefault();
+          firstEl.focus();
+        }
+      }
+    });
+  }
+
+  function openCatalogPickerModal() {
+    const dlg = document.getElementById("iq-catalog-dialog");
+    const listEl = document.getElementById("iq-catalog-list");
+    if (!dlg || !listEl) return;
+
+    bindCatalogPickerEventsOnce();
+    const pk = iqState.catalogPicker;
+    pk.openerEl = document.activeElement;
+    pk.selected.clear();
+    pk.trayOpen = false;
+    pk.submitting = false;
+    pk.pendingConflicts = null;
+
+    resetCatalogFilters();
+    renderBrandChips();
+    updateCatalogSelectionUI();
+    if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+    fetchCatalogPickerPage(true);
+    setTimeout(() => document.getElementById("iq-catalog-search")?.focus?.(), 40);
   }
 
   // =========================================================================
@@ -2434,8 +3214,6 @@
 
     // Botões de itens
     document.getElementById("btn-iq-add-catalog")?.addEventListener("click", openCatalogPickerModal);
-    document.getElementById("btn-iq-catalog-close")?.addEventListener("click", () => document.getElementById("iq-catalog-dialog")?.close?.());
-    document.getElementById("btn-iq-catalog-cancel")?.addEventListener("click", () => document.getElementById("iq-catalog-dialog")?.close?.());
     document.getElementById("btn-iq-add-custom")?.addEventListener("click", () => {
       if (iqState.doc.isLocked) return;
       iqState.doc.items.push(createBlankItem({ isCustom: true }));

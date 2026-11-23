@@ -14639,44 +14639,54 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       if (paletaCores && paletaCores.length > 0) {
         paletaCores.forEach((c, idx) => {
+          const precoStr = c.preco || p.precoVista || "Sob consulta";
+          const precoNumVal = Number(c.valor) > 0 ? Number(c.valor) : extrairNumeroDePrecoBR(precoStr);
           lista.push({
             tipo: "cor",
-            id: `${p.id}-${c.cod || idx}`,
+            id: String(c._dbId || `${p.id}-${c.cod || idx}`),
+            dbId: c._dbId ? String(c._dbId) : null,
             produtoId: p.id,
             chavePaleta: chavePaleta,
             corIndex: idx,
+            familia: p.nome,
             nome: `${p.nome} — ${c.nome}`,
             modeloNome: p.nome,
             corNome: c.nome,
             codigo: c.cod ? `CÓD. ${c.cod}` : `COR ${idx + 1}`,
             codNumero: String(c.cod || ""),
             corHex: c.hex || "#F04E23",
-            preco: c.preco || p.precoVista,
+            preco: precoStr,
+            precoNum: precoNumVal,
             precoParcelado: p.precoParcelado || "",
             categoria: p.categoria || "filamentos",
-            marca: p.marca || "Loja SJ 3D",
+            marca: (String(p.marca || "").toLowerCase() === "maxprint" ? "Masterprint" : (p.marca || "Loja SJ 3D")),
             imagem: c.imgCatalogo || p.imagem || "assets/produtos/pla-maxprint.jpg",
             estoqueStatus: c.estoqueStatus || p.estoqueStatus || "disponivel",
             qrPayload: `SJ3D:FIL:${p.id}:${c.cod || c.nome}`
           });
         });
       } else {
+        const precoStr = p.precoVista || "Sob consulta";
+        const precoNumVal = Number(p.precoVistaValor) > 0 ? Number(p.precoVistaValor) : extrairNumeroDePrecoBR(precoStr);
         lista.push({
           tipo: "produto",
-          id: p.id,
+          id: String(p.id),
+          dbId: String(p.id),
           produtoId: p.id,
           chavePaleta: null,
           corIndex: null,
+          familia: p.grupoCatalogo || (p.categoria === "impressoras" ? "Impressoras 3D" : p.categoria === "manutencao" ? "Serviços & Manutenção" : "Peças & Acessórios"),
           nome: p.nome,
           modeloNome: p.nome,
           corNome: null,
           codigo: p.id,
           codNumero: "",
           corHex: null,
-          preco: p.precoVista,
+          preco: precoStr,
+          precoNum: precoNumVal,
           precoParcelado: p.precoParcelado || "",
           categoria: p.categoria || "pecas",
-          marca: p.marca || "Loja SJ 3D",
+          marca: (String(p.marca || "").toLowerCase() === "maxprint" ? "Masterprint" : (p.marca || "Loja SJ 3D")),
           imagem: p.imagem || "assets/produtos/impressora-a1_mini.jpg",
           estoqueStatus: p.estoqueStatus || "disponivel",
           qrPayload: `SJ3D:PROD:${p.id}`
@@ -16678,6 +16688,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         window.SJ_ADMIN_BRIDGE = {
           escaparHtml,
           formatarMoedaBR,
+          extrairNumeroDePrecoBR,
           obterDataHojeFormatada,
           validarCpfOficial,
           validarCnpjOficial,

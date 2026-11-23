@@ -1208,6 +1208,36 @@
       }
     },
 
+    // Busca paginada no banco para o modal "Adicionar do catálogo" (admin/staff aprovado via RPC)
+    buscarPicker: async function ({ query = "", category = "todos", brand = "todas", stock = "todos", limit = 24, offset = 0 } = {}) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente: true, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client.rpc("admin_search_catalog_picker", {
+          p_query: String(query || "").trim(),
+          p_categoria: String(category || "todos"),
+          p_marca: String(brand || "todas"),
+          p_stock: String(stock || "todos"),
+          p_limit: Math.min(48, Math.max(1, parseInt(limit, 10) || 24)),
+          p_offset: Math.max(0, parseInt(offset, 10) || 0)
+        });
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42883" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente, mensagem: error.message };
+        }
+        return {
+          sucesso: true,
+          totalCount: Number(data?.total_count) || 0,
+          items: Array.isArray(data?.items) ? data.items : [],
+          brands: Array.isArray(data?.brands) ? data.brands : [],
+          tabelaAusente: false
+        };
+      } catch (err) {
+        return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente: false, mensagem: err.message };
+      }
+    },
+
     // Cria ou atualiza um produto/cor em public.products (RLS: apenas admin aprovado)
     salvar: async function (registro) {
       const client = inicializarCliente();
@@ -2282,6 +2312,36 @@
         return { sucesso: true, dados: Array.isArray(data) ? data : [], tabelaAusente: false };
       } catch (err) {
         return { sucesso: false, dados: [], tabelaAusente: false, mensagem: err.message };
+      }
+    },
+
+    // Busca paginada no banco para o modal "Adicionar do catálogo" (admin/staff aprovado via RPC)
+    buscarPicker: async function ({ query = "", category = "todos", brand = "todas", stock = "todos", limit = 24, offset = 0 } = {}) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente: true, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client.rpc("admin_search_catalog_picker", {
+          p_query: String(query || "").trim(),
+          p_categoria: String(category || "todos"),
+          p_marca: String(brand || "todas"),
+          p_stock: String(stock || "todos"),
+          p_limit: Math.min(48, Math.max(1, parseInt(limit, 10) || 24)),
+          p_offset: Math.max(0, parseInt(offset, 10) || 0)
+        });
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42883" || msg.includes("does not exist") || msg.includes("schema cache");
+          return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente, mensagem: error.message };
+        }
+        return {
+          sucesso: true,
+          totalCount: Number(data?.total_count) || 0,
+          items: Array.isArray(data?.items) ? data.items : [],
+          brands: Array.isArray(data?.brands) ? data.brands : [],
+          tabelaAusente: false
+        };
+      } catch (err) {
+        return { sucesso: false, items: [], brands: [], totalCount: 0, tabelaAusente: false, mensagem: err.message };
       }
     },
 
