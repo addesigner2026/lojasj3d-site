@@ -12,7 +12,7 @@
 
   <meta charset="UTF-8" />
   <base href="/" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
 
   <!-- Guardião Canônico Oficial — Garante sempre www.lojasj3d.com.br e impede domínios da Vercel -->
   <script>
@@ -42,8 +42,8 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261119_02" />
-  <link rel="stylesheet" href="css/styles.css?v=20261119_02" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_01" />
+  <link rel="stylesheet" href="css/styles.css?v=20261123_01" />
 </head>
 
 <body class="admin-standalone-body">
@@ -182,23 +182,23 @@
           <button type="button" id="btn-admin-sidebar-close" class="btn-admin-sidebar-close" aria-label="Fechar menu lateral">✕</button>
         </div>
 
-        <!-- Navegação Principal (6 itens) -->
+        <!-- Navegação Principal (Ordem Oficial do Painel) -->
         <nav class="sj-crm-nav" aria-label="Navegação principal">
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="inicio">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn active" data-cms-tab="inicio" data-admin-route="/admin/inicio">
             <span class="nav-btn-inner">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
               <span>Início</span>
             </span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="produtos">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="produtos" data-admin-route="/admin/catalogo">
             <span class="nav-btn-inner">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path><polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline><line x1="12" y1="22.08" x2="12" y2="12"></line></svg>
               <span>Catálogo</span>
             </span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="orcamentos-clientes">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="orcamentos-clientes" data-admin-route="/admin/orcamentos">
             <span class="nav-btn-inner">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line></svg>
               <span>Orçamentos</span>
@@ -206,7 +206,14 @@
             <span id="cms-portal-quotes-badge" class="badge-pill">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes">
+          <button type="button" id="crm-nav-emitir-orcamento" class="sj-crm-nav-btn is-featured-action admin-cms-tab-btn" data-cms-tab="emitir-orcamento" data-admin-route="/admin/orcamentos/novo">
+            <span class="nav-btn-inner">
+              <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
+              <span>Emitir Orçamento</span>
+            </span>
+          </button>
+
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="clientes" data-admin-route="/admin/clientes">
             <span class="nav-btn-inner">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
               <span>Clientes</span>
@@ -214,7 +221,7 @@
             <span id="cms-clients-count-badge" class="badge-pill">0</span>
           </button>
 
-          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" data-admin-only="true">
+          <button type="button" class="sj-crm-nav-btn admin-cms-tab-btn" data-cms-tab="equipe" data-admin-only="true" data-admin-route="/admin/acessos">
             <span class="nav-btn-inner">
               <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
               <span>Acessos</span>
@@ -222,7 +229,7 @@
             <span id="cms-pending-badge" class="badge-pill danger" style="display:none;">0</span>
           </button>
 
-          <!-- Item 6: Mais (agrupa ferramentas secundárias sem apagar nada) -->
+          <!-- Item 7: Mais (agrupa ferramentas secundárias) -->
           <div class="sj-crm-nav-more-wrap">
             <button type="button" id="btn-crm-nav-mais" class="sj-crm-nav-btn sj-crm-nav-more-toggle" aria-expanded="false" aria-controls="crm-nav-mais-panel">
               <span class="nav-btn-inner">
@@ -236,7 +243,7 @@
             </button>
 
             <div id="crm-nav-mais-panel" class="sj-crm-nav-sublist" hidden>
-              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr">
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="consulta-qr" data-admin-route="/admin/consulta-qr">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7"></rect><rect x="14" y="3" width="7" height="7"></rect><rect x="3" y="14" width="7" height="7"></rect><path d="M14 14h3v3h-3zM19 19h2v2h-2zM14 20h3"></path></svg>
                 <span>Consulta de Preço &amp; QR</span>
               </button>
@@ -244,27 +251,19 @@
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
                 <span>Ler QR Code (Câmera)</span>
               </button>
-              <button type="button" id="crm-btn-open-quote" class="sj-crm-subnav-btn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="12" y1="18" x2="12" y2="12"></line><line x1="9" y1="15" x2="15" y2="15"></line></svg>
-                <span>Emitir Orçamento Timbrado</span>
-              </button>
-              <button type="button" id="crm-btn-open-history" class="sj-crm-subnav-btn">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
-                <span>Histórico de Orçamentos</span>
-              </button>
-              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="banner">
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="banner" data-admin-route="/admin/banner">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
                 <span>Banner &amp; Sorteio</span>
               </button>
-              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="supabase" data-admin-only="true">
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="supabase" data-admin-only="true" data-admin-route="/admin/supabase">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 10h-1.26A8 8 0 1 0 9 20h9a5 5 0 0 0 0-10z"></path></svg>
                 <span>Supabase &amp; Nuvem</span>
               </button>
-              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="exportar" data-admin-only="true">
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="exportar" data-admin-only="true" data-admin-route="/admin/backup">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 <span>Backup &amp; Dados</span>
               </button>
-              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="lgpd" style="justify-content:space-between;">
+              <button type="button" class="sj-crm-subnav-btn admin-cms-tab-btn" data-cms-tab="lgpd" data-admin-route="/admin/lgpd" style="justify-content:space-between;">
                 <span class="nav-btn-inner">
                   <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
                   <span>Solicitações LGPD</span>
@@ -1298,6 +1297,574 @@
           <div id="cms-lgpd-drawer-body" class="cms-drawer-body"></div>
         </dialog>
 
+        <!-- ==============================================================
+             ABA INDEPENDENTE: EMITIR ORÇAMENTO & HISTÓRICO DE ORÇAMENTOS
+             ============================================================== -->
+        <div class="admin-cms-pane" id="cms-pane-emitir-orcamento" style="display: none;">
+          <div class="iq-page-shell">
+
+            <!-- CABEÇALHO DA PÁGINA -->
+            <header class="iq-page-header">
+              <div class="iq-header-top-row">
+                <div class="iq-header-title-area">
+                  <div class="iq-title-line">
+                    <h2 class="iq-page-title">Emitir orçamento</h2>
+                    <span id="iq-quote-number-pill" class="iq-number-pill">Novo (numeração automática)</span>
+                    <span id="iq-save-status-pill" class="iq-save-pill" role="status" aria-live="polite">Rascunho pronto</span>
+                  </div>
+                  <div id="iq-validity-preview-line" style="font-size:0.8rem; color:#64748b;">
+                    Preencha cliente, itens e condições comerciais para gerar a folha timbrada oficial.
+                  </div>
+                </div>
+
+                <div class="iq-header-meta-strip">
+                  <div class="iq-meta-field">
+                    <label for="iq-issue-date">Data de emissão</label>
+                    <input type="date" id="iq-issue-date" />
+                  </div>
+                  <div class="iq-meta-field">
+                    <label for="iq-validity-days">Validade (dias)</label>
+                    <input type="number" id="iq-validity-days" min="1" max="365" value="7" style="width:92px;" />
+                  </div>
+                  <div class="iq-header-actions-inline">
+                    <button type="button" id="btn-iq-open-defaults" class="btn-cms-secondary">Textos padrão</button>
+                    <button type="button" id="btn-iq-new-blank" class="btn-cms-secondary">+ Novo em branco</button>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ABAS NO TOPO: NOVO ORÇAMENTO | HISTÓRICO -->
+              <div class="iq-tablist" focusgroup="tablist nomemory" aria-label="Modo do módulo de orçamentos">
+                <button type="button" id="iq-tab-novo" role="tab" aria-selected="true" focusgroupstart class="iq-tab-btn" data-iq-subtab="novo">
+                  Novo orçamento
+                </button>
+                <button type="button" id="iq-tab-historico" role="tab" aria-selected="false" class="iq-tab-btn" data-iq-subtab="historico">
+                  <span>Histórico</span>
+                  <span id="iq-history-count-badge" class="iq-tab-count">0</span>
+                </button>
+              </div>
+            </header>
+
+            <!-- PAINEL 1: NOVO ORÇAMENTO (2 COLUNAS NO DESKTOP + RESUMO FIXO) -->
+            <div id="iq-panel-novo" role="tabpanel" aria-labelledby="iq-tab-novo" tabindex="0">
+              <div id="iq-locked-alert-banner" class="iq-locked-banner" style="display:none; margin-bottom:16px;">
+                <div>
+                  <strong>Orçamento já emitido:</strong> para proteger o histórico enviado ao cliente, valores e itens ficam bloqueados contra alteração direta.
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                  <button type="button" id="btn-iq-create-version" class="btn-cms-secondary" style="background:#ffffff; border-color:#f59e0b; color:#9a3412;">
+                    Criar nova versão (-v2)
+                  </button>
+                  <button type="button" id="btn-iq-duplicate-current" class="btn-cms-secondary" style="background:#ffffff;">
+                    Duplicar como novo
+                  </button>
+                </div>
+              </div>
+
+              <div class="iq-workspace-grid">
+                <!-- COLUNA ESQUERDA: FORMULÁRIO COMPLETO -->
+                <div class="iq-main-column">
+
+                  <!-- BLOCO 1 — CLIENTE -->
+                  <section class="iq-block-card" aria-labelledby="iq-b1-title">
+                    <div class="iq-block-head">
+                      <div class="iq-block-title-wrap">
+                        <span class="iq-block-step">1</span>
+                        <div>
+                          <h3 id="iq-b1-title" class="iq-block-title">Cliente</h3>
+                          <p class="iq-block-sub">Busque um cadastro, digite avulso ou importe uma solicitação feita no site.</p>
+                        </div>
+                      </div>
+
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                        <div class="iq-segmented-group" role="group" aria-label="Tipo de pessoa">
+                          <button type="button" class="iq-seg-btn is-active" data-iq-person-type="pf">Pessoa Física</button>
+                          <button type="button" class="iq-seg-btn" data-iq-person-type="pj">Pessoa Jurídica</button>
+                        </div>
+                        <div class="iq-segmented-group" role="group" aria-label="Regra de nota fiscal">
+                          <button type="button" class="iq-seg-btn is-active is-accent" data-iq-invoice="false">SEM nota fiscal</button>
+                          <button type="button" class="iq-seg-btn" data-iq-invoice="true">COM nota fiscal</button>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="iq-client-toolbar">
+                      <div class="iq-search-box">
+                        <svg class="iq-search-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                        <input type="search" id="iq-client-search" placeholder="Buscar cliente cadastrado (nome, CPF/CNPJ ou telefone)..." autocomplete="off" autocorrect="off" autocapitalize="none" spellcheck="false" />
+                        <div id="iq-client-autocomplete" class="iq-autocomplete-list" style="display:none;" role="listbox" aria-label="Clientes encontrados"></div>
+                      </div>
+                      <button type="button" id="btn-iq-client-avulso" class="btn-cms-secondary">Cliente avulso / novo</button>
+                      <button type="button" id="btn-iq-import-request" class="btn-cms-secondary" style="border-color:#fed7aa; color:#c2410c; background:#fff7ed;">
+                        Importar de solicitação do cliente
+                      </button>
+                    </div>
+
+                    <div id="iq-imported-request-banner" class="iq-source-banner" style="display:none;">
+                      <span id="iq-imported-request-text"></span>
+                      <button type="button" id="btn-iq-detach-request" class="btn-cms-secondary" style="padding:4px 10px; min-height:30px; font-size:0.75rem;">Desvincular</button>
+                    </div>
+
+                    <div id="iq-invoice-rule-hint" style="font-size:0.78rem; color:#475569; margin-bottom:12px;">
+                      Regra atual: <strong>SEM nota fiscal</strong> — informe nome, telefone e CPF/CNPJ.
+                    </div>
+
+                    <!-- Campos PF -->
+                    <div id="iq-pf-fields" class="iq-form-grid">
+                      <div class="iq-field is-span-2">
+                        <label for="iq-cli-nome">Nome completo *</label>
+                        <input type="text" id="iq-cli-nome" placeholder="Ex: Carlos Eduardo Silva" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-cpf">
+                          <span>CPF *</span>
+                          <span id="iq-cpf-feedback" class="iq-field-feedback"></span>
+                        </label>
+                        <input type="text" id="iq-cli-cpf" inputmode="numeric" placeholder="000.000.000-00" maxlength="14" />
+                      </div>
+                    </div>
+
+                    <!-- Campos PJ -->
+                    <div id="iq-pj-fields" class="iq-form-grid" style="display:none;">
+                      <div class="iq-field">
+                        <label for="iq-cli-cnpj">
+                          <span>CNPJ *</span>
+                          <span id="iq-cnpj-feedback" class="iq-field-feedback"></span>
+                        </label>
+                        <div class="iq-input-with-btn">
+                          <input type="text" id="iq-cli-cnpj" inputmode="numeric" placeholder="00.000.000/0000-00" maxlength="18" />
+                          <button type="button" id="btn-iq-lookup-cnpj" class="iq-inline-lookup-btn">Buscar CNPJ</button>
+                        </div>
+                      </div>
+                      <div class="iq-field is-span-2">
+                        <label for="iq-cli-razao">Razão Social *</label>
+                        <input type="text" id="iq-cli-razao" placeholder="Razão social da empresa" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-fantasia">Nome Fantasia</label>
+                        <input type="text" id="iq-cli-fantasia" placeholder="Nome fantasia" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-ie-tipo">Inscrição Estadual</label>
+                        <select id="iq-cli-ie-tipo">
+                          <option value="contribuinte">Contribuinte ICMS</option>
+                          <option value="isento">Isento</option>
+                          <option value="nao_contribuinte">Não contribuinte</option>
+                        </select>
+                      </div>
+                      <div class="iq-field" id="iq-cli-ie-wrap">
+                        <label for="iq-cli-ie">Número da IE</label>
+                        <input type="text" id="iq-cli-ie" placeholder="Ex: 91222907-67" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-contato">Nome do contato</label>
+                        <input type="text" id="iq-cli-contato" placeholder="Responsável pelo pedido" />
+                      </div>
+                    </div>
+
+                    <!-- Contato & Endereço (comuns a PF e PJ) -->
+                    <div class="iq-form-grid" style="margin-top:12px;">
+                      <div class="iq-field">
+                        <label for="iq-cli-telefone">Telefone / WhatsApp *</label>
+                        <input type="tel" id="iq-cli-telefone" inputmode="tel" placeholder="(44) 99999-9999" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-email">E-mail</label>
+                        <input type="email" id="iq-cli-email" placeholder="cliente@email.com" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-cep">
+                          <span>CEP</span>
+                          <span id="iq-cep-feedback" class="iq-field-feedback"></span>
+                        </label>
+                        <div class="iq-input-with-btn">
+                          <input type="text" id="iq-cli-cep" inputmode="numeric" placeholder="87500-000" maxlength="9" />
+                          <button type="button" id="btn-iq-lookup-cep" class="iq-inline-lookup-btn">Buscar CEP</button>
+                        </div>
+                      </div>
+                      <div class="iq-field is-span-2">
+                        <label for="iq-cli-logradouro">Logradouro / Rua <span data-iq-nf-req="true" style="display:none;">*</span></label>
+                        <input type="text" id="iq-cli-logradouro" placeholder="Av. / Rua" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-numero">Número</label>
+                        <input type="text" id="iq-cli-numero" placeholder="Ex: 6759 ou S/N" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-complemento">Complemento</label>
+                        <input type="text" id="iq-cli-complemento" placeholder="Sala, apto, bloco..." />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-bairro">Bairro</label>
+                        <input type="text" id="iq-cli-bairro" placeholder="Zona 1A" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-cidade">Cidade <span data-iq-nf-req="true" style="display:none;">*</span></label>
+                        <input type="text" id="iq-cli-cidade" value="Umuarama" />
+                      </div>
+                      <div class="iq-field">
+                        <label for="iq-cli-uf">UF <span data-iq-nf-req="true" style="display:none;">*</span></label>
+                        <input type="text" id="iq-cli-uf" value="PR" maxlength="2" style="text-transform:uppercase;" />
+                      </div>
+                    </div>
+                  </section>
+
+                  <!-- BLOCO 2 — PRODUTOS E SERVIÇOS -->
+                  <section class="iq-block-card" aria-labelledby="iq-b2-title">
+                    <div class="iq-block-head">
+                      <div class="iq-block-title-wrap">
+                        <span class="iq-block-step">2</span>
+                        <div>
+                          <h3 id="iq-b2-title" class="iq-block-title">Produtos e serviços</h3>
+                          <p class="iq-block-sub">Adicione itens do catálogo (inclusive vários de uma vez) ou itens avulsos, negocie preços e reordene.</p>
+                        </div>
+                      </div>
+
+                      <div style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" id="btn-iq-add-catalog" class="btn-cms-new-product-clean" style="min-height:38px; padding:0 14px;">+ Adicionar do catálogo</button>
+                        <button type="button" id="btn-iq-add-custom" class="btn-cms-secondary" style="min-height:38px;">+ Adicionar item avulso</button>
+                        <button type="button" id="btn-iq-clear-items" class="btn-cms-secondary" style="min-height:38px; color:#dc2626;">Limpar lista</button>
+                      </div>
+                    </div>
+
+                    <div class="iq-table-region" tabindex="0" role="region" aria-label="Tabela de itens do orçamento">
+                      <table class="iq-items-table">
+                        <thead>
+                          <tr>
+                            <th style="width:68px; text-align:center;">Ordem</th>
+                            <th style="min-width:230px;">Produto / Serviço e Descrição</th>
+                            <th style="width:86px; text-align:right;">Qtd.</th>
+                            <th style="width:124px; text-align:right;">Valor unit. (R$)</th>
+                            <th style="width:152px;">Desconto linha</th>
+                            <th style="width:116px; text-align:right;">Total</th>
+                            <th style="width:46px; text-align:center;">Ação</th>
+                          </tr>
+                        </thead>
+                        <tbody id="iq-items-tbody"></tbody>
+                      </table>
+                    </div>
+                  </section>
+
+                  <!-- BLOCO 3 — VALORES E CONDIÇÕES -->
+                  <section class="iq-block-card" aria-labelledby="iq-b3-title">
+                    <div class="iq-block-head">
+                      <div class="iq-block-title-wrap">
+                        <span class="iq-block-step">3</span>
+                        <div>
+                          <h3 id="iq-b3-title" class="iq-block-title">Valores e condições</h3>
+                          <p class="iq-block-sub">Pagamento, prazo de entrega, frete, descontos e observações comerciais.</p>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="iq-form-grid">
+                      <div class="iq-field">
+                        <label for="iq-payment-method">Forma de pagamento</label>
+                        <select id="iq-payment-method">
+                          <option value="PIX à Vista (5% OFF)">PIX à Vista (5% OFF)</option>
+                          <option value="PIX à Vista (Chave CNPJ: 66.275.129/0001-10)">PIX à Vista (sem desconto auto)</option>
+                          <option value="Dinheiro à Vista">Dinheiro à Vista</option>
+                          <option value="Cartão de Débito">Cartão de Débito</option>
+                          <option value="Cartão de Crédito">Cartão de Crédito</option>
+                          <option value="Boleto / Faturado PJ">Boleto / Faturado PJ</option>
+                        </select>
+                      </div>
+
+                      <div class="iq-field" id="iq-payment-installments-wrap" style="display:none;">
+                        <label for="iq-payment-installments">Parcelas no cartão</label>
+                        <select id="iq-payment-installments">
+                          <option value="1">1x (à vista no cartão)</option>
+                          <option value="2">Em até 2x</option>
+                          <option value="3" selected>Em até 3x</option>
+                          <option value="6">Em até 6x</option>
+                          <option value="10">Em até 10x</option>
+                          <option value="12">Em até 12x</option>
+                        </select>
+                      </div>
+
+                      <div class="iq-field">
+                        <label for="iq-delivery-term">Prazo de entrega / retirada</label>
+                        <select id="iq-delivery-term">
+                          <option value="Pronta Entrega / Imediato">Pronta Entrega / Imediato</option>
+                          <option value="1 a 2 dias úteis">1 a 2 dias úteis</option>
+                          <option value="3 a 5 dias úteis">3 a 5 dias úteis</option>
+                          <option value="Sob Encomenda (7 a 10 dias úteis)">Sob Encomenda (7 a 10 dias úteis)</option>
+                        </select>
+                      </div>
+
+                      <div class="iq-field">
+                        <label for="iq-freight-amount">Frete / Entrega (R$)</label>
+                        <input type="number" id="iq-freight-amount" step="0.01" min="0" value="0.00" />
+                      </div>
+
+                      <div class="iq-field">
+                        <label for="iq-general-discount-value">
+                          <span>Desconto geral</span>
+                          <button type="button" id="btn-iq-quick-5pct" class="iq-mini-icon-btn" style="width:auto; padding:0 7px; font-size:0.7rem;" title="Aplicar 5% de desconto geral">5% à vista</button>
+                        </label>
+                        <div class="iq-line-disc-wrap">
+                          <select id="iq-general-discount-type" class="iq-line-disc-type" aria-label="Tipo de desconto geral">
+                            <option value="fixed">R$</option>
+                            <option value="percent">%</option>
+                          </select>
+                          <input type="number" id="iq-general-discount-value" step="0.01" min="0" value="0" />
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="iq-form-grid" style="margin-top:14px;">
+                      <div class="iq-field is-span-2">
+                        <label for="iq-notes">Observações do orçamento (visível para o cliente no timbrado)</label>
+                        <textarea id="iq-notes" rows="3" placeholder="Garantia, dados PIX, retirada ou observações para o cliente..."></textarea>
+                      </div>
+                    </div>
+
+                    <div class="iq-internal-notes-box" style="margin-top:12px;">
+                      <div class="iq-field">
+                        <label for="iq-internal-notes">Observações internas da equipe (NÃO sai no PDF nem para o cliente)</label>
+                        <textarea id="iq-internal-notes" rows="2" placeholder="Anotações internas de custo, negociação ou entrega para a equipe..."></textarea>
+                      </div>
+                    </div>
+                  </section>
+
+                </div>
+
+                <!-- COLUNA DIREITA: RESUMO FIXO -->
+                <aside class="iq-summary-sidebar" aria-label="Resumo do orçamento">
+                  <div style="display:flex; justify-content:space-between; align-items:center; gap:8px;">
+                    <strong style="font-size:0.98rem; color:#0f172a;">Resumo financeiro</strong>
+                    <span id="iq-sum-nf-badge" class="cms-status-pill is-neutral">Sem NF</span>
+                  </div>
+
+                  <div id="iq-sum-client-chip" class="iq-summary-client-chip">
+                    <strong>Nenhum cliente selecionado</strong>
+                    <span style="color:#64748b;">Preencha no bloco 1</span>
+                  </div>
+
+                  <div class="iq-summary-lines">
+                    <div class="iq-summary-line">
+                      <span id="iq-sum-items-count">0 itens (0 un.)</span>
+                      <strong id="iq-sum-gross">R$ 0,00</strong>
+                    </div>
+                    <div class="iq-summary-line is-discount" id="iq-sum-line-disc-row" style="display:none;">
+                      <span>Descontos nos itens</span>
+                      <strong id="iq-sum-line-disc">- R$ 0,00</strong>
+                    </div>
+                    <div class="iq-summary-line is-discount" id="iq-sum-gen-disc-row" style="display:none;">
+                      <span>Desconto geral</span>
+                      <strong id="iq-sum-gen-disc">- R$ 0,00</strong>
+                    </div>
+                    <div class="iq-summary-line" id="iq-sum-freight-row" style="display:none;">
+                      <span>Frete / entrega</span>
+                      <strong id="iq-sum-freight">+ R$ 0,00</strong>
+                    </div>
+                  </div>
+
+                  <div class="iq-summary-total-box">
+                    <span class="lbl">Total Final</span>
+                    <strong class="val" id="iq-sum-total">R$ 0,00</strong>
+                  </div>
+
+                  <div class="iq-summary-actions">
+                    <button type="button" id="btn-iq-emit-pdf" class="iq-btn-primary">
+                      Emitir e baixar PDF
+                    </button>
+                    <button type="button" id="btn-iq-preview" class="iq-btn-secondary">
+                      Visualizar prévia timbrada
+                    </button>
+                    <button type="button" id="btn-iq-save-draft" class="iq-btn-secondary">
+                      Salvar rascunho
+                    </button>
+                    <div class="iq-summary-actions-row">
+                      <button type="button" id="btn-iq-whatsapp" class="iq-btn-secondary iq-btn-whatsapp">
+                        WhatsApp
+                      </button>
+                      <button type="button" id="btn-iq-print" class="iq-btn-secondary">
+                        Imprimir
+                      </button>
+                    </div>
+                  </div>
+                </aside>
+              </div>
+            </div>
+
+            <!-- PAINEL 2: HISTÓRICO UNIFICADO DE ORÇAMENTOS EMITIDOS -->
+            <div id="iq-panel-historico" role="tabpanel" aria-labelledby="iq-tab-historico" hidden="until-found">
+              <div class="cms-lean-toolbar">
+                <div class="cms-lean-toolbar-main">
+                  <div class="cms-search-box-wrap">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input type="search" id="iq-hist-search" class="cms-search-input-lean" placeholder="Buscar por número (2026-0001 / SJ-2026), cliente, CPF/CNPJ ou telefone..." />
+                  </div>
+
+                  <select id="iq-hist-status" class="cms-select-clean" aria-label="Filtrar por status">
+                    <option value="todos">Todos os status</option>
+                    <option value="rascunho">Rascunhos</option>
+                    <option value="emitido">Emitidos</option>
+                    <option value="enviado">Enviados</option>
+                    <option value="aprovado">Aprovados</option>
+                    <option value="recusado">Recusados</option>
+                    <option value="vencido">Vencidos</option>
+                    <option value="cancelado">Cancelados</option>
+                    <option value="pendente">Pendentes (legado)</option>
+                    <option value="faturado">Faturados (legado)</option>
+                  </select>
+
+                  <select id="iq-hist-period" class="cms-select-clean" aria-label="Filtrar por período">
+                    <option value="todos">Todo o período</option>
+                    <option value="hoje">Hoje</option>
+                    <option value="7d">Últimos 7 dias</option>
+                    <option value="mes">Este mês</option>
+                  </select>
+                </div>
+
+                <div class="cms-lean-toolbar-actions">
+                  <button type="button" id="btn-iq-hist-refresh" class="btn-cms-secondary">Atualizar</button>
+                  <button type="button" id="btn-iq-hist-export" class="btn-cms-secondary">Exportar JSON</button>
+                  <label class="btn-cms-secondary" style="cursor:pointer;">
+                    Importar JSON
+                    <input type="file" id="iq-hist-import-file" accept=".json" style="display:none;" />
+                  </label>
+                </div>
+              </div>
+
+              <div class="cms-section-card is-flush">
+                <div id="iq-hist-list" class="cms-clean-list"></div>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- BARRA FIXA MOBILE -->
+          <div id="iq-mobile-sticky-bar" class="iq-mobile-sticky-bar">
+            <div>
+              <span class="iq-mobile-tot-lbl">Total do orçamento</span>
+              <strong id="iq-mobile-tot-val" class="iq-mobile-tot-val">R$ 0,00</strong>
+            </div>
+            <div class="iq-mobile-btns">
+              <button type="button" id="btn-iq-mobile-preview" class="iq-btn-secondary">Prévia</button>
+              <button type="button" id="btn-iq-mobile-emit" class="iq-btn-primary">Emitir PDF</button>
+            </div>
+          </div>
+
+          <!-- DIALOG: ADICIONAR PRODUTOS DO CATÁLOGO (MULTI-SELEÇÃO) -->
+          <dialog id="iq-catalog-dialog" class="iq-dialog" closedby="any" aria-labelledby="iq-catalog-dlg-title">
+            <div class="iq-dialog-inner">
+              <div class="cms-drawer-header">
+                <div>
+                  <h2 id="iq-catalog-dlg-title" class="cms-drawer-title">Adicionar do catálogo</h2>
+                  <p class="cms-drawer-sub">Busque por nome, cor ou código e marque um ou vários itens de uma vez.</p>
+                </div>
+                <button type="button" class="cms-drawer-close" id="btn-iq-catalog-close" aria-label="Fechar">✕</button>
+              </div>
+              <div class="iq-dialog-body">
+                <div style="display:flex; gap:10px; flex-wrap:wrap; margin-bottom:14px;">
+                  <input type="search" id="iq-catalog-search" class="cms-search-input-lean" style="flex:1; min-width:220px; border:1px solid #cbd5e1; border-radius:10px; padding:9px 12px;" placeholder="Buscar por nome, cor ou código (ex: 34, 137, A1)..." />
+                  <select id="iq-catalog-cat" class="cms-select-clean">
+                    <option value="todos">Todas as categorias</option>
+                    <option value="filamentos">Filamentos</option>
+                    <option value="impressoras">Impressoras 3D</option>
+                    <option value="pecas">Peças &amp; Acessórios</option>
+                    <option value="manutencao">Manutenção</option>
+                  </select>
+                </div>
+                <div id="iq-catalog-grid" class="iq-catalog-grid"></div>
+              </div>
+              <div class="cms-drawer-footer" style="justify-content:space-between;">
+                <span id="iq-catalog-selected-count" style="font-size:0.84rem; font-weight:700; color:#475569;">0 itens selecionados</span>
+                <div style="display:flex; gap:8px;">
+                  <button type="button" class="btn-cms-cancel" id="btn-iq-catalog-cancel">Cancelar</button>
+                  <button type="button" class="btn-cms-save" id="btn-iq-catalog-confirm">Adicionar selecionados</button>
+                </div>
+              </div>
+            </div>
+          </dialog>
+
+          <!-- DIALOG: IMPORTAR DE SOLICITAÇÃO DO CLIENTE -->
+          <dialog id="iq-import-dialog" class="iq-dialog" closedby="any" aria-labelledby="iq-import-dlg-title">
+            <div class="iq-dialog-inner">
+              <div class="cms-drawer-header">
+                <div>
+                  <h2 id="iq-import-dlg-title" class="cms-drawer-title">Importar solicitação de cliente</h2>
+                  <p class="cms-drawer-sub">Escolha um orçamento solicitado pelo site para preencher cliente e itens automaticamente.</p>
+                </div>
+                <button type="button" class="cms-drawer-close" id="btn-iq-import-close" aria-label="Fechar">✕</button>
+              </div>
+              <div class="iq-dialog-body">
+                <input type="search" id="iq-import-search" style="width:100%; border:1px solid #cbd5e1; border-radius:10px; padding:9px 12px; margin-bottom:12px;" placeholder="Filtrar por nº ou nome do cliente..." />
+                <div id="iq-import-list" style="display:flex; flex-direction:column; gap:10px;"></div>
+              </div>
+            </div>
+          </dialog>
+
+          <!-- DIALOG: TEXTOS PADRÃO REUTILIZÁVEIS -->
+          <dialog id="iq-defaults-dialog" class="iq-dialog" closedby="any" aria-labelledby="iq-defaults-dlg-title">
+            <div class="iq-dialog-inner">
+              <div class="cms-drawer-header">
+                <div>
+                  <h2 id="iq-defaults-dlg-title" class="cms-drawer-title">Configurar textos padrão de orçamento</h2>
+                  <p class="cms-drawer-sub">Estes padrões preenchem automaticamente os novos orçamentos.</p>
+                </div>
+                <button type="button" class="cms-drawer-close" id="btn-iq-defaults-close" aria-label="Fechar">✕</button>
+              </div>
+              <div class="iq-dialog-body" style="display:flex; flex-direction:column; gap:12px;">
+                <div class="iq-field">
+                  <label for="iq-def-validity">Validade padrão (dias)</label>
+                  <input type="number" id="iq-def-validity" min="1" max="365" value="7" />
+                </div>
+                <div class="iq-field">
+                  <label for="iq-def-warranty">Texto de garantia (bloco Condições Comerciais)</label>
+                  <input type="text" id="iq-def-warranty" />
+                </div>
+                <div class="iq-field">
+                  <label for="iq-def-notes">Observações padrão para o cliente</label>
+                  <textarea id="iq-def-notes" rows="4"></textarea>
+                </div>
+              </div>
+              <div class="cms-drawer-footer">
+                <button type="button" class="btn-cms-cancel" id="btn-iq-defaults-cancel">Cancelar</button>
+                <button type="button" class="btn-cms-save" id="btn-iq-defaults-save">Salvar padrões</button>
+              </div>
+            </div>
+          </dialog>
+
+          <!-- DIALOG: LOG DE AUDITORIA DO ORÇAMENTO -->
+          <dialog id="iq-audit-dialog" class="iq-dialog" closedby="any" aria-labelledby="iq-audit-dlg-title">
+            <div class="iq-dialog-inner">
+              <div class="cms-drawer-header">
+                <div>
+                  <h2 id="iq-audit-dlg-title" class="cms-drawer-title">Histórico de alterações do orçamento</h2>
+                  <p id="iq-audit-dlg-sub" class="cms-drawer-sub"></p>
+                </div>
+                <button type="button" class="cms-drawer-close" id="btn-iq-audit-close" aria-label="Fechar">✕</button>
+              </div>
+              <div id="iq-audit-list" class="iq-dialog-body" style="display:flex; flex-direction:column; gap:8px;"></div>
+            </div>
+          </dialog>
+
+          <!-- DIALOG: PRÉ-VISUALIZAÇÃO DA FOLHA TIMBRADA OFICIAL -->
+          <dialog id="iq-preview-dialog" class="iq-dialog is-wide" closedby="any" aria-labelledby="iq-preview-dlg-title">
+            <div class="iq-dialog-inner">
+              <div class="cms-drawer-header iq-no-print" style="flex-wrap:wrap; gap:10px;">
+                <div>
+                  <h2 id="iq-preview-dlg-title" class="cms-drawer-title">Pré-visualização do Orçamento Timbrado Oficial</h2>
+                  <p class="cms-drawer-sub">Modelo oficial Grupo SJ idêntico ao PDF final.</p>
+                </div>
+                <div style="display:flex; gap:8px; flex-wrap:wrap; align-items:center;">
+                  <button type="button" id="btn-iq-prev-download-pdf" class="btn-cms-save">Baixar PDF</button>
+                  <button type="button" id="btn-iq-prev-whatsapp" class="btn-cms-secondary">Enviar WhatsApp</button>
+                  <button type="button" id="btn-iq-prev-print" class="btn-cms-secondary">Imprimir</button>
+                  <button type="button" id="btn-iq-prev-close" class="cms-drawer-close" aria-label="Voltar à edição">✕</button>
+                </div>
+              </div>
+              <div class="iq-dialog-body" style="background:#f1f5f9; padding:18px;">
+                <div id="iq-timbrado-preview-mount" class="quote-paper-container"></div>
+              </div>
+            </div>
+          </dialog>
+
+        </div>
+
       </div>
 
       <!-- ESTÚDIO DO ORÇAMENTO TIMBRADO OFICIAL GRUPO SJ -->
@@ -1432,181 +1999,7 @@
     </div>
   </div>
 
-  <!-- MODAL ASSISTENTE RÁPIDO DE ORÇAMENTO -->
-  <div class="modal-overlay" id="modal-quote-wizard" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quote-wizard-title">
-    <div class="google-auth-card quote-wizard-card">
-      <div class="google-auth-glow-bar" aria-hidden="true"></div>
-      <button type="button" class="modal-close-btn" id="close-quote-wizard-btn" aria-label="Fechar assistente de orçamento">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <line x1="18" y1="6" x2="6" y2="18"></line>
-          <line x1="6" y1="6" x2="18" y2="18"></line>
-        </svg>
-      </button>
-
-      <div class="quote-wizard-header">
-        <div class="quote-wizard-top-row">
-          <div class="auth-portal-badge" style="margin-bottom:0;">
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
-              <polyline points="14 2 14 8 20 8"></polyline>
-            </svg>
-            <span>NOVO ORÇAMENTO TIMBRADO</span>
-          </div>
-          <button type="button" class="wizard-history-link-btn" id="btn-wizard-open-history" title="Consultar orçamentos já salvos">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <circle cx="12" cy="12" r="10"></circle>
-              <polyline points="12 6 12 12 16 14"></polyline>
-            </svg>
-            <span>Ver Histórico</span>
-          </button>
-        </div>
-        <h3 id="quote-wizard-title">Dados do Cliente &amp; Pagamento</h3>
-        <p class="google-auth-sub" id="wizard-items-summary-txt">Preencha os dados abaixo para gerar a folha timbrada pronta para compartilhar.</p>
-      </div>
-
-      <form id="form-quote-wizard" class="operator-quick-form">
-        <!-- 1. DADOS DO CLIENTE & BUSCA INTELIGENTE -->
-        <div class="wizard-section-title" style="display:flex; justify-content:space-between; align-items:center;">
-          <span>1. Identificação do Cliente</span>
-          <span id="wiz-client-badge-status" class="wiz-client-status-pill" style="display:none;"></span>
-        </div>
-
-        <!-- Campo Principal: Busca Inteligente por Nome, CNPJ/CPF ou Telefone -->
-        <div class="operator-field" style="position:relative;">
-          <label for="wiz-client-name">Nome Completo ou Razão Social *</label>
-          <div class="auth-input-group">
-            <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-              <circle cx="12" cy="7" r="4"></circle>
-            </svg>
-            <input type="text" id="wiz-client-name" placeholder="Buscar por Nome, CNPJ, CPF ou WhatsApp..." autocomplete="off" required />
-            <button type="button" id="wiz-client-clear-btn" class="wiz-input-clear-btn" style="display:none;" title="Limpar cliente e buscar outro">✕</button>
-          </div>
-          <!-- Dropdown Flutuante de Clientes Encontrados -->
-          <div id="wiz-client-dropdown" class="wiz-client-dropdown-menu" style="display:none;" role="listbox" aria-label="Sugestões de clientes cadastrados"></div>
-        </div>
-
-        <div class="operator-form-row-2col">
-          <div class="operator-field">
-            <label for="wiz-client-phone">Telefone / WhatsApp</label>
-            <div class="auth-input-group">
-              <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"></path>
-              </svg>
-              <input type="tel" id="wiz-client-phone" placeholder="(44) 99999-9999" />
-            </div>
-          </div>
-          <div class="operator-field">
-            <div style="display:flex; justify-content:space-between; align-items:center;">
-              <label for="wiz-client-cpf" style="margin:0;">CPF ou CNPJ</label>
-              <span id="wiz-client-doc-feedback" style="font-size:0.7rem; font-weight:700;"></span>
-            </div>
-            <div class="auth-input-group">
-              <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-                <rect x="3" y="4" width="18" height="16" rx="2"></rect>
-                <line x1="7" y1="8" x2="17" y2="8"></line>
-                <line x1="7" y1="12" x2="17" y2="12"></line>
-                <line x1="7" y1="16" x2="12" y2="16"></line>
-              </svg>
-              <input type="text" id="wiz-client-cpf" placeholder="000.000.000-00 ou CNPJ" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Indicador inteligente de cliente novo vs cadastrado -->
-        <div id="wiz-client-info-box" class="wiz-client-info-box" style="display:none;"></div>
-
-        <div class="wizard-section-title" style="margin-top:4px;">2. Forma de Pagamento</div>
-        <div class="wizard-payment-grid" role="radiogroup" aria-label="Forma de pagamento">
-          <button type="button" class="wizard-pay-btn active" data-pay-method="pix">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
-            </svg>
-            <span>PIX</span>
-          </button>
-          <button type="button" class="wizard-pay-btn" data-pay-method="dinheiro">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="2" y="6" width="20" height="12" rx="2"></rect>
-              <circle cx="12" cy="12" r="2"></circle>
-              <path d="M6 12h.01M18 12h.01"></path>
-            </svg>
-            <span>Dinheiro</span>
-          </button>
-          <button type="button" class="wizard-pay-btn" data-pay-method="debito">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-              <line x1="1" y1="10" x2="23" y2="10"></line>
-            </svg>
-            <span>Cartão Débito</span>
-          </button>
-          <button type="button" class="wizard-pay-btn" data-pay-method="credito">
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect>
-              <line x1="1" y1="10" x2="23" y2="10"></line>
-              <line x1="5" y1="15" x2="9" y2="15"></line>
-            </svg>
-            <span>Cartão Crédito</span>
-          </button>
-        </div>
-
-        <div id="wiz-credit-installments-wrap" class="operator-field" style="display: none;">
-          <label for="wiz-credit-installments">Parcelamento no Cartão de Crédito</label>
-          <div class="auth-input-group">
-            <svg class="auth-input-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-              <rect x="1" y="4" width="22" height="16" rx="2"></rect>
-              <line x1="1" y1="10" x2="23" y2="10"></line>
-            </svg>
-            <select id="wiz-credit-installments" class="auth-select-field">
-              <option value="Cartão de Crédito em 1x">1x no Cartão de Crédito</option>
-              <option value="Cartão de Crédito em até 2x">Em até 2x no Cartão de Crédito</option>
-              <option value="Cartão de Crédito em até 3x" selected>Em até 3x no Cartão de Crédito</option>
-              <option value="Cartão de Crédito em até 6x">Em até 6x no Cartão de Crédito</option>
-              <option value="Cartão de Crédito em até 10x">Em até 10x no Cartão de Crédito</option>
-              <option value="Cartão de Crédito em até 12x">Em até 12x no Cartão de Crédito</option>
-            </select>
-          </div>
-        </div>
-
-        <div class="wizard-section-title" style="margin-top:4px;">3. Desconto à Vista</div>
-        <div class="wizard-discount-toggle-grid">
-          <button type="button" class="wizard-discount-btn active" data-wiz-discount="0" id="btn-wiz-disc-0">
-            <span class="disc-title">Sem Desconto</span>
-            <span class="disc-sub">Valor integral de tabela</span>
-          </button>
-          <button type="button" class="wizard-discount-btn discount-highlight" data-wiz-discount="5" id="btn-wiz-disc-5">
-            <span class="disc-badge">5% OFF</span>
-            <span class="disc-title">Aplicar 5% à Vista</span>
-            <span class="disc-sub" id="wiz-disc-5-amount-txt">- R$ 0,00 no total</span>
-          </button>
-        </div>
-
-        <div class="wizard-live-summary">
-          <div class="wizard-sum-line">
-            <span>Subtotal dos Itens:</span>
-            <strong id="wiz-sum-subtotal">R$ 0,00</strong>
-          </div>
-          <div class="wizard-sum-line discount-line" id="wiz-sum-discount-row" style="display: none;">
-            <span>Desconto à Vista (5%):</span>
-            <strong id="wiz-sum-discount">- R$ 0,00</strong>
-          </div>
-          <div class="wizard-sum-total">
-            <span>Total do Orçamento:</span>
-            <strong id="wiz-sum-total">R$ 0,00</strong>
-          </div>
-        </div>
-
-        <button type="submit" class="btn-operator-submit" id="btn-wizard-submit">
-          <span>Gerar Orçamento Timbrado &amp; Adicionar Itens</span>
-          <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-            <line x1="5" y1="12" x2="19" y2="12"></line>
-            <polyline points="12 5 19 12 12 19"></polyline>
-          </svg>
-        </button>
-      </form>
-    </div>
-  </div>
-
-  <!-- MODAL DE HISTÓRICO DE ORÇAMENTOS -->
+  <!-- MODAL DE HISTÓRICO DE ORÇAMENTOS (LEGADO) -->
   <div class="modal-overlay" id="modal-quote-history" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="quote-history-title">
     <div class="quote-history-card">
       <div class="quote-history-header">
@@ -1667,10 +2060,11 @@
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261119_02"></script>
-  <script src="js/dados.js?v=20261119_02"></script>
-  <script src="js/database.js?v=20261119_02"></script>
-  <script src="js/app.js?v=20261119_02"></script>
+  <script src="js/supabase-client.js?v=20261123_01"></script>
+  <script src="js/dados.js?v=20261123_01"></script>
+  <script src="js/database.js?v=20261123_01"></script>
+  <script src="js/app.js?v=20261123_01"></script>
+  <script src="js/issued-quotes.js?v=20261123_01"></script>
 
 </body>
 

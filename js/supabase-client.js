@@ -2259,6 +2259,143 @@
     }
   };
 
+  // =========================================================================
+  // MÓDULO EMISSOR DE ORÇAMENTOS TIMBRADOS (public.issued_quotes + RPC)
+  // =========================================================================
+  const issuedQuotes = {
+    listarTodos: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [], tabelaAusente: false, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client
+          .from("issued_quotes")
+          .select("*, issued_quote_items(*)")
+          .order("quote_year", { ascending: false })
+          .order("quote_seq", { ascending: false })
+          .order("version_number", { ascending: false })
+          .limit(250);
+
+        if (error) {
+          const tabelaAusente = String(error.code || "") === "42P01" || String(error.message || "").includes("does not exist") || String(error.message || "").includes("schema cache");
+          return { sucesso: false, dados: [], tabelaAusente, mensagem: error.message };
+        }
+        return { sucesso: true, dados: Array.isArray(data) ? data : [], tabelaAusente: false };
+      } catch (err) {
+        return { sucesso: false, dados: [], tabelaAusente: false, mensagem: err.message };
+      }
+    },
+
+    obterAuditoria: async function (issuedQuoteId) {
+      const client = inicializarCliente();
+      if (!client || !issuedQuoteId) return { sucesso: false, dados: [] };
+      try {
+        const { data, error } = await client
+          .from("issued_quote_audit_logs")
+          .select("*")
+          .eq("issued_quote_id", issuedQuoteId)
+          .order("created_at", { ascending: false })
+          .limit(40);
+        if (error) return { sucesso: false, dados: [], mensagem: error.message };
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    salvar: async function (payload, emitir = false) {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, tabelaAusente: false, fallbackLocal: true, mensagem: "Supabase não conectado." };
+      try {
+        const { data, error } = await client.rpc("save_issued_quote", {
+          p_payload: payload || {},
+          p_emit: Boolean(emitir)
+        });
+        if (error) {
+          const msg = String(error.message || "");
+          const tabelaAusente = String(error.code || "") === "42883" || String(error.code || "") === "42P01" || msg.includes("does not exist") || msg.includes("schema cache") || msg.includes("function public.save_issued_quote");
+          return { sucesso: false, tabelaAusente, mensagem: msg };
+        }
+        return { sucesso: true, dados: data };
+      } catch (err) {
+        return { sucesso: false, tabelaAusente: false, mensagem: err.message || "Erro ao salvar orçamento." };
+      }
+    },
+
+    atualizarStatus: async function (id, status) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "Parâmetros inválidos." };
+      try {
+        const { data, error } = await client.rpc("update_issued_quote_status", {
+          p_id: id,
+          p_status: status
+        });
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true, item: data };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    excluirRascunho: async function (id) {
+      const client = inicializarCliente();
+      if (!client || !id) return { sucesso: false, mensagem: "ID inválido." };
+      try {
+        const { error } = await client
+          .from("issued_quotes")
+          .delete()
+          .eq("id", id)
+          .eq("is_locked", false);
+        if (error) return { sucesso: false, mensagem: error.message };
+        return { sucesso: true };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    },
+
+    buscarClientes: async function (query = "") {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, dados: [] };
+      try {
+        const { data, error } = await client.rpc("search_customers_for_quote", {
+          p_query: String(query || "").trim()
+        });
+        if (error) return { sucesso: false, dados: [], mensagem: error.message };
+        return { sucesso: true, dados: Array.isArray(data) ? data : [] };
+      } catch (err) {
+        return { sucesso: false, dados: [], mensagem: err.message };
+      }
+    },
+
+    obterPadroes: async function () {
+      const client = inicializarCliente();
+      if (!client) return { sucesso: false, valor: null };
+      try {
+        const { data, error } = await client
+          .from("configuracoes_site")
+          .select("valor")
+          .eq("chave", "orcamento_padroes_v1")
+          .maybeSingle();
+        if (error || !data) return { sucesso: false, valor: null };
+        return { sucesso: true, valor: data.valor || null };
+      } catch (_) {
+        return { sucesso: false, valor: null };
+      }
+    },
+
+    salvarPadroes: async function (valor) {
+      const client = inicializarCliente();
+      if (!client || !valor) return { sucesso: false };
+      try {
+        const { error } = await client
+          .from("configuracoes_site")
+          .upsert({ chave: "orcamento_padroes_v1", valor }, { onConflict: "chave" });
+        return { sucesso: !error, mensagem: error ? error.message : "" };
+      } catch (err) {
+        return { sucesso: false, mensagem: err.message };
+      }
+    }
+  };
+
   // Inicializa na carga
   inicializarCliente();
 
@@ -2285,6 +2422,7 @@
     favorites,
     cart,
     quotes,
+    issuedQuotes,
     whatsapp,
     fiscal,
     clientes,

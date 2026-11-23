@@ -10411,13 +10411,11 @@
     }
   }
 
-  function renderizarFolhaTimbradaOrcamento(quoteView) {
-    const { loja } = window.SITE_DATA;
-    const meta = state.orcamentoMetadados || {};
+  function montarHtmlFolhaTimbradaOficial({ meta = {}, itens = [], vendedorNome = "Thiago Novais (Admin Oficial)" } = {}) {
     const cliente = meta.cliente || {};
-    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Admin Oficial)";
+    const listaItens = Array.isArray(itens) ? itens : [];
 
-    const subtotal = state.itensOrcamento.reduce(
+    const subtotal = listaItens.reduce(
       (acc, it) => acc + (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0),
       0
     );
@@ -10425,14 +10423,21 @@
     const desconto = Number(meta.desconto) || 0;
     const totalGeral = Math.max(0, subtotal + frete - desconto);
 
-    const linhasTabelaHtml = state.itensOrcamento.map((item, idx) => {
-      const totLinha = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
+    const linhasTabelaHtml = listaItens.map((item, idx) => {
+      const descLinha = Number(item.descontoLinhaValor) || 0;
+      const totBruto = (Number(item.qtd) || 0) * (Number(item.precoUnitario) || 0);
+      const totLinha = Math.max(0, totBruto - descLinha);
+      const detalhesExtra = [
+        item.codigo ? `CÓD. ${escaparHtml(item.codigo)}` : "",
+        item.observacaoLinha ? escaparHtml(item.observacaoLinha) : "",
+        descLinha > 0 ? `Desconto item: - ${formatarMoedaBR(descLinha)}` : ""
+      ].filter(Boolean).join(" • ");
       return `
         <tr class="quote-item-row">
           <td class="col-center item-num">${idx + 1}</td>
           <td>
             <div class="item-name">${escaparHtml(item.descricao || '')}</div>
-            ${item.codigo ? `<div class="item-code">CÓD. ${escaparHtml(item.codigo)}</div>` : ''}
+            ${detalhesExtra ? `<div class="item-code">${detalhesExtra}</div>` : ''}
           </td>
           <td class="col-center item-qty">${item.qtd || 1}</td>
           <td class="col-right item-unit">${formatarMoedaBR(Number(item.precoUnitario) || 0)}</td>
@@ -10441,36 +10446,14 @@
       `;
     }).join("");
 
-    quoteView.innerHTML = `
-      <!-- BARRA DE CONTROLE SUPERIOR DA FOLHA TIMBRADA -->
-      <div class="quote-sheet-topbar no-print">
-        <div class="topbar-left-actions">
-          <button type="button" class="btn-topbar-action btn-back-catalog" id="btn-quote-back-editor">
-            ← Voltar e Editar Orçamento
-          </button>
-          <div class="operator-badge-pill">
-            <span class="operator-dot">●</span>
-            <span>Operador: <strong>${escaparHtml(vendedorNome)}</strong></span>
-          </div>
-        </div>
-        <div class="topbar-right-actions">
-          <button type="button" class="btn-topbar-action" id="btn-quote-history">
-            📂 Histórico
-          </button>
-          <button type="button" class="btn-topbar-action btn-save-quote" id="btn-quote-save">
-            💾 Salvar Proposta
-          </button>
-          <button type="button" class="btn-topbar-action btn-send-wa" id="btn-quote-whatsapp">
-            📱 Enviar no WhatsApp
-          </button>
-          <button type="button" class="btn-topbar-action btn-print-pdf" id="btn-quote-print">
-            🖨️ Imprimir / Salvar PDF
-          </button>
-        </div>
-      </div>
+    const subtotalLiquido = listaItens.reduce((acc, it) => {
+      const descLinha = Number(it.descontoLinhaValor) || 0;
+      const totBruto = (Number(it.qtd) || 0) * (Number(it.precoUnitario) || 0);
+      return acc + Math.max(0, totBruto - descLinha);
+    }, 0);
+    const totalFinalLiquido = Math.max(0, subtotalLiquido + frete - desconto);
 
-      <!-- FOLHA TIMBRADA A4 PADRÃO OFICIAL GRUPO SJ -->
-      <div class="quote-paper-container">
+    return `
         <div class="quote-official-letterhead">
           
           <!-- FAIXA LARANJA DE TOPO -->
@@ -10555,7 +10538,7 @@
           <div class="quote-totals-container">
             <div class="totals-pill-box">
               <span class="totals-pill-lbl">Subtotal dos itens</span>
-              <span class="totals-pill-val">${formatarMoedaBR(subtotal)}</span>
+              <span class="totals-pill-val">${formatarMoedaBR(subtotalLiquido)}</span>
             </div>
             ${desconto > 0 ? `
               <div class="totals-pill-box discount-pill">
@@ -10571,7 +10554,7 @@
             ` : ''}
             <div class="totals-grand-highlight">
               <span class="grand-highlight-lbl">VALOR TOTAL</span>
-              <span class="grand-highlight-val">${formatarMoedaBR(totalGeral)}</span>
+              <span class="grand-highlight-val">${formatarMoedaBR(totalFinalLiquido)}</span>
             </div>
           </div>
 
@@ -10582,7 +10565,7 @@
               <div class="bottom-field"><strong>Pagamento</strong> <span>${escaparHtml(meta.formaPagamento || 'PIX à vista (chave CNPJ)')}</span></div>
               <div class="bottom-field"><strong>Prazo de entrega</strong> <span>${escaparHtml(meta.prazoEntrega || 'Pronta entrega / imediato')}</span></div>
               <div class="bottom-field"><strong>Validade da proposta</strong> <span>${escaparHtml(meta.validade || '15 dias')}</span></div>
-              <div class="bottom-warranty">Garantia oficial do Grupo SJ em produtos novos lacrados.</div>
+              <div class="bottom-warranty">${escaparHtml(meta.garantiaTexto || 'Garantia oficial do Grupo SJ em produtos novos lacrados.')}</div>
             </div>
 
             <div class="bottom-col">
@@ -10622,6 +10605,49 @@
           </div>
 
         </div>
+    `;
+  }
+
+  function renderizarFolhaTimbradaOrcamento(quoteView) {
+    const meta = state.orcamentoMetadados || {};
+    const vendedorNome = state.usuarioGoogle ? state.usuarioGoogle.nome : "Thiago Novais (Admin Oficial)";
+    const folhaHtml = montarHtmlFolhaTimbradaOficial({
+      meta,
+      itens: state.itensOrcamento,
+      vendedorNome
+    });
+
+    quoteView.innerHTML = `
+      <!-- BARRA DE CONTROLE SUPERIOR DA FOLHA TIMBRADA -->
+      <div class="quote-sheet-topbar no-print">
+        <div class="topbar-left-actions">
+          <button type="button" class="btn-topbar-action btn-back-catalog" id="btn-quote-back-editor">
+            ← Voltar e Editar Orçamento
+          </button>
+          <div class="operator-badge-pill">
+            <span class="operator-dot">●</span>
+            <span>Operador: <strong>${escaparHtml(vendedorNome)}</strong></span>
+          </div>
+        </div>
+        <div class="topbar-right-actions">
+          <button type="button" class="btn-topbar-action" id="btn-quote-history">
+            📂 Histórico
+          </button>
+          <button type="button" class="btn-topbar-action btn-save-quote" id="btn-quote-save">
+            💾 Salvar Proposta
+          </button>
+          <button type="button" class="btn-topbar-action btn-send-wa" id="btn-quote-whatsapp">
+            📱 Enviar no WhatsApp
+          </button>
+          <button type="button" class="btn-topbar-action btn-print-pdf" id="btn-quote-print">
+            🖨️ Imprimir / Salvar PDF
+          </button>
+        </div>
+      </div>
+
+      <!-- FOLHA TIMBRADA A4 PADRÃO OFICIAL GRUPO SJ -->
+      <div class="quote-paper-container">
+        ${folhaHtml}
       </div>
     `;
   }
@@ -12717,7 +12743,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     });
 
     document.getElementById("btn-cms-new-quote")?.addEventListener("click", () => {
-      abrirEmissorOrcamento();
+      if (document.getElementById("cms-pane-emitir-orcamento")) {
+        selecionarAbaCms("emitir-orcamento", { subtab: "novo" });
+      } else {
+        abrirEmissorOrcamento();
+      }
     });
 
     document.getElementById("btn-cms-new-client")?.addEventListener("click", () => {
@@ -12779,7 +12809,61 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
   }
 
-  function selecionarAbaCms(aba) {
+  const ADMIN_ROUTE_BY_TAB = {
+    inicio: "/admin/inicio",
+    produtos: "/admin/catalogo",
+    "orcamentos-clientes": "/admin/orcamentos",
+    "emitir-orcamento": "/admin/orcamentos/novo",
+    clientes: "/admin/clientes",
+    equipe: "/admin/acessos",
+    "consulta-qr": "/admin/consulta-qr",
+    banner: "/admin/banner",
+    supabase: "/admin/supabase",
+    exportar: "/admin/backup",
+    lgpd: "/admin/lgpd"
+  };
+
+  function resolverAbaAdminPorUrl() {
+    const pathname = (window.location.pathname || "").replace(/\/+$/, "").toLowerCase();
+    const params = new URLSearchParams(window.location.search);
+    const abaParam = params.get("aba");
+    if (abaParam) {
+      return { aba: abaParam, subtab: params.get("sub") || "novo", fromUrl: true };
+    }
+    if (pathname === "/admin/orcamentos/novo" || pathname === "/admin/emitir-orcamento") {
+      return { aba: "emitir-orcamento", subtab: "novo", fromUrl: true };
+    }
+    if (pathname === "/admin/orcamentos/historico" || pathname === "/admin/historico-orcamentos") {
+      return { aba: "emitir-orcamento", subtab: "historico", fromUrl: true };
+    }
+    if (pathname === "/admin/orcamentos") {
+      return { aba: "orcamentos-clientes", subtab: "novo", fromUrl: true };
+    }
+    const entries = Object.entries(ADMIN_ROUTE_BY_TAB);
+    for (const [tabKey, routePath] of entries) {
+      if (pathname === routePath) {
+        return { aba: tabKey, subtab: "novo", fromUrl: true };
+      }
+    }
+    return { aba: document.getElementById("cms-pane-inicio") ? "inicio" : "produtos", subtab: "novo", fromUrl: false };
+  }
+
+  function selecionarAbaCms(aba, options = {}) {
+    const opts = options && typeof options === "object" ? options : {};
+
+    // Protege alterações não salvas ao sair da página Emitir Orçamento
+    if (
+      cmsState.abaAtiva === "emitir-orcamento" &&
+      aba !== "emitir-orcamento" &&
+      !opts.force &&
+      window.SJ_ISSUED_QUOTES &&
+      typeof window.SJ_ISSUED_QUOTES.confirmarSaida === "function"
+    ) {
+      if (!window.SJ_ISSUED_QUOTES.confirmarSaida()) {
+        return;
+      }
+    }
+
     // Trava de interface: apenas ADMIN pode abrir a aba de Acessos / Configurações críticas
     const abasSomenteAdmin = ["equipe", "supabase", "exportar"];
     const papelAtual = String(state.usuarioGoogle?.role || "").toLowerCase();
@@ -12790,8 +12874,20 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
     cmsState.abaAtiva = aba;
     document.querySelectorAll("[data-cms-tab]").forEach((btn) => {
-      btn.classList.toggle("active", btn.dataset.cmsTab === aba);
+      const ativo = btn.dataset.cmsTab === aba;
+      btn.classList.toggle("active", ativo);
+      if (ativo) {
+        btn.setAttribute("aria-current", "page");
+      } else {
+        btn.removeAttribute("aria-current");
+      }
     });
+
+    // Garante que o estúdio antigo (#quote-studio-view) fique oculto ao navegar pelo painel
+    const legacyStudio = document.getElementById("quote-studio-view");
+    if (legacyStudio && document.getElementById("cms-pane-emitir-orcamento")) {
+      legacyStudio.style.display = "none";
+    }
 
     // Se a aba selecionada está dentro do submenu "Mais", expande-o e destaca o botão "Mais"
     const abasNoMais = ["consulta-qr", "banner", "supabase", "exportar", "lgpd"];
@@ -12810,6 +12906,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       inicio: "cms-pane-inicio",
       produtos: "cms-pane-produtos",
       "orcamentos-clientes": "cms-pane-orcamentos-clientes",
+      "emitir-orcamento": "cms-pane-emitir-orcamento",
       "consulta-qr": "cms-pane-consulta-qr",
       clientes: "cms-pane-clientes",
       banner: "cms-pane-banner",
@@ -12822,6 +12919,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       inicio: "Início",
       produtos: "Catálogo",
       "orcamentos-clientes": "Orçamentos",
+      "emitir-orcamento": "Emitir Orçamento",
       "consulta-qr": "Consulta de Preço & QR Code",
       clientes: "Clientes & Leads",
       equipe: "Acessos",
@@ -12842,6 +12940,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         el.style.display = ativo ? "block" : "none";
       }
     });
+
+    // Atualiza URL amigável via History API (permite recarregar, voltar e abrir em outra aba)
+    if (!opts.skipHistory && window.location.pathname.includes("admin")) {
+      let targetUrl = ADMIN_ROUTE_BY_TAB[aba] || "/admin/inicio";
+      if (aba === "emitir-orcamento" && opts.subtab === "historico") {
+        targetUrl = "/admin/orcamentos/historico";
+      }
+      if (window.location.pathname !== targetUrl) {
+        try {
+          const method = opts.replace ? "replaceState" : "pushState";
+          window.history[method]({ aba, subtab: opts.subtab || "novo" }, "", targetUrl);
+        } catch (_) { }
+      }
+    }
+
     if (aba === "inicio") {
       renderizarPainelInicioCms();
     }
@@ -12850,6 +12963,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     }
     if (aba === "orcamentos-clientes") {
       renderizarOrcamentosPortalCms();
+    }
+    if (aba === "emitir-orcamento") {
+      window.SJ_ISSUED_QUOTES?.abrir?.(opts);
     }
     if (aba === "consulta-qr") {
       renderizarGradeConsultaQr();
@@ -16285,7 +16401,8 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       if (!dashboardAdminInicializado) {
         dashboardAdminInicializado = true;
         const urlParams = new URLSearchParams(window.location.search);
-        const aba = urlParams.get("aba") || (document.getElementById("cms-pane-inicio") ? "inicio" : "produtos");
+        const rotaInicial = resolverAbaAdminPorUrl();
+        const aba = rotaInicial.aba;
         const editId = urlParams.get("edit");
 
         // Submenu "Mais" no menu lateral
@@ -16556,7 +16673,31 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         document.getElementById("cms-search-quotes-input")?.addEventListener("input", () => renderizarOrcamentosPortalCms());
         document.getElementById("btn-cms-refresh-portal-quotes")?.addEventListener("click", () => renderizarOrcamentosPortalCms());
 
-        selecionarAbaCms(aba);
+        // Ponte oficial para o módulo independente Emitir Orçamento (js/issued-quotes.js)
+        window.SJ_ADMIN_BRIDGE = {
+          escaparHtml,
+          formatarMoedaBR,
+          obterDataHojeFormatada,
+          validarCpfOficial,
+          validarCnpjOficial,
+          validarDocumentoCpfOuCnpj,
+          gerarListaSkusCms,
+          montarHtmlFolhaTimbradaOficial,
+          obterConfiguracaoHtml2Pdf,
+          abrirModalOrientacaoPdfWhatsApp,
+          selecionarAbaCms,
+          renderizarOrcamentosPortalCms,
+          mostrarToast,
+          getUsuarioAtual: () => state.usuarioGoogle,
+          getQuotesCache: () => (Array.isArray(cmsState.quotesCache) ? cmsState.quotesCache : [])
+        };
+
+        window.addEventListener("popstate", () => {
+          const r = resolverAbaAdminPorUrl();
+          selecionarAbaCms(r.aba, { subtab: r.subtab || "novo", skipHistory: true, force: true });
+        });
+
+        selecionarAbaCms(aba, { subtab: rotaInicial.subtab || "novo", skipHistory: !rotaInicial.fromUrl, replace: true });
         configurarFormularioSenhaAdmin();
         renderizarListaProdutosCms();
         preencherFormularioBannerCms();

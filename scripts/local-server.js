@@ -677,11 +677,18 @@ const server = http.createServer(async (req, res) => {
   // SERVIDOR DE ARQUIVOS ESTÁTICOS DO SITE
   // =========================================================================
 
-  const cleanUrl = (pathname === "/admin" || pathname === "/admin/")
-    ? "/admin.html"
-    : (pathname === "/calculadora" || pathname === "/calculadora/")
-      ? "/calculadora.html"
-      : (pathname === "/" ? "/index.html" : pathname);
+  let cleanUrl = pathname;
+  if (pathname.startsWith("/admin/assets/") || pathname.startsWith("/admin/css/") || pathname.startsWith("/admin/js/")) {
+    cleanUrl = pathname.replace(/^\/admin/, "");
+  } else if (pathname === "/admin" || pathname === "/admin/" || pathname.startsWith("/admin/")) {
+    cleanUrl = "/admin.html";
+  } else if (pathname === "/calculadora" || pathname === "/calculadora/") {
+    cleanUrl = "/calculadora.html";
+  } else if (pathname === "/conta" || pathname === "/conta/") {
+    cleanUrl = "/conta.html";
+  } else if (pathname === "/") {
+    cleanUrl = "/index.html";
+  }
   const filePath = path.join(ROOT, decodeURIComponent(cleanUrl));
 
   if (!filePath.startsWith(ROOT)) {
