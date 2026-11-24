@@ -5755,18 +5755,31 @@
       </header>
 
       <!-- 1. BUSCA SEMPRE VISÍVEL NO TOPO (PESQUISA EM TODO O CATÁLOGO) -->
-      <div class="sj-fil-search-top-bar" role="search">
-        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-        <label for="sj-fil-search-input" class="sr-only">Buscar cor, código, material ou marca em todo o catálogo de filamentos</label>
-        <input
-          type="search"
-          id="sj-fil-search-input"
-          value="${escaparHtml(state.busca || "")}"
-          placeholder="Buscar em todos os filamentos por cor, código (#162), material (TPU, Silk) ou marca..."
-          aria-label="Buscar em todos os filamentos por cor, código, material ou marca"
-          autocomplete="off"
-        />
-        ${state.busca ? `<button type="button" class="sj-toolbar-clear" id="sj-fil-search-clear" aria-label="Limpar busca">×</button>` : `<kbd class="sj-fil-search-kbd" title="Pressione / para buscar">/</kbd>`}
+      <div class="sj-fil-search-row">
+        <div class="sj-fil-search-top-bar" role="search">
+          <span class="sj-fil-search-icon" aria-hidden="true">
+            <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+          <label for="sj-fil-search-input" class="sr-only">Buscar cor, código, material ou marca em todo o catálogo de filamentos</label>
+          <input
+            type="search"
+            id="sj-fil-search-input"
+            value="${escaparHtml(state.busca || "")}"
+            placeholder="Buscar cor, código (ex: 110, 162), material ou marca..."
+            aria-label="Buscar cor, código, material ou marca em todo o catálogo de filamentos"
+            autocomplete="off"
+          />
+          ${state.busca
+        ? `<button type="button" class="sj-toolbar-clear" id="sj-fil-search-clear" aria-label="Limpar busca">×</button>`
+        : `<kbd class="sj-fil-search-kbd" title="Pressione / para buscar">/</kbd>`}
+        </div>
+        <div class="sj-fil-quick-terms" aria-label="Buscas rápidas">
+          <span class="sj-fil-quick-label">Populares:</span>
+          <button type="button" class="sj-fil-quick-chip" data-hub-sugg-query="PLA Silk">PLA Silk</button>
+          <button type="button" class="sj-fil-quick-chip" data-hub-sugg-query="TPU">TPU Flex</button>
+          <button type="button" class="sj-fil-quick-chip" data-hub-sugg-query="Bambu Lab">Bambu Lab</button>
+          <button type="button" class="sj-fil-quick-chip" data-hub-sugg-query="Preto">Preto</button>
+        </div>
       </div>
 
       <!-- 2. ABAS DE MARCA (OPCIONAIS NA BUSCA, COM CONTAGENS AO VIVO) -->
