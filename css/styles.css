@@ -406,6 +406,7 @@ input {
   font-size: 0.80rem;
   font-weight: 600;
   color: #3f3f46;
+  text-decoration: none;
   cursor: pointer;
   padding: 6px 11px;
   position: relative;
@@ -19922,6 +19923,7 @@ dialog::backdrop {
   font-family: inherit;
   font-size: 0.88rem;
   font-weight: 700;
+  text-decoration: none;
   padding: 8px 4px;
   min-height: 36px;
   cursor: pointer;
@@ -20201,6 +20203,7 @@ dialog::backdrop {
   border: 1px solid var(--sj-border-subtle, #e2e8f0);
   border-radius: var(--sj-radius-md, 12px);
   text-align: left;
+  text-decoration: none;
   cursor: pointer;
   font-family: inherit;
   transition: border-color 0.16s ease, background-color 0.16s ease, transform 0.16s ease;
@@ -20280,8 +20283,66 @@ dialog::backdrop {
   font-family: inherit;
   font-size: 0.86rem;
   font-weight: 600;
+  text-decoration: none;
   cursor: pointer;
   transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+/* Cabeçalho H1 semântico e discreto da Home + fallback SSR */
+.sj-ssr-intro-fallback {
+  padding: 28px 0;
+  color: #0f172a;
+}
+
+.sj-ssr-intro-fallback h1 {
+  margin: 0 0 8px;
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.sj-ssr-intro-fallback p {
+  margin: 0 0 14px;
+  color: #475569;
+  line-height: 1.55;
+}
+
+.sj-ssr-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.sj-ssr-links a {
+  color: #c2410c;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.sj-home-seo-hero-bar {
+  margin: 18px 0 6px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, #ffffff 0%, #fffaf7 100%);
+  border: 1px solid #fed7aa;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sj-home-main-h1 {
+  margin: 0;
+  font-size: clamp(1.12rem, 1.9vw, 1.42rem);
+  font-weight: 800;
+  line-height: 1.25;
+  color: #0f172a;
+  letter-spacing: -0.015em;
+}
+
+.sj-home-main-sub {
+  margin: 0;
+  font-size: 0.86rem;
+  color: #475569;
+  line-height: 1.45;
 }
 
 .sj-btn-ghost-subtle:hover {

@@ -7224,6 +7224,12 @@
         </div>
       </div>
 
+      <!-- H1 SEMÂNTICO DA PÁGINA INICIAL (SEO GOOGLE SEARCH) -->
+      <section class="sj-home-seo-hero-bar" aria-label="Apresentação Loja SJ 3D">
+        <h1 class="sj-home-main-h1">Impressoras 3D, Filamentos Bambu Lab e Masterprint em Umuarama - PR</h1>
+        <p class="sj-home-main-sub">Revendedor autorizado com pronta entrega, nota fiscal, peças originais e assistência técnica especializada.</p>
+      </section>
+
       <!-- 3. IMPRESSORAS 3D (HIERARQUIA LIMPA, CHIPS E FILTROS) -->
       <section class="home-section-block" aria-labelledby="home-heading-impressoras">
         <div class="home-section-head sj-section-head">
@@ -7258,7 +7264,7 @@
             <h2 id="home-heading-filamentos">Filamentos 1.75 mm</h2>
             <p class="sj-section-subtitle">Mais de 80 cores lacradas a vácuo com pronta entrega.</p>
           </div>
-          <button type="button" class="sj-section-link-btn" data-home-go-cat="filamentos">Ver tudo →</button>
+          <a href="/?categoria=filamentos" class="sj-section-link-btn" data-home-go-cat="filamentos">Ver tudo →</a>
         </div>
 
         <div class="sj-home-fil-showcase-grid">
@@ -7305,7 +7311,7 @@
 
         <!-- NÍVEL 2: 2 CARTÕES MENORES DE ATALHO (PEÇAS & MANUTENÇÃO) -->
         <div class="sj-home-shortcuts-row" aria-label="Atalhos de peças e serviços">
-          <button type="button" class="sj-home-shortcut-card" data-home-go-cat="pecas">
+          <a href="/?categoria=pecas" class="sj-home-shortcut-card" data-home-go-cat="pecas">
             <span class="sj-shortcut-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><line x1="9" y1="1" x2="9" y2="4"></line><line x1="15" y1="1" x2="15" y2="4"></line><line x1="9" y1="20" x2="9" y2="23"></line><line x1="15" y1="20" x2="15" y2="23"></line></svg>
             </span>
@@ -7314,9 +7320,9 @@
               <span>Hotends, extrusoras, placas PEI e acessórios originais.</span>
             </span>
             <span class="sj-shortcut-arrow" aria-hidden="true">→</span>
-          </button>
+          </a>
 
-          <button type="button" class="sj-home-shortcut-card" data-home-go-cat="manutencao">
+          <a href="/?categoria=manutencao" class="sj-home-shortcut-card" data-home-go-cat="manutencao">
             <span class="sj-shortcut-icon" aria-hidden="true">
               <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path></svg>
             </span>
@@ -7325,7 +7331,7 @@
               <span>Revisão preventiva, desentupimento e calibração técnica.</span>
             </span>
             <span class="sj-shortcut-arrow" aria-hidden="true">→</span>
-          </button>
+          </a>
         </div>
       </section>
 
@@ -7336,7 +7342,7 @@
             <h2 id="home-heading-pecas">Peças em destaque</h2>
             <p class="sj-section-subtitle">Componentes originais para reposição rápida e manutenção.</p>
           </div>
-          <button type="button" class="sj-section-link-btn" data-home-go-cat="pecas">Ver tudo →</button>
+          <a href="/?categoria=pecas" class="sj-section-link-btn" data-home-go-cat="pecas">Ver tudo →</a>
         </div>
 
         <div class="combo-products-row sj-home-pecas-grid-4" id="home-pecas-grid">
@@ -7344,9 +7350,9 @@
         </div>
 
         <div class="sj-home-section-footer-link">
-          <button type="button" class="sj-btn-ghost-subtle" data-home-go-cat="pecas">
+          <a href="/?categoria=pecas" class="sj-btn-ghost-subtle" data-home-go-cat="pecas">
             Ver todas as peças (${todasPecas.length}) →
-          </button>
+          </a>
         </div>
       </section>
     `;
@@ -7458,9 +7464,10 @@
       });
     });
 
-    // Clique em botões que abrem uma categoria específica do menu
+    // Clique em links/botões que abrem uma categoria específica do menu
     homeEl.querySelectorAll("[data-home-go-cat]").forEach((el) => {
-      el.addEventListener("click", () => {
+      el.addEventListener("click", (e) => {
+        e.preventDefault();
         navegarParaCategoria(el.dataset.homeGoCat);
       });
     });
@@ -7625,6 +7632,72 @@
     document.body.style.overflow = "";
   }
 
+  function atualizarSeoDinamico({ view = "home", cat = "home", item = null } = {}) {
+    if (ehPaginaAdminAtual()) return;
+    const ORIGIN = "https://www.lojasj3d.com.br";
+    const metaPorCat = {
+      home: {
+        title: "Loja SJ 3D | Filamentos e Impressoras 3D em Umuarama - PR",
+        desc: "Filamentos Bambu Lab e Masterprint (+80 cores), impressoras 3D A1 Mini, A1 Combo e P2S, peças originais e manutenção em Umuarama - PR. Peça pelo WhatsApp!",
+        url: `${ORIGIN}/`
+      },
+      impressoras: {
+        title: "Impressoras 3D Bambu Lab e Snapmaker | Loja SJ 3D",
+        desc: "Compre impressoras 3D Bambu Lab A1 Mini, A1 Combo, P2S e Snapmaker U1 com nota fiscal, garantia e suporte técnico em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=impressoras`
+      },
+      filamentos: {
+        title: "Filamentos 3D PLA, Silk, PETG, TPU e ABS | Loja SJ 3D",
+        desc: "Mais de 130 cores de filamentos 1.75 mm Bambu Lab RFID e Masterprint a pronta entrega em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=filamentos`
+      },
+      pecas: {
+        title: "Peças de Reposição e Upgrades 3D | Loja SJ 3D",
+        desc: "Hotends, bicos, extrusoras, placas PEI e acessórios originais Bambu Lab a pronta entrega em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=pecas`
+      },
+      manutencao: {
+        title: "Assistência Técnica e Manutenção 3D | Loja SJ 3D",
+        desc: "Revisão preventiva, reparo de extrusora, AMS e calibração especializada de impressoras 3D em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=manutencao`
+      },
+      todos: {
+        title: "Catálogo Completo de Impressão 3D | Loja SJ 3D",
+        desc: "Veja todo o catálogo de impressoras 3D, filamentos, peças de reposição e serviços técnicos da Loja SJ 3D em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=todos`
+      },
+      catalogo: {
+        title: "Catálogo Completo de Impressão 3D | Loja SJ 3D",
+        desc: "Veja todo o catálogo de impressoras 3D, filamentos, peças de reposição e serviços técnicos da Loja SJ 3D em Umuarama - PR.",
+        url: `${ORIGIN}/?categoria=todos`
+      }
+    };
+
+    let info = metaPorCat.home;
+    if (view === "pdp" && item) {
+      const precoInfo = item.precoVista ? ` (${item.precoVista})` : "";
+      info = {
+        title: `${item.nome}${precoInfo} | Loja SJ 3D`,
+        desc: `${item.nome}${item.marca ? ` ${item.marca}` : ""}${precoInfo}. ${item.subtitulo || "Pronta entrega com nota fiscal e suporte técnico em Umuarama - PR."}`.slice(0, 158),
+        url: `${ORIGIN}/?produto=${encodeURIComponent(item.id)}`
+      };
+    } else if (metaPorCat[cat]) {
+      info = metaPorCat[cat];
+    }
+
+    document.title = info.title;
+    const descEl = document.querySelector('meta[name="description"]');
+    if (descEl) descEl.setAttribute("content", info.desc);
+    const canEl = document.querySelector('link[rel="canonical"]');
+    if (canEl) canEl.setAttribute("href", info.url);
+    const ogUrl = document.querySelector('meta[property="og:url"]');
+    if (ogUrl) ogUrl.setAttribute("content", info.url);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle) ogTitle.setAttribute("content", info.title);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc) ogDesc.setAttribute("content", info.desc);
+  }
+
   function navegarParaCategoria(cat, updateHistory = true) {
     state.categoriaMenu = cat;
     document.querySelectorAll(".header-nav-link[data-nav-cat]").forEach((l) => {
@@ -7648,11 +7721,17 @@
     }
     fecharMobileDrawer();
     atualizarVisaoPrincipal();
+    atualizarSeoDinamico({ view: "cat", cat });
     window.scrollTo({ top: 0, behavior: "smooth" });
 
     if (updateHistory && window.history && window.history.pushState) {
-      const hashDestino = cat === "home" ? "#home" : `#${cat}`;
-      window.history.pushState({ view: "cat", cat }, "", hashDestino);
+      let urlDestino = "/";
+      if (cat === "minha-conta") {
+        urlDestino = "#minha-conta";
+      } else if (cat && cat !== "home") {
+        urlDestino = `/?categoria=${encodeURIComponent(cat)}`;
+      }
+      window.history.pushState({ view: "cat", cat }, "", urlDestino);
     }
   }
 
@@ -7669,13 +7748,16 @@
       atualizarVisaoPrincipal();
       window.scrollTo({ top: 0, behavior: "smooth" });
     }
+    atualizarSeoDinamico({ view: "cat", cat: state.categoriaMenu || "home" });
 
     if (updateHistory && window.history && window.history.pushState) {
-      const hashDestino = state.categoriaMenu === "home" ? "#home" : `#${state.categoriaMenu}`;
+      const urlDestino = state.categoriaMenu && state.categoriaMenu !== "home"
+        ? `/?categoria=${encodeURIComponent(state.categoriaMenu)}`
+        : "/";
       window.history.pushState(
         { view: "cat", cat: state.categoriaMenu },
         "",
-        hashDestino
+        urlDestino
       );
     }
   }
@@ -7709,8 +7791,9 @@
     if (!pdpView || !gridView) return;
 
     if (updateHistory && window.history && window.history.pushState) {
-      window.history.pushState({ view: "pdp", itemId }, "", `#produto-${itemId}`);
+      window.history.pushState({ view: "pdp", itemId }, "", `/?produto=${encodeURIComponent(itemId)}`);
     }
+    atualizarSeoDinamico({ view: "pdp", item });
 
     state.produtoDetalheAtivo = item.id;
     const marcaAtual = state.marcaNoCardOverride[item.id] || item.marca;
@@ -18112,10 +18195,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       return false;
     }
 
-    // Leitura do endereço inicial na URL (ex: /admin, #admin, #orcamento, #produto-...)
+    // Leitura do endereço inicial na URL (suporta ?produto=, ?categoria=, ?busca= e #hashes legados)
+    const initialParams = new URLSearchParams(window.location.search || "");
+    const paramProduto = initialParams.get("produto");
+    const paramCat = initialParams.get("categoria");
+    const paramBusca = initialParams.get("busca");
     const initialHash = window.location.hash || "";
+
     if (!verificarRotaAdminOuHash()) {
-      if (initialHash === "#orcamento") {
+      if (paramProduto) {
+        abrirPaginaProduto(paramProduto, null, false);
+      } else if (paramCat && ["home", "filamentos", "impressoras", "pecas", "manutencao", "catalogo", "todos"].includes(paramCat)) {
+        navegarParaCategoria(paramCat, false);
+      } else if (paramBusca && paramBusca.trim()) {
+        state.busca = paramBusca.trim();
+        const searchTop = document.getElementById("global-search-input");
+        const searchInline = document.getElementById("inline-search-input");
+        if (searchTop) searchTop.value = state.busca;
+        if (searchInline) searchInline.value = state.busca;
+        navegarParaCategoria("todos", false);
+      } else if (initialHash === "#orcamento") {
         abrirEmissorOuPedirLogin();
       } else if (initialHash.startsWith("#produto-")) {
         const id = initialHash.replace("#produto-", "");
@@ -18123,7 +18222,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       } else if (initialHash.startsWith("#cat-")) {
         const cat = initialHash.replace("#cat-", "");
         navegarParaCategoria(cat, false);
-      } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo"].includes(initialHash)) {
+      } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo", "#todos"].includes(initialHash)) {
         const cat = initialHash.replace("#", "");
         navegarParaCategoria(cat, false);
       } else if (initialHash === "#cadastro" || initialHash === "#signup") {
@@ -18149,6 +18248,9 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     // Suporte ao botão "Voltar" do navegador / celular
     window.addEventListener("popstate", (e) => {
       const hash = window.location.hash || "";
+      const paramsNow = new URLSearchParams(window.location.search || "");
+      const qProd = paramsNow.get("produto");
+      const qCat = paramsNow.get("categoria");
       if (hash === "#orcamento") {
         abrirEmissorOuPedirLogin();
         return;
@@ -18177,6 +18279,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       } else if (stateObj && stateObj.view === "cat" && stateObj.cat) {
         fecharPaginaProduto(false, false);
         navegarParaCategoria(stateObj.cat, false);
+      } else if (qProd) {
+        abrirPaginaProduto(qProd, null, false);
+      } else if (qCat && ["home", "filamentos", "impressoras", "pecas", "manutencao", "catalogo", "todos"].includes(qCat)) {
+        fecharPaginaProduto(false, false);
+        navegarParaCategoria(qCat, false);
       } else {
         if (hash.startsWith("#produto-")) {
           const id = hash.replace("#produto-", "");
@@ -18185,7 +18292,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           const cat = hash.replace("#cat-", "");
           fecharPaginaProduto(false, false);
           navegarParaCategoria(cat, false);
-        } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo"].includes(hash)) {
+        } else if (["#home", "#filamentos", "#impressoras", "#pecas", "#manutencao", "#catalogo", "#todos"].includes(hash)) {
           const cat = hash.replace("#", "");
           fecharPaginaProduto(false, false);
           navegarParaCategoria(cat, false);

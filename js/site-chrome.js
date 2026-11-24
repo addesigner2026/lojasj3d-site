@@ -60,7 +60,8 @@
   function renderHeaderHTML(opts = {}) {
     const isStoreRoot = Boolean(opts.isStoreRoot);
     const vipUrl = escaparHtmlChrome(obterLinkComunidadeVip());
-    const homeHref = isStoreRoot ? "#home" : "index.html#home";
+    const homeHref = isStoreRoot ? "/" : "/";
+    const catHref = (cat) => `/?categoria=${encodeURIComponent(cat)}`;
 
     return `
   <header class="site-header">
@@ -101,7 +102,7 @@
       </a>
 
       <nav class="header-nav sj-nav-dock" aria-label="Navegação Principal">
-        <button type="button" class="header-nav-link" data-nav-cat="impressoras">
+        <a href="${catHref("impressoras")}" class="header-nav-link" data-nav-cat="impressoras">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
@@ -109,9 +110,9 @@
             <line x1="12" y1="22.08" x2="12" y2="12"></line>
           </svg>
           <span>Impressoras</span>
-        </button>
+        </a>
 
-        <button type="button" class="header-nav-link" data-nav-cat="filamentos">
+        <a href="${catHref("filamentos")}" class="header-nav-link" data-nav-cat="filamentos">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <circle cx="12" cy="12" r="9"></circle>
@@ -119,9 +120,9 @@
             <line x1="12" y1="3" x2="12" y2="9"></line>
           </svg>
           <span>Filamentos</span>
-        </button>
+        </a>
 
-        <button type="button" class="header-nav-link" data-nav-cat="pecas">
+        <a href="${catHref("pecas")}" class="header-nav-link" data-nav-cat="pecas">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <rect x="4" y="4" width="16" height="16" rx="2"></rect>
@@ -132,15 +133,15 @@
             <line x1="15" y1="20" x2="15" y2="23"></line>
           </svg>
           <span>Peças</span>
-        </button>
+        </a>
 
-        <button type="button" class="header-nav-link" data-nav-cat="manutencao">
+        <a href="${catHref("manutencao")}" class="header-nav-link" data-nav-cat="manutencao">
           <svg class="nav-pill-icon" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor"
             stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
             <path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"></path>
           </svg>
           <span>Serviços</span>
-        </button>
+        </a>
 
         <a href="/calculadora" class="header-nav-link header-nav-calc"
           title="Calculadora de Precificação 3D — Loja SJ 3D">
@@ -458,10 +459,11 @@
   function renderFooterHTML(opts = {}) {
     const isStoreRoot = Boolean(opts.isStoreRoot);
     const redes = obterRedesCentralizadas();
-    const prefix = isStoreRoot ? "#" : "index.html#";
-    const privHref = isStoreRoot ? "#modal-privacy-policy" : "privacidade.html";
-    const lgpdHref = isStoreRoot ? "#modal-lgpd-titular-request" : "index.html?lgpd=1";
-    const cookieHref = isStoreRoot ? "#modal-cookie-preferences" : "index.html?cookies=1";
+    const catHref = (cat) => `/?categoria=${encodeURIComponent(cat)}`;
+    const homeFooterHref = "/";
+    const privHref = isStoreRoot ? "#modal-privacy-policy" : "/privacidade";
+    const lgpdHref = isStoreRoot ? "#modal-lgpd-titular-request" : "/?lgpd=1";
+    const cookieHref = isStoreRoot ? "#modal-cookie-preferences" : "/?cookies=1";
 
     return `
   <footer class="site-footer sj-unified-footer" id="rodape-ajuda">
@@ -469,7 +471,7 @@
       <!-- 4 Colunas alinhadas na mesma linha no desktop (Marca + Loja + Atendimento + Institucional) -->
       <div class="footer-main-grid sj-footer-cols-4">
         <div class="sj-footer-brand-col">
-          <a href="${prefix}home" data-nav-cat="home" class="footer-logo-row" aria-label="Loja SJ 3D — Página inicial">
+          <a href="${homeFooterHref}" data-nav-cat="home" class="footer-logo-row" aria-label="Loja SJ 3D — Página inicial">
             <img src="assets/img/logo-horizontal.png" alt="Loja SJ 3D" width="120" height="32" class="footer-logo-img" />
           </a>
           <p class="footer-desc-text">
@@ -508,11 +510,11 @@
             <span>Loja</span>
           </summary>
           <ul class="footer-nav-links sj-footer-accordion-body">
-            <li><a href="${prefix}impressoras" data-nav-cat="impressoras">Impressoras 3D</a></li>
-            <li><a href="${prefix}filamentos" data-nav-cat="filamentos">Filamentos</a></li>
-            <li><a href="${prefix}pecas" data-nav-cat="pecas">Peças e upgrades</a></li>
-            <li><a href="${prefix}manutencao" data-nav-cat="manutencao">Serviços e manutenção</a></li>
-            <li><a href="${prefix}todos" data-nav-cat="todos">Catálogo completo</a></li>
+            <li><a href="${catHref("impressoras")}" data-nav-cat="impressoras">Impressoras 3D</a></li>
+            <li><a href="${catHref("filamentos")}" data-nav-cat="filamentos">Filamentos</a></li>
+            <li><a href="${catHref("pecas")}" data-nav-cat="pecas">Peças e upgrades</a></li>
+            <li><a href="${catHref("manutencao")}" data-nav-cat="manutencao">Serviços e manutenção</a></li>
+            <li><a href="${catHref("todos")}" data-nav-cat="todos">Catálogo completo</a></li>
             <li><a href="/calculadora" class="footer-calc-link">Calculadora 3D <span class="footer-mini-tag">Novo</span></a></li>
           </ul>
         </details>
@@ -602,7 +604,7 @@
           if (document.getElementById("home-landing-view")) return; // SPA principal trata via app.js
           e.preventDefault();
           const cat = el.dataset.navCat || "home";
-          window.location.href = `index.html#${encodeURIComponent(cat)}`;
+          window.location.href = cat === "home" ? "/" : `/?categoria=${encodeURIComponent(cat)}`;
         });
       });
 
