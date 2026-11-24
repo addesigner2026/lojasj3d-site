@@ -19,14 +19,21 @@
     heroSlideAtivo: 0,
     heroTimer: null,
     abaImpressoraHome: "todas",
-    // Hub Organizado de Filamentos (Separação Clara MaxPrint vs Bambu Lab + Extensão Completa)
+    // Hub Organizado de Filamentos (Separação Clara MaxPrint vs Bambu Lab + Busca Global)
     hubFilamentoMarcaAtiva: "MaxPrint", // "MaxPrint" ou "Bambu Lab"
-    hubFilamentoMaterialMaxPrint: "fil-pla-maxprint", // "fil-pla-maxprint", "fil-silk-maxprint", "fil-petg-maxprint", "fil-tpu-maxprint", "fil-abs-especiais", "todos"
+    hubFilamentoMaterialMaxPrint: "todos", // "todos", "fil-pla-maxprint", "fil-silk-maxprint", "fil-petg-maxprint", "fil-tpu-maxprint", "fil-abs-especiais"
     hubFilamentoFiltroBambu: "todos", // "todos", "carretel", "refil"
     hubFilamentoFamiliaCor: "todas", // "todas", "neutros", "quentes", "frios", "verdes", "especiais"
     hubFilamentoOrdenacao: "padrao", // "padrao", "menor-preco", "maior-preco", "az"
     hubFilamentoSomenteDisponiveis: true,
     hubFilamentoLimiteVisivel: 24,
+    hubFilamentoPagina: 1,
+    hubFilamentoPorPagina: 24,
+    hubFilamentoBuscaMarca: "todas",
+    hubFilamentoBuscaMaterial: "todos",
+    hubFilamentoBuscaFamilia: "todas",
+    hubFilamentoEstadoAntesBusca: null,
+    hubFilamentoAtalhoTecladoVinculado: false,
     hubFilamentoAbertoHome: false, // Na Home começa com os 2 grandes portais e abre a extensão ao clicar
     // Filtros das páginas internas de Impressoras & Peças
     impressoraGrupoFiltro: "todas",
@@ -684,10 +691,47 @@
     return novoPedido;
   }
 
+  function renderizarSeloEstoqueHtml(stockStatus, inline = false) {
+    const st = stockStatus || "disponivel";
+    if (st === "esgotado") {
+      return `<span class="sj-fil-stock-pill is-esgotado${inline ? " is-inline" : ""}">Esgotado</span>`;
+    }
+    if (st === "poucas_unidades") {
+      return `<span class="sj-fil-stock-pill is-poucas${inline ? " is-inline" : ""}">Poucas unidades</span>`;
+    }
+    return "";
+  }
+
+  function obterStatusEstoqueAtualItemCaixa(itemCaixa) {
+    if (!itemCaixa || !window.SITE_DATA) return "disponivel";
+    const dbId = String(itemCaixa.dbProductId || itemCaixa.id || "");
+    const paletas = ["coresMaxPrint", "coresPlaSilk", "coresPetg", "coresTpu", "coresAbsEspeciais", "coresBambuLab"];
+    for (const chave of paletas) {
+      const arr = window.SITE_DATA[chave] || [];
+      for (let i = 0; i < arr.length; i++) {
+        const c = arr[i];
+        const cid = resolverIdCorBanco(c, chave, i);
+        if (cid === dbId || (c._dbId && String(c._dbId) === dbId)) {
+          return c.estoqueStatus || "disponivel";
+        }
+      }
+    }
+    const prod = (window.SITE_DATA.catalogo || []).find((p) => String(p.id) === String(itemCaixa.itemId || dbId));
+    return prod?.estoqueStatus || "disponivel";
+  }
+
   async function enviarPedidoParaWhatsApp() {
     const { whatsapp } = window.SITE_DATA.loja;
     if (state.itensCaixa.length === 0) {
       mostrarToast("Adicione pelo menos 1 item ao seu pedido antes de enviar!", "warning");
+      return;
+    }
+
+    const itensEsgotadosNoCarrinho = state.itensCaixa.filter((it) => obterStatusEstoqueAtualItemCaixa(it) === "esgotado");
+    if (itensEsgotadosNoCarrinho.length > 0) {
+      const nomes = itensEsgotadosNoCarrinho.map((x) => x.nome).slice(0, 3).join(", ");
+      mostrarToast(`Remova o(s) item(ns) esgotado(s) do carrinho antes de solicitar orçamento: ${nomes}.`, "warning");
+      atualizarCaixaLateral();
       return;
     }
 
@@ -5020,8 +5064,9 @@
         </div>
 
         <div class="sj-qv-body">
-          <div class="sj-qv-media" style="--fil-tint: ${escaparHtml(cor.hex || "#e2e8f0")};">
-            <img src="${escaparHtml(imgSrc)}" alt="${escaparHtml(cor.nome)}" style="filter: ${escaparHtml(filtro)};" />
+          <div class="sj-qv-media ${isEsg ? "tile-is-esgotado" : ""}" style="--fil-tint: ${escaparHtml(cor.hex || "#e2e8f0")};">
+            ${renderizarSeloEstoqueHtml(stCor, false)}
+            <img src="${escaparHtml(imgSrc)}" alt="${escaparHtml(cor.nome)}" style="filter: ${escaparHtml(filtro)};${isEsg ? " opacity:0.6;" : ""}" />
           </div>
           <div class="sj-qv-info">
             <div class="sj-qv-swatch-row">
@@ -5091,30 +5136,433 @@
     });
   }
 
-  // 2.5 PÁGINA REDESENHADA DE FILAMENTOS 3D (CLEAN, FILTROS STICKY, FAMÍLIAS DE COR, PAGINAÇÃO)
+  // 2.5 PÁGINA REDESENHADA DE FILAMENTOS 3D (BUSCA GLOBAL, ÍNDICE PRÉ-CALCULADO, SELO COMPACTO, URL SYNC)
+  const FILAMENTO_MATERIAIS_MASTER = [
+    { id: "fil-pla-maxprint", slug: "pla", curto: "PLA", chavePaleta: "coresMaxPrint" },
+    { id: "fil-silk-maxprint", slug: "silk", curto: "PLA Silk", chavePaleta: "coresPlaSilk" },
+    { id: "fil-petg-maxprint", slug: "petg", curto: "PETG", chavePaleta: "coresPetg" },
+    { id: "fil-tpu-maxprint", slug: "tpu", curto: "TPU Flex", chavePaleta: "coresTpu" },
+    { id: "fil-abs-especiais", slug: "abs", curto: "ABS & Glitter", chavePaleta: "coresAbsEspeciais" }
+  ];
+
+  const FAMILIA_COR_LABELS = {
+    neutros: "neutros branco preto cinza",
+    quentes: "quentes vermelho laranja amarelo rosa",
+    frios: "frios azul roxo ciano lilas",
+    verdes: "verdes verde",
+    especiais: "especiais silk dual tri rainbow glitter marmore madeira fosco transparente"
+  };
+
+  function normFilTexto(str) {
+    return String(str || "")
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function distanciaEdicaoMax1(a, b) {
+    if (a === b) return true;
+    const la = a.length;
+    const lb = b.length;
+    if (Math.abs(la - lb) > 1) return false;
+    let i = 0;
+    let j = 0;
+    let diffs = 0;
+    while (i < la && j < lb) {
+      if (a[i] === b[j]) {
+        i++;
+        j++;
+      } else {
+        diffs++;
+        if (diffs > 1) return false;
+        if (la > lb) i++;
+        else if (lb > la) j++;
+        else { i++; j++; }
+      }
+    }
+    if (i < la || j < lb) diffs++;
+    return diffs <= 1;
+  }
+
+  const SINONIMOS_COR_FILAMENTO = {
+    preto: "black",
+    branco: "white",
+    vermelho: "red",
+    azul: "blue",
+    verde: "green",
+    amarelo: "yellow",
+    laranja: "orange",
+    cinza: "gray grey",
+    rosa: "pink",
+    roxo: "purple violeta",
+    marrom: "brown",
+    dourado: "gold ouro",
+    prata: "silver",
+    transparente: "natural clear",
+    bege: "beige",
+    fosco: "matte",
+    brilhante: "silk glossy"
+  };
+
+  function expandirSinonimosCor(normTexto) {
+    const extras = [];
+    Object.keys(SINONIMOS_COR_FILAMENTO).forEach((chave) => {
+      if (normTexto.includes(chave)) extras.push(SINONIMOS_COR_FILAMENTO[chave]);
+    });
+    return extras.join(" ");
+  }
+
+  function extrairCodigoFilamento(cor) {
+    if (!cor) return { codTexto: "", codDigits: "", skuTexto: "" };
+    const bruto = cor.cod ?? cor.codigo ?? cor.code ?? "";
+    const codTexto = String(bruto).trim();
+    const codDigits = codTexto.replace(/\D/g, "");
+    const skuTexto = String(cor.sku || "").trim();
+    return { codTexto, codDigits, skuTexto };
+  }
+
+  let cacheIndiceFilamentos = { sig: "", lista: [] };
+
+  function obterIndiceFilamentosGlobal() {
+    const sd = window.SITE_DATA || {};
+    const palKeys = ["coresMaxPrint", "coresPlaSilk", "coresPetg", "coresTpu", "coresAbsEspeciais", "coresBambuLab"];
+    const sig = palKeys
+      .map((k) => {
+        const arr = sd[k] || [];
+        return `${k}:${arr.length}:${arr.map((c) => `${c.cod ?? c.codigo ?? c.code ?? ""}|${c.sku || ""}|${c.nome || ""}|${c.estoqueStatus || ""}|${c.valor || ""}`).join(",")}`;
+      })
+      .join(";");
+
+    if (cacheIndiceFilamentos.sig === sig && cacheIndiceFilamentos.lista.length > 0) {
+      return cacheIndiceFilamentos.lista;
+    }
+
+    const lista = [];
+    const cat = sd.catalogo || [];
+
+    // 1. Masterprint (5 linhas de material)
+    FILAMENTO_MATERIAIS_MASTER.forEach((mat) => {
+      const itemProd = cat.find((p) => p.id === mat.id) || cat.find((p) => p.id === "fil-pla-maxprint") || { id: mat.id, nome: mat.curto, imagem: "assets/produtos/pla-maxprint.jpg" };
+      const paleta = sd[mat.chavePaleta] || [];
+      paleta.forEach((cor, idx) => {
+        const nomeLimpo = formatarNomeCorClean(cor.nome, mat.id);
+        const { codTexto, codDigits, skuTexto } = extrairCodigoFilamento(cor);
+        const fam = classificarFamiliaCorHex(cor.hex, cor.nome);
+        const stCor = cor.estoqueStatus || itemProd.estoqueStatus || "disponivel";
+        const precoNum = Number(cor.valor || 0) > 0 ? Number(cor.valor) : extrairNumeroDePrecoBR(cor.preco || itemProd.precoVista);
+        const precoExibir = precoNum > 0 ? (cor.preco || formatarMoedaBR(precoNum)) : "Sob consulta";
+        const normNome = normFilTexto(`${nomeLimpo} ${cor.nome || ""}`);
+        const sinonimos = expandirSinonimosCor(normNome);
+        const codBlocos = codDigits ? `${codDigits} #${codDigits} cod ${codDigits} codigo ${codDigits}` : "";
+        const textoBusca = normFilTexto(
+          `${codBlocos} ${codTexto} ${skuTexto} ${nomeLimpo} ${cor.nome || ""} ${itemProd.nome || ""} masterprint maxprint ${mat.curto} ${mat.slug} ${FAMILIA_COR_LABELS[fam] || ""} ${sinonimos}`
+        );
+        const textoSemMedidas = normFilTexto(
+          `${codBlocos} ${codTexto} ${skuTexto} ${nomeLimpo} ${String(cor.nome || "").replace(/\b1\s*kg\b|\b1[,.]75\s*mm\b/gi, " ")} masterprint maxprint ${mat.curto} ${mat.slug} ${FAMILIA_COR_LABELS[fam] || ""} ${sinonimos}`
+        );
+        const normTokens = [...new Set(textoBusca.split(/[^a-z0-9]+/).filter((t) => t.length >= 2))];
+
+        lista.push({
+          cor,
+          originalIdx: idx,
+          item: itemProd,
+          itemId: itemProd.id,
+          chavePaleta: mat.chavePaleta,
+          dbProductId: resolverIdCorBanco(cor, mat.chavePaleta, idx),
+          marcaKey: "MaxPrint",
+          marcaLabel: "Masterprint",
+          materialId: mat.id,
+          materialSlug: mat.slug,
+          materialLabel: mat.curto,
+          bambuTipo: null,
+          nomeLimpo,
+          codTexto,
+          codDigits,
+          skuTexto,
+          familiaCor: fam,
+          stCor,
+          precoNum,
+          precoExibir,
+          imgUrl: cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemProd.imagem,
+          imgFilter: cor.usaFotoCatalogoDireta ? "none" : (cor.filtroCss || "none"),
+          normNome,
+          textoBusca,
+          textoSemMedidas,
+          normFull: textoBusca,
+          normTokens,
+          ordemGlobal: lista.length
+        });
+      });
+    });
+
+    // 2. Bambu Lab RFID
+    const itemBambu = cat.find((p) => p.id === "fil-pla-bambulab") || { id: "fil-pla-bambulab", nome: "PLA Bambu Lab RFID", imagem: "assets/produtos/pla-bambulab.jpg" };
+    const paletaBambu = sd.coresBambuLab || [];
+    paletaBambu.forEach((cor, idx) => {
+      const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
+      const { codTexto, codDigits, skuTexto } = extrairCodigoFilamento(cor);
+      const fam = classificarFamiliaCorHex(cor.hex, cor.nome);
+      const stCor = cor.estoqueStatus || itemBambu.estoqueStatus || "disponivel";
+      const ehRefil = ((cor.nome || "") + " " + (cor.tipo || "")).toLowerCase().includes("refil");
+      const bambuTipo = ehRefil ? "refil" : "carretel";
+      const matLabel = ehRefil ? "PLA Refil RFID" : "PLA Bobina RFID";
+      const precoNum = Number(cor.valor || 0) > 0 ? Number(cor.valor) : extrairNumeroDePrecoBR(cor.preco || itemBambu.precoVista);
+      const precoExibir = precoNum > 0 ? (cor.preco || formatarMoedaBR(precoNum)) : "Sob consulta";
+      const normNome = normFilTexto(`${nomeLimpo} ${cor.nome || ""}`);
+      const sinonimos = expandirSinonimosCor(normNome);
+      const codBlocos = codDigits ? `${codDigits} #${codDigits} cod ${codDigits} codigo ${codDigits}` : "";
+      const textoBusca = normFilTexto(
+        `${codBlocos} ${codTexto} ${skuTexto} ${nomeLimpo} ${cor.nome || ""} ${itemBambu.nome || ""} bambu lab rfid pla ${matLabel} ${bambuTipo} ${FAMILIA_COR_LABELS[fam] || ""} ${sinonimos}`
+      );
+      const textoSemMedidas = normFilTexto(
+        `${codBlocos} ${codTexto} ${skuTexto} ${nomeLimpo} ${String(cor.nome || "").replace(/\b1\s*kg\b|\b1[,.]75\s*mm\b/gi, " ")} bambu lab rfid pla ${matLabel} ${bambuTipo} ${FAMILIA_COR_LABELS[fam] || ""} ${sinonimos}`
+      );
+      const normTokens = [...new Set(textoBusca.split(/[^a-z0-9]+/).filter((t) => t.length >= 2))];
+
+      lista.push({
+        cor,
+        originalIdx: idx,
+        item: itemBambu,
+        itemId: itemBambu.id,
+        chavePaleta: "coresBambuLab",
+        dbProductId: resolverIdCorBanco(cor, "coresBambuLab", idx),
+        marcaKey: "Bambu Lab",
+        marcaLabel: "Bambu Lab",
+        materialId: "fil-pla-bambulab",
+        materialSlug: "bambu",
+        materialLabel: matLabel,
+        bambuTipo,
+        nomeLimpo,
+        codTexto,
+        codDigits,
+        skuTexto,
+        familiaCor: fam,
+        stCor,
+        precoNum,
+        precoExibir,
+        imgUrl: cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemBambu.imagem,
+        imgFilter: cor.usaFotoCatalogoDireta ? "none" : (cor.filtroCss || "none"),
+        normNome,
+        textoBusca,
+        textoSemMedidas,
+        normFull: textoBusca,
+        normTokens,
+        ordemGlobal: lista.length
+      });
+    });
+
+    cacheIndiceFilamentos = { sig, lista };
+    return lista;
+  }
+
+  function analisarBuscaFilamento(rawQuery) {
+    const raw = String(rawQuery || "").trim();
+    const qNorm = normFilTexto(raw).replace(/^#+(?=\d)/, "").replace(/\s+#(?=\d)/g, " ");
+    const codMatch = qNorm.match(/^(?:cod(?:igo)?\.?\s*)?#?(\d+)$/i);
+    const digitsOnly = codMatch ? codMatch[1] : qNorm.replace(/\D/g, "");
+    const isNumericQuery = Boolean(codMatch);
+    const ativa = qNorm.length >= 2 || (isNumericQuery && digitsOnly.length >= 1);
+    const tokens = qNorm
+      .split(/\s+/)
+      .filter(Boolean)
+      .map((t) => t.replace(/^#/, "").replace(/\.$/, ""))
+      .filter(Boolean);
+    return { raw, qNorm, digitsOnly, isNumericQuery, ativa, tokens };
+  }
+
+  function avaliarMatchFilamento(entry, parsed) {
+    if (!parsed.ativa) return { ok: true, score: 10 };
+
+    // Busca exclusiva por código (ex.: "110", "#110", "cod 110")
+    if (parsed.isNumericQuery && parsed.digitsOnly) {
+      const qDig = parsed.digitsOnly;
+      if (entry.codDigits && entry.codDigits === qDig) {
+        return { ok: true, score: 0 }; // 1º Código exato
+      }
+      if (entry.codDigits && entry.codDigits.startsWith(qDig)) {
+        return { ok: true, score: 1 }; // 2º Código começando com o número
+      }
+      if (entry.codDigits && entry.codDigits.includes(qDig)) {
+        return { ok: true, score: 2 }; // 3º Código contendo o número
+      }
+      // Só busca no restante do texto (sem 1kg / 1,75mm) se tiver 2+ dígitos
+      if (qDig.length >= 2 && entry.textoSemMedidas.includes(qDig)) {
+        return { ok: true, score: 4 };
+      }
+      return { ok: false, score: 99 };
+    }
+
+    let bateuCodigoExato = false;
+    for (const tok of parsed.tokens) {
+      if (/^\d+$/.test(tok)) {
+        if (entry.codDigits && entry.codDigits === tok) {
+          bateuCodigoExato = true;
+          continue;
+        }
+        if (entry.codDigits && entry.codDigits.startsWith(tok)) continue;
+        if (entry.textoSemMedidas.includes(tok)) continue;
+        return { ok: false, score: 99 };
+      }
+      if (entry.textoBusca.includes(tok)) continue;
+      if (tok.length >= 4) {
+        const fuzzy = entry.normTokens.some((w) => Math.abs(w.length - tok.length) <= 1 && distanciaEdicaoMax1(w, tok));
+        if (fuzzy) continue;
+      }
+      return { ok: false, score: 99 };
+    }
+
+    if (bateuCodigoExato) return { ok: true, score: 0 };
+    if (entry.normNome.startsWith(parsed.qNorm)) return { ok: true, score: 1 };
+    const firstTok = parsed.tokens[0] || "";
+    if (firstTok && entry.normNome.split(/\s+/).some((w) => w.startsWith(firstTok))) {
+      return { ok: true, score: 2 };
+    }
+    return { ok: true, score: 3 };
+  }
+
+  function destacarTrechoBuscaSeguro(textoOriginal, rawQuery) {
+    const str = String(textoOriginal || "");
+    const parsed = analisarBuscaFilamento(rawQuery);
+    if (!parsed.ativa || parsed.tokens.length === 0) return escaparHtml(str);
+
+    // Mapeia cada índice da string normalizada (sem acento) de volta ao índice original
+    const chars = Array.from(str);
+    const normChars = [];
+    const origIdxMap = [];
+    chars.forEach((ch, idx) => {
+      const n = ch.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+      for (let k = 0; k < n.length; k++) {
+        normChars.push(n[k]);
+        origIdxMap.push(idx);
+      }
+    });
+    const normStr = normChars.join("");
+    const marks = new Array(chars.length).fill(false);
+
+    parsed.tokens.forEach((tok) => {
+      if (!tok) return;
+      let pos = normStr.indexOf(tok);
+      while (pos !== -1) {
+        for (let p = pos; p < pos + tok.length && p < origIdxMap.length; p++) {
+          marks[origIdxMap[p]] = true;
+        }
+        pos = normStr.indexOf(tok, pos + tok.length);
+      }
+    });
+
+    let out = "";
+    let inMark = false;
+    chars.forEach((ch, idx) => {
+      if (marks[idx] && !inMark) {
+        out += '<mark class="sj-search-hl">';
+        inMark = true;
+      } else if (!marks[idx] && inMark) {
+        out += "</mark>";
+        inMark = false;
+      }
+      out += escaparHtml(ch);
+    });
+    if (inMark) out += "</mark>";
+    return out;
+  }
+
+  function resolverSlugParaMaterialId(slug) {
+    const s = String(slug || "").toLowerCase().trim();
+    if (!s || s === "todos") return "todos";
+    const found = FILAMENTO_MATERIAIS_MASTER.find((m) => m.slug === s || m.id === s);
+    return found ? found.id : "todos";
+  }
+
+  function resolverMaterialIdParaSlug(matId) {
+    if (!matId || matId === "todos") return "todos";
+    const found = FILAMENTO_MATERIAIS_MASTER.find((m) => m.id === matId || m.slug === matId);
+    return found ? found.slug : "todos";
+  }
+
+  function sincronizarUrlFiltrosFilamento(usePush = false) {
+    if (ehPaginaAdminAtual() || state.categoriaMenu !== "filamentos" || !window.history) return;
+    const params = new URLSearchParams();
+    params.set("categoria", "filamentos");
+    const qTrim = String(state.busca || "").trim();
+    if (qTrim) params.set("q", qTrim);
+
+    const parsed = analisarBuscaFilamento(qTrim);
+    const marcaAt = parsed.ativa ? state.hubFilamentoBuscaMarca : state.hubFilamentoMarcaAtiva;
+    const matAt = parsed.ativa ? state.hubFilamentoBuscaMaterial : state.hubFilamentoMaterialMaxPrint;
+
+    if (marcaAt === "Bambu Lab") params.set("marca", "bambu");
+    else if (parsed.ativa && marcaAt === "MaxPrint") params.set("marca", "masterprint");
+
+    const matSlug = resolverMaterialIdParaSlug(matAt);
+    if (matSlug !== "todos") params.set("material", matSlug);
+    if (!parsed.ativa && state.hubFilamentoMarcaAtiva === "Bambu Lab" && state.hubFilamentoFiltroBambu !== "todos") {
+      params.set("tipo", state.hubFilamentoFiltroBambu);
+    }
+    const familiaAt = parsed.ativa ? state.hubFilamentoBuscaFamilia : state.hubFilamentoFamiliaCor;
+    if (familiaAt && familiaAt !== "todas") {
+      params.set("cor", familiaAt);
+    }
+    if (state.hubFilamentoSomenteDisponiveis === false) {
+      params.set("disp", "0");
+    }
+    if (state.hubFilamentoOrdenacao && state.hubFilamentoOrdenacao !== "padrao") {
+      params.set("ordem", state.hubFilamentoOrdenacao);
+    }
+
+    const nextUrl = `/?${params.toString()}`;
+    if (usePush && window.history.pushState) {
+      window.history.pushState({ view: "cat", cat: "filamentos" }, "", nextUrl);
+    } else if (window.history.replaceState) {
+      window.history.replaceState({ view: "cat", cat: "filamentos" }, "", nextUrl);
+    }
+  }
+
+  function aplicarFiltrosFilamentoDaUrl(params) {
+    if (!params) return false;
+    const q = params.get("q") || "";
+    const mat = params.get("material");
+    const marca = (params.get("marca") || "").toLowerCase();
+    const tipo = (params.get("tipo") || "").toLowerCase();
+    const cor = (params.get("cor") || "").toLowerCase();
+    const disp = params.get("disp");
+    const ordem = (params.get("ordem") || "").toLowerCase();
+
+    const temAlgumParam = Boolean(q || mat || marca || tipo || cor || disp !== null || ordem);
+    if (!temAlgumParam) return false;
+
+    state.busca = q;
+    const parsed = analisarBuscaFilamento(q);
+    if (parsed.ativa) {
+      state.hubFilamentoBuscaMarca = marca === "bambu" ? "Bambu Lab" : marca === "masterprint" ? "MaxPrint" : "todas";
+      state.hubFilamentoBuscaMaterial = resolverSlugParaMaterialId(mat);
+      state.hubFilamentoBuscaFamilia = ["todas", "neutros", "quentes", "frios", "verdes", "especiais"].includes(cor) ? cor : "todas";
+    } else {
+      state.hubFilamentoBuscaMarca = "todas";
+      state.hubFilamentoBuscaMaterial = "todos";
+      state.hubFilamentoBuscaFamilia = "todas";
+      if (marca === "bambu") state.hubFilamentoMarcaAtiva = "Bambu Lab";
+      else if (marca === "masterprint") state.hubFilamentoMarcaAtiva = "MaxPrint";
+      if (mat) state.hubFilamentoMaterialMaxPrint = resolverSlugParaMaterialId(mat);
+      if (["todos", "carretel", "refil"].includes(tipo)) state.hubFilamentoFiltroBambu = tipo;
+      if (["todas", "neutros", "quentes", "frios", "verdes", "especiais"].includes(cor)) {
+        state.hubFilamentoFamiliaCor = cor;
+      }
+    }
+    if (disp === "0" || disp === "false") state.hubFilamentoSomenteDisponiveis = false;
+    else if (disp === "1" || disp === "true") state.hubFilamentoSomenteDisponiveis = true;
+    if (["padrao", "menor-preco", "maior-preco", "az"].includes(ordem)) {
+      state.hubFilamentoOrdenacao = ordem;
+    }
+    state.hubFilamentoPagina = 1;
+    return true;
+  }
+
   function gerarHubFilamentosHtml(contexto = "catalogo") {
-    const marcaAtiva = state.hubFilamentoMarcaAtiva || "MaxPrint";
-    const isBambuAtivo = marcaAtiva === "Bambu Lab";
-
-    const materiaisMaxPrint = [
-      { id: "fil-pla-maxprint", curto: "PLA", qtdCores: (window.SITE_DATA.coresMaxPrint || []).length },
-      { id: "fil-silk-maxprint", curto: "PLA Silk", qtdCores: (window.SITE_DATA.coresPlaSilk || []).length },
-      { id: "fil-petg-maxprint", curto: "PETG", qtdCores: (window.SITE_DATA.coresPetg || []).length },
-      { id: "fil-tpu-maxprint", curto: "TPU Flex", qtdCores: (window.SITE_DATA.coresTpu || []).length },
-      { id: "fil-abs-especiais", curto: "ABS & Glitter", qtdCores: (window.SITE_DATA.coresAbsEspeciais || []).length }
-    ];
-
-    const paletaBambuFull = window.SITE_DATA.coresBambuLab || [];
-    const totalCoresMaxPrint = materiaisMaxPrint.reduce((acc, m) => acc + m.qtdCores, 0);
-    const totalCoresBambu = paletaBambuFull.length;
-    const qtdBambuRefil = paletaBambuFull.filter((c) => ((c.nome || "") + " " + (c.tipo || "")).toLowerCase().includes("refil")).length;
-    const qtdBambuBobina = Math.max(0, totalCoresBambu - qtdBambuRefil);
-
-    const opcoesBambu = [
-      { id: "todos", curto: "Todos", qtd: totalCoresBambu },
-      { id: "carretel", curto: "Bobina RFID", qtd: qtdBambuBobina },
-      { id: "refil", curto: "Refil s/ Bobina", qtd: qtdBambuRefil }
-    ];
+    const todosItens = obterIndiceFilamentosGlobal();
+    const parsed = analisarBuscaFilamento(state.busca);
+    const buscaAtiva = parsed.ativa;
 
     const familiasCor = [
       { id: "todas", label: "Todas", hex: "conic-gradient(#ef4444, #f59e0b, #10b981, #3b82f6, #8b5cf6, #ef4444)" },
@@ -5125,67 +5573,55 @@
       { id: "especiais", label: "Especiais", hex: "linear-gradient(135deg, #f59e0b, #ec4899, #8b5cf6)" }
     ];
 
-    const familiaAtiva = state.hubFilamentoFamiliaCor || "todas";
+    const familiaAtiva = buscaAtiva
+      ? (state.hubFilamentoBuscaFamilia || "todas")
+      : (state.hubFilamentoFamiliaCor || "todas");
     const ordenacaoAtiva = state.hubFilamentoOrdenacao || "padrao";
     const somenteDisp = state.hubFilamentoSomenteDisponiveis !== false;
-    const limiteVisivel = Number(state.hubFilamentoLimiteVisivel || 24);
-    const termoBusca = (state.busca || "").trim().toLowerCase();
 
-    let itemAtivo = null;
-    let chavePaletaAtiva = "coresMaxPrint";
-    let coresListaBase = [];
+    // 1. Filtra pela busca global (se ativa) sobre TODO o catálogo de filamentos
+    const matchesComScore = [];
+    todosItens.forEach((entry) => {
+      const m = avaliarMatchFilamento(entry, parsed);
+      if (m.ok) matchesComScore.push({ entry, score: m.score });
+    });
+
+    // 2. Contagens por marca (para abas Masterprint / Bambu Lab)
+    const baseMarcaContagem = buscaAtiva ? matchesComScore.map((x) => x.entry) : todosItens;
+    const qtdMarcaMaster = baseMarcaContagem.filter((e) => e.marcaKey === "MaxPrint").length;
+    const qtdMarcaBambu = baseMarcaContagem.filter((e) => e.marcaKey === "Bambu Lab").length;
+
+    const marcaAtiva = buscaAtiva
+      ? (state.hubFilamentoBuscaMarca || "todas")
+      : (state.hubFilamentoMarcaAtiva || "MaxPrint");
+    const isBambuAtivo = marcaAtiva === "Bambu Lab";
+
+    // 3. Base após seleção de marca (durante busca, "todas" não restringe!)
+    const posMarca = matchesComScore.filter(({ entry }) => {
+      if (marcaAtiva === "todas") return true;
+      return entry.marcaKey === marcaAtiva;
+    });
+
+    // 4. Contagens por material/tipo para as abas opcionais
+    const matAtivo = buscaAtiva
+      ? (state.hubFilamentoBuscaMaterial || "todos")
+      : (state.hubFilamentoMaterialMaxPrint || "todos");
+    const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
+
     let barraMateriaisHtml = "";
     let materialNomeBreadcrumb = "";
+    let posMaterial = posMarca;
 
-    if (!isBambuAtivo) {
-      const matAtivoId =
-        state.hubFilamentoMaterialMaxPrint && state.hubFilamentoMaterialMaxPrint !== "todos"
-          ? state.hubFilamentoMaterialMaxPrint
-          : "fil-pla-maxprint";
-
-      itemAtivo =
-        window.SITE_DATA.catalogo.find((i) => i.id === matAtivoId) ||
-        window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-maxprint");
-      chavePaletaAtiva = itemAtivo
-        ? obterChavePaletaPorChave(itemAtivo.usaCoresDinamicas, false)
-        : "coresMaxPrint";
-      const paletaAtiva = itemAtivo
-        ? obterPaletaPorChave(itemAtivo.usaCoresDinamicas, false) || []
-        : [];
-      coresListaBase = paletaAtiva.map((cor, originalIdx) => ({ ...cor, originalIdx }));
-      const matInfo = materiaisMaxPrint.find((m) => m.id === matAtivoId);
-      materialNomeBreadcrumb = matInfo ? `Masterprint ${matInfo.curto}` : "Masterprint";
-
-      barraMateriaisHtml = `
-        <div class="sj-fil-line-pills" role="tablist" aria-label="Material Masterprint">
-          ${materiaisMaxPrint.map((m) => `
-            <button
-              type="button"
-              role="tab"
-              aria-selected="${matAtivoId === m.id ? "true" : "false"}"
-              class="sj-fil-line-pill ${matAtivoId === m.id ? "active" : ""}"
-              data-hub-max-mat="${m.id}"
-            >
-              <span class="pill-name">${m.curto}</span>
-              <span class="pill-count">${m.qtdCores}</span>
-            </button>
-          `).join("")}
-        </div>
-      `;
-    } else {
-      itemAtivo =
-        window.SITE_DATA.catalogo.find((i) => i.id === "fil-pla-bambulab") ||
-        window.SITE_DATA.catalogo[0];
-      chavePaletaAtiva = "coresBambuLab";
-      const filtroBambu = state.hubFilamentoFiltroBambu || "todos";
-      coresListaBase = paletaBambuFull
-        .map((cor, originalIdx) => ({ ...cor, originalIdx }))
-        .filter((cor) => {
-          const ehRefil = ((cor.nome || "") + " " + (cor.tipo || "")).toLowerCase().includes("refil");
-          if (filtroBambu === "carretel" && ehRefil) return false;
-          if (filtroBambu === "refil" && !ehRefil) return false;
-          return true;
-        });
+    if (!buscaAtiva && isBambuAtivo) {
+      const qtdBambuTotal = posMarca.length;
+      const qtdBambuBobina = posMarca.filter((x) => x.entry.bambuTipo === "carretel").length;
+      const qtdBambuRefil = posMarca.filter((x) => x.entry.bambuTipo === "refil").length;
+      const opcoesBambu = [
+        { id: "todos", curto: "Todos", qtd: qtdBambuTotal },
+        { id: "carretel", curto: "Bobina RFID", qtd: qtdBambuBobina },
+        { id: "refil", curto: "Refil s/ Bobina", qtd: qtdBambuRefil }
+      ];
+      posMaterial = posMarca.filter(({ entry }) => filtroBambu === "todos" || entry.bambuTipo === filtroBambu);
       materialNomeBreadcrumb = "Bambu Lab RFID";
 
       barraMateriaisHtml = `
@@ -5195,7 +5631,7 @@
               type="button"
               role="tab"
               aria-selected="${filtroBambu === op.id ? "true" : "false"}"
-              class="sj-fil-line-pill ${filtroBambu === op.id ? "active" : ""}"
+              class="sj-fil-line-pill ${filtroBambu === op.id ? "active" : ""} ${op.qtd === 0 ? "is-zero" : ""}"
               data-hub-bambu-filter="${op.id}"
             >
               <span class="pill-name">${op.curto}</span>
@@ -5204,38 +5640,97 @@
           `).join("")}
         </div>
       `;
+    } else {
+      const abasMat = [
+        { id: "todos", curto: "Todos", qtd: posMarca.length },
+        ...FILAMENTO_MATERIAIS_MASTER.map((m) => ({
+          id: m.id,
+          curto: m.curto,
+          qtd: posMarca.filter((x) => x.entry.materialId === m.id).length
+        }))
+      ];
+      if (buscaAtiva && marcaAtiva !== "MaxPrint") {
+        const qtdBambuMat = posMarca.filter((x) => x.entry.marcaKey === "Bambu Lab").length;
+        abasMat.push({ id: "fil-pla-bambulab", curto: "Bambu Lab RFID", qtd: qtdBambuMat });
+      }
+
+      posMaterial = posMarca.filter(({ entry }) => matAtivo === "todos" || entry.materialId === matAtivo);
+
+      const matObj = abasMat.find((m) => m.id === matAtivo);
+      materialNomeBreadcrumb = buscaAtiva
+        ? `Busca: "${parsed.raw}"`
+        : (matObj && matObj.id !== "todos" ? `Masterprint ${matObj.curto}` : "Masterprint (Todos)");
+
+      barraMateriaisHtml = `
+        <div class="sj-fil-line-pills ${buscaAtiva && matAtivo === "todos" ? "is-search-suspended" : ""}" role="tablist" aria-label="Filtrar por material">
+          ${abasMat.map((m) => `
+            <button
+              type="button"
+              role="tab"
+              aria-selected="${matAtivo === m.id ? "true" : "false"}"
+              class="sj-fil-line-pill ${matAtivo === m.id ? "active" : ""} ${m.qtd === 0 ? "is-zero" : ""}"
+              data-hub-max-mat="${m.id}"
+            >
+              <span class="pill-name">${m.curto}</span>
+              <span class="pill-count">${m.qtd}</span>
+            </button>
+          `).join("")}
+        </div>
+      `;
     }
 
-    const idFichaTecnicaAtiva = itemAtivo?.id || (isBambuAtivo ? "fil-pla-bambulab" : "fil-pla-maxprint");
-
-    let coresFiltradas = coresListaBase.filter((cor) => {
-      const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
-      if (somenteDisp && stCor === "esgotado") return false;
-      if (familiaAtiva !== "todas") {
-        if (classificarFamiliaCorHex(cor.hex, cor.nome) !== familiaAtiva) return false;
-      }
-      if (termoBusca) {
-        const alvo = `${cor.nome} ${cor.cod} cod ${cor.cod} cód ${cor.cod} ${isBambuAtivo ? "bambu rfid" : "masterprint maxprint"}`.toLowerCase();
-        if (!alvo.includes(termoBusca)) return false;
-      }
+    // 5. Refinamento por família de cor
+    const posFamilia = posMaterial.filter(({ entry }) => {
+      if (familiaAtiva !== "todas" && entry.familiaCor !== familiaAtiva) return false;
       return true;
     });
 
-    // Ordenação + empurra esgotados para o fim quando "Somente disponíveis" estiver desligado
-    coresFiltradas.sort((a, b) => {
-      const stA = (a.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel") === "esgotado" ? 1 : 0;
-      const stB = (b.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel") === "esgotado" ? 1 : 0;
-      if (stA !== stB) return stA - stB;
-      if (ordenacaoAtiva === "menor-preco") return Number(a.valor || 0) - Number(b.valor || 0);
-      if (ordenacaoAtiva === "maior-preco") return Number(b.valor || 0) - Number(a.valor || 0);
-      if (ordenacaoAtiva === "az") return String(a.nome || "").localeCompare(String(b.nome || ""), "pt-BR");
-      return a.originalIdx - b.originalIdx;
+    // 6. Contagem de esgotados ocultos quando "Somente disponíveis" está ativo
+    const ocultosEsgotadosCount = somenteDisp
+      ? posFamilia.filter(({ entry }) => entry.stCor === "esgotado").length
+      : 0;
+
+    let filtradosFinal = somenteDisp
+      ? posFamilia.filter(({ entry }) => entry.stCor !== "esgotado")
+      : [...posFamilia];
+
+    // 7. Ordenação (na busca: código exato -> nome começando -> demais; depois disponibilidade e ordem escolhida)
+    filtradosFinal.sort((a, b) => {
+      if (buscaAtiva && a.score !== b.score) return a.score - b.score;
+      const esgA = a.entry.stCor === "esgotado" ? 1 : 0;
+      const esgB = b.entry.stCor === "esgotado" ? 1 : 0;
+      if (esgA !== esgB) return esgA - esgB;
+      if (ordenacaoAtiva === "menor-preco") return a.entry.precoNum - b.entry.precoNum;
+      if (ordenacaoAtiva === "maior-preco") return b.entry.precoNum - a.entry.precoNum;
+      if (ordenacaoAtiva === "az") return a.entry.nomeLimpo.localeCompare(b.entry.nomeLimpo, "pt-BR");
+      return a.entry.ordemGlobal - b.entry.ordemGlobal;
     });
 
-    const totalResultados = coresFiltradas.length;
-    const coresVisiveis = coresFiltradas.slice(0, limiteVisivel);
-    const restantes = Math.max(0, totalResultados - coresVisiveis.length);
-    const proximoLote = Math.min(24, restantes);
+    // 8. Paginação (máximo 48 cartões no DOM por vez para desempenho)
+    const porPagina = Math.min(48, Math.max(24, Number(state.hubFilamentoPorPagina || 24)));
+    const totalResultados = filtradosFinal.length;
+    const totalPaginas = Math.max(1, Math.ceil(totalResultados / porPagina));
+    let paginaAtual = Math.max(1, Math.min(totalPaginas, Number(state.hubFilamentoPagina || 1)));
+    state.hubFilamentoPagina = paginaAtual;
+
+    const inicioIdx = (paginaAtual - 1) * porPagina;
+    const visiveis = filtradosFinal.slice(inicioIdx, inicioIdx + porPagina);
+
+    // Contagem de filtros ativos
+    let filtrosAtivosCount = 0;
+    if (buscaAtiva) filtrosAtivosCount++;
+    if (buscaAtiva && marcaAtiva !== "todas") filtrosAtivosCount++;
+    if (matAtivo !== "todos") filtrosAtivosCount++;
+    if (!buscaAtiva && isBambuAtivo && filtroBambu !== "todos") filtrosAtivosCount++;
+    if (familiaAtiva !== "todas") filtrosAtivosCount++;
+    if (!somenteDisp) filtrosAtivosCount++;
+    if (ordenacaoAtiva !== "padrao") filtrosAtivosCount++;
+
+    const idFichaTecnicaAtiva = isBambuAtivo
+      ? "fil-pla-bambulab"
+      : (matAtivo && matAtivo !== "todos" ? matAtivo : "fil-pla-maxprint");
+
+    const mostrarOrigemNoCard = buscaAtiva || matAtivo === "todos" || marcaAtiva === "todas";
 
     const topoPaginaHtml = `
       <nav class="sj-breadcrumb" aria-label="Você está em">
@@ -5259,17 +5754,34 @@
         </div>
       </header>
 
-      <div class="sj-fil-brand-tabs" role="tablist" aria-label="Escolher marca de filamento">
+      <!-- 1. BUSCA SEMPRE VISÍVEL NO TOPO (PESQUISA EM TODO O CATÁLOGO) -->
+      <div class="sj-fil-search-top-bar" role="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#64748b" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        <label for="sj-fil-search-input" class="sr-only">Buscar cor, código, material ou marca em todo o catálogo de filamentos</label>
+        <input
+          type="search"
+          id="sj-fil-search-input"
+          value="${escaparHtml(state.busca || "")}"
+          placeholder="Buscar em todos os filamentos por cor, código (#162), material (TPU, Silk) ou marca..."
+          aria-label="Buscar em todos os filamentos por cor, código, material ou marca"
+          autocomplete="off"
+        />
+        ${state.busca ? `<button type="button" class="sj-toolbar-clear" id="sj-fil-search-clear" aria-label="Limpar busca">×</button>` : `<kbd class="sj-fil-search-kbd" title="Pressione / para buscar">/</kbd>`}
+      </div>
+
+      <!-- 2. ABAS DE MARCA (OPCIONAIS NA BUSCA, COM CONTAGENS AO VIVO) -->
+      ${buscaAtiva ? `<div class="sj-search-suspended-hint" aria-live="polite"><span>Busca em todo o catálogo</span> — clique em uma marca, material ou cor abaixo apenas se quiser refinar os resultados.</div>` : ""}
+      <div class="sj-fil-brand-tabs ${buscaAtiva && marcaAtiva === "todas" ? "is-search-suspended" : ""}" role="tablist" aria-label="Escolher marca de filamento">
         <button
           type="button"
           role="tab"
-          aria-selected="${!isBambuAtivo ? "true" : "false"}"
-          class="sj-fil-brand-tab ${!isBambuAtivo ? "active" : ""}"
+          aria-selected="${marcaAtiva === "MaxPrint" ? "true" : "false"}"
+          class="sj-fil-brand-tab ${marcaAtiva === "MaxPrint" ? "active" : ""} ${qtdMarcaMaster === 0 ? "is-zero" : ""}"
           data-hub-select-brand="MaxPrint"
         >
           <div class="sj-fil-brand-tab-head">
             <strong>Masterprint</strong>
-            <span class="sj-fil-brand-count">${totalCoresMaxPrint} cores</span>
+            <span class="sj-fil-brand-count">${qtdMarcaMaster} ${qtdMarcaMaster === 1 ? "cor" : "cores"}</span>
           </div>
           <span class="sj-fil-brand-tab-desc">Universal, funciona em qualquer impressora 3D</span>
         </button>
@@ -5277,35 +5789,24 @@
         <button
           type="button"
           role="tab"
-          aria-selected="${isBambuAtivo ? "true" : "false"}"
-          class="sj-fil-brand-tab is-bambu ${isBambuAtivo ? "active" : ""}"
+          aria-selected="${marcaAtiva === "Bambu Lab" ? "true" : "false"}"
+          class="sj-fil-brand-tab is-bambu ${marcaAtiva === "Bambu Lab" ? "active" : ""} ${qtdMarcaBambu === 0 ? "is-zero" : ""}"
           data-hub-select-brand="Bambu Lab"
         >
           <div class="sj-fil-brand-tab-head">
             <strong>Bambu Lab RFID</strong>
-            <span class="sj-fil-brand-count">${totalCoresBambu} cores</span>
+            <span class="sj-fil-brand-count">${qtdMarcaBambu} ${qtdMarcaBambu === 1 ? "cor" : "cores"}</span>
           </div>
           <span class="sj-fil-brand-tab-desc">Leitura automática no AMS e AMS Lite</span>
         </button>
       </div>
 
+      <!-- 3. ABAS DE MATERIAL (OPCIONAIS, COM "TODOS" COMO PADRÃO) -->
       ${barraMateriaisHtml}
 
-      <div class="sj-catalog-toolbar" role="region" aria-label="Filtros de filamentos">
-        <div class="sj-toolbar-search">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          <input
-            type="search"
-            id="sj-fil-search-input"
-            value="${escaparHtml(state.busca || "")}"
-            placeholder="Buscar cor, material ou código (#34)..."
-            aria-label="Buscar cor, material ou código"
-            autocomplete="off"
-          />
-          ${termoBusca ? `<button type="button" class="sj-toolbar-clear" id="sj-fil-search-clear" aria-label="Limpar busca">×</button>` : ""}
-        </div>
-
-        <div class="sj-color-family-pills" role="group" aria-label="Família de cor">
+      <!-- 4. FAMÍLIA DE COR + SOMENTE DISPONÍVEIS + ORDENAÇÃO + FILTRAR MOBILE -->
+      <div class="sj-catalog-toolbar" role="region" aria-label="Refinar filamentos">
+        <div class="sj-color-family-pills ${buscaAtiva && familiaAtiva === "todas" ? "is-search-suspended" : ""}" role="group" aria-label="Família de cor">
           ${familiasCor.map((fam) => `
             <button
               type="button"
@@ -5334,71 +5835,84 @@
 
           <button type="button" class="sj-mobile-filter-btn" id="sj-fil-open-sheet-btn">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"></polygon></svg>
-            <span>Filtrar</span>
+            <span>Filtrar${filtrosAtivosCount > 0 ? ` (${filtrosAtivosCount})` : ""}</span>
           </button>
         </div>
       </div>
 
-      <div class="sj-catalog-results-meta">
-        <span>Mostrando <strong>${coresVisiveis.length}</strong> de <strong>${totalResultados}</strong> ${totalResultados === 1 ? "cor" : "cores"}</span>
-        ${(familiaAtiva !== "todas" || termoBusca || !somenteDisp)
+      ${buscaAtiva ? `
+        <div class="sj-fil-search-banner" role="status" aria-live="polite">
+          <span>Mostrando <strong>${totalResultados}</strong> ${totalResultados === 1 ? "resultado" : "resultados"} para "<strong>${escaparHtml(parsed.raw)}</strong>" em todo o catálogo</span>
+          <button type="button" class="sj-inline-reset-link" id="sj-fil-banner-clear-search">Limpar busca</button>
+        </div>
+      ` : ""}
+
+      ${ocultosEsgotadosCount > 0 && (buscaAtiva || totalResultados === 0) ? `
+        <div class="sj-hidden-oos-bar" role="status">
+          <span>${ocultosEsgotadosCount} ${ocultosEsgotadosCount === 1 ? "resultado esgotado oculto" : "resultados esgotados ocultos"} pelo filtro "Somente disponíveis".</span>
+          <button type="button" class="sj-hidden-oos-btn" id="sj-fil-show-hidden-oos">Mostrar</button>
+        </div>
+      ` : ""}
+
+      <div class="sj-catalog-results-meta" aria-live="polite">
+        <span>
+          Mostrando <strong>${visiveis.length}</strong> de <strong>${totalResultados}</strong> ${totalResultados === 1 ? "cor" : "cores"}
+          ${filtrosAtivosCount > 0 ? ` • <strong>${filtrosAtivosCount}</strong> ${filtrosAtivosCount === 1 ? "filtro ativo" : "filtros ativos"}` : ""}
+        </span>
+        ${filtrosAtivosCount > 0
         ? `<button type="button" class="sj-inline-reset-link" data-hub-reset-filters="1">Limpar filtros</button>`
         : ""}
       </div>
     `;
 
     let gradeCoresHtml = "";
-    if (coresVisiveis.length === 0) {
+    if (visiveis.length === 0) {
       gradeCoresHtml = `
         <div class="sj-empty-state">
           <div class="sj-empty-icon" aria-hidden="true">
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
           </div>
-          <h3>Nenhuma cor encontrada</h3>
-          <p>Nenhuma cor corresponde aos filtros selecionados nesta linha.</p>
-          <button type="button" class="sj-btn-primary" data-hub-reset-filters="1">Limpar filtros</button>
+          <h3>${buscaAtiva ? `Nada encontrado para "${escaparHtml(parsed.raw)}"` : "Nenhuma cor encontrada"}</h3>
+          <p>${buscaAtiva ? "Tente outro código ou nome, ou escolha uma das sugestões rápidas abaixo." : "Nenhuma cor corresponde aos filtros selecionados."}</p>
+          <div class="sj-empty-suggestions">
+            <button type="button" class="sj-empty-sugg-chip" data-hub-sugg-query="verde">Ver todos os verdes</button>
+            <button type="button" class="sj-empty-sugg-chip" data-hub-sugg-query="silk">Ver PLA Silk</button>
+            <button type="button" class="sj-empty-sugg-chip" data-hub-sugg-query="tpu">Ver TPU Flex</button>
+            <button type="button" class="sj-empty-sugg-chip" data-hub-sugg-query="bambu">Ver Bambu Lab</button>
+          </div>
+          ${buscaAtiva
+        ? `<button type="button" class="sj-btn-primary" id="sj-fil-empty-clear-search">Limpar busca</button>`
+        : `<button type="button" class="sj-btn-primary" data-hub-reset-filters="1">Limpar filtros</button>`}
         </div>
       `;
     } else {
       gradeCoresHtml = `
         <div class="sj-fil-clean-grid">
-          ${coresVisiveis.map((cor) => {
-        const stCor = cor.estoqueStatus || (itemAtivo && itemAtivo.estoqueStatus) || "disponivel";
-        const isEsg = stCor === "esgotado";
-        const isPouc = stCor === "poucas_unidades";
-        const isNovo = Boolean(cor.isNovo || cor.novo);
-        const nomeLimpo = formatarNomeCorClean(cor.nome, isBambuAtivo ? "bambu" : (itemAtivo?.id || "fil-pla-maxprint"));
-        const corDbId = resolverIdCorBanco(cor, chavePaletaAtiva, cor.originalIdx);
-        const ehFavCor = isFavorito(corDbId);
-        const precoExibir = Number(cor.valor || 0) > 0 ? (cor.preco || formatarMoedaBR(cor.valor)) : "Sob consulta";
-        const ehRefil = isBambuAtivo && ((cor.nome || "") + " " + (cor.tipo || "")).toLowerCase().includes("refil");
-        const imgUrl = cor.usaFotoCatalogoDireta && cor.imgCatalogo ? cor.imgCatalogo : itemAtivo.imagem;
-        const imgFilter = cor.usaFotoCatalogoDireta ? "none" : (cor.filtroCss || "none");
-
-        let badgeEspecialHtml = "";
-        if (isEsg) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-esgotado">Esgotado</span>`;
-        else if (isPouc) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-poucas">Poucas unidades</span>`;
-        else if (isNovo) badgeEspecialHtml = `<span class="sj-fil-stock-pill is-novo">Novo</span>`;
-        else if (isBambuAtivo) badgeEspecialHtml = `<span class="sj-fil-rfid-mini ${ehRefil ? "is-refil" : ""}">${ehRefil ? "Refil" : "Bobina"}</span>`;
+          ${visiveis.map(({ entry }) => {
+        const isEsg = entry.stCor === "esgotado";
+        const ehFavCor = isFavorito(entry.dbProductId);
+        const seloHtml = renderizarSeloEstoqueHtml(entry.stCor, false);
+        const nomeHtml = buscaAtiva ? destacarTrechoBuscaSeguro(entry.nomeLimpo, parsed.raw) : escaparHtml(entry.nomeLimpo);
+        const originLabel = `${entry.marcaLabel} · ${entry.materialLabel}${entry.codDigits ? ` · #${entry.codDigits}` : ""}`;
 
         return `
               <article class="sj-fil-card ${isEsg ? "tile-is-esgotado" : ""}">
                 <div
                   class="sj-fil-card-media"
-                  style="--fil-tint: ${escaparHtml(cor.hex || "#e2e8f0")};"
-                  data-hub-open-qv="${escaparHtml(itemAtivo.id)}"
-                  data-hub-color-idx="${cor.originalIdx}"
-                  data-hub-brand="${isBambuAtivo ? "Bambu Lab" : "MaxPrint"}"
+                  style="--fil-tint: ${escaparHtml(entry.cor.hex || "#e2e8f0")};"
+                  data-hub-open-qv="${escaparHtml(entry.itemId)}"
+                  data-hub-color-idx="${entry.originalIdx}"
+                  data-hub-brand="${escaparHtml(entry.marcaKey)}"
                   role="button"
                   tabindex="0"
-                  aria-label="Visualizar ${escaparHtml(nomeLimpo)}"
+                  aria-label="Visualizar ${escaparHtml(entry.nomeLimpo)}"
                 >
-                  ${badgeEspecialHtml}
+                  ${seloHtml}
                   <button
                     type="button"
                     class="card-fav-btn fil-fav-btn ${ehFavCor ? "active" : ""}"
-                    data-toggle-fav="${escaparHtml(corDbId)}"
-                    aria-label="Favoritar ${escaparHtml(nomeLimpo)}"
+                    data-toggle-fav="${escaparHtml(entry.dbProductId)}"
+                    aria-label="Favoritar ${escaparHtml(entry.nomeLimpo)}"
                     title="Favoritar esta cor"
                   >
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="${ehFavCor ? "#f04e23" : "none"}" stroke="${ehFavCor ? "#f04e23" : "#64748b"}" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -5406,9 +5920,9 @@
                     </svg>
                   </button>
                   <img
-                    src="${escaparHtml(imgUrl)}"
-                    alt="${escaparHtml(nomeLimpo)}"
-                    style="filter: ${escaparHtml(imgFilter)};"
+                    src="${escaparHtml(entry.imgUrl)}"
+                    alt="${escaparHtml(`${entry.nomeLimpo} — ${entry.marcaLabel} ${entry.materialLabel}`)}"
+                    style="filter: ${escaparHtml(entry.imgFilter)};"
                     loading="lazy"
                     width="240"
                     height="240"
@@ -5419,25 +5933,26 @@
                   <button
                     type="button"
                     class="sj-fil-name-row"
-                    data-hub-open-qv="${escaparHtml(itemAtivo.id)}"
-                    data-hub-color-idx="${cor.originalIdx}"
-                    data-hub-brand="${isBambuAtivo ? "Bambu Lab" : "MaxPrint"}"
+                    data-hub-open-qv="${escaparHtml(entry.itemId)}"
+                    data-hub-color-idx="${entry.originalIdx}"
+                    data-hub-brand="${escaparHtml(entry.marcaKey)}"
                   >
-                    <span class="sj-fil-dot" style="background: ${escaparHtml(cor.hex || "#94a3b8")};" aria-hidden="true"></span>
-                    <strong class="sj-fil-name">${escaparHtml(nomeLimpo)}</strong>
+                    <span class="sj-fil-dot" style="background: ${escaparHtml(entry.cor.hex || "#94a3b8")};" aria-hidden="true"></span>
+                    <strong class="sj-fil-name">${nomeHtml}</strong>
                   </button>
+                  ${mostrarOrigemNoCard ? `<span class="sj-fil-origin-tag">${escaparHtml(originLabel)}</span>` : ""}
 
                   <div class="sj-fil-card-bottom">
-                    <strong class="sj-fil-price ${Number(cor.valor || 0) <= 0 ? "is-consulta" : ""}">${escaparHtml(precoExibir)}</strong>
+                    <strong class="sj-fil-price ${entry.precoNum <= 0 ? "is-consulta" : ""}">${escaparHtml(entry.precoExibir)}</strong>
                     ${renderInlineActionControlHtml({
-          dbProductId: corDbId,
-          itemId: itemAtivo.id,
-          corIdx: cor.originalIdx,
-          marca: isBambuAtivo ? "Bambu Lab" : "MaxPrint",
+          dbProductId: entry.dbProductId,
+          itemId: entry.itemId,
+          corIdx: entry.originalIdx,
+          marca: entry.marcaKey,
           isEsgotado: isEsg,
-          isConsulta: Number(cor.valor || 0) <= 0,
+          isConsulta: entry.precoNum <= 0,
           isQuickFilament: true,
-          itemNome: cor.nome,
+          itemNome: entry.cor.nome,
           fullWidth: true
         })}
                   </div>
@@ -5446,12 +5961,13 @@
             `;
       }).join("")}
         </div>
-        ${restantes > 0 ? `
-          <div class="sj-load-more-wrap">
-            <button type="button" class="sj-btn-load-more" id="sj-fil-load-more-btn">
-              Carregar mais ${proximoLote} (${restantes} restantes)
-            </button>
-          </div>
+        ${totalPaginas > 1 ? `
+          <nav class="sj-fil-pagination" aria-label="Paginação de filamentos">
+            <button type="button" class="sj-fil-page-btn" id="sj-fil-page-prev" ${paginaAtual <= 1 ? "disabled" : ""}>← Anterior</button>
+            <span style="font-size:0.84rem; font-weight:700; color:#475569;">Página ${paginaAtual} de ${totalPaginas}</span>
+            <button type="button" class="sj-fil-page-btn" id="sj-fil-page-next" ${paginaAtual >= totalPaginas ? "disabled" : ""}>Próxima →</button>
+            ${porPagina < 48 && totalResultados > 24 ? `<button type="button" class="sj-fil-page-btn" id="sj-fil-page-48">Mostrar 48 por página</button>` : ""}
+          </nav>
         ` : ""}
       `;
     }
@@ -5470,12 +5986,13 @@
   function vincularEventosHubFilamentos(rootEl, contexto = "catalogo") {
     if (!rootEl) return;
 
-    const reRenderizarHub = (preservarFocoBusca = false) => {
+    const reRenderizarHub = (preservarFocoBusca = false, pushUrl = false) => {
       const wrapper = rootEl.querySelector(`[data-filament-hub="${contexto}"]`);
       if (!wrapper) return;
       wrapper.outerHTML = gerarHubFilamentosHtml(contexto);
       vincularEventosHubFilamentos(rootEl, contexto);
       window.SJ_SITE_CHROME?.vincularBannerVipInterno?.(rootEl);
+      sincronizarUrlFiltrosFilamento(pushUrl);
       if (preservarFocoBusca) {
         const inp = document.getElementById("sj-fil-search-input");
         if (inp) {
@@ -5486,6 +6003,60 @@
       }
     };
 
+    const aplicarNovoTermoBusca = (novoTermo, preservarFoco = true) => {
+      const antesAtiva = analisarBuscaFilamento(state.busca).ativa;
+      const depoisAtiva = analisarBuscaFilamento(novoTermo).ativa;
+
+      if (!antesAtiva && depoisAtiva) {
+        // Salva estado anterior das abas e família de cor antes de iniciar busca global
+        state.hubFilamentoEstadoAntesBusca = {
+          marca: state.hubFilamentoMarcaAtiva,
+          mat: state.hubFilamentoMaterialMaxPrint,
+          bambu: state.hubFilamentoFiltroBambu,
+          familia: state.hubFilamentoFamiliaCor
+        };
+        state.hubFilamentoBuscaMarca = "todas";
+        state.hubFilamentoBuscaMaterial = "todos";
+        state.hubFilamentoBuscaFamilia = "todas";
+      } else if (antesAtiva && !depoisAtiva) {
+        // Restaura exatamente marca, material e família de cor escolhidos antes da busca
+        if (state.hubFilamentoEstadoAntesBusca) {
+          state.hubFilamentoMarcaAtiva = state.hubFilamentoEstadoAntesBusca.marca || "MaxPrint";
+          state.hubFilamentoMaterialMaxPrint = state.hubFilamentoEstadoAntesBusca.mat || "todos";
+          state.hubFilamentoFiltroBambu = state.hubFilamentoEstadoAntesBusca.bambu || "todos";
+          state.hubFilamentoFamiliaCor = state.hubFilamentoEstadoAntesBusca.familia || "todas";
+          state.hubFilamentoEstadoAntesBusca = null;
+        }
+        state.hubFilamentoBuscaMarca = "todas";
+        state.hubFilamentoBuscaMaterial = "todos";
+        state.hubFilamentoBuscaFamilia = "todas";
+      }
+
+      state.busca = novoTermo;
+      state.hubFilamentoPagina = 1;
+      const sGlobal = document.getElementById("global-search-input");
+      const sInline = document.getElementById("inline-search-input");
+      if (sGlobal && sGlobal.value !== state.busca) sGlobal.value = state.busca;
+      if (sInline && sInline.value !== state.busca) sInline.value = state.busca;
+      reRenderizarHub(preservarFoco, false);
+    };
+
+    if (!state.hubFilamentoAtalhoTecladoVinculado) {
+      state.hubFilamentoAtalhoTecladoVinculado = true;
+      document.addEventListener("keydown", (e) => {
+        if (e.key !== "/" || e.ctrlKey || e.metaKey || e.altKey) return;
+        if (state.categoriaMenu !== "filamentos") return;
+        const tag = String(document.activeElement?.tagName || "").toUpperCase();
+        if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+        const inp = document.getElementById("sj-fil-search-input");
+        if (inp) {
+          e.preventDefault();
+          inp.focus();
+          inp.select?.();
+        }
+      });
+    }
+
     window.SJ_SITE_CHROME?.vincularBannerVipInterno?.(rootEl);
 
     rootEl.querySelectorAll("[data-breadcrumb-go]").forEach((btn) => {
@@ -5494,45 +6065,68 @@
 
     rootEl.querySelectorAll("[data-hub-select-brand]").forEach((el) => {
       el.addEventListener("click", () => {
-        state.hubFilamentoMarcaAtiva = el.getAttribute("data-hub-select-brand") || "MaxPrint";
-        state.hubFilamentoLimiteVisivel = 24;
-        reRenderizarHub(false);
+        const pickedBrand = el.getAttribute("data-hub-select-brand") || "MaxPrint";
+        if (analisarBuscaFilamento(state.busca).ativa) {
+          state.hubFilamentoBuscaMarca = state.hubFilamentoBuscaMarca === pickedBrand ? "todas" : pickedBrand;
+          state.hubFilamentoBuscaMaterial = "todos";
+        } else {
+          state.hubFilamentoMarcaAtiva = pickedBrand;
+        }
+        state.hubFilamentoPagina = 1;
+        reRenderizarHub(false, true);
       });
     });
 
     rootEl.querySelectorAll("[data-hub-max-mat]").forEach((tabBtn) => {
       tabBtn.addEventListener("click", () => {
-        state.hubFilamentoMaterialMaxPrint = tabBtn.getAttribute("data-hub-max-mat");
-        state.hubFilamentoLimiteVisivel = 24;
-        reRenderizarHub(false);
+        const pickedMat = tabBtn.getAttribute("data-hub-max-mat") || "todos";
+        if (analisarBuscaFilamento(state.busca).ativa) {
+          state.hubFilamentoBuscaMaterial = pickedMat;
+        } else {
+          state.hubFilamentoMaterialMaxPrint = pickedMat;
+        }
+        state.hubFilamentoPagina = 1;
+        reRenderizarHub(false, true);
       });
     });
 
     rootEl.querySelectorAll("[data-hub-bambu-filter]").forEach((tabBtn) => {
       tabBtn.addEventListener("click", () => {
-        state.hubFilamentoFiltroBambu = tabBtn.getAttribute("data-hub-bambu-filter");
-        state.hubFilamentoLimiteVisivel = 24;
-        reRenderizarHub(false);
+        state.hubFilamentoFiltroBambu = tabBtn.getAttribute("data-hub-bambu-filter") || "todos";
+        state.hubFilamentoPagina = 1;
+        reRenderizarHub(false, true);
       });
     });
 
     rootEl.querySelectorAll("[data-hub-color-family]").forEach((btn) => {
       btn.addEventListener("click", () => {
-        state.hubFilamentoFamiliaCor = btn.getAttribute("data-hub-color-family") || "todas";
-        state.hubFilamentoLimiteVisivel = 24;
-        reRenderizarHub(false);
+        const pickedFam = btn.getAttribute("data-hub-color-family") || "todas";
+        if (analisarBuscaFilamento(state.busca).ativa) {
+          state.hubFilamentoBuscaFamilia = pickedFam;
+        } else {
+          state.hubFilamentoFamiliaCor = pickedFam;
+        }
+        state.hubFilamentoPagina = 1;
+        reRenderizarHub(false, true);
       });
     });
 
     rootEl.querySelector("#sj-fil-avail-toggle")?.addEventListener("change", (e) => {
       state.hubFilamentoSomenteDisponiveis = Boolean(e.target.checked);
-      state.hubFilamentoLimiteVisivel = 24;
-      reRenderizarHub(false);
+      state.hubFilamentoPagina = 1;
+      reRenderizarHub(false, true);
+    });
+
+    rootEl.querySelector("#sj-fil-show-hidden-oos")?.addEventListener("click", () => {
+      state.hubFilamentoSomenteDisponiveis = false;
+      state.hubFilamentoPagina = 1;
+      reRenderizarHub(false, true);
     });
 
     rootEl.querySelector("#sj-fil-sort-select")?.addEventListener("change", (e) => {
       state.hubFilamentoOrdenacao = e.target.value || "padrao";
-      reRenderizarHub(false);
+      state.hubFilamentoPagina = 1;
+      reRenderizarHub(false, true);
     });
 
     const searchInp = rootEl.querySelector("#sj-fil-search-input");
@@ -5541,45 +6135,60 @@
       searchInp.addEventListener("input", () => {
         clearTimeout(timerBusca);
         timerBusca = setTimeout(() => {
-          state.busca = searchInp.value || "";
-          state.hubFilamentoLimiteVisivel = 24;
-          const sGlobal = document.getElementById("global-search-input");
-          const sInline = document.getElementById("inline-search-input");
-          if (sGlobal && sGlobal.value !== state.busca) sGlobal.value = state.busca;
-          if (sInline && sInline.value !== state.busca) sInline.value = state.busca;
-          reRenderizarHub(true);
-        }, 160);
+          aplicarNovoTermoBusca(searchInp.value || "", true);
+        }, 200);
       });
     }
 
-    rootEl.querySelector("#sj-fil-search-clear")?.addEventListener("click", () => {
-      state.busca = "";
-      state.hubFilamentoLimiteVisivel = 24;
-      const sGlobal = document.getElementById("global-search-input");
-      const sInline = document.getElementById("inline-search-input");
-      if (sGlobal) sGlobal.value = "";
-      if (sInline) sInline.value = "";
-      reRenderizarHub(true);
+    const limparApenasBusca = () => {
+      aplicarNovoTermoBusca("", true);
+    };
+    rootEl.querySelector("#sj-fil-search-clear")?.addEventListener("click", limparApenasBusca);
+    rootEl.querySelector("#sj-fil-banner-clear-search")?.addEventListener("click", limparApenasBusca);
+    rootEl.querySelector("#sj-fil-empty-clear-search")?.addEventListener("click", limparApenasBusca);
+
+    rootEl.querySelectorAll("[data-hub-sugg-query]").forEach((chip) => {
+      chip.addEventListener("click", () => {
+        aplicarNovoTermoBusca(chip.getAttribute("data-hub-sugg-query") || "", false);
+      });
     });
 
     rootEl.querySelectorAll("[data-hub-reset-filters]").forEach((btn) => {
       btn.addEventListener("click", () => {
+        state.hubFilamentoEstadoAntesBusca = null;
         state.busca = "";
+        state.hubFilamentoMarcaAtiva = "MaxPrint";
+        state.hubFilamentoMaterialMaxPrint = "todos";
+        state.hubFilamentoFiltroBambu = "todos";
+        state.hubFilamentoBuscaMarca = "todas";
+        state.hubFilamentoBuscaMaterial = "todos";
+        state.hubFilamentoBuscaFamilia = "todas";
         state.hubFilamentoFamiliaCor = "todas";
         state.hubFilamentoOrdenacao = "padrao";
         state.hubFilamentoSomenteDisponiveis = true;
-        state.hubFilamentoLimiteVisivel = 24;
+        state.hubFilamentoPagina = 1;
         const sGlobal = document.getElementById("global-search-input");
         const sInline = document.getElementById("inline-search-input");
         if (sGlobal) sGlobal.value = "";
         if (sInline) sInline.value = "";
-        reRenderizarHub(false);
+        reRenderizarHub(false, true);
       });
     });
 
-    rootEl.querySelector("#sj-fil-load-more-btn")?.addEventListener("click", () => {
-      state.hubFilamentoLimiteVisivel = Number(state.hubFilamentoLimiteVisivel || 24) + 24;
-      reRenderizarHub(false);
+    rootEl.querySelector("#sj-fil-page-prev")?.addEventListener("click", () => {
+      state.hubFilamentoPagina = Math.max(1, Number(state.hubFilamentoPagina || 1) - 1);
+      reRenderizarHub(false, false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    rootEl.querySelector("#sj-fil-page-next")?.addEventListener("click", () => {
+      state.hubFilamentoPagina = Number(state.hubFilamentoPagina || 1) + 1;
+      reRenderizarHub(false, false);
+      window.scrollTo({ top: 0, behavior: "smooth" });
+    });
+    rootEl.querySelector("#sj-fil-page-48")?.addEventListener("click", () => {
+      state.hubFilamentoPorPagina = 48;
+      state.hubFilamentoPagina = 1;
+      reRenderizarHub(false, false);
     });
 
     rootEl.querySelectorAll("[data-hub-open-spec]").forEach((btn) => {
@@ -5605,6 +6214,14 @@
               <select id="sj-sheet-brand">
                 <option value="MaxPrint" ${state.hubFilamentoMarcaAtiva === "MaxPrint" ? "selected" : ""}>Masterprint (Universal)</option>
                 <option value="Bambu Lab" ${state.hubFilamentoMarcaAtiva === "Bambu Lab" ? "selected" : ""}>Bambu Lab (Chip RFID)</option>
+              </select>
+            </label>
+
+            <label class="sj-sheet-field">
+              <span>Material (Masterprint)</span>
+              <select id="sj-sheet-material">
+                <option value="todos" ${state.hubFilamentoMaterialMaxPrint === "todos" ? "selected" : ""}>Todos os materiais</option>
+                ${FILAMENTO_MATERIAIS_MASTER.map((m) => `<option value="${m.id}" ${state.hubFilamentoMaterialMaxPrint === m.id ? "selected" : ""}>${m.curto}</option>`).join("")}
               </select>
             </label>
 
@@ -5644,26 +6261,28 @@
       `;
       abrirDialogoNativo("sj-fil-filter-sheet", sheetHtml, (dlg) => {
         dlg.querySelector("#sj-sheet-reset")?.addEventListener("click", () => {
+          state.hubFilamentoMaterialMaxPrint = "todos";
           state.hubFilamentoFamiliaCor = "todas";
           state.hubFilamentoOrdenacao = "padrao";
           state.hubFilamentoSomenteDisponiveis = true;
-          state.hubFilamentoLimiteVisivel = 24;
+          state.hubFilamentoPagina = 1;
           dlg.close();
-          reRenderizarHub(false);
+          reRenderizarHub(false, true);
         });
         dlg.querySelector("#sj-sheet-apply")?.addEventListener("click", () => {
           state.hubFilamentoMarcaAtiva = dlg.querySelector("#sj-sheet-brand")?.value || "MaxPrint";
+          state.hubFilamentoMaterialMaxPrint = dlg.querySelector("#sj-sheet-material")?.value || "todos";
           state.hubFilamentoFamiliaCor = dlg.querySelector("#sj-sheet-color")?.value || "todas";
           state.hubFilamentoOrdenacao = dlg.querySelector("#sj-sheet-sort")?.value || "padrao";
           state.hubFilamentoSomenteDisponiveis = Boolean(dlg.querySelector("#sj-sheet-avail")?.checked);
-          state.hubFilamentoLimiteVisivel = 24;
+          state.hubFilamentoPagina = 1;
           dlg.close();
-          reRenderizarHub(false);
+          reRenderizarHub(false, true);
         });
       });
     });
 
-    // Favoritar cor
+    // Favoritar cor (continua liberado mesmo em produto esgotado!)
     rootEl.querySelectorAll(".fil-fav-btn[data-toggle-fav]").forEach((btn) => {
       btn.addEventListener("click", (e) => {
         e.stopPropagation();
@@ -5703,6 +6322,10 @@
         const paleta = obterPaletaPorChave(item.usaCoresDinamicas, isBambu) || [];
         const corObj = paleta[corIdx] || paleta[0];
         if (!corObj) return;
+        if ((corObj.estoqueStatus || item.estoqueStatus) === "esgotado") {
+          mostrarToast("Produto esgotado.", "warning");
+          return;
+        }
 
         const apresentacao = isBambu
           ? ((corObj.nome || "").toLowerCase().includes("refil") ? "1KG Refil RFID" : "1KG Carretel RFID")
@@ -6892,34 +7515,42 @@
       </div>
     `;
 
+    const itensEsgotadosAtual = state.itensCaixa.filter((it) => obterStatusEstoqueAtualItemCaixa(it) === "esgotado");
+    const avisoOosHtml = itensEsgotadosAtual.length > 0
+      ? `<div class="sj-cart-oos-banner" role="alert">⚠️ ${itensEsgotadosAtual.length === 1 ? "1 item do seu carrinho ficou esgotado" : `${itensEsgotadosAtual.length} itens do seu carrinho ficaram esgotados`}. Remova-o para concluir o orçamento.</div>`
+      : "";
+
     const htmlItens =
       state.itensCaixa.length === 0
         ? htmlVazio
-        : state.itensCaixa
-          .map(
-            (item, idx) => `
-        <div class="box-item-row">
+        : avisoOosHtml + state.itensCaixa
+          .map((item, idx) => {
+            const stLive = obterStatusEstoqueAtualItemCaixa(item);
+            const isOos = stLive === "esgotado";
+            return `
+        <div class="box-item-row ${isOos ? "is-oos-row" : ""}">
           <div class="box-item-left">
             <span class="box-color-dot" style="background:${item.corHex};"></span>
             <div>
-              <strong style="display:block;">${item.nome}</strong>
-              <span style="color:var(--text-muted); display:block;">${item.detalhe2}</span>
+              <strong style="display:block;">${escaparHtml(item.nome)}</strong>
+              <span style="color:var(--text-muted); display:block;">${escaparHtml(item.detalhe2)}</span>
+              ${renderizarSeloEstoqueHtml(stLive, true)}
               ${item.precoUnitario > 0
-                ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem;">${formatarMoedaBR(
+                ? `<span style="color:var(--sj-orange); font-weight:700; font-size:0.75rem; display:block;">${formatarMoedaBR(
                   item.precoUnitario * item.qtd
-                )} (${item.qtd}x ${item.precoTexto})</span>`
-                : `<span class="cart-consult-badge">Sob consulta • ${item.detalhe1}</span>`
+                )} (${item.qtd}x ${escaparHtml(item.precoTexto)})</span>`
+                : `<span class="cart-consult-badge">Sob consulta • ${escaparHtml(item.detalhe1)}</span>`
               }
             </div>
           </div>
           <div class="box-item-controls">
             <button type="button" class="box-qty-btn" data-dec="${idx}" aria-label="Diminuir quantidade">-</button>
             <strong>${item.qtd}</strong>
-            <button type="button" class="box-qty-btn" data-inc="${idx}" aria-label="Aumentar quantidade">+</button>
+            <button type="button" class="box-qty-btn" data-inc="${idx}" ${isOos ? "disabled title=\"Produto esgotado\"" : ""} aria-label="Aumentar quantidade">+</button>
           </div>
         </div>
-      `
-          )
+      `;
+          })
           .join("");
 
     [listEl, drawerListEl].forEach((container) => {
@@ -18195,17 +18826,21 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       return false;
     }
 
-    // Leitura do endereço inicial na URL (suporta ?produto=, ?categoria=, ?busca= e #hashes legados)
+    // Leitura do endereço inicial na URL (suporta ?q=, ?material=, ?produto=, ?categoria=, ?busca= e #hashes legados)
     const initialParams = new URLSearchParams(window.location.search || "");
     const paramProduto = initialParams.get("produto");
     const paramCat = initialParams.get("categoria");
     const paramBusca = initialParams.get("busca");
+    const paramFilQ = initialParams.get("q");
     const initialHash = window.location.hash || "";
 
     if (!verificarRotaAdminOuHash()) {
       if (paramProduto) {
         abrirPaginaProduto(paramProduto, null, false);
-      } else if (paramCat && ["home", "filamentos", "impressoras", "pecas", "manutencao", "catalogo", "todos"].includes(paramCat)) {
+      } else if (paramCat === "filamentos" || paramFilQ !== null || initialParams.has("material") || initialHash === "#filamentos") {
+        aplicarFiltrosFilamentoDaUrl(initialParams);
+        navegarParaCategoria("filamentos", false);
+      } else if (paramCat && ["home", "impressoras", "pecas", "manutencao", "catalogo", "todos"].includes(paramCat)) {
         navegarParaCategoria(paramCat, false);
       } else if (paramBusca && paramBusca.trim()) {
         state.busca = paramBusca.trim();
@@ -18276,6 +18911,14 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const stateObj = e.state;
       if (stateObj && stateObj.view === "pdp" && stateObj.itemId) {
         abrirPaginaProduto(stateObj.itemId, null, false);
+      } else if (qCat === "filamentos" || paramsNow.has("q") || paramsNow.has("material") || hash === "#filamentos") {
+        fecharPaginaProduto(false, false);
+        if (!aplicarFiltrosFilamentoDaUrl(paramsNow)) {
+          state.busca = "";
+          state.hubFilamentoBuscaMarca = "todas";
+          state.hubFilamentoBuscaMaterial = "todos";
+        }
+        navegarParaCategoria("filamentos", false);
       } else if (stateObj && stateObj.view === "cat" && stateObj.cat) {
         fecharPaginaProduto(false, false);
         navegarParaCategoria(stateObj.cat, false);
