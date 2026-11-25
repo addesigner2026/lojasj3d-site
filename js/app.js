@@ -5194,16 +5194,24 @@
     verde: "green",
     amarelo: "yellow",
     laranja: "orange",
-    cinza: "gray grey",
-    rosa: "pink",
+    cinza: "gray grey gris",
+    gris: "cinza claro",
+    rosa: "pink sakura",
     roxo: "purple violeta",
-    marrom: "brown",
+    marrom: "brown brownie coco",
+    brownie: "coco marrom",
+    coco: "brownie marrom",
     dourado: "gold ouro",
     prata: "silver",
     transparente: "natural clear",
     bege: "beige",
     fosco: "matte",
-    brilhante: "silk glossy"
+    brilhante: "silk glossy",
+    silk: "slik",
+    rainbow: "raibow",
+    fosforescente: "fosforecente florescente",
+    glitter: "glit glitch",
+    glitch: "glitter"
   };
 
   function expandirSinonimosCor(normTexto) {
@@ -5247,6 +5255,8 @@
       const itemProd = cat.find((p) => p.id === mat.id) || cat.find((p) => p.id === "fil-pla-maxprint") || { id: mat.id, nome: mat.curto, imagem: "assets/produtos/pla-maxprint.jpg" };
       const paleta = sd[mat.chavePaleta] || [];
       paleta.forEach((cor, idx) => {
+        if (cor.arquivado || cor.oculto || cor.metadata?.oculto) return;
+        if (mat.chavePaleta === "coresAbsEspeciais" && ["55", "80", "90", "107", "149"].includes(String(cor.cod || "").replace(/\D/g, ""))) return;
         const nomeLimpo = formatarNomeCorClean(cor.nome, mat.id);
         const { codTexto, codDigits, skuTexto } = extrairCodigoFilamento(cor);
         const fam = classificarFamiliaCorHex(cor.hex, cor.nome);
@@ -5301,6 +5311,7 @@
     const itemBambu = cat.find((p) => p.id === "fil-pla-bambulab") || { id: "fil-pla-bambulab", nome: "PLA Bambu Lab RFID", imagem: "assets/produtos/pla-bambulab.jpg" };
     const paletaBambu = sd.coresBambuLab || [];
     paletaBambu.forEach((cor, idx) => {
+      if (cor.arquivado || cor.oculto || cor.metadata?.oculto) return;
       const nomeLimpo = formatarNomeCorClean(cor.nome, "bambu");
       const { codTexto, codDigits, skuTexto } = extrairCodigoFilamento(cor);
       const fam = classificarFamiliaCorHex(cor.hex, cor.nome);
@@ -5359,7 +5370,10 @@
 
   function analisarBuscaFilamento(rawQuery) {
     const raw = String(rawQuery || "").trim();
-    const qNorm = normFilTexto(raw).replace(/^#+(?=\d)/, "").replace(/\s+#(?=\d)/g, " ");
+    const qNorm = normFilTexto(raw)
+      .replace(/\bglitch\b/g, "glitter")
+      .replace(/^#+(?=\d)/, "")
+      .replace(/\s+#(?=\d)/g, " ");
     const codMatch = qNorm.match(/^(?:cod(?:igo)?\.?\s*)?#?(\d+)$/i);
     const digitsOnly = codMatch ? codMatch[1] : qNorm.replace(/\D/g, "");
     const isNumericQuery = Boolean(codMatch);
@@ -5894,8 +5908,8 @@
             <button type="button" class="sj-empty-sugg-chip" data-hub-sugg-query="bambu">Ver Bambu Lab</button>
           </div>
           ${buscaAtiva
-        ? `<button type="button" class="sj-btn-primary" id="sj-fil-empty-clear-search">Limpar busca</button>`
-        : `<button type="button" class="sj-btn-primary" data-hub-reset-filters="1">Limpar filtros</button>`}
+          ? `<button type="button" class="sj-btn-primary" id="sj-fil-empty-clear-search">Limpar busca</button>`
+          : `<button type="button" class="sj-btn-primary" data-hub-reset-filters="1">Limpar filtros</button>`}
         </div>
       `;
     } else {
@@ -8301,7 +8315,7 @@
       .then((json) => {
         if (json && json.entrega) configLojaSeoCache = json;
       })
-      .catch(() => {});
+      .catch(() => { });
   }
 
   function limparTextoPlanoSeo(str) {
@@ -11438,9 +11452,6 @@
             <!-- CLIENTE -->
             <div class="quote-info-card">
               <div class="card-tag">CLIENTE</div>
-              <div class="card-main-title">${escaparHtml(cliente.nome || 'Cliente Balcão')}</div>
-              <div class="card-divider"></div>
-              <div class="card-field-list">
                 <div class="card-field"><strong>Documento (CPF/CNPJ)</strong> <span>${escaparHtml(cliente.cnpjCpf || 'Não informado')}</span></div>
                 <div class="card-field"><strong>Endereço</strong> <span>${escaparHtml(cliente.endereco || 'Umuarama e Região')}</span></div>
                 <div class="card-field"><strong>Cidade / UF</strong> <span>${escaparHtml(cliente.bairroCidadeUf || 'Umuarama / PR')}</span></div>
@@ -12196,16 +12207,22 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
   const cmsState = {
     abaAtiva: "inicio",
-    modoVisao: "modelos", // "modelos" (Por produto) ou "skus" (Todas as cores)
-    categoriaFiltro: "todos",
+    modoVisao: "skus", // Lista plana única (visão "Por produto" removida)
+    categoriaFiltro: "filamentos", // Abre por padrão em Filamentos
+    marcaFiltro: "todas", // "todas" | "Masterprint" | "Bambu Lab"
+    formatoBambuFiltro: "todos", // "todos" | "carretel" | "refil"
+    tipoFilamentoFiltro: "todos", // "todos" | "PLA" | "PLA Silk" | "PETG" | "TPU Flex" | "ABS" | "Glitter"
     estoqueFiltro: "todos",
+    semClassificacaoFiltro: false,
     busca: "",
+    filtrosAntesBusca: null,
     paginaSkus: 1,
-    porPaginaSkus: 25,
-    sortCol: "produto",
+    porPaginaSkus: 50,
+    sortCol: "cor",
     sortDir: "ascending",
     expandedModels: new Set(),
     selectedKeys: new Set(),
+    ultimoFiltradosKeys: [],
     pendingEdits: new Map(),
     ultimoUndoSnapshot: null,
     quotesCache: [],
@@ -15523,12 +15540,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       const paleta = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
 
       if (paleta && paleta.length > 0) {
-        // Cada cor da paleta é um produto físico / SKU real
-        totalSkus += paleta.length;
-        totalCoresFilamento += paleta.length;
-        contagemPorCat[cat] = (contagemPorCat[cat] || 0) + paleta.length;
+        const ativosPaleta = paleta.filter((c) => !c.arquivado && !c.oculto && !c.metadata?.oculto);
+        // Cada cor ativa da paleta é um produto físico / SKU real
+        totalSkus += ativosPaleta.length;
+        totalCoresFilamento += ativosPaleta.length;
+        contagemPorCat[cat] = (contagemPorCat[cat] || 0) + ativosPaleta.length;
 
-        paleta.forEach((c) => {
+        ativosPaleta.forEach((c) => {
           const st = c.estoqueStatus || p.estoqueStatus || "disponivel";
           if (st === "esgotado") out++;
           else if (st === "poucas_unidades") low++;
@@ -15566,7 +15584,44 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     document.querySelectorAll("#cat-pill-num-manutencao").forEach((el) => { el.textContent = String(modelosPorCat.manutencao || 3); });
   }
 
-  function gerarListaSkusCms() {
+  function limparNomeCorPadraoCms(nomeRaw, chavePaleta) {
+    let n = String(nomeRaw || "").trim();
+    n = n.replace(/\s*\b1\s*kg\b/gi, "");
+    n = n.replace(/\s*\(c[oó]d\.?\s*\d+\)/gi, "");
+    n = n.replace(/\bc\/\s*glitter\b/gi, "Glitter");
+    n = n.replace(/\bcom\s+glitter\b/gi, "Glitter");
+    if (chavePaleta === "coresPetg") n = n.replace(/^PETG\s+/i, "");
+    if (chavePaleta === "coresPlaSilk") n = n.replace(/^Silk\s+/i, "");
+    if (chavePaleta === "coresTpu") n = n.replace(/^TPU\s+/i, "");
+    if (chavePaleta === "coresAbsEspeciais") n = n.replace(/^(?:ABS|PLA)\s+/i, "");
+    if (chavePaleta === "coresMaxPrint") n = n.replace(/^PLA\s+/i, "");
+    if (chavePaleta === "coresBambuLab") n = n.replace(/^Refil\s+PLA\s+/i, "Refil ").replace(/^PLA\s+/i, "");
+    return n.replace(/\s{2,}/g, " ").trim() || String(nomeRaw || "").trim();
+  }
+
+  function deduzirTipoMaterialFilamentoCms(chavePaleta, cor) {
+    if (cor && cor.metadata && cor.metadata.tipo_material) return cor.metadata.tipo_material;
+    const nomeLow = String(cor?.nome || "").toLowerCase();
+    if (chavePaleta === "coresPlaSilk") return "PLA Silk";
+    if (chavePaleta === "coresPetg") return "PETG";
+    if (chavePaleta === "coresTpu") return "TPU Flex";
+    if (chavePaleta === "coresBambuLab") return "PLA";
+    if (chavePaleta === "coresAbsEspeciais") {
+      if (nomeLow.includes("abs")) return "ABS";
+      if (nomeLow.includes("glitter")) return "Glitter";
+      return "ABS";
+    }
+    return "PLA";
+  }
+
+  function deduzirFormatoBambuCms(chavePaleta, cor) {
+    if (chavePaleta !== "coresBambuLab") return null;
+    if (cor && cor.metadata && cor.metadata.formato_bambu) return cor.metadata.formato_bambu;
+    const txt = `${cor?.nome || ""} ${cor?.tipo || ""}`.toLowerCase();
+    return txt.includes("refil") ? "refil" : "carretel";
+  }
+
+  function gerarListaSkusCms(incluirOcultos = false) {
     const catalogo = window.SITE_DATA?.catalogo || [];
     const lista = [];
 
@@ -15576,8 +15631,24 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
 
       if (paletaCores && paletaCores.length > 0) {
         paletaCores.forEach((c, idx) => {
+          const codLimpoCheck = String(c.cod || "").replace(/\D/g, "");
+          const ehDuplicadoRemovidoAbs = chavePaleta === "coresAbsEspeciais" && ["55", "80", "90", "107", "149"].includes(codLimpoCheck);
+          const oculto = Boolean(ehDuplicadoRemovidoAbs || c.arquivado || c.oculto || c.metadata?.oculto);
+          if (oculto && !incluirOcultos) return;
           const precoStr = c.preco || p.precoVista || "Sob consulta";
           const precoNumVal = Number(c.valor) > 0 ? Number(c.valor) : extrairNumeroDePrecoBR(precoStr);
+          const marcaRaw = c.metadata?.marca || p.marca || "";
+          const marcaNorm = String(marcaRaw).toLowerCase() === "maxprint" ? "Masterprint" : (marcaRaw || "");
+          const tipoMaterial = deduzirTipoMaterialFilamentoCms(chavePaleta, c);
+          const formatoBambu = deduzirFormatoBambuCms(chavePaleta, c);
+          const ehGlitter = tipoMaterial === "Glitter" || /glitter/i.test(String(c.nome || ""));
+          const nomeLimpo = limparNomeCorPadraoCms(c.nome, chavePaleta);
+          const pesoStr = c.peso || "1 kg";
+          const codNum = String(c.cod || "").replace(/\D/g, "");
+          const formatoLabel = formatoBambu === "refil" ? "Só refil" : (formatoBambu === "carretel" ? "Com carretel" : "");
+          const normBase = normalizarTextoBusca(`${nomeLimpo} ${codNum} #${codNum} cod ${codNum} ${marcaNorm} ${tipoMaterial} ${formatoLabel} ${pesoStr} ${ehGlitter ? "glitter glit glitch" : ""}`);
+          const sinonimos = typeof expandirSinonimosCor === "function" ? expandirSinonimosCor(normBase) : "";
+
           lista.push({
             tipo: "cor",
             id: String(c._dbId || `${p.id}-${c.cod || idx}`),
@@ -15586,17 +15657,25 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             chavePaleta: chavePaleta,
             corIndex: idx,
             familia: p.nome,
-            nome: `${p.nome} — ${c.nome}`,
+            nome: `${p.nome} — ${nomeLimpo}`,
             modeloNome: p.nome,
-            corNome: c.nome,
-            codigo: c.cod ? `CÓD. ${c.cod}` : `COR ${idx + 1}`,
-            codNumero: String(c.cod || ""),
+            corNome: nomeLimpo,
+            nomeLimpo: nomeLimpo,
+            peso: pesoStr,
+            codigo: codNum ? `Cód. ${codNum}` : `COR ${idx + 1}`,
+            codNumero: codNum,
             corHex: c.hex || "#F04E23",
             preco: precoStr,
             precoNum: precoNumVal,
             precoParcelado: p.precoParcelado || "",
             categoria: p.categoria || "filamentos",
-            marca: (String(p.marca || "").toLowerCase() === "maxprint" ? "Masterprint" : (p.marca || "Loja SJ 3D")),
+            marca: marcaNorm || "Sem marca",
+            tipoMaterial,
+            formatoBambu,
+            ehGlitter,
+            oculto,
+            semClassificacao: !marcaNorm || !tipoMaterial || (marcaNorm === "Bambu Lab" && !formatoBambu),
+            textoBusca: `${normBase} ${sinonimos}`.trim(),
             imagem: c.imgCatalogo || p.imagem || "assets/produtos/pla-maxprint.jpg",
             estoqueStatus: c.estoqueStatus || p.estoqueStatus || "disponivel",
             qrPayload: `SJ3D:FIL:${p.id}:${c.cod || c.nome}`
@@ -15605,6 +15684,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       } else {
         const precoStr = p.precoVista || "Sob consulta";
         const precoNumVal = Number(p.precoVistaValor) > 0 ? Number(p.precoVistaValor) : extrairNumeroDePrecoBR(precoStr);
+        const marcaNorm = String(p.marca || "").toLowerCase() === "maxprint" ? "Masterprint" : (p.marca || "");
         lista.push({
           tipo: "produto",
           id: String(p.id),
@@ -15616,6 +15696,7 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           nome: p.nome,
           modeloNome: p.nome,
           corNome: null,
+          nomeLimpo: p.nome,
           codigo: p.id,
           codNumero: "",
           corHex: null,
@@ -15623,7 +15704,13 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           precoNum: precoNumVal,
           precoParcelado: p.precoParcelado || "",
           categoria: p.categoria || "pecas",
-          marca: (String(p.marca || "").toLowerCase() === "maxprint" ? "Masterprint" : (p.marca || "Loja SJ 3D")),
+          marca: marcaNorm || "Loja SJ 3D",
+          tipoMaterial: null,
+          formatoBambu: null,
+          ehGlitter: false,
+          oculto: false,
+          semClassificacao: false,
+          textoBusca: normalizarTextoBusca(`${p.nome} ${p.subtitulo || ""} ${marcaNorm} ${p.id}`),
           imagem: p.imagem || "assets/produtos/impressora-a1_mini.jpg",
           estoqueStatus: p.estoqueStatus || "disponivel",
           qrPayload: `SJ3D:PROD:${p.id}`
@@ -15739,15 +15826,11 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       }
     }
 
-    if (btnSelectModelColors) {
-      let temModeloComCoresSelecionado = false;
-      for (const key of cmsState.selectedKeys) {
-        if (key.startsWith("cor:")) {
-          temModeloComCoresSelecionado = true;
-          break;
-        }
-      }
-      btnSelectModelColors.style.display = temModeloComCoresSelecionado ? "inline-flex" : "none";
+    const btnSelectFiltered = document.getElementById("btn-cms-bulk-select-filtered");
+    if (btnSelectFiltered) {
+      const totalFiltrados = Array.isArray(cmsState.ultimoFiltradosKeys) ? cmsState.ultimoFiltradosKeys.length : 0;
+      btnSelectFiltered.style.display = totalFiltrados > 0 ? "inline-flex" : "none";
+      btnSelectFiltered.textContent = `Selecionar todas do filtro atual (${totalFiltrados})`;
     }
 
     if (btnSave) {
@@ -15926,385 +16009,339 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     };
 
     if (isStandaloneAdmin) {
-      if (isSkusMode) {
-        // ============================================================
-        // VISÃO "TODAS AS CORES": TABELA ORDENÁVEL E PAGINADA
-        // ============================================================
-        const todosSkus = gerarListaSkusCms();
-        const filtrados = todosSkus.filter((item) => {
-          if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
-            return false;
+      const skusTodos = gerarListaSkusCms(false);
+      const isFilamentosTab = cmsState.categoriaFiltro === "filamentos";
+      const parsedBusca = analisarBuscaFilamento(cmsState.busca || "");
+      const buscaAtiva = parsedBusca.ativa;
+
+      // Sincroniza visual do alternador "Por produto" / "Todos os itens"
+      document.querySelectorAll("[data-cms-view-mode]").forEach((b) => {
+        const ativo = b.dataset.cmsViewMode === cmsState.modoVisao;
+        b.classList.toggle("active", ativo);
+        b.setAttribute("aria-pressed", String(ativo));
+      });
+
+      // Contagem de códigos repetidos ativos (sem apagar nada)
+      const mapaDuplicados = new Map();
+      skusTodos.forEach((s) => {
+        if (s.codNumero) {
+          if (!mapaDuplicados.has(s.codNumero)) mapaDuplicados.set(s.codNumero, []);
+          mapaDuplicados.get(s.codNumero).push(s);
+        }
+      });
+      const gruposDuplicados = Array.from(mapaDuplicados.entries()).filter(([, arr]) => arr.length > 1);
+      const btnDupes = document.getElementById("btn-cms-review-dupes");
+      const cntDupes = document.getElementById("cms-dupes-count");
+      if (btnDupes) btnDupes.style.display = gruposDuplicados.length > 0 ? "inline-flex" : "none";
+      if (cntDupes) cntDupes.textContent = String(gruposDuplicados.length);
+
+      const codigoRepetido = (codigo) => (codigo && (mapaDuplicados.get(String(codigo))?.length || 0) > 1)
+        ? '<span class="cms-catalog-code-warning">Código repetido</span>'
+        : "";
+
+      const getStatusEfetivo = (item) => {
+        const key = obterChaveItemCatalogoCms(item);
+        const pending = cmsState.pendingEdits.get(key) || {};
+        return pending.estoqueStatus || item.estoqueStatus || "disponivel";
+      };
+
+      // Busca exata por código para "90", "Cód. 90", "#90"; e busca completa por nome/cor/marca/sinônimos ("glit", "glitch")
+      const correspondeBuscaAdmin = (item) => {
+        if (!buscaAtiva) return true;
+        if (parsedBusca.isNumericQuery && parsedBusca.digitsOnly) {
+          return String(item.codNumero || "") === parsedBusca.digitsOnly;
+        }
+        return parsedBusca.tokens.every((t) => {
+          if (/^\d+$/.test(t) && item.codNumero) {
+            return String(item.codNumero) === t;
           }
-          const key = obterChaveItemCatalogoCms(item);
-          const pending = cmsState.pendingEdits.get(key) || {};
-          const st = pending.estoqueStatus || item.estoqueStatus || "disponivel";
-          if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) {
-            return false;
-          }
-          if (termo) {
-            const texto = normalizarTextoBusca(`${item.nome || ""} ${item.modeloNome || ""} ${item.corNome || ""} ${item.codigo || ""} ${item.marca || ""} ${item.id || ""}`);
-            const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
-            if (!termos.every((t) => texto.includes(t))) return false;
-          }
+          return item.textoBusca.includes(t);
+        });
+      };
+
+      // Atualiza abas de categoria e visibilidade dos filtros exclusivos de Filamentos
+      document.querySelectorAll(".cms-cat-tab[data-cms-cat]").forEach((tab) => {
+        const ativo = tab.dataset.cmsCat === cmsState.categoriaFiltro;
+        tab.classList.toggle("active", ativo);
+        tab.setAttribute("aria-selected", String(ativo));
+      });
+
+      const brandGroup = document.getElementById("cms-brand-filter-group");
+      const formatGroup = document.getElementById("cms-bambu-format-group");
+      const typeRow = document.getElementById("cms-filament-type-row");
+      if (brandGroup) {
+        brandGroup.style.display = isFilamentosTab ? "inline-flex" : "none";
+        brandGroup.classList.toggle("is-suspended", buscaAtiva);
+      }
+      if (typeRow) {
+        typeRow.style.display = isFilamentosTab ? "flex" : "none";
+        typeRow.classList.toggle("is-suspended", buscaAtiva);
+      }
+      if (formatGroup) {
+        const mostrarFmt = isFilamentosTab && !buscaAtiva && cmsState.marcaFiltro === "Bambu Lab";
+        formatGroup.style.display = mostrarFmt ? "inline-flex" : "none";
+      }
+
+      // Base da categoria ativa ("todos" inclui todas as 4 categorias)
+      const skusCategoria = cmsState.categoriaFiltro === "todos"
+        ? skusTodos
+        : skusTodos.filter((s) => s.categoria === cmsState.categoriaFiltro);
+
+      // Atualiza contagens dos filtros de Filamentos
+      if (isFilamentosTab) {
+        const baseMarca = buscaAtiva ? skusCategoria.filter(correspondeBuscaAdmin) : skusCategoria;
+        const setTxt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+        setTxt("cms-cnt-brand-todas", baseMarca.length);
+        setTxt("cms-cnt-brand-master", baseMarca.filter((s) => s.marca === "Masterprint").length);
+        setTxt("cms-cnt-brand-bambu", baseMarca.filter((s) => s.marca === "Bambu Lab").length);
+
+        const baseBambu = baseMarca.filter((s) => s.marca === "Bambu Lab");
+        setTxt("cms-cnt-fmt-todos", baseBambu.length);
+        setTxt("cms-cnt-fmt-carretel", baseBambu.filter((s) => s.formatoBambu === "carretel").length);
+        setTxt("cms-cnt-fmt-refil", baseBambu.filter((s) => s.formatoBambu === "refil").length);
+
+        const baseTipo = baseMarca.filter((s) => {
+          if (buscaAtiva) return true;
+          if (cmsState.marcaFiltro !== "todas" && s.marca !== cmsState.marcaFiltro) return false;
+          if (cmsState.marcaFiltro === "Bambu Lab" && cmsState.formatoBambuFiltro !== "todos" && s.formatoBambu !== cmsState.formatoBambuFiltro) return false;
           return true;
         });
-
-        const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
-        const dirFactor = cmsState.sortDir === "descending" ? -1 : 1;
-        const ordenados = [...filtrados].sort((a, b) => {
-          const ka = obterChaveItemCatalogoCms(a);
-          const kb = obterChaveItemCatalogoCms(b);
-          const pa = cmsState.pendingEdits.get(ka) || {};
-          const pb = cmsState.pendingEdits.get(kb) || {};
-          if (cmsState.sortCol === "preco") {
-            const va = extrairNumeroDePrecoBR(pa.preco !== undefined ? pa.preco : a.preco);
-            const vb = extrairNumeroDePrecoBR(pb.preco !== undefined ? pb.preco : b.preco);
-            return dirFactor * (va - vb);
-          }
-          if (cmsState.sortCol === "cor") {
-            return dirFactor * collator.compare(a.corNome || "—", b.corNome || "—");
-          }
-          if (cmsState.sortCol === "codigo") {
-            return dirFactor * collator.compare(a.codNumero || a.codigo || "", b.codNumero || b.codigo || "");
-          }
-          if (cmsState.sortCol === "status") {
-            const sa = statusTextMap[pa.estoqueStatus || a.estoqueStatus || "disponivel"] || "";
-            const sb = statusTextMap[pb.estoqueStatus || b.estoqueStatus || "disponivel"] || "";
-            return dirFactor * collator.compare(sa, sb);
-          }
-          return dirFactor * collator.compare(a.modeloNome || a.nome || "", b.modeloNome || b.nome || "");
+        setTxt("cms-cnt-type-todos", baseTipo.length);
+        ["PLA", "PLA Silk", "PETG", "TPU Flex", "ABS"].forEach((t) => {
+          setTxt(`cms-cnt-type-${t}`, baseTipo.filter((s) => s.tipoMaterial === t).length);
         });
+        setTxt("cms-cnt-type-Glitter", baseTipo.filter((s) => s.ehGlitter).length);
+      }
 
-        const totalItens = ordenados.length;
-        const porPagina = cmsState.porPaginaSkus || 25;
-        const totalPaginas = Math.max(1, Math.ceil(totalItens / porPagina));
-        if (cmsState.paginaSkus > totalPaginas) cmsState.paginaSkus = totalPaginas;
-        if (cmsState.paginaSkus < 1) cmsState.paginaSkus = 1;
-
-        if (totalItens === 0) {
-          grid.innerHTML = `<div class="cms-section-card" style="text-align:center; padding:40px 20px; color:#64748b;">Nenhum item encontrado para este filtro.</div>`;
-          if (pagBar) pagBar.style.display = "none";
-          atualizarBarraLoteCatalogoCms();
-          return;
-        }
-
-        const inicioIdx = (cmsState.paginaSkus - 1) * porPagina;
-        const paginaItens = ordenados.slice(inicioIdx, inicioIdx + porPagina);
-        const todosPaginaSelecionados = paginaItens.every((s) => cmsState.selectedKeys.has(obterChaveItemCatalogoCms(s)));
-
-        const sortAttr = (col) => (cmsState.sortCol === col ? `aria-sort="${cmsState.sortDir}"` : "");
-
-        grid.innerHTML = `
-          <div id="cms-table-sort-status" role="status" class="sr-only-live"></div>
-          <div tabindex="0" role="region" aria-label="Tabela de cores e produtos" class="cms-table-wrapper">
-            <table class="cms-catalog-table" id="cms-skus-table">
-              <caption>Catálogo completo por cor e produto</caption>
-              <thead>
-                <tr>
-                  <th scope="col" style="width:38px;"><input type="checkbox" id="cms-skus-select-page" class="cms-row-checkbox" ${todosPaginaSelecionados ? "checked" : ""} aria-label="Selecionar todos desta página" /></th>
-                  <th scope="col" ${sortAttr("produto")}><button type="button" class="cms-sort-btn" data-sort-col="produto">Produto</button></th>
-                  <th scope="col" ${sortAttr("cor")}><button type="button" class="cms-sort-btn" data-sort-col="cor">Cor</button></th>
-                  <th scope="col" ${sortAttr("codigo")}><button type="button" class="cms-sort-btn" data-sort-col="codigo">Código</button></th>
-                  <th scope="col" data-type="number" ${sortAttr("preco")}><button type="button" class="cms-sort-btn" data-sort-col="preco">Preço</button></th>
-                  <th scope="col" ${sortAttr("status")}><button type="button" class="cms-sort-btn" data-sort-col="status">Status</button></th>
-                  <th scope="col" style="text-align:right;">Ações</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${paginaItens.map((sku) => {
-          const key = obterChaveItemCatalogoCms(sku);
-          const pending = cmsState.pendingEdits.get(key) || {};
-          const statusEst = pending.estoqueStatus || sku.estoqueStatus || "disponivel";
-          const precoExib = pending.preco !== undefined ? pending.preco : (sku.preco || "Sob consulta");
-          const checked = cmsState.selectedKeys.has(key);
-          const isDirty = cmsState.pendingEdits.has(key);
-
-          return `
-                    <tr class="${isDirty ? "is-pending-edit" : ""}">
-                      <td>
-                        <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${checked ? "checked" : ""} aria-label="Selecionar ${escaparHtml(sku.nome)}" />
-                      </td>
-                      <td data-label="Produto">
-                        <div style="display:flex; align-items:center; gap:10px;">
-                          <img src="${escaparHtml(sku.imagem || "assets/produtos/pla-maxprint.jpg")}" alt="" class="cms-model-thumb" style="width:34px; height:34px;" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
-                          <div>
-                            <div style="font-weight:700; color:#0f172a;">${escaparHtml(sku.modeloNome || sku.nome)}</div>
-                            <div style="font-size:0.74rem; color:#64748b;">${escaparHtml(nomesCat[sku.categoria] || sku.categoria)}</div>
-                          </div>
-                        </div>
-                      </td>
-                      <td data-label="Cor">
-                        ${sku.corNome ? `
-                          <span style="display:inline-flex; align-items:center; gap:7px;">
-                            <span class="cms-color-dot" style="background:${escaparHtml(sku.corHex || "#cbd5e1")};"></span>
-                            <span>${escaparHtml(sku.corNome)}</span>
-                          </span>
-                        ` : `<span style="color:#94a3b8;">Único</span>`}
-                      </td>
-                      <td data-label="Código" style="font-family:ui-monospace, monospace; font-size:0.78rem; color:#475569;">${escaparHtml(sku.codigo || "—")}</td>
-                      <td data-label="Preço" style="font-weight:700; font-variant-numeric:tabular-nums;">
-                        ${escaparHtml(precoExib)}
-                        ${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}
-                      </td>
-                      <td data-label="Status">
-                        <select class="cms-quick-stock-select stock-${escaparHtml(statusEst)}"
-                          data-cms-quick-stock="${escaparHtml(sku.id)}"
-                          data-cms-stock-tipo="${escaparHtml(sku.tipo)}"
-                          data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || "")}"
-                          data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}"
-                          aria-label="Status de ${escaparHtml(sku.nome)}">
-                          <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
-                          <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
-                          <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
-                        </select>
-                      </td>
-                      <td data-label="Ações" style="text-align:right; white-space:nowrap;">
-                        <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(sku.produtoId)}" data-cms-focus-cor="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}">Editar</button>
-                      </td>
-                    </tr>
-                  `;
-        }).join("")}
-              </tbody>
-            </table>
-          </div>
-        `;
-
-        if (pagBar) {
-          pagBar.style.display = totalItens > porPagina ? "flex" : "none";
-          const fimIdx = Math.min(totalItens, inicioIdx + paginaItens.length);
-          pagBar.innerHTML = `
-            <span>Mostrando <strong>${inicioIdx + 1}–${fimIdx}</strong> de <strong>${totalItens}</strong> itens</span>
-            <div class="cms-pagination-btns">
-              <button type="button" class="btn-cms-secondary" id="btn-cms-page-prev" ${cmsState.paginaSkus <= 1 ? "disabled" : ""}>Anterior</button>
-              <span>Página ${cmsState.paginaSkus} de ${totalPaginas}</span>
-              <button type="button" class="btn-cms-secondary" id="btn-cms-page-next" ${cmsState.paginaSkus >= totalPaginas ? "disabled" : ""}>Próxima</button>
-            </div>
-          `;
-          document.getElementById("btn-cms-page-prev")?.addEventListener("click", () => {
-            if (cmsState.paginaSkus > 1) {
-              cmsState.paginaSkus--;
-              renderizarListaProdutosCms();
+      const posFiltrosSemStatus = skusCategoria.filter((item) => {
+        if (!correspondeBuscaAdmin(item)) return false;
+        if (isFilamentosTab && !buscaAtiva) {
+          if (cmsState.marcaFiltro !== "todas" && item.marca !== cmsState.marcaFiltro) return false;
+          if (cmsState.marcaFiltro === "Bambu Lab" && cmsState.formatoBambuFiltro !== "todos" && item.formatoBambu !== cmsState.formatoBambuFiltro) return false;
+          if (cmsState.tipoFilamentoFiltro !== "todos") {
+            if (cmsState.tipoFilamentoFiltro === "Glitter") {
+              if (!item.ehGlitter) return false;
+            } else if (item.tipoMaterial !== cmsState.tipoFilamentoFiltro) {
+              return false;
             }
-          });
-          document.getElementById("btn-cms-page-next")?.addEventListener("click", () => {
-            if (cmsState.paginaSkus < totalPaginas) {
-              cmsState.paginaSkus++;
-              renderizarListaProdutosCms();
-            }
-          });
+          }
         }
+        if (cmsState.semClassificacaoFiltro && !item.semClassificacao) return false;
+        return true;
+      });
 
-        grid.querySelector("#cms-skus-select-page")?.addEventListener("change", (e) => {
-          const marcar = e.target.checked;
-          paginaItens.forEach((s) => {
-            const k = obterChaveItemCatalogoCms(s);
-            if (marcar) cmsState.selectedKeys.add(k);
-            else cmsState.selectedKeys.delete(k);
-          });
-          renderizarListaProdutosCms();
-        });
+      // Contagens de status
+      const setTxtSt = (id, v) => { const el = document.getElementById(id); if (el) el.textContent = String(v); };
+      setTxtSt("cms-cnt-st-todos", posFiltrosSemStatus.length);
+      setTxtSt("cms-cnt-st-disponivel", posFiltrosSemStatus.filter((s) => getStatusEfetivo(s) === "disponivel").length);
+      setTxtSt("cms-cnt-st-poucas", posFiltrosSemStatus.filter((s) => getStatusEfetivo(s) === "poucas_unidades").length);
+      setTxtSt("cms-cnt-st-esgotado", posFiltrosSemStatus.filter((s) => getStatusEfetivo(s) === "esgotado").length);
 
-        grid.querySelectorAll("[data-sort-col]").forEach((btn) => {
+      const qtdSemClass = skusCategoria.filter((s) => s.semClassificacao).length;
+      const btnSemClass = document.getElementById("btn-cms-unclassified-chip");
+      if (btnSemClass) {
+        btnSemClass.style.display = qtdSemClass > 0 ? "inline-flex" : "none";
+        btnSemClass.classList.toggle("active", Boolean(cmsState.semClassificacaoFiltro));
+        setTxtSt("cms-cnt-unclassified", qtdSemClass);
+      }
+
+      document.querySelectorAll("[data-cms-brand]").forEach((b) => b.classList.toggle("active", b.dataset.cmsBrand === cmsState.marcaFiltro));
+      document.querySelectorAll("[data-cms-format]").forEach((b) => b.classList.toggle("active", b.dataset.cmsFormat === cmsState.formatoBambuFiltro));
+      document.querySelectorAll("[data-cms-fil-type]").forEach((b) => b.classList.toggle("active", b.dataset.cmsFilType === cmsState.tipoFilamentoFiltro));
+      document.querySelectorAll("[data-cms-stock-chip]").forEach((b) => b.classList.toggle("active", b.dataset.cmsStockChip === cmsState.estoqueFiltro));
+
+      const filtrados = posFiltrosSemStatus.filter((item) => {
+        if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && getStatusEfetivo(item) !== cmsState.estoqueFiltro) {
+          return false;
+        }
+        return true;
+      });
+
+      const bannerBusca = document.getElementById("cms-search-global-banner");
+      const bannerBuscaTxt = document.getElementById("cms-search-global-text");
+      const clearX = document.getElementById("cms-search-clear-btn");
+      const kbdHint = document.getElementById("cms-search-kbd-hint");
+      if (clearX) clearX.hidden = !cmsState.busca;
+      if (kbdHint) kbdHint.style.display = cmsState.busca ? "none" : "inline-flex";
+      if (bannerBusca) {
+        bannerBusca.hidden = !buscaAtiva;
+        if (buscaAtiva && bannerBuscaTxt) {
+          bannerBuscaTxt.textContent = `Busca para "${parsedBusca.raw}" — ${filtrados.length} ${filtrados.length === 1 ? "resultado" : "resultados"}`;
+        }
+      }
+
+      // Chips de filtros ativos
+      const activeChips = [];
+      if (buscaAtiva) activeChips.push({ key: "busca", label: `Busca: "${parsedBusca.raw}"` });
+      if (isFilamentosTab && !buscaAtiva && cmsState.marcaFiltro !== "todas") activeChips.push({ key: "marca", label: `Marca: ${cmsState.marcaFiltro}` });
+      if (isFilamentosTab && !buscaAtiva && cmsState.marcaFiltro === "Bambu Lab" && cmsState.formatoBambuFiltro !== "todos") {
+        activeChips.push({ key: "formato", label: `Formato: ${cmsState.formatoBambuFiltro === "refil" ? "Só refil" : "Com carretel"}` });
+      }
+      if (isFilamentosTab && !buscaAtiva && cmsState.tipoFilamentoFiltro !== "todos") activeChips.push({ key: "tipo", label: `Tipo: ${cmsState.tipoFilamentoFiltro}` });
+      if (cmsState.estoqueFiltro !== "todos") activeChips.push({ key: "status", label: `Status: ${statusTextMap[cmsState.estoqueFiltro] || cmsState.estoqueFiltro}` });
+      if (cmsState.semClassificacaoFiltro) activeChips.push({ key: "semClass", label: "Sem classificação" });
+
+      const chipsEl = document.getElementById("cms-active-filter-chips");
+      if (chipsEl) {
+        chipsEl.innerHTML = activeChips.map((ch) => `
+          <span class="cms-active-pill">
+            ${escaparHtml(ch.label)}
+            <button type="button" data-remove-filter="${escaparHtml(ch.key)}" aria-label="Remover filtro ${escaparHtml(ch.label)}">×</button>
+          </span>
+        `).join("");
+        chipsEl.querySelectorAll("[data-remove-filter]").forEach((btn) => {
           btn.addEventListener("click", () => {
-            const col = btn.dataset.sortCol;
-            if (cmsState.sortCol === col) {
-              cmsState.sortDir = cmsState.sortDir === "ascending" ? "descending" : "ascending";
-            } else {
-              cmsState.sortCol = col;
-              cmsState.sortDir = "ascending";
-            }
+            const k = btn.dataset.removeFilter;
+            if (k === "busca") { limparBuscaAdminRestaurandoFiltros(); return; }
+            if (k === "marca") { cmsState.marcaFiltro = "todas"; cmsState.formatoBambuFiltro = "todos"; }
+            if (k === "formato") cmsState.formatoBambuFiltro = "todos";
+            if (k === "tipo") cmsState.tipoFilamentoFiltro = "todos";
+            if (k === "status") cmsState.estoqueFiltro = "todos";
+            if (k === "semClass") cmsState.semClassificacaoFiltro = false;
             cmsState.paginaSkus = 1;
             renderizarListaProdutosCms();
           });
         });
+      }
 
-      } else {
+      const limpar = document.getElementById("cms-catalog-clear-filters");
+      if (limpar) limpar.hidden = activeChips.length === 0;
+
+      const resultado = document.getElementById("cms-catalog-results");
+      cmsState.ultimoFiltradosKeys = filtrados.map((item) => obterChaveItemCatalogoCms(item));
+
+      if (!isSkusMode) {
         // ============================================================
-        // VISÃO PADRÃO "POR PRODUTO": 1 LINHA COMPACTA POR MODELO + EXPANSÃO
+        // VISÃO "POR PRODUTO": AGRUPADA POR CATEGORIA (RECOLHIDA AO ABRIR)
         // ============================================================
         if (pagBar) pagBar.style.display = "none";
-        const filtrados = catalogo.filter((item) => {
-          if (cmsState.categoriaFiltro !== "todos" && item.categoria !== cmsState.categoriaFiltro) {
-            return false;
+        const gruposCat = new Map([
+          ["filamentos", { titulo: "Filamentos", itens: [] }],
+          ["impressoras", { titulo: "Impressoras 3D", itens: [] }],
+          ["pecas", { titulo: "Peças e Acessórios", itens: [] }],
+          ["manutencao", { titulo: "Serviços e Manutenção", itens: [] }]
+        ]);
+
+        const porProduto = new Map();
+        filtrados.forEach((sku) => {
+          if (!porProduto.has(sku.produtoId)) {
+            const prodObj = catalogo.find((p) => p.id === sku.produtoId) || { id: sku.produtoId, nome: sku.modeloNome, categoria: sku.categoria, marca: sku.marca, imagem: sku.imagem, precoVista: sku.preco };
+            porProduto.set(sku.produtoId, { p: prodObj, chavePaleta: sku.chavePaleta, subItems: [] });
           }
-          const chavePaleta = item.tipoFilamento ? mapearChavePaletaSiteData(item.usaCoresDinamicas) : null;
-          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
-          if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos") {
-            if (paletaCores && paletaCores.length > 0) {
-              const temCorNoStatus = paletaCores.some((c, idx) => {
-                const k = `cor:${chavePaleta}:${idx}`;
-                const st = cmsState.pendingEdits.get(k)?.estoqueStatus || c.estoqueStatus || item.estoqueStatus || "disponivel";
-                return st === cmsState.estoqueFiltro;
-              });
-              if (!temCorNoStatus) return false;
-            } else {
-              const k = `prod:${item.id}`;
-              const st = cmsState.pendingEdits.get(k)?.estoqueStatus || item.estoqueStatus || "disponivel";
-              if (st !== cmsState.estoqueFiltro) return false;
-            }
-          }
-          if (termo) {
-            const coresTexto = paletaCores ? paletaCores.map((c) => `${c.nome || ""} ${c.cod || ""}`).join(" ") : "";
-            const texto = normalizarTextoBusca(`${item.nome || ""} ${item.subtitulo || ""} ${item.marca || ""} ${item.id || ""} ${coresTexto}`);
-            const termos = normalizarTextoBusca(termo).split(/\s+/).filter(Boolean);
-            if (!termos.every((t) => texto.includes(t))) return false;
-          }
-          return true;
+          porProduto.get(sku.produtoId).subItems.push(sku);
         });
 
-        if (filtrados.length === 0) {
-          grid.innerHTML = `<div class="cms-section-card" style="text-align:center; padding:40px 20px; color:#64748b;">Nenhum produto encontrado para este filtro.</div>`;
+        porProduto.forEach((entry) => {
+          const cat = entry.p.categoria || "pecas";
+          if (!gruposCat.has(cat)) gruposCat.set(cat, { titulo: nomesCat[cat] || cat, itens: [] });
+          gruposCat.get(cat).itens.push(entry);
+        });
+
+        const gruposVisiveis = Array.from(gruposCat.entries()).filter(([, g]) => g.itens.length > 0);
+        const totalModelosVisiveis = gruposVisiveis.reduce((acc, [, g]) => acc + g.itens.length, 0);
+        if (resultado) {
+          resultado.textContent = `Mostrando ${filtrados.length} ${filtrados.length === 1 ? "item" : "itens"} em ${totalModelosVisiveis} ${totalModelosVisiveis === 1 ? "produto" : "produtos"}`;
+        }
+
+        if (gruposVisiveis.length === 0) {
+          grid.innerHTML = `<div class="cms-section-card" style="text-align:center; padding:36px 20px; color:#64748b;">Nenhum produto encontrado para estes filtros.</div>`;
           atualizarBarraLoteCatalogoCms();
           return;
         }
 
-        grid.innerHTML = filtrados.map((p) => {
-          const chavePaleta = p.tipoFilamento ? mapearChavePaletaSiteData(p.usaCoresDinamicas) : null;
-          const paletaCores = chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta]) ? window.SITE_DATA[chavePaleta] : null;
-          const qtdCores = paletaCores ? paletaCores.length : 0;
-          const expanded = Boolean(cmsState.expandedModels.has(p.id) || (termo && qtdCores > 0));
+        const autoExpand = buscaAtiva || cmsState.estoqueFiltro !== "todos";
 
-          let faixaPreco = p.precoVista || "Sob consulta";
-          let resumoEstoqueHtml = "";
-          let checkedModelo = false;
-          let indeterminateModelo = false;
-          let temPendenciaModelo = false;
+        grid.innerHTML = gruposVisiveis.map(([, grupo]) => `
+          <div class="cms-model-list-card">
+            <div class="cms-category-group-head">
+              <strong>${escaparHtml(grupo.titulo)}</strong>
+              <span>${grupo.itens.length} ${grupo.itens.length === 1 ? "produto" : "produtos"}</span>
+            </div>
+            ${grupo.itens.map(({ p, chavePaleta, subItems }) => {
+          const temCores = Boolean(chavePaleta);
+          const expanded = temCores && (cmsState.expandedModels.has(p.id) !== autoExpand);
+          const qtdCores = subItems.length;
+          const selectedCount = subItems.filter((s) => cmsState.selectedKeys.has(obterChaveItemCatalogoCms(s))).length;
+          const checkedModelo = qtdCores > 0 && selectedCount === qtdCores;
+          const indeterminateModelo = selectedCount > 0 && selectedCount < qtdCores;
+          const minP = Math.min(...subItems.map((s) => s.precoNum || Infinity));
+          const maxP = Math.max(...subItems.map((s) => s.precoNum || 0));
+          const faixaPreco = temCores
+            ? (minP !== Infinity && maxP > minP ? `${formatarMoedaBR(minP)} – ${formatarMoedaBR(maxP)}` : (minP !== Infinity ? formatarMoedaBR(minP) : "Sob consulta"))
+            : (subItems[0]?.preco || p.precoVista || "Sob consulta");
 
-          if (qtdCores > 0 && paletaCores) {
-            let disp = 0;
-            let poucas = 0;
-            let esg = 0;
-            let minP = Infinity;
-            let maxP = 0;
-            let selectedCount = 0;
-
-            paletaCores.forEach((c, idx) => {
-              const k = `cor:${chavePaleta}:${idx}`;
-              const pend = cmsState.pendingEdits.get(k);
-              if (pend) temPendenciaModelo = true;
-              if (cmsState.selectedKeys.has(k)) selectedCount++;
-              const st = pend?.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
-              if (st === "esgotado") esg++;
-              else if (st === "poucas_unidades") poucas++;
-              else disp++;
-
-              const numP = extrairNumeroDePrecoBR(pend?.preco !== undefined ? pend.preco : (c.preco || p.precoVista));
-              if (numP > 0) {
-                if (numP < minP) minP = numP;
-                if (numP > maxP) maxP = numP;
-              }
-            });
-
-            checkedModelo = selectedCount === qtdCores;
-            indeterminateModelo = selectedCount > 0 && selectedCount < qtdCores;
-            if (minP !== Infinity && maxP > minP) {
-              faixaPreco = `${formatarMoedaBR(minP)} – ${formatarMoedaBR(maxP)}`;
-            } else if (minP !== Infinity) {
-              faixaPreco = formatarMoedaBR(minP);
-            }
-
-            const partes = [];
-            if (disp > 0) partes.push(`${disp} ${disp === 1 ? "disponível" : "disponíveis"}`);
-            if (poucas > 0) partes.push(`${poucas} ${poucas === 1 ? "baixa" : "baixas"}`);
-            if (esg > 0) partes.push(`${esg} ${esg === 1 ? "esgotada" : "esgotadas"}`);
-            resumoEstoqueHtml = `<span>${partes.join(" · ")}</span>`;
-          } else {
-            const k = `prod:${p.id}`;
-            const pend = cmsState.pendingEdits.get(k);
-            if (pend) temPendenciaModelo = true;
-            checkedModelo = cmsState.selectedKeys.has(k);
-            const statusEst = pend?.estoqueStatus || p.estoqueStatus || "disponivel";
-            if (pend?.preco !== undefined) faixaPreco = pend.preco;
-            resumoEstoqueHtml = `
-              <select class="cms-quick-stock-select stock-${escaparHtml(statusEst)}"
-                data-cms-quick-stock="${escaparHtml(p.id)}"
-                data-cms-stock-tipo="produto"
-                aria-label="Status de ${escaparHtml(p.nome)}">
-                <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
-                <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
-                <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
-              </select>
-            `;
-          }
-
-          const thumbUrl = p.imagem || (paletaCores && paletaCores[0] && paletaCores[0].imgCatalogo) || "assets/produtos/pla-maxprint.jpg";
-          let subRowsHtml = "";
-          if (qtdCores > 0 && expanded && paletaCores) {
-            const subItems = paletaCores
-              .map((c, idx) => ({ c, idx }))
-              .filter(({ c, idx }) => {
-                const k = `cor:${chavePaleta}:${idx}`;
-                const st = cmsState.pendingEdits.get(k)?.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
-                if (cmsState.estoqueFiltro && cmsState.estoqueFiltro !== "todos" && st !== cmsState.estoqueFiltro) return false;
-                if (termo) {
-                  const tFull = normalizarTextoBusca(`${p.nome} ${c.nome || ""} ${c.cod || ""}`);
-                  return normalizarTextoBusca(termo).split(/\s+/).filter(Boolean).every((t) => tFull.includes(t));
-                }
-                return true;
-              });
-
-            subRowsHtml = `
-              <div class="cms-model-colors-drawer">
-                ${subItems.map(({ c, idx }) => {
-              const key = `cor:${chavePaleta}:${idx}`;
-              const pend = cmsState.pendingEdits.get(key) || {};
-              const stCor = pend.estoqueStatus || c.estoqueStatus || p.estoqueStatus || "disponivel";
-              const precoCor = pend.preco !== undefined ? pend.preco : (c.preco || p.precoVista || "Sob consulta");
-              const isDirty = cmsState.pendingEdits.has(key);
+          let subLinhasHtml = "";
+          if (expanded && temCores) {
+            subLinhasHtml = `
+                  <div class="cms-model-subrows">
+                    ${subItems.map((sku) => {
+              const kCor = obterChaveItemCatalogoCms(sku);
+              const pend = cmsState.pendingEdits.get(kCor) || {};
+              const stCor = pend.estoqueStatus || sku.estoqueStatus || "disponivel";
+              const precoCor = pend.preco !== undefined ? pend.preco : (sku.preco || "Sob consulta");
+              const isSel = cmsState.selectedKeys.has(kCor);
+              const isDirty = cmsState.pendingEdits.has(kCor);
               return `
-                    <div class="cms-color-subrow ${isDirty ? "is-pending-edit" : ""}">
-                      <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${cmsState.selectedKeys.has(key) ? "checked" : ""} aria-label="Selecionar cor ${escaparHtml(c.nome)}" />
-                      <div class="cms-color-name-wrap">
-                        <span class="cms-color-dot" style="background:${escaparHtml(c.hex || "#cbd5e1")};"></span>
-                        <span style="font-size:0.84rem; font-weight:600; color:#0f172a;">${escaparHtml(c.nome || "Cor")}</span>
-                        ${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}
-                      </div>
-                      <span style="font-family:ui-monospace, monospace; font-size:0.76rem; color:#64748b;">${escaparHtml(c.cod ? "Cód. " + c.cod : "—")}</span>
-                      <span style="font-size:0.83rem; font-weight:700; color:#0f172a; font-variant-numeric:tabular-nums;">${escaparHtml(precoCor)}</span>
-                      <select class="cms-quick-stock-select stock-${escaparHtml(stCor)}"
-                        data-cms-quick-stock="${escaparHtml(p.id)}-${escaparHtml(c.cod || idx)}"
-                        data-cms-stock-tipo="cor"
-                        data-cms-chave-paleta="${escaparHtml(chavePaleta)}"
-                        data-cms-cor-idx="${idx}"
-                        aria-label="Status da cor ${escaparHtml(c.nome)}">
-                        <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>Disponível</option>
-                        <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
-                        <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>Esgotado</option>
-                      </select>
-                      <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}" data-cms-focus-cor="${idx}">Editar</button>
-                    </div>
-                  `;
+                        <div class="cms-color-subrow ${isDirty ? "is-pending-edit" : ""}">
+                          <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(kCor)}" ${isSel ? "checked" : ""} aria-label="Selecionar ${escaparHtml(sku.nomeLimpo)}" />
+                          <div class="cms-color-name-wrap">
+                            <span class="cms-color-dot" style="background:${escaparHtml(sku.corHex || "#cbd5e1")};"></span>
+                            <span class="cms-color-label">${escaparHtml(sku.nomeLimpo)}</span>
+                            <span class="cms-color-code">${escaparHtml(sku.codigo)}</span>${codigoRepetido(sku.codNumero)}
+                            <span class="cms-color-weight-val">${escaparHtml(sku.peso || "1 kg")}</span>
+                          </div>
+                          <div class="cms-color-price-val">${escaparHtml(precoCor)}${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}</div>
+                          <select class="cms-quick-stock-select stock-${escaparHtml(stCor)}"
+                            data-cms-quick-stock="${escaparHtml(sku.id)}"
+                            data-cms-stock-tipo="cor"
+                            data-cms-chave-paleta="${escaparHtml(sku.chavePaleta)}"
+                            data-cms-cor-idx="${sku.corIndex}"
+                            aria-label="Status de ${escaparHtml(sku.nomeLimpo)}">
+                            <option value="disponivel" ${stCor === "disponivel" ? "selected" : ""}>Disponível</option>
+                            <option value="poucas_unidades" ${stCor === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                            <option value="esgotado" ${stCor === "esgotado" ? "selected" : ""}>Esgotado</option>
+                          </select>
+                          <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(sku.produtoId)}" data-cms-focus-cor="${sku.corIndex}">Editar</button>
+                        </div>`;
             }).join("")}
-              </div>
-            `;
+                  </div>`;
           }
+
+          const kSingle = subItems[0] ? obterChaveItemCatalogoCms(subItems[0]) : `prod:${p.id}`;
+          const stSingle = subItems[0] ? getStatusEfetivo(subItems[0]) : (p.estoqueStatus || "disponivel");
+          const resumoEstoqueHtml = temCores
+            ? `<span class="cms-mini-pill is-green">${subItems.filter((s) => getStatusEfetivo(s) === "disponivel").length} disp.</span>` +
+            (subItems.some((s) => getStatusEfetivo(s) === "esgotado") ? ` <span class="cms-mini-pill is-red">${subItems.filter((s) => getStatusEfetivo(s) === "esgotado").length} esg.</span>` : "")
+            : `<select class="cms-quick-stock-select stock-${escaparHtml(stSingle)}" data-cms-quick-stock="${escaparHtml(p.id)}" data-cms-stock-tipo="produto" aria-label="Status de ${escaparHtml(p.nome)}">
+                    <option value="disponivel" ${stSingle === "disponivel" ? "selected" : ""}>Disponível</option>
+                    <option value="poucas_unidades" ${stSingle === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                    <option value="esgotado" ${stSingle === "esgotado" ? "selected" : ""}>Esgotado</option>
+                  </select>`;
 
           return `
-            <div class="cms-model-group ${temPendenciaModelo ? "is-pending-edit" : ""}">
-              <div class="cms-model-row">
-                <input type="checkbox" class="cms-row-checkbox" data-cms-select-model="${escaparHtml(p.id)}" data-cms-select-paleta="${escaparHtml(chavePaleta || "")}" ${checkedModelo ? "checked" : ""} data-indeterminate="${indeterminateModelo ? "1" : "0"}" aria-label="Selecionar ${escaparHtml(p.nome)}" />
-                <img src="${escaparHtml(thumbUrl)}" alt="" class="cms-model-thumb" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
-                <div class="cms-model-title-col">
-                  <div class="cms-model-name">${escaparHtml(p.nome)}</div>
-                  <div class="cms-model-meta">${escaparHtml(nomesCat[p.categoria] || p.categoria)}${p.marca ? ` · ${escaparHtml(p.marca)}` : ""}</div>
-                </div>
-                <div class="cms-model-count">${qtdCores > 0 ? `${qtdCores} cores` : "Produto único"}</div>
-                <div class="cms-model-price">${escaparHtml(faixaPreco)}</div>
-                <div class="cms-model-stock-summary">${resumoEstoqueHtml}</div>
-                <div class="cms-row-actions">
-                  ${qtdCores > 0 ? `<button type="button" class="cms-btn-expand-colors" data-cms-toggle-expand="${escaparHtml(p.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Ocultar cores" : "Ver cores"}</button>` : ""}
-                  <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}">Editar</button>
-                </div>
-              </div>
-              ${subRowsHtml}
-            </div>
-          `;
-        }).join("");
+                <div class="cms-model-block">
+                  <div class="cms-model-row">
+                    <input type="checkbox" class="cms-row-checkbox" data-cms-select-model="${escaparHtml(p.id)}" data-cms-select-keys="${escaparHtml(subItems.map((s) => obterChaveItemCatalogoCms(s)).join(","))}" ${checkedModelo ? "checked" : ""} data-indeterminate="${indeterminateModelo ? "1" : "0"}" aria-label="Selecionar ${escaparHtml(p.nome)}" />
+                    <img src="${escaparHtml(p.imagem || "assets/produtos/pla-maxprint.jpg")}" alt="" class="cms-model-thumb" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
+                    <div class="cms-model-main">
+                      <div class="cms-model-title">${escaparHtml(p.nome)}</div>
+                      <div class="cms-model-meta">${escaparHtml(p.marca === "MaxPrint" ? "Masterprint" : (p.marca || "Loja SJ 3D"))} · ${escaparHtml(grupo.titulo)}</div>
+                    </div>
+                    <div class="cms-model-count">${temCores ? `${qtdCores} ${qtdCores === 1 ? "cor" : "cores"}` : "Produto único"}</div>
+                    <div class="cms-model-price">${escaparHtml(faixaPreco)}</div>
+                    <div class="cms-model-stock">${resumoEstoqueHtml}</div>
+                    <div class="cms-model-actions">
+                      ${temCores ? `<button type="button" class="cms-btn-row-expand" data-cms-toggle-expand="${escaparHtml(p.id)}" aria-expanded="${expanded ? "true" : "false"}">${expanded ? "Ocultar cores" : "Ver cores"}</button>` : ""}
+                      <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(p.id)}">Editar</button>
+                    </div>
+                  </div>
+                  ${subLinhasHtml}
+                </div>`;
+        }).join("")}
+          </div>
+        `).join("");
 
-        grid.querySelectorAll("[data-indeterminate='1']").forEach((cb) => {
-          cb.indeterminate = true;
-        });
-
+        grid.querySelectorAll("[data-indeterminate='1']").forEach((cb) => { cb.indeterminate = true; });
         grid.querySelectorAll("[data-cms-toggle-expand]").forEach((btn) => {
           btn.addEventListener("click", () => {
             const pId = btn.dataset.cmsToggleExpand;
@@ -16313,27 +16350,211 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
             renderizarListaProdutosCms();
           });
         });
-
         grid.querySelectorAll("[data-cms-select-model]").forEach((cb) => {
           cb.addEventListener("change", () => {
-            const pId = cb.dataset.cmsSelectModel;
-            const chavePaleta = cb.dataset.cmsSelectPaleta;
-            const marcar = cb.checked;
-            if (chavePaleta && Array.isArray(window.SITE_DATA[chavePaleta])) {
-              window.SITE_DATA[chavePaleta].forEach((_, idx) => {
-                const k = `cor:${chavePaleta}:${idx}`;
-                if (marcar) cmsState.selectedKeys.add(k);
-                else cmsState.selectedKeys.delete(k);
-              });
-            } else {
-              const k = `prod:${pId}`;
-              if (marcar) cmsState.selectedKeys.add(k);
+            const keys = String(cb.dataset.cmsSelectKeys || "").split(",").filter(Boolean);
+            keys.forEach((k) => {
+              if (cb.checked) cmsState.selectedKeys.add(k);
               else cmsState.selectedKeys.delete(k);
-            }
+            });
             renderizarListaProdutosCms();
           });
         });
+        grid.querySelectorAll("[data-cms-select-key]").forEach((cb) => {
+          cb.addEventListener("change", () => {
+            const k = cb.dataset.cmsSelectKey;
+            if (cb.checked) cmsState.selectedKeys.add(k);
+            else cmsState.selectedKeys.delete(k);
+            atualizarBarraLoteCatalogoCms();
+          });
+        });
+        atualizarBarraLoteCatalogoCms();
+        return;
       }
+
+      // ============================================================
+      // VISÃO "TODOS OS ITENS": LISTA PLANA ORDENÁVEL E PAGINADA (50/PÁG)
+      // ============================================================
+      const collator = new Intl.Collator("pt-BR", { numeric: true, sensitivity: "base" });
+      const dirFactor = cmsState.sortDir === "descending" ? -1 : 1;
+      const ordenados = [...filtrados].sort((a, b) => {
+        if (buscaAtiva && parsedBusca.isNumericQuery && parsedBusca.digitsOnly) {
+          const exA = a.codNumero === parsedBusca.digitsOnly ? 0 : 1;
+          const exB = b.codNumero === parsedBusca.digitsOnly ? 0 : 1;
+          if (exA !== exB) return exA - exB;
+        }
+        const ka = obterChaveItemCatalogoCms(a);
+        const kb = obterChaveItemCatalogoCms(b);
+        const pa = cmsState.pendingEdits.get(ka) || {};
+        const pb = cmsState.pendingEdits.get(kb) || {};
+        if (cmsState.sortCol === "preco") {
+          const va = extrairNumeroDePrecoBR(pa.preco !== undefined ? pa.preco : a.preco);
+          const vb = extrairNumeroDePrecoBR(pb.preco !== undefined ? pb.preco : b.preco);
+          return dirFactor * (va - vb);
+        }
+        if (cmsState.sortCol === "codigo") {
+          return dirFactor * collator.compare(a.codNumero || a.codigo || "", b.codNumero || b.codigo || "");
+        }
+        if (cmsState.sortCol === "status") {
+          const sa = statusTextMap[pa.estoqueStatus || a.estoqueStatus || "disponivel"] || "";
+          const sb = statusTextMap[pb.estoqueStatus || b.estoqueStatus || "disponivel"] || "";
+          return dirFactor * collator.compare(sa, sb);
+        }
+        return dirFactor * collator.compare(a.nomeLimpo || a.corNome || a.nome || "", b.nomeLimpo || b.corNome || b.nome || "");
+      });
+
+      const totalItens = ordenados.length;
+      const totalBaseCat = skusCategoria.length;
+      if (resultado) {
+        const labelUnid = isFilamentosTab ? (totalBaseCat === 1 ? "cor" : "cores") : (totalBaseCat === 1 ? "item" : "itens");
+        resultado.textContent = `Mostrando ${totalItens} de ${totalBaseCat} ${labelUnid}`;
+      }
+
+      const porPagina = cmsState.porPaginaSkus || 50;
+      const totalPaginas = Math.max(1, Math.ceil(totalItens / porPagina));
+      if (cmsState.paginaSkus > totalPaginas) cmsState.paginaSkus = totalPaginas;
+      if (cmsState.paginaSkus < 1) cmsState.paginaSkus = 1;
+
+      if (totalItens === 0) {
+        grid.innerHTML = `
+          <div class="cms-section-card" style="text-align:center; padding:36px 20px; color:#64748b;">
+            <strong style="display:block; color:#0f172a; margin-bottom:6px;">Nenhum item encontrado</strong>
+            <span>Tente outro termo ou limpe os filtros ativos.</span>
+          </div>`;
+        if (pagBar) pagBar.style.display = "none";
+        atualizarBarraLoteCatalogoCms();
+        return;
+      }
+
+      const inicioIdx = (cmsState.paginaSkus - 1) * porPagina;
+      const paginaItens = ordenados.slice(inicioIdx, inicioIdx + porPagina);
+      const todosPaginaSelecionados = paginaItens.every((s) => cmsState.selectedKeys.has(obterChaveItemCatalogoCms(s)));
+      const sortAttr = (col) => (cmsState.sortCol === col ? `aria-sort="${cmsState.sortDir}"` : "");
+
+      grid.innerHTML = `
+        <div id="cms-table-sort-status" role="status" class="sr-only-live"></div>
+        <div tabindex="0" role="region" aria-label="Lista de produtos e cores" class="cms-table-wrapper">
+          <table class="cms-catalog-table" id="cms-skus-table">
+            <caption>Lista plana do catálogo</caption>
+            <thead>
+              <tr>
+                <th scope="col" style="width:36px;"><input type="checkbox" id="cms-skus-select-page" class="cms-row-checkbox" ${todosPaginaSelecionados ? "checked" : ""} aria-label="Selecionar itens desta página" /></th>
+                <th scope="col" ${sortAttr("cor")}><button type="button" class="cms-sort-btn" data-sort-col="cor">${isFilamentosTab ? "Cor" : "Produto"}</button></th>
+                <th scope="col">${isFilamentosTab ? "Marca · Tipo" : "Marca"}</th>
+                <th scope="col" ${sortAttr("codigo")}><button type="button" class="cms-sort-btn" data-sort-col="codigo">Código</button></th>
+                <th scope="col">Peso</th>
+                <th scope="col" data-type="number" ${sortAttr("preco")}><button type="button" class="cms-sort-btn" data-sort-col="preco">Preço</button></th>
+                <th scope="col" ${sortAttr("status")}><button type="button" class="cms-sort-btn" data-sort-col="status">Status</button></th>
+                <th scope="col" style="text-align:right;">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${paginaItens.map((sku) => {
+        const key = obterChaveItemCatalogoCms(sku);
+        const pending = cmsState.pendingEdits.get(key) || {};
+        const statusEst = pending.estoqueStatus || sku.estoqueStatus || "disponivel";
+        const precoExib = pending.preco !== undefined ? pending.preco : (sku.preco || "Sob consulta");
+        const checked = cmsState.selectedKeys.has(key);
+        const isDirty = cmsState.pendingEdits.has(key);
+        const isBambu = sku.marca === "Bambu Lab";
+        const tagTexto = sku.tipo === "cor"
+          ? `${sku.marca} · ${sku.tipoMaterial}${sku.formatoBambu === "refil" ? " (Refil)" : ""}`
+          : sku.marca;
+
+        return `
+                  <tr class="${isDirty ? "is-pending-edit" : ""}">
+                    <td>
+                      <input type="checkbox" class="cms-row-checkbox" data-cms-select-key="${escaparHtml(key)}" ${checked ? "checked" : ""} aria-label="Selecionar ${escaparHtml(sku.nomeLimpo || sku.nome)}" />
+                    </td>
+                    <td data-label="${isFilamentosTab ? "Cor" : "Produto"}">
+                      <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+                        ${sku.corHex
+            ? `<span class="cms-color-dot" style="background:${escaparHtml(sku.corHex)}; width:14px; height:14px; flex-shrink:0;"></span>`
+            : ""}
+                        <img src="${escaparHtml(sku.imagem || "assets/produtos/pla-maxprint.jpg")}" alt="" class="cms-model-thumb" style="width:34px; height:34px; flex-shrink:0;" loading="lazy" onerror="this.onerror=null; this.src='assets/produtos/pla-maxprint.jpg';" />
+                        <div style="min-width:0;">
+                          <div style="font-weight:700; color:#0f172a; line-height:1.25;">${escaparHtml(sku.nomeLimpo || sku.nome)}</div>
+                        </div>
+                      </div>
+                    </td>
+                    <td data-label="${isFilamentosTab ? "Marca · Tipo" : "Marca"}">
+                      <span class="cms-sku-tag-pill ${isBambu ? "is-bambu" : ""}">${escaparHtml(tagTexto)}</span>
+                    </td>
+                    <td data-label="Código" style="font-family:ui-monospace, monospace; font-size:0.8rem; color:#475569; white-space:nowrap;">
+                      ${escaparHtml(sku.codigo || "—")}${codigoRepetido(sku.codNumero)}
+                    </td>
+                    <td data-label="Peso" style="font-size:0.82rem; color:#475569; white-space:nowrap;">
+                      ${escaparHtml(sku.peso || "—")}
+                    </td>
+                    <td data-label="Preço" style="font-weight:700; font-variant-numeric:tabular-nums; white-space:nowrap;">
+                      ${escaparHtml(precoExib)}
+                      ${isDirty ? `<span class="cms-pending-tag">Alterado</span>` : ""}
+                    </td>
+                    <td data-label="Status">
+                      <select class="cms-quick-stock-select stock-${escaparHtml(statusEst)}"
+                        data-cms-quick-stock="${escaparHtml(sku.id)}"
+                        data-cms-stock-tipo="${escaparHtml(sku.tipo)}"
+                        data-cms-chave-paleta="${escaparHtml(sku.chavePaleta || "")}"
+                        data-cms-cor-idx="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}"
+                        aria-label="Status de ${escaparHtml(sku.nomeLimpo || sku.nome)}">
+                        <option value="disponivel" ${statusEst === "disponivel" ? "selected" : ""}>Disponível</option>
+                        <option value="poucas_unidades" ${statusEst === "poucas_unidades" ? "selected" : ""}>Poucas unidades</option>
+                        <option value="esgotado" ${statusEst === "esgotado" ? "selected" : ""}>Esgotado</option>
+                      </select>
+                    </td>
+                    <td data-label="Ações" style="text-align:right; white-space:nowrap;">
+                      <button type="button" class="cms-btn-row-edit" data-cms-edit-id="${escaparHtml(sku.produtoId)}" data-cms-focus-cor="${sku.corIndex !== null && sku.corIndex !== undefined ? sku.corIndex : ""}">Editar</button>
+                    </td>
+                  </tr>
+                `;
+      }).join("")}
+            </tbody>
+          </table>
+        </div>
+      `;
+
+      if (pagBar) {
+        pagBar.style.display = totalItens > porPagina ? "flex" : "none";
+        const fimIdx = Math.min(totalItens, inicioIdx + paginaItens.length);
+        pagBar.innerHTML = `
+          <span>Mostrando <strong>${inicioIdx + 1}–${fimIdx}</strong> de <strong>${totalItens}</strong></span>
+          <div class="cms-pagination-btns">
+            <button type="button" class="btn-cms-secondary" id="btn-cms-page-prev" ${cmsState.paginaSkus <= 1 ? "disabled" : ""}>Anterior</button>
+            <span>Página ${cmsState.paginaSkus} de ${totalPaginas}</span>
+            <button type="button" class="btn-cms-secondary" id="btn-cms-page-next" ${cmsState.paginaSkus >= totalPaginas ? "disabled" : ""}>Próxima</button>
+          </div>
+        `;
+        document.getElementById("btn-cms-page-prev")?.addEventListener("click", () => {
+          if (cmsState.paginaSkus > 1) { cmsState.paginaSkus--; renderizarListaProdutosCms(); }
+        });
+        document.getElementById("btn-cms-page-next")?.addEventListener("click", () => {
+          if (cmsState.paginaSkus < totalPaginas) { cmsState.paginaSkus++; renderizarListaProdutosCms(); }
+        });
+      }
+
+      grid.querySelector("#cms-skus-select-page")?.addEventListener("change", (e) => {
+        const marcar = e.target.checked;
+        paginaItens.forEach((s) => {
+          const k = obterChaveItemCatalogoCms(s);
+          if (marcar) cmsState.selectedKeys.add(k);
+          else cmsState.selectedKeys.delete(k);
+        });
+        renderizarListaProdutosCms();
+      });
+
+      grid.querySelectorAll("[data-sort-col]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const col = btn.dataset.sortCol;
+          if (cmsState.sortCol === col) {
+            cmsState.sortDir = cmsState.sortDir === "ascending" ? "descending" : "ascending";
+          } else {
+            cmsState.sortCol = col;
+            cmsState.sortDir = "ascending";
+          }
+          cmsState.paginaSkus = 1;
+          renderizarListaProdutosCms();
+        });
+      });
 
       grid.querySelectorAll("[data-cms-select-key]").forEach((cb) => {
         cb.addEventListener("change", () => {
@@ -16345,7 +16566,6 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
 
       atualizarBarraLoteCatalogoCms();
-
     } else if (isSkusMode) {
       // -------------------------------------------------------------
       // FALLBACK LEGADO (MODAL CMS EM index.html)
@@ -17492,21 +17712,12 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           cmsState.pendingEdits.clear();
           renderizarListaProdutosCms();
         });
-        document.getElementById("btn-cms-bulk-select-model-colors")?.addEventListener("click", () => {
-          const paletas = new Set();
-          for (const key of cmsState.selectedKeys) {
-            if (key.startsWith("cor:")) {
-              const chavePaleta = key.split(":")[1];
-              if (chavePaleta) paletas.add(chavePaleta);
-            }
-          }
-          paletas.forEach((chavePaleta) => {
-            const lista = window.SITE_DATA?.[chavePaleta];
-            if (Array.isArray(lista)) {
-              lista.forEach((_, idx) => cmsState.selectedKeys.add(`cor:${chavePaleta}:${idx}`));
-            }
-          });
+        document.getElementById("btn-cms-bulk-select-filtered")?.addEventListener("click", () => {
+          const keys = Array.isArray(cmsState.ultimoFiltradosKeys) ? cmsState.ultimoFiltradosKeys : [];
+          if (keys.length === 0) return;
+          keys.forEach((k) => cmsState.selectedKeys.add(k));
           renderizarListaProdutosCms();
+          mostrarToast(`${keys.length} ${keys.length === 1 ? "item selecionado" : "itens selecionados"} no filtro atual.`, "info");
         });
         document.querySelectorAll("[data-bulk-stock]").forEach((btn) => {
           btn.addEventListener("click", () => {
@@ -17581,10 +17792,26 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
         document.getElementById("btn-cms-bulk-save")?.addEventListener("click", async () => {
           const qtd = cmsState.pendingEdits.size;
           if (qtd === 0) return;
-          if (qtd >= 5 && confirmDlg && typeof confirmDlg.showModal === "function") {
+          if (confirmDlg && typeof confirmDlg.showModal === "function") {
             const txt = document.getElementById("cms-bulk-confirm-text");
             if (txt) {
-              txt.textContent = `Você está prestes a salvar alterações em ${qtd} itens do catálogo. Você ainda poderá clicar em "Desfazer" logo após salvar.`;
+              const keys = Array.from(cmsState.pendingEdits.keys());
+              const paletasAfetadas = new Map();
+              keys.forEach((k) => {
+                if (k.startsWith("cor:")) {
+                  const pKey = k.split(":")[1];
+                  paletasAfetadas.set(pKey, (paletasAfetadas.get(pKey) || 0) + 1);
+                }
+              });
+              let incluiFamiliaInteira = false;
+              paletasAfetadas.forEach((cnt, pKey) => {
+                const ativosPal = (window.SITE_DATA?.[pKey] || []).filter((c) => !c.arquivado && !c.oculto && !c.metadata?.oculto).length;
+                if (ativosPal > 0 && cnt >= ativosPal) incluiFamiliaInteira = true;
+              });
+              const escopoMsg = incluiFamiliaInteira
+                ? "A seleção inclui uma ou mais famílias inteiras de filamentos."
+                : "A seleção inclui somente as variações exibidas/marcadas (não altera a família inteira).";
+              txt.textContent = `Você está prestes a salvar alterações em ${qtd} ${qtd === 1 ? "item" : "itens"} do catálogo. ${escopoMsg} Você ainda poderá clicar em "Desfazer" logo após salvar.`;
             }
             confirmDlg.showModal();
           } else {
@@ -18629,30 +18856,196 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
       });
     });
 
-    // Filtros de categoria e busca dentro do CMS
+    function limparBuscaAdminRestaurandoFiltros() {
+      cmsState.busca = "";
+      if (cmsState.filtrosAntesBusca) {
+        cmsState.marcaFiltro = cmsState.filtrosAntesBusca.marca || "todas";
+        cmsState.formatoBambuFiltro = cmsState.filtrosAntesBusca.formato || "todos";
+        cmsState.tipoFilamentoFiltro = cmsState.filtrosAntesBusca.tipo || "todos";
+        cmsState.filtrosAntesBusca = null;
+      }
+      const buscaEl = document.getElementById("cms-product-search");
+      if (buscaEl) buscaEl.value = "";
+      cmsState.paginaSkus = 1;
+      renderizarListaProdutosCms();
+    }
+
+    function abrirModalDuplicadosCatalogoCms() {
+      const dlg = document.getElementById("cms-dupes-dialog");
+      const listEl = document.getElementById("cms-dupes-list");
+      if (!dlg || !listEl) return;
+      const todos = gerarListaSkusCms(false);
+      const mapa = new Map();
+      todos.forEach((s) => {
+        if (!s.codNumero) return;
+        if (!mapa.has(s.codNumero)) mapa.set(s.codNumero, []);
+        mapa.get(s.codNumero).push(s);
+      });
+      const grupos = Array.from(mapa.entries()).filter(([, arr]) => arr.length > 1);
+      if (grupos.length === 0) {
+        listEl.innerHTML = `<div style="padding:20px; text-align:center; color:#15803d; font-weight:700;">Nenhum código repetido ativo no catálogo!</div>`;
+      } else {
+        listEl.innerHTML = grupos.map(([cod, arr]) => `
+          <div class="cms-dupe-group">
+            <div class="cms-dupe-group-head">Código #${escaparHtml(cod)} (${arr.length} registros)</div>
+            <div class="cms-dupe-cards">
+              ${arr.map((it) => `
+                <div class="cms-dupe-item">
+                  <strong style="font-size:0.86rem; color:#0f172a;">${escaparHtml(it.corNome || it.nome)}</strong>
+                  <span style="font-size:0.76rem; color:#64748b;">Lista: ${escaparHtml(it.modeloNome)} · ${escaparHtml(it.preco)}</span>
+                  <button type="button" class="btn-cms-secondary" data-keep-dupe-cod="${escaparHtml(cod)}" data-keep-dupe-pal="${escaparHtml(it.chavePaleta || "")}" data-keep-dupe-idx="${it.corIndex}">
+                    Manter este e ocultar o outro
+                  </button>
+                </div>
+              `).join("")}
+            </div>
+          </div>
+        `).join("");
+
+        listEl.querySelectorAll("[data-keep-dupe-cod]").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const cod = btn.dataset.keepDupeCod;
+            const keepPal = btn.dataset.keepDupePal;
+            const keepIdx = Number(btn.dataset.keepDupeIdx);
+            const grp = mapa.get(cod) || [];
+            const paletasTouched = new Set();
+            grp.forEach((other) => {
+              if (other.chavePaleta === keepPal && other.corIndex === keepIdx) return;
+              const arrPal = window.SITE_DATA?.[other.chavePaleta];
+              if (Array.isArray(arrPal) && arrPal[other.corIndex]) {
+                arrPal[other.corIndex].oculto = true;
+                arrPal[other.corIndex].metadata = { ...(arrPal[other.corIndex].metadata || {}), oculto: true };
+                paletasTouched.add(other.chavePaleta);
+              }
+            });
+            for (const pKey of paletasTouched) {
+              if (window.SJ_DB?.catalogo?.salvarPaletaCores) {
+                await window.SJ_DB.catalogo.salvarPaletaCores(pKey, window.SITE_DATA[pKey]);
+              }
+            }
+            mostrarToast(`Duplicado do código #${cod} ocultado (nenhum dado foi apagado).`, "success");
+            abrirModalDuplicadosCatalogoCms();
+            renderizarListaProdutosCms();
+          });
+        });
+      }
+      if (typeof dlg.showModal === "function" && !dlg.open) dlg.showModal();
+    }
+
+    // Abas de categoria no Catálogo Admin
     document.querySelectorAll("[data-cms-cat]").forEach((pill) => {
       pill.addEventListener("click", () => {
-        cmsState.categoriaFiltro = pill.dataset.cmsCat;
+        cmsState.categoriaFiltro = pill.dataset.cmsCat || "filamentos";
         cmsState.paginaSkus = 1;
-        document.querySelectorAll("[data-cms-cat]").forEach((b) => {
-          b.classList.toggle("active", b === pill);
-        });
-        const catSel = document.getElementById("cms-cat-filter-select");
-        if (catSel) catSel.value = cmsState.categoriaFiltro;
         renderizarListaProdutosCms();
       });
     });
 
-    document.getElementById("cms-cat-filter-select")?.addEventListener("change", (e) => {
-      cmsState.categoriaFiltro = e.target.value || "todos";
+    // Filtros de Marca, Formato Bambu Lab, Tipo e Status
+    document.querySelectorAll("[data-cms-brand]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (analisarBuscaFilamento(cmsState.busca).ativa) limparBuscaAdminRestaurandoFiltros();
+        cmsState.marcaFiltro = btn.dataset.cmsBrand || "todas";
+        if (cmsState.marcaFiltro !== "Bambu Lab") cmsState.formatoBambuFiltro = "todos";
+        cmsState.paginaSkus = 1;
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.querySelectorAll("[data-cms-format]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        cmsState.formatoBambuFiltro = btn.dataset.cmsFormat || "todos";
+        cmsState.paginaSkus = 1;
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.querySelectorAll("[data-cms-fil-type]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        if (analisarBuscaFilamento(cmsState.busca).ativa) limparBuscaAdminRestaurandoFiltros();
+        cmsState.tipoFilamentoFiltro = btn.dataset.cmsFilType || "todos";
+        cmsState.paginaSkus = 1;
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.querySelectorAll("[data-cms-stock-chip]").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        cmsState.estoqueFiltro = btn.dataset.cmsStockChip || "todos";
+        cmsState.paginaSkus = 1;
+        renderizarListaProdutosCms();
+      });
+    });
+
+    document.getElementById("btn-cms-unclassified-chip")?.addEventListener("click", () => {
+      cmsState.semClassificacaoFiltro = !cmsState.semClassificacaoFiltro;
       cmsState.paginaSkus = 1;
       renderizarListaProdutosCms();
     });
 
+    let timerBuscaAdmin = null;
     document.getElementById("cms-product-search")?.addEventListener("input", (e) => {
-      cmsState.busca = e.target.value || "";
+      const novoTexto = e.target.value || "";
+      clearTimeout(timerBuscaAdmin);
+      timerBuscaAdmin = setTimeout(() => {
+        const antesAtiva = analisarBuscaFilamento(cmsState.busca).ativa;
+        const depoisAtiva = analisarBuscaFilamento(novoTexto).ativa;
+        if (!antesAtiva && depoisAtiva) {
+          cmsState.filtrosAntesBusca = {
+            marca: cmsState.marcaFiltro,
+            formato: cmsState.formatoBambuFiltro,
+            tipo: cmsState.tipoFilamentoFiltro
+          };
+        } else if (antesAtiva && !depoisAtiva && cmsState.filtrosAntesBusca) {
+          cmsState.marcaFiltro = cmsState.filtrosAntesBusca.marca || "todas";
+          cmsState.formatoBambuFiltro = cmsState.filtrosAntesBusca.formato || "todos";
+          cmsState.tipoFilamentoFiltro = cmsState.filtrosAntesBusca.tipo || "todos";
+          cmsState.filtrosAntesBusca = null;
+        }
+        cmsState.busca = novoTexto;
+        cmsState.paginaSkus = 1;
+        renderizarListaProdutosCms();
+      }, 150);
+    });
+
+    document.getElementById("cms-search-clear-btn")?.addEventListener("click", () => {
+      limparBuscaAdminRestaurandoFiltros();
+      document.getElementById("cms-product-search")?.focus();
+    });
+
+    document.getElementById("btn-cms-clear-search-banner")?.addEventListener("click", () => {
+      limparBuscaAdminRestaurandoFiltros();
+    });
+
+    document.getElementById("cms-catalog-clear-filters")?.addEventListener("click", () => {
+      cmsState.busca = "";
+      cmsState.filtrosAntesBusca = null;
+      cmsState.marcaFiltro = "todas";
+      cmsState.formatoBambuFiltro = "todos";
+      cmsState.tipoFilamentoFiltro = "todos";
+      cmsState.estoqueFiltro = "todos";
+      cmsState.semClassificacaoFiltro = false;
       cmsState.paginaSkus = 1;
+      const busca = document.getElementById("cms-product-search");
+      if (busca) busca.value = "";
       renderizarListaProdutosCms();
+      busca?.focus();
+    });
+
+    document.getElementById("btn-cms-review-dupes")?.addEventListener("click", abrirModalDuplicadosCatalogoCms);
+    document.getElementById("btn-cms-dupes-close")?.addEventListener("click", () => document.getElementById("cms-dupes-dialog")?.close?.());
+    document.getElementById("btn-cms-dupes-backup")?.addEventListener("click", () => {
+      const payload = JSON.stringify(window.SITE_DATA || {}, null, 2);
+      const blob = new Blob([payload], { type: "application/json;charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `backup-catalogo-lojasj3d-${new Date().toISOString().slice(0, 10)}.json`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+      mostrarToast("Backup JSON do catálogo baixado com sucesso!", "success");
     });
 
     document.querySelectorAll("#btn-cms-new-product, #btn-novo-produto-cms").forEach((btn) => {

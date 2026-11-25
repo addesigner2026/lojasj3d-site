@@ -41,7 +41,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="css/sj-tokens.css?v=20261123_03" />
-  <link rel="stylesheet" href="css/styles.css?v=20261123_03" />
+  <link rel="stylesheet" href="css/styles.css?v=20261125_03" />
 </head>
 
 <body class="admin-standalone-body">
@@ -436,50 +436,112 @@
              ============================================================== -->
         <div class="admin-cms-pane" id="cms-pane-produtos" style="display: none;">
           <div id="cms-products-list-view">
-            <!-- Barra de filtros enxuta -->
-            <div class="cms-lean-toolbar">
-              <div class="cms-lean-toolbar-main">
-                <div class="cms-search-box-wrap">
-                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                  <input type="text" id="cms-product-search" class="cms-search-input-lean" placeholder="Buscar produto, cor ou código..." aria-label="Buscar produto, cor ou código" />
-                  <kbd class="cms-kbd-hint" title="Atalho: pressione / para buscar">/</kbd>
-                </div>
-
-                <select id="cms-cat-filter-select" class="cms-select-clean" aria-label="Filtrar por categoria">
-                  <option value="todos">Todas as categorias</option>
-                  <option value="filamentos">Filamentos</option>
-                  <option value="impressoras">Impressoras 3D</option>
-                  <option value="pecas">Peças &amp; Acessórios</option>
-                  <option value="manutencao">Serviços &amp; Manutenção</option>
-                </select>
-
-                <select id="cms-stock-filter-select" class="cms-select-clean" aria-label="Filtrar por status">
-                  <option value="todos">Todos os status</option>
-                  <option value="disponivel">Disponível</option>
-                  <option value="poucas_unidades">Poucas unidades</option>
-                  <option value="esgotado">Esgotado</option>
-                </select>
+            <!-- Linha 1: Abas de Categoria + Alternador de Visão + Botão Primário Único -->
+            <div class="cms-cat-tabs-bar">
+              <div class="cms-cat-tabs" role="tablist" aria-label="Categorias do catálogo">
+                <button type="button" role="tab" class="cms-cat-tab" aria-selected="false" data-cms-cat="todos">
+                  <span>Todas</span>
+                  <span class="cms-tab-count" id="cat-pill-num-todos">0</span>
+                </button>
+                <button type="button" role="tab" class="cms-cat-tab active" aria-selected="true" data-cms-cat="filamentos">
+                  <span>Filamentos</span>
+                  <span class="cms-tab-count" id="cat-pill-num-filamentos">0</span>
+                </button>
+                <button type="button" role="tab" class="cms-cat-tab" aria-selected="false" data-cms-cat="impressoras">
+                  <span>Impressoras 3D</span>
+                  <span class="cms-tab-count" id="cat-pill-num-impressoras">0</span>
+                </button>
+                <button type="button" role="tab" class="cms-cat-tab" aria-selected="false" data-cms-cat="pecas">
+                  <span>Peças e Acessórios</span>
+                  <span class="cms-tab-count" id="cat-pill-num-pecas">0</span>
+                </button>
+                <button type="button" role="tab" class="cms-cat-tab" aria-selected="false" data-cms-cat="manutencao">
+                  <span>Serviços e Manutenção</span>
+                  <span class="cms-tab-count" id="cat-pill-num-manutencao">0</span>
+                </button>
               </div>
 
-              <div class="cms-lean-toolbar-actions">
+              <div class="cms-cat-tabs-actions">
                 <div class="cms-view-mode-toggle" id="cms-view-mode-toggle" role="group" aria-label="Modo de visualização do catálogo">
-                  <button type="button" class="cms-view-btn active" data-cms-view-mode="modelos">
+                  <button type="button" class="cms-view-btn" aria-pressed="false" data-cms-view-mode="modelos">
                     <span>Por produto</span>
                     <span class="cms-badge-count" id="cms-badge-count-modelos">0</span>
                   </button>
-                  <button type="button" class="cms-view-btn" data-cms-view-mode="skus">
-                    <span>Todas as cores</span>
+                  <button type="button" class="cms-view-btn active" aria-pressed="true" data-cms-view-mode="skus">
+                    <span>Todos os itens</span>
                     <span class="cms-badge-count" id="cms-badge-count-skus">0</span>
                   </button>
                 </div>
-
+                <button type="button" class="btn-cms-secondary cms-dupes-trigger" id="btn-cms-review-dupes" style="display:none;">
+                  Revisar duplicados <span class="cms-dupes-badge" id="cms-dupes-count">0</span>
+                </button>
                 <button type="button" class="btn-cms-new-product-clean" id="btn-cms-new-product">
                   + Novo produto
                 </button>
               </div>
             </div>
 
-            <!-- Lista / Tabela Dinâmica -->
+            <!-- Linha 2: Cartão Único de Busca e Filtros -->
+            <div class="cms-filters-card" id="cms-filters-card">
+              <div class="cms-filters-top-row">
+                <div class="cms-search-box-wrap cms-search-box-wide">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                  <input type="search" id="cms-product-search" class="cms-search-input-lean" placeholder="Buscar cor ou código (ex: glit, 162, #110, preto)..." aria-label="Buscar cor ou código no catálogo" autocomplete="off" />
+                  <button type="button" id="cms-search-clear-btn" class="cms-search-clear-x" aria-label="Limpar busca" hidden>×</button>
+                  <kbd class="cms-kbd-hint" id="cms-search-kbd-hint" title="Atalho: pressione / para buscar">/</kbd>
+                </div>
+
+                <!-- Filtros de Marca (aparecem em Filamentos) -->
+                <div class="cms-segmented-group" id="cms-brand-filter-group" role="group" aria-label="Filtrar por marca">
+                  <button type="button" class="cms-seg-btn active" data-cms-brand="todas">Todas <span class="cms-seg-cnt" id="cms-cnt-brand-todas">0</span></button>
+                  <button type="button" class="cms-seg-btn" data-cms-brand="Masterprint">Masterprint <span class="cms-seg-cnt" id="cms-cnt-brand-master">0</span></button>
+                  <button type="button" class="cms-seg-btn" data-cms-brand="Bambu Lab">Bambu Lab <span class="cms-seg-cnt" id="cms-cnt-brand-bambu">0</span></button>
+                </div>
+
+                <!-- Formato Bambu Lab (aparece somente quando Marca = Bambu Lab) -->
+                <div class="cms-segmented-group" id="cms-bambu-format-group" role="group" aria-label="Formato Bambu Lab" style="display:none;">
+                  <button type="button" class="cms-seg-btn active" data-cms-format="todos">Todos <span class="cms-seg-cnt" id="cms-cnt-fmt-todos">0</span></button>
+                  <button type="button" class="cms-seg-btn" data-cms-format="carretel">Com carretel <span class="cms-seg-cnt" id="cms-cnt-fmt-carretel">0</span></button>
+                  <button type="button" class="cms-seg-btn" data-cms-format="refil">Só refil <span class="cms-seg-cnt" id="cms-cnt-fmt-refil">0</span></button>
+                </div>
+              </div>
+
+              <!-- Chips de Tipo de Filamento (escolha única) -->
+              <div class="cms-filter-chips-row" id="cms-filament-type-row" role="group" aria-label="Filtrar por tipo de filamento">
+                <span class="cms-filter-row-label">Tipo:</span>
+                <button type="button" class="cms-filter-chip active" data-cms-fil-type="todos">Todos <span class="cms-chip-cnt" id="cms-cnt-type-todos">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="PLA">PLA <span class="cms-chip-cnt" id="cms-cnt-type-PLA">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="PLA Silk">PLA Silk <span class="cms-chip-cnt" id="cms-cnt-type-PLA Silk">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="PETG">PETG <span class="cms-chip-cnt" id="cms-cnt-type-PETG">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="TPU Flex">TPU Flex <span class="cms-chip-cnt" id="cms-cnt-type-TPU Flex">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="ABS">ABS <span class="cms-chip-cnt" id="cms-cnt-type-ABS">0</span></button>
+                <button type="button" class="cms-filter-chip" data-cms-fil-type="Glitter">Glitter <span class="cms-chip-cnt" id="cms-cnt-type-Glitter">0</span></button>
+              </div>
+
+              <!-- Chips de Status + Sem Classificação -->
+              <div class="cms-filter-chips-row" id="cms-status-filter-row" role="group" aria-label="Filtrar por status de estoque">
+                <span class="cms-filter-row-label">Status:</span>
+                <button type="button" class="cms-filter-chip active" data-cms-stock-chip="todos">Todos <span class="cms-chip-cnt" id="cms-cnt-st-todos">0</span></button>
+                <button type="button" class="cms-filter-chip is-green" data-cms-stock-chip="disponivel">Disponível <span class="cms-chip-cnt" id="cms-cnt-st-disponivel">0</span></button>
+                <button type="button" class="cms-filter-chip is-yellow" data-cms-stock-chip="poucas_unidades">Poucas unidades <span class="cms-chip-cnt" id="cms-cnt-st-poucas">0</span></button>
+                <button type="button" class="cms-filter-chip is-red" data-cms-stock-chip="esgotado">Esgotado <span class="cms-chip-cnt" id="cms-cnt-st-esgotado">0</span></button>
+                <button type="button" class="cms-filter-chip is-warn" id="btn-cms-unclassified-chip" data-cms-unclassified="1" style="display:none;">Sem classificação <span class="cms-chip-cnt" id="cms-cnt-unclassified">0</span></button>
+              </div>
+
+              <!-- Aviso de busca global -->
+              <div class="cms-search-global-banner" id="cms-search-global-banner" hidden>
+                <span id="cms-search-global-text">Busca em todo o catálogo</span>
+                <button type="button" class="cms-inline-link-btn" id="btn-cms-clear-search-banner">Limpar busca</button>
+              </div>
+
+              <!-- Resumo + Chips de filtros ativos + Limpar filtros -->
+              <div class="cms-catalog-feedback">
+                <p id="cms-catalog-results" role="status"></p>
+                <div id="cms-active-filter-chips" class="cms-active-filter-chips"></div>
+                <button type="button" id="cms-catalog-clear-filters" class="cms-btn-row-edit" hidden>Limpar filtros</button>
+              </div>
+            </div>
+
             <div class="cms-catalog-container" id="cms-products-grid"></div>
             <div id="cms-catalog-pagination" class="cms-pagination-bar" style="display:none;"></div>
           </div>
@@ -489,7 +551,7 @@
         <div id="cms-bulk-action-bar" class="cms-bulk-action-bar" style="display: none;" role="region" aria-label="Ações em lote do catálogo">
           <div class="cms-bulk-left">
             <strong id="cms-bulk-count-label">0 selecionados</strong>
-            <button type="button" id="btn-cms-bulk-select-model-colors" class="cms-bulk-link-btn" style="display:none;">Selecionar todas as cores deste modelo</button>
+            <button type="button" id="btn-cms-bulk-select-filtered" class="cms-bulk-link-btn">Selecionar todas do filtro atual</button>
             <button type="button" id="btn-cms-bulk-clear" class="cms-bulk-link-btn is-muted">Limpar</button>
           </div>
 
@@ -504,6 +566,23 @@
             <button type="button" id="btn-cms-bulk-save" class="btn-cms-save" disabled>Salvar alterações</button>
           </div>
         </div>
+
+        <!-- Modal de Revisão de Códigos Duplicados (não apaga automaticamente) -->
+        <dialog id="cms-dupes-dialog" class="cms-modal-dialog" closedby="any" aria-labelledby="cms-dupes-title">
+          <div class="cms-modal-head">
+            <h3 id="cms-dupes-title">Revisar códigos repetidos</h3>
+            <button type="button" class="cms-drawer-close" id="btn-cms-dupes-close" aria-label="Fechar">✕</button>
+          </div>
+          <div class="cms-modal-body">
+            <p style="font-size:0.84rem; color:#475569; margin:0 0 12px;">
+              Nenhum produto é apagado automaticamente. Compare os itens lado a lado e, se desejar, baixe o backup antes de ocultar o duplicado.
+            </p>
+            <div style="margin-bottom:12px;">
+              <button type="button" class="btn-cms-secondary" id="btn-cms-dupes-backup">Baixar backup JSON antes de alterar</button>
+            </div>
+            <div id="cms-dupes-list" class="cms-dupes-list"></div>
+          </div>
+        </dialog>
 
         <!-- GAVETA LATERAL: EDITAR / NOVO PRODUTO -->
         <dialog id="cms-product-drawer" class="cms-side-drawer" closedby="closerequest" aria-labelledby="cms-editor-mode-badge">
@@ -600,7 +679,36 @@
                     </div>
                     <div class="cms-field">
                       <label for="cms-prod-marca">Marca / Fabricante</label>
-                      <input type="text" id="cms-prod-marca" placeholder="Ex: Bambu Lab, Masterprint..." />
+                      <select id="cms-prod-marca">
+                        <option value="Masterprint">Masterprint</option>
+                        <option value="Bambu Lab">Bambu Lab</option>
+                        <option value="Snapmaker">Snapmaker</option>
+                        <option value="Oficina SJ 3D">Oficina SJ 3D</option>
+                        <option value="Loja SJ 3D">Loja SJ 3D</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div class="cms-field-row-2">
+                    <div class="cms-field">
+                      <label for="cms-prod-tipo-material">Tipo / Material (Filamentos)</label>
+                      <select id="cms-prod-tipo-material">
+                        <option value="">Automático pela linha</option>
+                        <option value="PLA">PLA</option>
+                        <option value="PLA Silk">PLA Silk</option>
+                        <option value="PETG">PETG</option>
+                        <option value="TPU Flex">TPU Flex</option>
+                        <option value="ABS">ABS</option>
+                        <option value="Glitter">Glitter</option>
+                      </select>
+                    </div>
+                    <div class="cms-field">
+                      <label for="cms-prod-formato-bambu">Formato (Bambu Lab)</label>
+                      <select id="cms-prod-formato-bambu">
+                        <option value="">Não se aplica</option>
+                        <option value="carretel">Com carretel (RFID)</option>
+                        <option value="refil">Só refil (RFID)</option>
+                      </select>
                     </div>
                   </div>
 
@@ -2264,9 +2372,9 @@
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2pdf.js@0.10.1/dist/html2pdf.bundle.min.js" crossorigin="anonymous"></script>
   <script src="js/supabase-client.js?v=20261123_03"></script>
-  <script src="js/dados.js?v=20261123_03"></script>
+  <script src="js/dados.js?v=20261125_03"></script>
   <script src="js/database.js?v=20261123_03"></script>
-  <script src="js/app.js?v=20261123_03"></script>
+  <script src="js/app.js?v=20261125_03"></script>
   <script src="js/customers-directory.js?v=20261123_03"></script>
   <script src="js/issued-quotes.js?v=20261123_03"></script>
 
