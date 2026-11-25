@@ -1,0 +1,66 @@
+{
+  "_comentario": "Configuração central da Loja SJ 3D para dados estruturados (JSON-LD) e regras de entrega. Edite aqui sempre que alguma regra mudar.",
+  "loja": {
+    "nome": "Loja SJ 3D",
+    "razaoSocial": "SJ NOVAIS E CIA LTDA",
+    "cnpj": "66.275.129/0001-10",
+    "endereco": "Av. Portugal, 6759 - Zona 1A, Umuarama - PR",
+    "cidade": "Umuarama",
+    "estado": "PR",
+    "pais": "BR",
+    "canalVenda": "catalogo_whatsapp",
+    "retiradaNaLoja": true
+  },
+  "entrega": {
+    "_comentario": "Entrega restrita exclusivamente ao município de Umuarama - PR (faixa oficial de CEP dos Correios: 87500-001 a 87524-999).",
+    "somenteCidadeLocal": true,
+    "destino": {
+      "addressCountry": "BR",
+      "addressRegion": "PR",
+      "postalCodeBegin": "87500-001",
+      "postalCodeEnd": "87524-999"
+    },
+    "moeda": "BRL",
+    "filamentos": {
+      "taxaEntregaPadrao": 15.0,
+      "minimoUnidadesFreteGratis": 5,
+      "descricaoRegra": "Entrega em Umuarama - PR: R$ 15,00 (grátis a partir de 5 filamentos) ou retirada na loja."
+    },
+    "impressoras": {
+      "freteGratis": true,
+      "taxaEntregaPadrao": 0.0,
+      "descricaoRegra": "Entrega grátis em Umuarama - PR ou retirada na loja."
+    },
+    "pecas": {
+      "regraDefinida": false,
+      "descricaoRegra": "A combinar pelo WhatsApp."
+    },
+    "manutencao": {
+      "regraDefinida": false,
+      "descricaoRegra": "A combinar pelo WhatsApp."
+    },
+    "pedidoMisto": {
+      "regraDefinida": false
+    },
+    "prazo": {
+      "_comentario": "Quando definir prazos fixos em dias, troque definido para true e preencha os dias de preparo e entrega.",
+      "definido": false,
+      "handlingMinDays": null,
+      "handlingMaxDays": null,
+      "transitMinDays": null,
+      "transitMaxDays": null,
+      "texto": "Prazo a combinar pelo WhatsApp"
+    }
+  },
+  "devolucao": {
+    "_comentario": "Desativado por enquanto conforme definido pela loja. Quando quiser publicar a política de devolução, altere ativo para true e preencha os campos abaixo.",
+    "ativo": false,
+    "applicableCountry": "BR",
+    "returnPolicyCategory": "https://schema.org/MerchantReturnFiniteReturnWindow",
+    "merchantReturnDays": null,
+    "returnMethod": null,
+    "returnFees": null,
+    "refundType": null,
+    "urlPagina": "https://www.lojasj3d.com.br/trocas-e-devolucoes"
+  }
+}

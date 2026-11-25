@@ -8276,6 +8276,214 @@
     document.body.style.overflow = "";
   }
 
+  const CONFIG_LOJA_SEO_PADRAO = {
+    entrega: {
+      destino: {
+        addressCountry: "BR",
+        addressRegion: "PR",
+        postalCodeBegin: "87500-001",
+        postalCodeEnd: "87524-999"
+      },
+      moeda: "BRL",
+      filamentos: { taxaEntregaPadrao: 15.0, minimoUnidadesFreteGratis: 5 },
+      impressoras: { freteGratis: true, taxaEntregaPadrao: 0.0 },
+      pecas: { regraDefinida: false },
+      manutencao: { regraDefinida: false },
+      prazo: { definido: false }
+    },
+    devolucao: { ativo: false }
+  };
+
+  let configLojaSeoCache = CONFIG_LOJA_SEO_PADRAO;
+  if (typeof fetch === "function") {
+    fetch("config/loja.json", { cache: "no-cache" })
+      .then((r) => (r && r.ok ? r.json() : null))
+      .then((json) => {
+        if (json && json.entrega) configLojaSeoCache = json;
+      })
+      .catch(() => {});
+  }
+
+  function limparTextoPlanoSeo(str) {
+    return String(str || "")
+      .replace(/<[^>]*>/g, " ")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function gerarDescricaoProdutoSeo(item) {
+    if (!item) return "";
+    const cadastrada = limparTextoPlanoSeo(item.descricao || item.subtitulo || item.paraQueServe || "");
+    const nome = limparTextoPlanoSeo(item.nome || "");
+    const marca = limparTextoPlanoSeo(item.marca || "");
+    const compat = limparTextoPlanoSeo(item.compatibilidade || item.fichaTecnica?.["Compatibilidade"] || "");
+    let base = "";
+
+    if (cadastrada.length >= 60) {
+      base = cadastrada;
+    } else if (item.categoria === "filamentos") {
+      const partes = [nome];
+      if (marca && !nome.toLowerCase().includes(marca.toLowerCase())) partes.push(marca);
+      if (cadastrada) partes.push(cadastrada);
+      base = `${partes.join(" — ")}. Bobina de 1 kg, diâmetro 1,75 mm. Revenda autorizada na Loja SJ 3D em Umuarama - PR.`;
+    } else if (item.categoria === "impressoras") {
+      const partes = [nome];
+      if (cadastrada) partes.push(cadastrada);
+      base = `${partes.join(" — ")}. Impressora 3D com suporte técnico e retirada ou entrega em Umuarama - PR na Loja SJ 3D.`;
+    } else {
+      const partes = [nome];
+      if (marca && !nome.toLowerCase().includes(marca.toLowerCase())) partes.push(marca);
+      if (cadastrada) partes.push(cadastrada);
+      if (compat) partes.push(`Compatibilidade: ${compat}`);
+      base = `${partes.join(". ")}. Disponível sob consulta na Loja SJ 3D em Umuarama - PR.`;
+    }
+
+    base = limparTextoPlanoSeo(base);
+    if (base.length > 295) base = `${base.slice(0, 292).trim()}...`;
+    return base;
+  }
+
+  function construirJsonLdProduto(item) {
+    if (!item || !item.id || item.categoria === "manutencao") return null;
+    const ORIGIN = "https://www.lojasj3d.com.br";
+    const cfg = configLojaSeoCache || CONFIG_LOJA_SEO_PADRAO;
+    const imgBruta = String(item.imagem || "").trim();
+    const imgAbs = imgBruta
+      ? (/^https?:\/\//i.test(imgBruta) ? imgBruta : `${ORIGIN}/${imgBruta.replace(/^\/+/, "")}`)
+      : `${ORIGIN}/assets/img/logo-vertical.png`;
+    const urlProd = `${ORIGIN}/?produto=${encodeURIComponent(item.id)}`;
+    const marcaNome = item.marca === "MaxPrint" ? "Masterprint" : (item.marca || "Loja SJ 3D");
+
+    const produtoSchema = {
+      "@context": "https://schema.org",
+      "@type": "Product",
+      name: limparTextoPlanoSeo(item.nome),
+      sku: String(item.cod || item.sku || item.id),
+      description: gerarDescricaoProdutoSeo(item),
+      image: imgAbs,
+      brand: { "@type": "Brand", name: limparTextoPlanoSeo(marcaNome) },
+      url: urlProd
+    };
+
+    if (item.categoria === "filamentos") {
+      const matMatch = String(item.nome || "").match(/\b(PLA\s*Silk|PLA|PETG|TPU|ABS)\b/i);
+      if (matMatch) produtoSchema.material = matMatch[1].toUpperCase();
+      produtoSchema.weight = { "@type": "QuantitativeValue", value: 1, unitCode: "KGM" };
+      produtoSchema.additionalProperty = [
+        { "@type": "PropertyValue", name: "Diâmetro do filamento", value: "1,75 mm" }
+      ];
+    }
+
+    // Só gera offers quando houver preço real numérico (nunca price: 0 em "Sob Consulta")
+    const precoNum = extrairNumeroDePrecoBR(item.precoVista);
+    if (precoNum > 0) {
+      const st = item.estoqueStatus || "disponivel";
+      const availability = st === "esgotado"
+        ? "https://schema.org/OutOfStock"
+        : "https://schema.org/InStock";
+
+      const offer = {
+        "@type": "Offer",
+        priceCurrency: "BRL",
+        price: precoNum.toFixed(2),
+        availability,
+        itemCondition: "https://schema.org/NewCondition",
+        url: urlProd
+      };
+
+      // shippingDetails somente para categorias com regra de entrega definida (Umuarama - PR)
+      const ent = cfg.entrega || {};
+      const dest = ent.destino || CONFIG_LOJA_SEO_PADRAO.entrega.destino;
+      let taxaEntrega = null;
+      if (item.categoria === "impressoras" && ent.impressoras) {
+        taxaEntrega = Number(ent.impressoras.taxaEntregaPadrao ?? 0);
+      } else if (item.categoria === "filamentos" && ent.filamentos) {
+        taxaEntrega = Number(ent.filamentos.taxaEntregaPadrao ?? 15);
+      }
+
+      if (taxaEntrega !== null && Number.isFinite(taxaEntrega)) {
+        const shippingDetails = {
+          "@type": "OfferShippingDetails",
+          shippingRate: {
+            "@type": "MonetaryAmount",
+            value: taxaEntrega.toFixed(2),
+            currency: ent.moeda || "BRL"
+          },
+          shippingDestination: {
+            "@type": "DefinedRegion",
+            addressCountry: dest.addressCountry || "BR",
+            addressRegion: dest.addressRegion || "PR",
+            postalCodeRange: {
+              "@type": "PostalCodeRangeSpecification",
+              postalCodeBegin: dest.postalCodeBegin || "87500-001",
+              postalCodeEnd: dest.postalCodeEnd || "87524-999"
+            }
+          }
+        };
+
+        // Só inclui deliveryTime se prazos fixos estiverem definidos em config/loja.json
+        if (ent.prazo && ent.prazo.definido && ent.prazo.handlingMinDays !== null && ent.prazo.transitMinDays !== null) {
+          shippingDetails.deliveryTime = {
+            "@type": "ShippingDeliveryTime",
+            handlingTime: {
+              "@type": "QuantitativeValue",
+              minValue: ent.prazo.handlingMinDays,
+              maxValue: ent.prazo.handlingMaxDays,
+              unitCode: "DAY"
+            },
+            transitTime: {
+              "@type": "QuantitativeValue",
+              minValue: ent.prazo.transitMinDays,
+              maxValue: ent.prazo.transitMaxDays,
+              unitCode: "DAY"
+            }
+          };
+        }
+        offer.shippingDetails = shippingDetails;
+      }
+
+      // Só inclui hasMerchantReturnPolicy se política estiver ativada em config/loja.json
+      const dev = cfg.devolucao || {};
+      if (dev.ativo && dev.returnPolicyCategory) {
+        const policy = {
+          "@type": "MerchantReturnPolicy",
+          applicableCountry: dev.applicableCountry || "BR",
+          returnPolicyCategory: dev.returnPolicyCategory
+        };
+        if (dev.merchantReturnDays) policy.merchantReturnDays = dev.merchantReturnDays;
+        if (dev.returnMethod) policy.returnMethod = dev.returnMethod;
+        if (dev.returnFees) policy.returnFees = dev.returnFees;
+        if (dev.refundType) policy.refundType = dev.refundType;
+        offer.hasMerchantReturnPolicy = policy;
+      }
+
+      produtoSchema.offers = offer;
+    }
+
+    return produtoSchema;
+  }
+
+  function atualizarJsonLdProdutoDinamico(item) {
+    const idScript = "sj-dynamic-product-jsonld";
+    const existente = document.getElementById(idScript);
+    if (!item) {
+      if (existente) existente.remove();
+      return;
+    }
+    const schemaObj = construirJsonLdProduto(item);
+    if (!schemaObj) {
+      if (existente) existente.remove();
+      return;
+    }
+    const scriptEl = existente || document.createElement("script");
+    scriptEl.id = idScript;
+    scriptEl.type = "application/ld+json";
+    scriptEl.textContent = JSON.stringify(schemaObj);
+    if (!existente && document.head) {
+      document.head.appendChild(scriptEl);
+    }
+  }
+
   function atualizarSeoDinamico({ view = "home", cat = "home", item = null } = {}) {
     if (ehPaginaAdminAtual()) return;
     const ORIGIN = "https://www.lojasj3d.com.br";
@@ -8340,6 +8548,8 @@
     if (ogTitle) ogTitle.setAttribute("content", info.title);
     const ogDesc = document.querySelector('meta[property="og:description"]');
     if (ogDesc) ogDesc.setAttribute("content", info.desc);
+
+    atualizarJsonLdProdutoDinamico(view === "pdp" && item ? item : null);
   }
 
   function navegarParaCategoria(cat, updateHistory = true) {
@@ -9094,7 +9304,7 @@
         ? (isBambu
           ? "Compatível nativamente com Bambu Lab AMS, AMS Lite e AMS 2 Pro via leitura RFID automática (1,75 mm), além de funcionar normalmente em outras impressoras FDM."
           : "Diâmetro universal de 1,75 mm compatível com Bambu Lab A1 / A1 Mini / P1 / X1 / P2S, Creality, Anycubic, Prusa, Flashforge, Snapmaker e demais impressoras FDM.")
-        : escaparHtml(item.compatibilidade || item.fichaTecnica?.["Compatibilidade"] || "Atendimento técnico em Umuarama — PR (Av. Portugal, 6759) e envio para todo o Brasil.")}</p>
+        : escaparHtml(item.compatibilidade || item.fichaTecnica?.["Compatibilidade"] || "Atendimento técnico, retirada na loja e entrega em Umuarama — PR (Av. Portugal, 6759).")}</p>
             </div>
           </div>
         </div>

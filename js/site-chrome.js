@@ -538,7 +538,7 @@
               </a>
             </li>
             <li><a href="/conta">Minha conta e pedidos</a></li>
-            <li><span class="sj-footer-note-text">Retirada presencial e envio rápido</span></li>
+            <li><span class="sj-footer-note-text">Retirada na loja e entrega em Umuarama - PR</span></li>
           </ul>
         </details>
 

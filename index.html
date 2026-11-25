@@ -66,8 +66,8 @@
   <link
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
     rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261124_04" />
-  <link rel="stylesheet" href="css/styles.css?v=20261124_04" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261125_01" />
+  <link rel="stylesheet" href="css/styles.css?v=20261125_01" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -102,7 +102,16 @@
         "description": "Revendedor autorizado Bambu Lab e Masterprint em Umuarama - PR. Filamentos 1.75 mm, impressoras 3D, peças originais e manutenção especializada.",
         "telephone": "+55-44-99135-1318",
         "email": "contato@gruposj.com.br",
-        "areaServed": ["Umuarama", "Paraná", "Brasil"],
+        "areaServed": [
+          {
+            "@type": "City",
+            "name": "Umuarama",
+            "containedInPlace": {
+              "@type": "State",
+              "name": "Paraná"
+            }
+          }
+        ],
         "address": {
           "@type": "PostalAddress",
           "streetAddress": "Av. Portugal, 6759 - Zona 1A",
@@ -148,6 +157,8 @@
             "item": {
               "@type": "Product",
               "name": "Impressora 3D Bambu Lab A1 MINI",
+              "sku": "imp-bambu-a1-mini",
+              "description": "Impressora 3D Bambu Lab A1 MINI compacta de alta velocidade com calibração automática, pronta entrega e suporte técnico na Loja SJ 3D em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Bambu Lab" },
               "image": "https://www.lojasj3d.com.br/assets/produtos/impressora-a1_mini.jpg",
               "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-mini",
@@ -156,7 +167,22 @@
                 "priceCurrency": "BRL",
                 "price": "1961.00",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-mini"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-mini",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "0.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           },
@@ -166,6 +192,8 @@
             "item": {
               "@type": "Product",
               "name": "Impressora 3D Bambu Lab A1",
+              "sku": "imp-bambu-a1-normal",
+              "description": "Impressora 3D Bambu Lab A1 com mesa de 256 x 256 x 256 mm, nivelamento automático e alta precisão. Disponível para retirada ou entrega em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Bambu Lab" },
               "image": "https://www.lojasj3d.com.br/assets/produtos/impressora-a1.jpg",
               "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-normal",
@@ -174,7 +202,22 @@
                 "priceCurrency": "BRL",
                 "price": "2699.00",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-normal"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-normal",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "0.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           },
@@ -184,6 +227,8 @@
             "item": {
               "@type": "Product",
               "name": "Impressora 3D Bambu Lab A1 COMBO (AMS Lite)",
+              "sku": "imp-bambu-a1-combo",
+              "description": "Impressora 3D Bambu Lab A1 COMBO com sistema AMS Lite para impressão multicolorida em até 4 cores simultâneas. Revenda autorizada em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Bambu Lab" },
               "image": "https://www.lojasj3d.com.br/assets/produtos/impressora-a1_combo.jpg",
               "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-combo",
@@ -192,7 +237,22 @@
                 "priceCurrency": "BRL",
                 "price": "4049.00",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-combo"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-a1-combo",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "0.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           },
@@ -202,6 +262,8 @@
             "item": {
               "@type": "Product",
               "name": "Impressora 3D Bambu Lab P2S COMBO",
+              "sku": "imp-bambu-p2s",
+              "description": "Impressora 3D Bambu Lab P2S COMBO fechada de alto desempenho para produção contínua e múltiplos materiais. Disponível na Loja SJ 3D em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Bambu Lab" },
               "image": "https://www.lojasj3d.com.br/assets/produtos/impressora-p2s_combo.jpg",
               "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-p2s",
@@ -210,7 +272,22 @@
                 "priceCurrency": "BRL",
                 "price": "8849.00",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-p2s"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=imp-bambu-p2s",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "0.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           },
@@ -220,7 +297,14 @@
             "item": {
               "@type": "Product",
               "name": "Filamento PLA Masterprint 1 kg (51 Cores)",
+              "sku": "fil-pla-maxprint",
+              "description": "Filamento PLA Masterprint 1,75 mm em bobina de 1 kg, compatível com impressoras 3D FDM. Linha com 51 cores disponíveis na Loja SJ 3D em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Masterprint" },
+              "material": "PLA",
+              "weight": { "@type": "QuantitativeValue", "value": 1, "unitCode": "KGM" },
+              "additionalProperty": [
+                { "@type": "PropertyValue", "name": "Diâmetro do filamento", "value": "1,75 mm" }
+              ],
               "image": "https://www.lojasj3d.com.br/assets/produtos/filamentos/cod_34.jpg",
               "url": "https://www.lojasj3d.com.br/?produto=fil-pla-maxprint",
               "offers": {
@@ -228,7 +312,22 @@
                 "priceCurrency": "BRL",
                 "price": "79.90",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=fil-pla-maxprint"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=fil-pla-maxprint",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "15.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           },
@@ -238,7 +337,14 @@
             "item": {
               "@type": "Product",
               "name": "Filamento PLA Bambu Lab RFID 1 kg",
+              "sku": "fil-pla-bambulab",
+              "description": "Filamento PLA Bambu Lab original (carretel e refil com chip RFID para leitura automática no AMS), bobina de 1 kg, 1,75 mm. Revenda autorizada em Umuarama - PR.",
               "brand": { "@type": "Brand", "name": "Bambu Lab" },
+              "material": "PLA",
+              "weight": { "@type": "QuantitativeValue", "value": 1, "unitCode": "KGM" },
+              "additionalProperty": [
+                { "@type": "PropertyValue", "name": "Diâmetro do filamento", "value": "1,75 mm" }
+              ],
               "image": "https://www.lojasj3d.com.br/assets/produtos/filamentos/cod_137.png",
               "url": "https://www.lojasj3d.com.br/?produto=fil-pla-bambulab",
               "offers": {
@@ -246,7 +352,22 @@
                 "priceCurrency": "BRL",
                 "price": "99.90",
                 "availability": "https://schema.org/InStock",
-                "url": "https://www.lojasj3d.com.br/?produto=fil-pla-bambulab"
+                "itemCondition": "https://schema.org/NewCondition",
+                "url": "https://www.lojasj3d.com.br/?produto=fil-pla-bambulab",
+                "shippingDetails": {
+                  "@type": "OfferShippingDetails",
+                  "shippingRate": { "@type": "MonetaryAmount", "value": "15.00", "currency": "BRL" },
+                  "shippingDestination": {
+                    "@type": "DefinedRegion",
+                    "addressCountry": "BR",
+                    "addressRegion": "PR",
+                    "postalCodeRange": {
+                      "@type": "PostalCodeRangeSpecification",
+                      "postalCodeBegin": "87500-001",
+                      "postalCodeEnd": "87524-999"
+                    }
+                  }
+                }
               }
             }
           }
@@ -3747,11 +3868,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
   <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261124_04"></script>
-  <script src="js/dados.js?v=20261124_04"></script>
-  <script src="js/site-chrome.js?v=20261124_04"></script>
-  <script src="js/database.js?v=20261124_04"></script>
-  <script src="js/app.js?v=20261124_04"></script>
+  <script src="js/supabase-client.js?v=20261125_01"></script>
+  <script src="js/dados.js?v=20261125_01"></script>
+  <script src="js/site-chrome.js?v=20261125_01"></script>
+  <script src="js/database.js?v=20261125_01"></script>
+  <script src="js/app.js?v=20261125_01"></script>
 </body>
 
 </html>
