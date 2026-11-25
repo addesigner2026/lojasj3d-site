@@ -28,7 +28,9 @@ backups/
 .env*.local
 *.pem
 *.key
+*.map
 .vercel/
+data/db*.local.json
 
 # Agentes e Ferramentas Internas
 .agents/
