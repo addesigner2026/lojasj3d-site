@@ -2,12 +2,26 @@
 <html lang="pt-BR">
 
 <head>
-  <!-- Google tag (gtag.js) GTM-NXSBR5H5 -->
-  <script async src="https://www.googletagmanager.com/gtm.js?id=GTM-NXSBR5H5"></script>
+  <!-- Google tag (gtag.js) GTM-NXSBR5H5 — adiado após 1ª pintura para não competir com o LCP -->
   <script>
     window.dataLayer = window.dataLayer || [];
     function gtag() { dataLayer.push(arguments); }
     gtag('js', new Date());
+    (function () {
+      var loaded = false;
+      function loadGtm() {
+        if (loaded) return;
+        loaded = true;
+        var s = document.createElement('script');
+        s.async = true;
+        s.src = 'https://www.googletagmanager.com/gtm.js?id=GTM-NXSBR5H5';
+        document.head.appendChild(s);
+      }
+      window.addEventListener('load', function () { setTimeout(loadGtm, 1200); }, { once: true });
+      ['pointerdown', 'keydown', 'scroll'].forEach(function (ev) {
+        window.addEventListener(ev, loadGtm, { once: true, passive: true });
+      });
+    })();
   </script>
 
   <meta charset="UTF-8" />
@@ -74,8 +88,8 @@
       href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
       rel="stylesheet" />
   </noscript>
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261126_01" />
-  <link rel="stylesheet" href="css/styles.css?v=20261126_01" />
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261126_02" />
+  <link rel="stylesheet" href="css/styles.css?v=20261126_02" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -503,9 +517,24 @@
        ==================================================================== -->
   <main class="container catalog-main-section" id="catalogo-topo">
 
-    <!-- VISÃO 0: CAPA DO SITE / HOME (CONTÉM H1 + LINKS SEMÂNTICOS INICIAIS ANTES DO JS) -->
+    <!-- VISÃO 0: CAPA DO SITE / HOME (1º BANNER NO HTML INICIAL PARA LCP INSTANTÂNEO + SEO SEMÂNTICO) -->
     <section id="home-landing-view" class="home-landing-section" aria-label="Destaques Loja SJ 3D">
-      <div class="sj-ssr-intro-fallback">
+      <div class="sj-ssr-hero-shell">
+        <picture>
+          <source media="(max-width: 768px)" srcset="assets/banners/mobile/00-sorteio.jpg" />
+          <img
+            src="assets/banners/desktop/00-sorteio.jpg"
+            alt="Campanha Especial Loja SJ 3D — Impressoras 3D Bambu Lab e Filamentos em Umuarama - PR"
+            width="1440"
+            height="480"
+            class="sj-ssr-hero-img"
+            fetchpriority="high"
+            loading="eager"
+            decoding="sync"
+          />
+        </picture>
+      </div>
+      <div class="sj-ssr-intro-fallback sr-only">
         <h1>Impressoras 3D, Filamentos Bambu Lab e Masterprint em Umuarama - PR</h1>
         <p>Loja SJ 3D: revenda autorizada Bambu Lab e Masterprint em Umuarama - PR (Av. Portugal, 6759). Filamentos 1.75
           mm PLA, PLA Silk, PETG, TPU e ABS, impressoras 3D A1 Mini, A1 Combo, P2S e Snapmaker U1, peças originais e
@@ -3876,13 +3905,11 @@
   </div>
 
   <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
-  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script defer src="js/supabase-client.js?v=20261126_01"></script>
-  <script defer src="js/dados.js?v=20261126_01"></script>
-  <script defer src="js/site-chrome.js?v=20261126_01"></script>
-  <script defer src="js/database.js?v=20261126_01"></script>
-  <script defer src="js/app.js?v=20261126_01"></script>
+  <script defer src="js/supabase-client.js?v=20261126_02"></script>
+  <script defer src="js/dados.js?v=20261126_02"></script>
+  <script defer src="js/site-chrome.js?v=20261126_02"></script>
+  <script defer src="js/database.js?v=20261126_02"></script>
+  <script defer src="js/app.js?v=20261126_02"></script>
 </body>
 
 </html>

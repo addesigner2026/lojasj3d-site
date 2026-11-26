@@ -25061,9 +25061,21 @@ tr.is-just-added {
   min-height: 520px;
 }
 
-.hero-graphic-img {
+.hero-graphic-img,
+.sj-ssr-hero-img {
+  width: 100%;
+  height: auto;
+  display: block;
   aspect-ratio: 3 / 1;
   object-fit: cover;
+  border-radius: 18px;
+}
+
+.sj-ssr-hero-shell {
+  width: 100%;
+  border-radius: 18px;
+  overflow: hidden;
+  background: #0f172a;
 }
 
 @media (max-width: 768px) {
@@ -25075,7 +25087,8 @@ tr.is-just-added {
     min-height: 440px;
   }
 
-  .hero-graphic-img {
+  .hero-graphic-img,
+  .sj-ssr-hero-img {
     aspect-ratio: 4 / 5;
   }
 }
