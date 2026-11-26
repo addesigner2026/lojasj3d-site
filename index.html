@@ -42,8 +42,7 @@
   <meta property="og:locale" content="pt_BR" />
   <meta property="og:url" content="https://www.lojasj3d.com.br/" />
   <meta property="og:site_name" content="Loja SJ 3D — Umuarama PR" />
-  <meta property="og:title"
-    content="Loja SJ 3D | Filamentos e Impressoras 3D em Umuarama - PR" />
+  <meta property="og:title" content="Loja SJ 3D | Filamentos e Impressoras 3D em Umuarama - PR" />
   <meta property="og:description"
     content="Filamentos Bambu Lab RFID e Masterprint (+80 cores), impressoras 3D A1 Mini, A1 Combo, P2S e Snapmaker U1, peças originais e assistência técnica em Umuarama - PR." />
   <meta property="og:image" content="https://www.lojasj3d.com.br/assets/produtos/banner-sorteio-natal-wide.jpg" />
@@ -63,11 +62,20 @@
   <link rel="manifest" href="/site.webmanifest?v=20261123" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link rel="preload" as="image" href="assets/banners/desktop/00-sorteio.jpg" media="(min-width: 769px)" fetchpriority="high" />
+  <link rel="preload" as="image" href="assets/banners/mobile/00-sorteio.jpg" media="(max-width: 768px)" fetchpriority="high" />
   <link
+    rel="preload"
+    as="style"
     href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
-    rel="stylesheet" />
-  <link rel="stylesheet" href="css/sj-tokens.css?v=20261125_03" />
-  <link rel="stylesheet" href="css/styles.css?v=20261125_03" />
+    onload="this.onload=null;this.rel='stylesheet'" />
+  <noscript>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet" />
+  </noscript>
+  <link rel="stylesheet" href="css/sj-tokens.css?v=20261126_01" />
+  <link rel="stylesheet" href="css/styles.css?v=20261126_01" />
 
   <!-- Google Identity Services (Sign in with Google OAuth) -->
   <script src="https://accounts.google.com/gsi/client" async defer></script>
@@ -499,7 +507,9 @@
     <section id="home-landing-view" class="home-landing-section" aria-label="Destaques Loja SJ 3D">
       <div class="sj-ssr-intro-fallback">
         <h1>Impressoras 3D, Filamentos Bambu Lab e Masterprint em Umuarama - PR</h1>
-        <p>Loja SJ 3D: revenda autorizada Bambu Lab e Masterprint em Umuarama - PR (Av. Portugal, 6759). Filamentos 1.75 mm PLA, PLA Silk, PETG, TPU e ABS, impressoras 3D A1 Mini, A1 Combo, P2S e Snapmaker U1, peças originais e manutenção especializada com pronta entrega.</p>
+        <p>Loja SJ 3D: revenda autorizada Bambu Lab e Masterprint em Umuarama - PR (Av. Portugal, 6759). Filamentos 1.75
+          mm PLA, PLA Silk, PETG, TPU e ABS, impressoras 3D A1 Mini, A1 Combo, P2S e Snapmaker U1, peças originais e
+          manutenção especializada com pronta entrega.</p>
         <nav class="sj-ssr-links" aria-label="Atalhos do catálogo Loja SJ 3D">
           <a href="/?categoria=impressoras">Impressoras 3D Bambu Lab e Snapmaker</a>
           <a href="/?categoria=filamentos">Filamentos 1.75 mm (+80 cores)</a>
@@ -3865,14 +3875,14 @@
     </div>
   </div>
 
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
-  <script src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
-  <script src="js/supabase-client.js?v=20261125_03"></script>
-  <script src="js/dados.js?v=20261125_03"></script>
-  <script src="js/site-chrome.js?v=20261125_03"></script>
-  <script src="js/database.js?v=20261125_03"></script>
-  <script src="js/app.js?v=20261125_03"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/qrcode-generator@1.4.4/qrcode.min.js" crossorigin="anonymous"></script>
+  <script defer src="https://cdn.jsdelivr.net/npm/jsqr@1.4.0/dist/jsQR.min.js" crossorigin="anonymous"></script>
+  <script defer src="js/supabase-client.js?v=20261126_01"></script>
+  <script defer src="js/dados.js?v=20261126_01"></script>
+  <script defer src="js/site-chrome.js?v=20261126_01"></script>
+  <script defer src="js/database.js?v=20261126_01"></script>
+  <script defer src="js/app.js?v=20261126_01"></script>
 </body>
 
 </html>
