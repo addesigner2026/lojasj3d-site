@@ -1,0 +1,25 @@
+BANNERS DO SITE — LOJA SJ
+Formato aprovado: 1920 × 640 px, horizontal.
+9 banners: 3 filamentos e 6 impressoras.
+Logo, tipografia, preço e estrutura de informações seguem a proposta aprovada. Os cenários variam entre nichos, painéis, materiais e iluminação, preservando a paleta SJ e as áreas de texto.
+
+PREÇOS
+MASTERPRINT PETG: a partir de R$ 64,90 por unidade
+MASTERPRINT PLA: a partir de R$ 84,90 por unidade
+BAMBU LAB PLA: a partir de R$ 104,90 por unidade
+BAMBU LAB A1 MINI: a partir de R$ 1.961,00 à vista ou 10x de R$ 217,90
+BAMBU LAB A1 MINI COMBO: a partir de R$ 3.199,00 à vista ou 10x de R$ 359,90
+BAMBU LAB A1: a partir de R$ 2.699,00 à vista ou 10x de R$ 303,00
+BAMBU LAB A1 COMBO: a partir de R$ 4.049,00 à vista ou 10x de R$ 449,90
+BAMBU LAB P2S COMBO: a partir de R$ 8.849,00 à vista ou 10x de R$ 949,90
+SNAPMAKER U1: a partir de R$ 9.991,00 à vista ou 10x de R$ 1.099,00
+
+Filamentos reajustados em R$ 5,00 sobre os banners anteriores: PETG 59,90 → 64,90; PLA MasterPrint 79,90 → 84,90; PLA Bambu Lab 99,90 → 104,90. Preços das impressoras preservados conforme os valores informados.
+
+ARQUIVOS
+WEBP: versões leves para o site.
+PNG: versões de maior peso, para arquivo e revisão.
+Previas: imagens reduzidas somente para visualizar a coleção. Os arquivos individuais são os banners para publicação.
+
+PRODUÇÃO
+O PETG aprovado foi preservado exatamente. Oito novas cenas foram criadas com ImageGen nativo; logo e textos foram aplicados depois, de modo determinístico. Prompts e manifesto técnico estão em source.

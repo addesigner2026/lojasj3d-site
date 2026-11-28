@@ -72,7 +72,7 @@
         <button type="button" class="sj-announcement-rotator" id="top-promo-rotator-btn" data-nav-cat="filamentos"
           aria-live="polite">
           <span class="sj-announcement-dot" aria-hidden="true"></span>
-          <span class="sj-announcement-text" id="top-promo-rotator-text">Filamento PLA a partir de <strong>R$ 79,90</strong></span>
+          <span class="sj-announcement-text" id="top-promo-rotator-text">Filamentos PLA e PETG com <strong>pronta entrega</strong></span>
         </button>
         <button type="button" class="sj-announcement-close" id="top-promo-close-btn" aria-label="Fechar aviso"
           title="Fechar aviso">

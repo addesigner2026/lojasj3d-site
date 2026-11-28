@@ -7612,7 +7612,20 @@
     const homeEl = document.getElementById("home-landing-view");
     if (!homeEl) return;
 
-    const bannersHero = window.SITE_DATA.bannersBlackSJ || [];
+    // Filtra banners por dataInicio / dataFim (AAAA-MM-DD) para campanhas saírem do ar sozinhas
+    const hojeIso = (() => {
+      const agora = new Date();
+      const y = agora.getFullYear();
+      const m = String(agora.getMonth() + 1).padStart(2, "0");
+      const d = String(agora.getDate()).padStart(2, "0");
+      return `${y}-${m}-${d}`;
+    })();
+    const bannersHero = (window.SITE_DATA.bannersBlackSJ || []).filter((b) => {
+      if (!b) return false;
+      if (b.dataInicio && String(b.dataInicio).trim() && hojeIso < String(b.dataInicio).trim()) return false;
+      if (b.dataFim && String(b.dataFim).trim() && hojeIso > String(b.dataFim).trim()) return false;
+      return true;
+    });
     const cfgBanner = obterConfigBannerPromocao();
     const vipSlideAtivo = cfgBanner.vipBannerAtivo !== false;
     const totalSlidesHero = bannersHero.length + (vipSlideAtivo ? 1 : 0);
@@ -7620,7 +7633,27 @@
       state.heroSlideAtivo = 0;
     }
 
-    // Filamentos mais bonitos e diferenciados do catálogo de 55 páginas
+    // Filamentos mais bonitos e diferenciados do catálogo (preço dinâmico do catálogo ativo)
+    function resolverPrecoFilamentoPorCod(codBusca, fallbackPreco) {
+      const alvo = String(codBusca || "").trim();
+      const paletas = [
+        window.SITE_DATA.coresBambuLab,
+        window.SITE_DATA.coresMaxPrint,
+        window.SITE_DATA.coresPlaSilk,
+        window.SITE_DATA.coresPetg,
+        window.SITE_DATA.coresTpu,
+        window.SITE_DATA.coresAbsEspeciais
+      ];
+      for (const pal of paletas) {
+        const cor = (pal || []).find((c) => String(c.cod || "").trim() === alvo);
+        if (cor) {
+          if (cor.preco) return cor.preco;
+          if (Number(cor.valor || 0) > 0) return formatarMoedaBR(cor.valor);
+        }
+      }
+      return fallbackPreco;
+    }
+
     const filamentosDestaqueVisual = [
       {
         itemId: "fil-silk-maxprint",
@@ -7628,7 +7661,7 @@
         nome: "PLA Silk Preto/Laranja Dual",
         efeito: "Bicolor Metálico",
         cod: "75",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("75", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_170.jpg"
       },
       {
@@ -7637,7 +7670,7 @@
         nome: "PLA Silk Rainbow Happy",
         efeito: "Multicor Sedoso",
         cod: "150",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("150", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_203.jpg"
       },
       {
@@ -7646,7 +7679,7 @@
         nome: "PLA Silk Azul/Preto/Roxo Tri",
         efeito: "Tricolor Metálico",
         cod: "142",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("142", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_201.jpg"
       },
       {
@@ -7655,7 +7688,7 @@
         nome: "PLA Rainbow Florescente",
         efeito: "Gradiente Vibrante",
         cod: "83",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("83", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_109.jpg"
       },
       {
@@ -7664,7 +7697,7 @@
         nome: "PLA Mármore Especial",
         efeito: "Textura Pedra Esculpida",
         cod: "124",
-        preco: "R$ 79,90",
+        preco: resolverPrecoFilamentoPorCod("124", "R$ 84,90"),
         img: "assets/produtos/filamentos/img_143.jpg"
       },
       {
@@ -7673,7 +7706,7 @@
         nome: "PLA Marrom Madeira",
         efeito: "Acabamento Amadeirado",
         cod: "63",
-        preco: "R$ 79,90",
+        preco: resolverPrecoFilamentoPorCod("63", "R$ 94,90"),
         img: "assets/produtos/filamentos/img_87.jpg"
       },
       {
@@ -7682,7 +7715,7 @@
         nome: "Dreamy Crystal Preto/Vermelho",
         efeito: "Cristal Bicolor",
         cod: "156",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("156", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_151.jpg"
       },
       {
@@ -7691,7 +7724,7 @@
         nome: "PLA Bambu Lab Laranja RFID",
         efeito: "Com Chip RFID p/ AMS",
         cod: "137",
-        preco: "R$ 99,90",
+        preco: resolverPrecoFilamentoPorCod("137", "R$ 104,90"),
         img: "assets/produtos/filamentos/img_237.jpg"
       }
     ];
@@ -7719,38 +7752,63 @@
     const pecasParaExibirHome =
       pecasDestaqueHome.length > 0 ? pecasDestaqueHome : todasPecas.slice(0, 4);
 
-    // Preço inicial dinâmico por marca de filamento
-    function calcularMenorPrecoFilamentos(marcaTarget, fallbackStr) {
+    // Preço inicial 100% dinâmico do catálogo (ignora esgotados e nunca usa preço fixo de fallback)
+    function obterMenorPrecoFilamentoDisponivel(grupo) {
+      const d = window.SITE_DATA || {};
+      const ehDisponivel = (c) => {
+        if (!c) return false;
+        const st = String(c.stock_status || c.status || "disponivel").toLowerCase();
+        return st !== "esgotado" && !c.esgotado && Number(c.valor || 0) > 0;
+      };
+      const ehRefil = (c) => {
+        const txt = `${c.nome || ""} ${c.tipo || ""}`.toLowerCase();
+        return txt.includes("refil");
+      };
+
+      let lista = [];
+      if (grupo === "masterprint") {
+        lista = [
+          ...(d.coresMaxPrint || []),
+          ...(d.coresPlaSilk || []),
+          ...(d.coresPetg || []),
+          ...(d.coresTpu || []),
+          ...(d.coresAbsEspeciais || [])
+        ];
+      } else if (grupo === "pla") {
+        lista = [...(d.coresMaxPrint || [])];
+      } else if (grupo === "petg") {
+        lista = [...(d.coresPetg || [])];
+      } else if (grupo === "bambu") {
+        lista = [...(d.coresBambuLab || [])];
+      } else if (grupo === "bambu_carretel") {
+        lista = (d.coresBambuLab || []).filter((c) => !ehRefil(c));
+      } else if (grupo === "bambu_refil") {
+        lista = (d.coresBambuLab || []).filter((c) => ehRefil(c));
+      }
+
       let minVal = Infinity;
-      let minFmt = "";
-      todosFilamentos
-        .filter((f) => String(f.marca || "").toLowerCase() === marcaTarget.toLowerCase())
-        .forEach((f) => {
-          const valBase = Number(f.precoVistaValor || 0);
-          if (valBase > 0 && valBase < minVal) {
-            minVal = valBase;
-            minFmt = f.precoVista || "";
-          }
-          const pal = obterPaletaPorChave(f.usaCoresDinamicas, f.marca === "Bambu Lab");
-          (pal || []).forEach((c) => {
-            const v = Number(c.valor || 0);
-            if (v > 0 && v < minVal) {
-              minVal = v;
-              minFmt = c.preco || "";
-            }
-          });
-        });
-      if (minVal < Infinity && minFmt) return minFmt;
+      lista.forEach((c) => {
+        if (!ehDisponivel(c)) return;
+        const v = Number(c.valor || 0);
+        if (v > 0 && v < minVal) minVal = v;
+      });
+
       if (minVal < Infinity) return formatarMoedaBR(minVal);
-      return fallbackStr;
+      return "";
     }
 
-    const menorPrecoMaster = calcularMenorPrecoFilamentos("MaxPrint", "R$ 59,90");
-    const menorPrecoBambu = calcularMenorPrecoFilamentos("Bambu Lab", "R$ 79,90");
+    // Expõe o helper para a barra de avisos do topo e atualizações em tempo real
+    window._sjObterMenorPrecoFilamento = obterMenorPrecoFilamentoDisponivel;
+    if (typeof window._sjAtualizarAvisosTopo === "function") {
+      window._sjAtualizarAvisosTopo();
+    }
+
+    const menorPrecoMaster = obterMenorPrecoFilamentoDisponivel("masterprint");
+    const menorPrecoBambu = obterMenorPrecoFilamentoDisponivel("bambu");
 
     homeEl.innerHTML = `
-      <!-- 1. HERO CAROUSEL DE DESTAQUES (BANNERS GRÁFICOS OFICIAIS BLACK SJ 3D — PRESERVADOS) -->
-      <div class="hero-slider-container" id="hero-slider-container" role="region" aria-label="Carrossel de Ofertas Black SJ 3D">
+      <!-- 1. HERO CAROUSEL DE DESTAQUES (BANNERS OFICIAIS LOJA SJ 3D — RESPONSIVOS V2) -->
+      <div class="hero-slider-container" id="hero-slider-container" role="region" aria-label="Carrossel de Ofertas Loja SJ 3D">
         <button type="button" class="admin-quick-edit-btn admin-banner-edit-btn" data-admin-edit-banner="1" title="Editar Banner de Promoções da Capa">
           ✏️ Editar Banner de Promoção
         </button>
@@ -7758,19 +7816,20 @@
           ${bannersHero
         .map(
           (b, idx) => `
-              <div class="hero-slide-item graphic-banner-slide ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}">
-                <button type="button" class="hero-graphic-link" data-home-open-item="${b.itemId}" data-is-sorteio="${b.isSorteio ? "true" : "false"}" aria-label="${b.titulo}">
+              <div class="hero-slide-item graphic-banner-slide ${b.somenteHorizontal ? "sj-hero-wide-banner-slide" : ""} ${idx === state.heroSlideAtivo ? "active" : ""}" data-slide-idx="${idx}">
+                <button type="button" class="hero-graphic-link" data-home-open-item="${escaparHtml(b.itemId)}" data-is-sorteio="${b.isSorteio ? "true" : "false"}" aria-label="${escaparHtml(b.titulo)}">
                   <picture class="hero-graphic-picture">
-                    ${b.mobileWebp ? `<source media="(max-width: 768px)" srcset="${b.mobileWebp}" type="image/webp" />` : ""}
-                    <source media="(max-width: 768px)" srcset="${b.mobilePng || b.desktopPng}" />
-                    ${b.desktopWebp ? `<source srcset="${b.desktopWebp}" type="image/webp" />` : ""}
+                    ${b.mobileWebp ? `<source media="(max-width: 768px)" srcset="${escaparHtml(b.mobileWebp)}" type="image/webp" />` : ""}
+                    ${b.mobilePng ? `<source media="(max-width: 768px)" srcset="${escaparHtml(b.mobilePng)}" />` : ""}
+                    ${b.desktopWebp ? `<source srcset="${escaparHtml(b.desktopWebp)} 1920w" sizes="100vw" type="image/webp" />` : ""}
                     <img
-                      src="${b.desktopPng}"
-                      alt="${b.titulo}"
-                      width="1280"
-                      height="460"
+                      src="${escaparHtml(b.desktopPng)}"
+                      ${b.mobilePng && b.desktopPng && b.mobilePng !== b.desktopPng ? `srcset="${escaparHtml(b.mobilePng)} 960w, ${escaparHtml(b.desktopPng)} 1280w" sizes="(max-width: 768px) 100vw, 1280px"` : ""}
+                      alt="${escaparHtml(b.titulo)}"
+                      width="1920"
+                      height="640"
                       class="hero-graphic-img"
-                      ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'fetchpriority="low" loading="lazy"'}
+                      ${idx === 0 ? 'fetchpriority="high" loading="eager"' : 'fetchpriority="low" loading="lazy" decoding="async"'}
                     />
                   </picture>
                   ${b.isSorteio ? `
@@ -7937,10 +7996,12 @@
                 <p class="sj-home-fil-card-desc">PLA, Silk, PETG, TPU e ABS para qualquer impressora 3D.</p>
               </div>
               <div class="sj-home-fil-card-footer">
+                ${menorPrecoMaster ? `
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
                   <strong>${escaparHtml(menorPrecoMaster)} <span>/ 1 kg</span></strong>
                 </div>
+                ` : ""}
                 <span class="sj-home-fil-cta">Ver cores →</span>
               </div>
             </div>
@@ -7957,10 +8018,12 @@
                 <p class="sj-home-fil-card-desc">Leitura automática no AMS e AMS Lite em bobina ou refil.</p>
               </div>
               <div class="sj-home-fil-card-footer">
+                ${menorPrecoBambu ? `
                 <div class="sj-home-fil-price-box">
                   <small>A partir de</small>
                   <strong>${escaparHtml(menorPrecoBambu)} <span>/ 1 kg</span></strong>
                 </div>
+                ` : ""}
                 <span class="sj-home-fil-cta bambu">Ver cores →</span>
               </div>
             </div>
@@ -8679,8 +8742,13 @@
       listaCores = obterPaletaPorChave(item.usaCoresDinamicas, isBambu);
 
       if (item.permiteTrocarMarcaNoCard) {
+        const minCarretel = typeof window._sjObterMenorPrecoFilamento === "function" ? window._sjObterMenorPrecoFilamento("bambu_carretel") : "";
+        const minRefil = typeof window._sjObterMenorPrecoFilamento === "function" ? window._sjObterMenorPrecoFilamento("bambu_refil") : "";
         opcoesSelect1 = isBambu
-          ? ["1KG Carretel RFID (R$ 99,90)", "1KG Refil RFID (R$ 79,90)"]
+          ? [
+              minCarretel ? `1KG Carretel RFID (${minCarretel})` : "1KG Carretel RFID",
+              minRefil ? `1KG Refil RFID (${minRefil})` : "1KG Refil RFID"
+            ]
           : item.select1Opcoes || ["1KG Carretel"];
 
         if (item.id === "fil-pla-bambulab" || item.id === "fil-pla-maxprint") {
@@ -8794,10 +8862,10 @@
           <div class="pdp-filament-top-material-bar">
             <div class="pdp-filament-top-pills" role="tablist" aria-label="Apresentação Bambu Lab">
               <button type="button" class="pdp-top-pill ${opcao1Ativa.includes("Carretel") ? "active" : ""}" data-pdp-sel1="1KG Carretel RFID">
-                Com Bobina RFID (R$ 99,90)
+                ${(() => { const p = typeof window._sjObterMenorPrecoFilamento === "function" ? window._sjObterMenorPrecoFilamento("bambu_carretel") : ""; return p ? `Com Bobina RFID (${escaparHtml(p)})` : "Com Bobina RFID"; })()}
               </button>
               <button type="button" class="pdp-top-pill ${opcao1Ativa.includes("Refil") ? "active" : ""}" data-pdp-sel1="1KG Refil RFID">
-                Refil s/ Bobina (R$ 79,90)
+                ${(() => { const p = typeof window._sjObterMenorPrecoFilamento === "function" ? window._sjObterMenorPrecoFilamento("bambu_refil") : ""; return p ? `Refil s/ Bobina (${escaparHtml(p)})` : "Refil s/ Bobina"; })()}
               </button>
             </div>
           </div>
@@ -10154,7 +10222,7 @@
         id: "item-" + Date.now(),
         descricao: "Filamento PLA Masterprint 1.75mm (1kg)",
         qtd: 1,
-        precoUnitario: 79.90
+        precoUnitario: 84.90
       }
     ];
   }
@@ -10383,7 +10451,7 @@
             codigo: "CÓD. 34",
             imagem: "assets/produtos/filamentos/masterprint-pla-preto.jpg",
             qtd: 1,
-            precoUnitario: 79.90
+            precoUnitario: 84.90
           }
         ];
       }
@@ -10415,7 +10483,7 @@
             codigo: "CÓD. 34",
             imagem: "assets/produtos/filamentos/masterprint-pla-preto.jpg",
             qtd: 1,
-            precoUnitario: 79.90
+            precoUnitario: 84.90
           }
         ];
       }
@@ -10474,7 +10542,7 @@
     const totalUnidades = state.itensOrcamento.reduce((acc, it) => acc + (Number(it.qtd) || 0), 0);
 
     const itensRapidos = [
-      { nome: "PLA Masterprint (CÓD. 34)", cod: "CÓD. 34", preco: 79.90, full: "Filamento PLA Masterprint 1.75mm (1kg)" },
+      { nome: "PLA Masterprint (CÓD. 34)", cod: "CÓD. 34", preco: 84.90, full: "Filamento PLA Masterprint 1.75mm (1kg)" },
       { nome: "Bambu Lab PLA (CÓD. 137)", cod: "CÓD. 137", preco: 139.90, full: "Filamento Bambu Lab PLA Basic RFID (1kg)" },
       { nome: "Bambu Lab A1 Combo", cod: "BAMBU-02", preco: 4049.00, full: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)" },
       { nome: "Bambu Lab A1 Mini Combo", cod: "BAMBU-01", preco: 2980.00, full: "Impressora 3D Bambu Lab A1 Mini Combo" },
@@ -11293,7 +11361,7 @@
 
     // Chips de Acesso Rápido
     const listaRapida = [
-      { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 79.90 },
+      { nome: "Filamento PLA Masterprint 1.75mm (1kg)", cod: "CÓD. 34", preco: 84.90 },
       { nome: "Filamento Bambu Lab PLA Basic RFID (1kg)", cod: "CÓD. 137", preco: 139.90 },
       { nome: "Impressora 3D Bambu Lab A1 Combo (AMS Lite)", cod: "BAMBU-02", preco: 4049.00 },
       { nome: "Impressora 3D Bambu Lab A1 Mini Combo", cod: "BAMBU-01", preco: 2980.00 },
@@ -19581,19 +19649,43 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
     if (promoBar && sessionStorage.getItem("sj_promo_bar_closed") === "1") {
       promoBar.style.display = "none";
     } else if (promoBar && promoRotatorBtn && promoRotatorText) {
-      const avisosTopo = [
-        { html: 'Filamento PLA a partir de <strong>R$ 79,90</strong>', cat: "filamentos" },
-        { html: 'Frete grátis em Umuarama a partir de <strong>5 filamentos</strong>', cat: "filamentos" },
-        { html: 'Impressoras Bambu Lab a pronta entrega em <strong>até 10x</strong>', cat: "impressoras" },
-        { html: 'Revenda autorizada oficial <strong>Bambu Lab &amp; Masterprint</strong>', cat: "home" }
-      ];
+      const construirAvisosTopo = () => {
+        const minPla = typeof window._sjObterMenorPrecoFilamento === "function"
+          ? window._sjObterMenorPrecoFilamento("pla")
+          : "";
+        const minPetg = typeof window._sjObterMenorPrecoFilamento === "function"
+          ? window._sjObterMenorPrecoFilamento("petg")
+          : "";
+        const lista = [];
+        if (minPla) {
+          lista.push({ html: `PLA a partir de <strong>${escaparHtml(minPla)}</strong>`, cat: "filamentos" });
+        }
+        if (minPetg) {
+          lista.push({ html: `PETG a partir de <strong>${escaparHtml(minPetg)}</strong>`, cat: "filamentos" });
+        }
+        if (!lista.length) {
+          lista.push({ html: 'Filamentos PLA e PETG com <strong>pronta entrega</strong>', cat: "filamentos" });
+        }
+        lista.push({ html: 'Frete grátis em Umuarama a partir de <strong>5 filamentos</strong>', cat: "filamentos" });
+        lista.push({ html: 'Impressoras Bambu Lab a pronta entrega em <strong>até 10x</strong>', cat: "impressoras" });
+        lista.push({ html: 'Revenda autorizada oficial <strong>Bambu Lab &amp; Masterprint</strong>', cat: "home" });
+        return lista;
+      };
+
+      let avisosTopo = construirAvisosTopo();
       let idxAviso = 0;
       let timerAviso = null;
       let pausado = false;
 
-      const aplicarAviso = (novoIdx) => {
+      const aplicarAviso = (novoIdx, imediato = false) => {
+        avisosTopo = construirAvisosTopo();
         idxAviso = (novoIdx + avisosTopo.length) % avisosTopo.length;
         const av = avisosTopo[idxAviso];
+        if (imediato) {
+          promoRotatorText.innerHTML = av.html;
+          promoRotatorBtn.dataset.navCat = av.cat;
+          return;
+        }
         promoRotatorText.classList.add("is-fading");
         setTimeout(() => {
           promoRotatorText.innerHTML = av.html;
@@ -19601,6 +19693,10 @@ Agradecemos a confiança! Ficamos à disposição para esclarecimentos e fechame
           promoRotatorText.classList.remove("is-fading");
         }, 160);
       };
+
+      // Atualiza imediatamente ao carregar o catálogo e em qualquer mudança via Realtime
+      window._sjAtualizarAvisosTopo = () => aplicarAviso(idxAviso, true);
+      aplicarAviso(0, true);
 
       const iniciarRotacaoAvisos = () => {
         if (timerAviso) clearInterval(timerAviso);
