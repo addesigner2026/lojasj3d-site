@@ -7824,7 +7824,6 @@
                     ${b.desktopWebp ? `<source srcset="${escaparHtml(b.desktopWebp)} 1920w" sizes="100vw" type="image/webp" />` : ""}
                     <img
                       src="${escaparHtml(b.desktopPng)}"
-                      ${b.mobilePng && b.desktopPng && b.mobilePng !== b.desktopPng ? `srcset="${escaparHtml(b.mobilePng)} 960w, ${escaparHtml(b.desktopPng)} 1280w" sizes="(max-width: 768px) 100vw, 1280px"` : ""}
                       alt="${escaparHtml(b.titulo)}"
                       width="1920"
                       height="640"

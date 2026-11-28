@@ -1,0 +1,5 @@
+BANNERS MOBILE — LOJA SJ
+9 banners individuais, 1080 × 1350 px.
+Layout adaptado para celular, com os mesmos produtos e preços dos banners desktop.
+Usar WEBP para o site; PNG para arquivo e revisão.
+Os botões são elementos gráficos; configure o link no painel do site.
